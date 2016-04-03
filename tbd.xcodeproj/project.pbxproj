@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B70BD8091CAF6C6D00B68C40 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B70BD8081CAF6C6D00B68C40 /* main.cpp */; };
-		B77DFBAA1CB110B700A330E4 /* Output.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = B77DFBA91CB110B700A330E4 /* Output.tbd */; };
+		B77DFBAC1CB11A0E00A330E4 /* Output.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = B77DFBAB1CB11A0E00A330E4 /* Output.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,7 +26,7 @@
 /* Begin PBXFileReference section */
 		B70BD8051CAF6C6D00B68C40 /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		B70BD8081CAF6C6D00B68C40 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		B77DFBA91CB110B700A330E4 /* Output.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = Output.tbd; path = ../../../Output.tbd; sourceTree = "<group>"; };
+		B77DFBAB1CB11A0E00A330E4 /* Output.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = Output.tbd; path = ../../../Output.tbd; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,7 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B77DFBAA1CB110B700A330E4 /* Output.tbd in Frameworks */,
+				B77DFBAC1CB11A0E00A330E4 /* Output.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,7 +44,7 @@
 		B70BD7FC1CAF6C6D00B68C40 = {
 			isa = PBXGroup;
 			children = (
-				B77DFBA91CB110B700A330E4 /* Output.tbd */,
+				B77DFBAB1CB11A0E00A330E4 /* Output.tbd */,
 				B70BD8071CAF6C6D00B68C40 /* tbd */,
 				B70BD8061CAF6C6D00B68C40 /* Products */,
 			);

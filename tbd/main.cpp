@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <string.h>
 #include <iostream>
+#include <string>
 #include <locale>
 #include <vector>
 #include <map>
@@ -35,7 +36,7 @@ bool bits64 = false;
 bool fatBits = false;
 bool bigEndian = false;
 
-//extern "C" void macho_get_segment_by_name_64();
+extern "C" void macho_get_segment_by_name_64();
 
 uint32_t swap(uint32_t value) {
     if (bigEndian) {
@@ -580,10 +581,6 @@ int main(int argc, const char * argv[]) {
                     continue;
                 }
                 
-                if (nl.n_desc < 1) {
-                    continue;
-                }
-                
                 std::string name = &strtab[swap(nl.n_un.n_strx)];
                 if (name == "<redacted>") {
                     continue;
@@ -597,7 +594,7 @@ int main(int argc, const char * argv[]) {
                         classes[name].push_back(it->first);
                     }
                 } else if (strstr(name.c_str(), "_OBJC_IVAR_$") == name.c_str()) {
-                    name = name.substr(strlen("_OBJC_IVAR_$") + 1, name.length());
+                    name = name.substr(strlen("_OBJC_IVAR_$"), name.length());
                     if (ivars.find(name) == classes.end()) {
                         ivars.insert(ivars.end(), std::pair<std::string, std::vector<const NXArchInfo *>>(name, {archInfos[0]}));
                     } else {
@@ -606,6 +603,10 @@ int main(int argc, const char * argv[]) {
                 } else if (strstr(name.c_str(), "_OBJC_METACLASS_$") == name.c_str()) {
                     
                 } else {
+                    if (nl.n_desc == 0) {
+                        continue;
+                    }
+                    
                     if (nl.n_desc & N_WEAK_REF) {
                         if (weak.find(name) == weak.end()) {
                             weak.insert(weak.end(), std::pair<std::string, std::vector<const NXArchInfo *>>(name, {archInfos[0]}));
