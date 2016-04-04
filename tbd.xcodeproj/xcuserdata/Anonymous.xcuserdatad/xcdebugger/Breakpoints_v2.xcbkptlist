@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "319"
-            endingLineNumber = "319"
+            startingLineNumber = "569"
+            endingLineNumber = "569"
             landmarkName = "main(int argc, const char * argv[])"
             landmarkType = "7">
          </BreakpointContent>
@@ -26,12 +26,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "96"
-            endingLineNumber = "96"
-            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;std::string, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;std::string, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;std::string, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;std::string, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::vector&lt;std::string&gt; reexports)"
+            startingLineNumber = "150"
+            endingLineNumber = "150"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -42,11 +42,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402563.29778"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "630"
-            endingLineNumber = "630"
+            startingLineNumber = "890"
+            endingLineNumber = "890"
             landmarkName = "main(int argc, const char * argv[])"
             landmarkType = "7">
          </BreakpointContent>
@@ -58,11 +58,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "429"
-            endingLineNumber = "429"
+            startingLineNumber = "688"
+            endingLineNumber = "688"
             landmarkName = "main(int argc, const char * argv[])"
             landmarkType = "7">
          </BreakpointContent>
@@ -74,27 +74,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "597"
-            endingLineNumber = "597"
-            landmarkName = "main(int argc, const char * argv[])"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "590"
-            endingLineNumber = "590"
+            startingLineNumber = "557"
+            endingLineNumber = "557"
             landmarkName = "main(int argc, const char * argv[])"
             landmarkType = "7">
          </BreakpointContent>
@@ -106,11 +90,455 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tbd/main.cpp"
-            timestampString = "481402418.753404"
+            timestampString = "481440622.318016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "307"
-            endingLineNumber = "307"
+            startingLineNumber = "556"
+            endingLineNumber = "556"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "85"
+            endingLineNumber = "85">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "694"
+            endingLineNumber = "694"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "687"
+            endingLineNumber = "687"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "86"
+            endingLineNumber = "86">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "739"
+            endingLineNumber = "739"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "691"
+            endingLineNumber = "691"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "366"
+            endingLineNumber = "366"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "379"
+            endingLineNumber = "379"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "261"
+            endingLineNumber = "261"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481433489.643107"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "259"
+                  endingLineNumber = "259"
+                  offsetFromSymbolStart = "25715">
+               </Location>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481433489.643254"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "259"
+                  endingLineNumber = "259"
+                  offsetFromSymbolStart = "26118">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "353"
+            endingLineNumber = "353"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481434750.661425"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "350"
+                  endingLineNumber = "350"
+                  offsetFromSymbolStart = "41507">
+               </Location>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481434750.661548"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "350"
+                  endingLineNumber = "350"
+                  offsetFromSymbolStart = "41910">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "279"
+            endingLineNumber = "279"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481437507.937628"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "278"
+                  endingLineNumber = "278"
+                  offsetFromSymbolStart = "29051">
+               </Location>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::vector&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::allocator&lt;std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481437507.937843"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "278"
+                  endingLineNumber = "278"
+                  offsetFromSymbolStart = "29674">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "279"
+            endingLineNumber = "279"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481438713.865597"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "278"
+                  endingLineNumber = "278"
+                  offsetFromSymbolStart = "29287">
+               </Location>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "print_yaml(void*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_ostream&lt;char, std::__1::char_traits&lt;char&gt; &gt;&amp;, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::map&lt;NXArchInfo const*, dylib_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, dylib_command*&gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, symtab_command*, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, symtab_command*&gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;Symbol*, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt;, std::__1::less&lt;Symbol*&gt;, std::__1::allocator&lt;std::__1::pair&lt;Symbol* const, std::__1::vector&lt;NXArchInfo const*, std::__1::allocator&lt;NXArchInfo const*&gt; &gt; &gt; &gt; &gt;, std::__1::map&lt;NXArchInfo const*, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::less&lt;NXArchInfo const*&gt;, std::__1::allocator&lt;std::__1::pair&lt;NXArchInfo const* const, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; &gt; &gt; &gt;)"
+                  moduleName = "tbd"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/RickHaks/Documents/Projects/Dev%20Stuff/tbd/tbd/main.cpp"
+                  timestampString = "481438713.865985"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "278"
+                  endingLineNumber = "278"
+                  offsetFromSymbolStart = "29910">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "425"
+            endingLineNumber = "425"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "805"
+            endingLineNumber = "805"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "749"
+            endingLineNumber = "749"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "751"
+            endingLineNumber = "751"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "803"
+            endingLineNumber = "803"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "709"
+            endingLineNumber = "709"
+            landmarkName = "main(int argc, const char * argv[])"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "369"
+            endingLineNumber = "369"
+            landmarkName = "print_yaml(void *base, std::string platform, std::ostream&amp; stream, std::vector&lt;const NXArchInfo *&gt; archInfos, std::map&lt;const NXArchInfo *, struct dylib_command *&gt; dylibs, std::map&lt;const NXArchInfo *, struct symtab_command *&gt; symtabs, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; symbols, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; classes, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; ivars, std::map&lt;Symbol *, std::vector&lt;const NXArchInfo *&gt;&gt; weak, std::map&lt;const NXArchInfo *, std::string&gt; reexports)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "tbd/main.cpp"
+            timestampString = "481440622.318016"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "601"
+            endingLineNumber = "601"
             landmarkName = "main(int argc, const char * argv[])"
             landmarkType = "7">
          </BreakpointContent>
