@@ -64,6 +64,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "/Users/RickHaks/Documents/Foundation"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/RickHaks/Documents/UIKitStuff/libraries/System/Library/Frameworks/UIKit.framework/UIKit"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

@@ -146,6 +146,9 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
     std::ostringstream current_vers;
     current_vers << (swap(dylib->dylib.current_version) >> 16) << "." << ((swap(dylib->dylib.current_version) >> 8) & 0xff << swap(dylib->dylib.current_version) & 0xff);
     
+    std::ostringstream compatibility_vers;
+    compatibility_vers << (swap(dylib->dylib.compatibility_version) >> 16) << "." << ((swap(dylib->dylib.compatibility_version) >> 8) & 0xff << swap(dylib->dylib.compatibility_version) & 0xff);
+    
     for (std::map<const NXArchInfo *, struct dylib_command *>::iterator iterator = dylibs.begin(); iterator != dylibs.end(); iterator++) {
         const char *installname = (const char *)((uintptr_t)iterator->second + iterator->second->dylib.name.offset);
         struct dylib_command *dylib = iterator->second;
@@ -153,11 +156,17 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
         std::ostringstream currentvers;
         currentvers << (swap(dylib->dylib.current_version) >> 16) << "." << ((swap(dylib->dylib.current_version) >> 8) & 0xff << swap(dylib->dylib.current_version) & 0xff);
         
+        std::ostringstream compatibilityvers;
+        compatibilityvers << (swap(dylib->dylib.compatibility_version) >> 16) << "." << ((swap(dylib->dylib.compatibility_version) >> 8) & 0xff << swap(dylib->dylib.compatibility_version) & 0xff);
+        
         if (strcmp(install_name, installname) != 0) {
             std::cout << error("Architecture " << installname << " does not have the same install-name as Architecture " << archInfos[0]->name);
             return -1;
         } else if (strcmp(current_vers.str().c_str(), currentvers.str().c_str()) != 0) {
             std::cout << error("Architecture " << installname << " does not have the same version as Architecture " << archInfos[0]->name);
+            return -1;
+        } else if (strcmp(compatibility_vers.str().c_str(), compatibilityvers.str().c_str()) != 0) {
+            std::cout << error("Architecture " << installname << " does not have the same compatibility version as Architecture " << archInfos[0]->name);
             return -1;
         }
     }
@@ -165,7 +174,9 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
     stream << " ]" << std::endl << "platform:        " << platform << std::endl;
     
     stream << "install-name:    " << install_name << std::endl;
-    stream << "current-version: " << current_vers.str().c_str() << std::endl;
+    stream << "current-version: " << current_vers.str() << std::endl;
+    stream << "compatibility-version: " << compatibility_vers.str() << std::endl;
+    
     stream << "exports:" << std::endl;
     
     std::map<std::vector<std::string>, std::vector<std::vector<std::string>>> arch_sections;
@@ -174,22 +185,30 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
         stream << "  - archs:           [ " << archInfos[0]->name << " ]" << std::endl;
         
         if (!reexports.empty()) {
-            stream << "    re-exports:      [ " << reexports[0];
+            stream << "    re-exports:      [ " << reexports.begin()->second;
+            reexports.erase(reexports.begin());
+            
             for (auto const& reexport : reexports) {
-                if (reexport.second == reexports[0]) continue;
-                stream << ", " << reexport.second << std::endl;
+                stream << ", " << reexport.second;
             }
+            
+            stream << " ]" << std::endl;
         }
         
         if (!symbols.empty()) {
-            stream << "    symbols:         [ " << symbols.begin()->first->name;
+            std::string name = symbols.begin()->first->name;
+            if (name.find("$ld$") == 0) { //prefix
+                name = name.insert(0, "\'");
+                name = name.insert(name.length(), "\'");
+            }
+            
+            stream << "    symbols:         [ " << name;
+            symbols.erase(symbols.begin());
             
             size_t currLength = symbols.begin()->first->name.length();
             const size_t maxLength = 80;
 
             for (auto const &it : symbols) {
-                if (it == *symbols.begin()) continue;
-                
                 if ((currLength + it.first->name.length()) >= maxLength) {
                     stream << ", " << std::endl << "                       ";
                     currLength = 0;
@@ -198,6 +217,13 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
                     currLength += strlen(", ");
                 }
                 
+                name = it.first->name;
+                if (name.find("$ld$") == 0) { //prefix
+                    name = name.insert(0, "\'");
+                    name = name.insert(name.length(), "\'");
+                }
+  
+                stream << name;
                 currLength += (it.first->name.length());
             }
             
@@ -205,7 +231,7 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
         }
         
         if (!classes.empty()) {
-            stream << "    objc-classes:    [ " << classes.begin()->first->name;
+            stream << "    objc-classes:    [ " << classes.begin()->first->name.substr(strlen("_OBJC_CLASS_$"), classes.begin()->first->name.length());
             
             size_t currLength = classes.begin()->first->name.length();
             const size_t maxLength = 80;
@@ -229,7 +255,7 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
         }
         
         if (!ivars.empty()) {
-            stream << "    objc-ivars:      [ " << ivars.begin()->first->name;
+            stream << "    objc-ivars:      [ " << ivars.begin()->first->name.substr(strlen("_OBJC_IVAR_$"), ivars.begin()->first->name.length());
             
             size_t currLength = ivars.begin()->first->name.length();
             const size_t maxLength = 80;
@@ -376,7 +402,14 @@ int print_yaml(void *base, std::string platform, std::ostream& stream, std::vect
             }
             
             if (!section->symbols.empty()) {
-                stream << "    symbols:        [ " << section->symbols[0]->name;
+                std::string section0 = section->symbols[0]->name;
+                if (section0.find("$ld$") == 0) { //prefix
+                    section0 = section0.insert(0, "\'");
+                    section0 = section0.insert(section0.length(), "\'");
+                }
+                
+                stream << "    symbols:        [ " << section0;
+                section->symbols.erase(section->symbols.begin());
                 
                 size_t currLength = section->symbols[0]->name.length();
                 const size_t maxLength = 80;
@@ -724,7 +757,7 @@ int main(int argc, const char * argv[]) {
                             if (weak.find(symbol) != weak.end()) {
                                 weak.insert(weak.end(), std::pair<Symbol *, std::vector<const NXArchInfo *>>(symbol, {archInfos[i]}));
                             } else {
-                                ivars[symbol].push_back(it->first);
+                                weak[symbol].push_back(it->first);
                             }
                         } else {
                             if (symbols.find(symbol) != symbols.end()) {
