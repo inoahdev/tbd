@@ -618,7 +618,7 @@ String Ask(String question) noexcept {
 __dead2 void print_usage() noexcept {
     std::cout << "Usage: tbd [path-to-file] [(-v/--version)=v2] [-o/-output path-to-output]" << std::endl;
     std::cout << "Options:" << std::endl;
-    std::cout << "    -a, --archs,   Specify Architecture to use, instead of the ones in the binary. Seperate architectures with \",\". (ex. -archs=\"armv7, arm64\")" << std::endl;
+    std::cout << "    -a, --archs,   Specify Architecture(s) to use, instead of the ones in the binary. Seperate architectures with \",\". (ex. -archs=\"armv7, arm64\")" << std::endl;
     std::cout << "    -o, --output,  Output converted .tbd to a file" << std::endl;
     std::cout << "    -u, --usage,   Print this message" << std::endl;
     std::cout << "    -v, --version, Set version of tbd to convert to. Run --versions to see a list of available versions. (ex. -v=v1) \"v2\" is the default version" << std::endl;
@@ -648,7 +648,7 @@ int main(int argc, const char * argv[]) noexcept {
         }
         
         print_usage();
-    } else if (arg1.caseInsensitiveCompare("--version") == 0) {
+    } else if (arg1.caseInsensitiveCompare("--versions") == 0) {
         if (argc > 2) {
             error("Too many arguments provided");
         }
@@ -718,7 +718,12 @@ int main(int argc, const char * argv[]) noexcept {
                 //use current directory + arg1 to make a path object
                 char *buf = new char[4096];
                 if (!getcwd(buf, 4096)) {
-                    error("Unable to get the current working directory. Is the directory deleted?");
+                    error("Unable to get the current working directory. Is the directory deleted? (getcwd(buf, 4096) returned null)");
+                }
+                
+                String::Size len = strlen(buf);
+                if (buf[len - 1] != '/') {
+                    path.insert(0, 1, '/');
                 }
                 
                 path.insert(0, buf);
