@@ -1,7 +1,7 @@
 # tbd
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 ```
-Usage: Usage: tbd [path-to-file] [(-v/--version)=v2] [(-a/-archs)="armv7, arm64"], [-o/-output path-to-output]
+Usage: tbd [path-to-file] [(-v/--version)=v2] [(-a/-archs)="armv7, arm64"], [-o/-output path-to-output]
 Options:
     -a, --archs,   Specify Architecture to use, instead of the ones in the binary. Seperate architectures with ",". (ex. -archs="armv7, arm64")
     -o, --output,  Output converted .tbd to a file
