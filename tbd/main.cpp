@@ -234,6 +234,10 @@ public:
         }
     }
     
+    ~Group() {
+        printf("");
+    }
+    
     inline void addSymbol(Symbol symbol) noexcept {
         if (std::find(symbols_.begin(), symbols_.end(), symbol) == symbols_.end())
             symbols_.push_back(symbol);
@@ -955,6 +959,8 @@ int main(int argc, const char * argv[]) noexcept {
             
             counter++;
         }
+        
+        archInfos.push_back(archInfo);
     } else {
         error("Only Mach-O Files are supported");
     }
@@ -973,7 +979,7 @@ int main(int argc, const char * argv[]) noexcept {
             }
         }
     } else {
-        symbolGroups.push_back(Group(archInfos));
+        symbolGroups.emplace_back(archInfos);
         
         for (std::vector<Symbol>::const_iterator it = symbols.begin(); it != symbols.end(); it++) {
             symbolGroups.begin()->addSymbol(*it);
