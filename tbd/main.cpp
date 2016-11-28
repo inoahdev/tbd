@@ -234,10 +234,6 @@ public:
         }
     }
     
-    ~Group() {
-        printf("");
-    }
-    
     inline void addSymbol(Symbol symbol) noexcept {
         if (std::find(symbols_.begin(), symbols_.end(), symbol) == symbols_.end())
             symbols_.push_back(symbol);
