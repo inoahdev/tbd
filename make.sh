@@ -28,8 +28,8 @@ if [ "$type" == "build" ]; then
     fi
 
     if [ $should_log = true ]; then
-        clang++ -std=c++14 -stdlib=libc++ src/main.cc -o build/tbd
+        clang++ -std=c++14 -stdlib=libc++ src/main.cc $build_flag -o build/tbd
     else
-        clang++ -std=c++14 -stdlib=libc++ src/main.cc -o build/tbd -o >/dev/null 2>/dev/null
+        clang++ -std=c++14 -stdlib=libc++ src/main.cc $build_flag -o build/tbd -o >/dev/null 2>/dev/null
     fi
 fi
