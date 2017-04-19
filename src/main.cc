@@ -29,7 +29,7 @@ inline void swap_value(uint32_t *value) noexcept {
 
 class macho_container {
 public:
-    explicit macho_container(FILE *file, long macho_base)
+    explicit macho_container(FILE *file, const long &macho_base)
     : file_(file), macho_base_(macho_base) {
         const auto position = ftell(file);
         fseek(file, 0, SEEK_END);
@@ -40,12 +40,12 @@ public:
         this->validate();
     }
 
-    explicit macho_container(FILE *file, long macho_base, const struct fat_arch &architecture)
+    explicit macho_container(FILE *file, const long &macho_base, const struct fat_arch &architecture)
     : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size) {
         this->validate();
     }
 
-    explicit macho_container(FILE *file, long macho_base, const struct fat_arch_64 &architecture)
+    explicit macho_container(FILE *file, const long &macho_base, const struct fat_arch_64 &architecture)
     : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size) {
         this->validate();
     }
@@ -56,7 +56,7 @@ public:
         }
     }
 
-    auto iterate_load_commands(std::function<bool(const struct load_command *load_cmd)> callback) noexcept {
+    auto iterate_load_commands(const std::function<bool(const struct load_command *load_cmd)> &callback) noexcept {
         auto base = this->base() + sizeof(struct mach_header);
         const auto position = ftell(file_);
 
@@ -456,8 +456,8 @@ public:
 
     inline const bool weak() const noexcept { return weak_; }
 
-    const std::string &string() const noexcept { return string_; }
-    const std::vector<const NXArchInfo *> architecture_infos() const noexcept { return architecture_infos_; }
+    inline const std::string &string() const noexcept { return string_; }
+    inline const std::vector<const NXArchInfo *> architecture_infos() const noexcept { return architecture_infos_; }
 
     inline const bool operator==(const std::string &string) const noexcept { return string_ == string; }
     inline const bool operator==(const symbol &symbol) const noexcept { return string_ == symbol.string_; }
@@ -893,7 +893,7 @@ int main(int argc, const char *argv[]) noexcept {
                 if (symbols_iter != symbols.end()) {
                     symbols_iter->add_architecture_info(macho_container_architecture_info);
                 } else {
-                    symbols.emplace_back(symbol_string);
+                    symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF);
                     symbols.back().add_architecture_info(macho_container_architecture_info);
                 }
 
