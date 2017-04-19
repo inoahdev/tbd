@@ -515,7 +515,7 @@ void print_usage() noexcept {
 
 int main(int argc, const char *argv[]) noexcept {
     if (argc < 2) {
-        fputs("Please run -h or -u to see a list of options", stderr);
+        fputs("Please run -h or -u to see a list of options\n", stderr);
         return 1;
     }
 
