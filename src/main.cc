@@ -501,11 +501,11 @@ private:
 };
 
 void print_usage() noexcept {
-    fprintf(stdout, "Usage: tbd [-p file-paths] [-v/--version v2] [-o/-output output-paths-or-stdout]\n");
+    fprintf(stdout, "Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n");
     fprintf(stdout, "Options:\n");
     fprintf(stdout, "    -a, --archs,   Specify Architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n");
     fprintf(stdout, "    -h, --help,    Print this message\n");
-    fprintf(stdout, "    -o, --output,  Output converted .tbd to file(s). If provided file already exists, contents will get overrided\n");
+    fprintf(stdout, "    -o, --output,  Path(s) for output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided\n");
     fprintf(stdout, "    -p, --path,    Path(s) to mach-o file(s) to convert to a .tbd\n");
     fprintf(stdout, "    -u, --usage,   Print this message\n");
     fprintf(stdout, "    -v, --version, Set version of tbd to convert to. Run --versions to see a list of available versions. (ex. -v v1), v2 is the default version\n");
