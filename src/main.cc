@@ -20,17 +20,23 @@
 #include <string>
 #include <vector>
 
+#include <dirent.h>
+#include <fcntl.h>
 #include <unistd.h>
 
-inline void swap_value(uint32_t *value) noexcept {
-    *value = ((*value >> 8) & 0x00ff00ff) | ((*value << 8) & 0xff00ff00);
-    *value = ((*value >> 16) & 0x0000ffff) | ((*value << 16) & 0xffff0000);
+inline auto &swap_value(uint32_t *value_ptr) noexcept {
+    auto &value = *value_ptr;
+
+    value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
+    value = ((value >> 16) & 0x0000ffff) | ((value << 16) & 0xffff0000);
+
+    return value;
 }
 
 class macho_container {
 public:
     explicit macho_container(FILE *file, const long &macho_base)
-    : file_(file), macho_base_(macho_base) {
+    : file_(file), macho_base_(macho_base), is_architecture_(false) {
         const auto position = ftell(file);
         fseek(file, 0, SEEK_END);
 
@@ -41,122 +47,97 @@ public:
     }
 
     explicit macho_container(FILE *file, const long &macho_base, const struct fat_arch &architecture)
-    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size) {
+    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
 
     explicit macho_container(FILE *file, const long &macho_base, const struct fat_arch_64 &architecture)
-    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size) {
+    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
 
     ~macho_container() {
-        for (struct load_command *load_command : cached_) {
-            delete load_command;
+        if (cached_) {
+            delete cached_;
         }
     }
 
     auto iterate_load_commands(const std::function<bool(const struct load_command *load_cmd)> &callback) noexcept {
-        auto base = this->base() + sizeof(struct mach_header);
-        const auto position = ftell(file_);
-
-        if (this->is_64_bit()) {
-            base += sizeof(uint32_t);
-        }
-
-        auto ncmds = header_.ncmds;
+        const auto &ncmds = header_.ncmds;
         const auto &sizeofcmds = header_.sizeofcmds;
 
-        auto finished = false;
-        if (cached_.size() != 0) {
-            for (struct load_command *load_command : cached_) {
-                auto result = callback(load_command);
+        if (!cached_) {
+            cached_ = new char[header_.sizeofcmds];
 
-                base += load_command->cmdsize;
-                ncmds--;
-
-                if (!result) {
-                    finished = true;
-                    break;
-                }
+            auto base = this->base() + sizeof(struct mach_header);
+            if (this->is_64_bit()) {
+                base += sizeof(uint32_t);
             }
-        } else {
-            cached_.reserve(ncmds);
+
+            const auto position = ftell(file_);
+
+            fseek(file_, base, SEEK_SET);
+            fread(cached_, header_.sizeofcmds, 1, file_);
+
+            fseek(file_, position, SEEK_SET);
         }
 
-        if (!finished) {
-            if (ncmds != 0) {
-                fseek(file_, base, SEEK_SET);
+        auto size_used = 0;
+        auto index = 0;
+
+        for (auto i = 0; i < ncmds; i++) {
+            auto load_cmd = (struct load_command *)&((char *)cached_)[index];
+            if (should_swap_ && !swapped_cache) {
+                swap_load_command(load_cmd, NX_LittleEndian);
             }
 
-            auto size_used = 0;
-            for (auto i = 0; i < ncmds; i++) {
-                struct load_command load_cmd;
-                fread(&load_cmd, sizeof(struct load_command), 1, file_);
-
-                if (should_swap_) {
-                    swap_load_command(&load_cmd, NX_LittleEndian);
+            const auto &cmdsize = load_cmd->cmdsize;
+            if (cmdsize < sizeof(struct load_command)) {
+                if (is_architecture_) {
+                    fprintf(stderr, "Load-command (at index %d) of architecture is too small to be valid", i);
+                } else {
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file is too small to be valid", i);
                 }
 
-                const auto &cmdsize = load_cmd.cmdsize;
-                if (cmdsize < sizeof(struct load_command)) {
-                    if (base != 0) {
-                        fprintf(stderr, "Load-command (at index %d) of architecture (at base 0x%.8lX) is too small to be valid", i, base);
-                    } else {
-                        fprintf(stderr, "Load-command (at index %d) of mach-o file is too small to be valid", i);
-                    }
-
-                    exit(1);
-                }
-
-                if (cmdsize >= sizeofcmds) {
-                    if (base != 0) {
-                        fprintf(stderr, "Load-command (at index %d) of architecture (at base 0x%.8lX) is larger than/or equal to entire area allocated for load-commands", i, base);
-                    } else {
-                        fprintf(stderr, "Load-command (at index %d) of mach-o file is larger than/or equal to entire area allocated for load-commands", i);
-                    }
-
-                    exit(1);
-                }
-
-                size_used += cmdsize;
-                if (size_used > sizeofcmds) {
-                    if (base != 0) {
-                        fprintf(stderr, "Load-command (at index %d) of architecture (at base 0x%.8lX) goes past end of area allocated for load-commands", i, base);
-                    } else {
-                        fprintf(stderr, "Load-command (at index %d) of mach-o file goes past end of area allocated for load-commands", i);
-                    }
-
-                    exit(1);
-                } else if (size_used == sizeofcmds && i != ncmds - 1) {
-                    if (base != 0) {
-                        fprintf(stderr, "Load-command (at index %d) of architecture (at base 0x%.8lX) takes up all of the remaining space allocated for load-commands", i, base);
-                    } else {
-                        fprintf(stderr, "Load-command (at index %d) of mach-o file takes up all of the remaining space allocated for load-commands", i);
-                    }
-
-                    exit(1);
-                }
-
-                auto load_command = (struct load_command *)new char[cmdsize];
-
-                load_command->cmd = load_cmd.cmd;
-                load_command->cmdsize = cmdsize;
-
-                if (cmdsize > sizeof(struct load_command)) {
-                    fread(&((char *)load_command)[sizeof(struct load_command)], cmdsize - sizeof(struct load_command), 1, file_);
-                }
-
-                cached_.emplace_back(load_command);
-
-                auto result = callback(load_command);
-                if (result) {
-                    break;
-                }
+                exit(1);
             }
+
+            if (cmdsize >= sizeofcmds) {
+                if (is_architecture_) {
+                    fprintf(stderr, "Load-command (at index %d) of architecture is larger than/or equal to entire area allocated for load-commands", i);
+                } else {
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file is larger than/or equal to entire area allocated for load-commands", i);
+                }
+
+                exit(1);
+            }
+
+            size_used += cmdsize;
+            if (size_used > sizeofcmds) {
+                if (is_architecture_) {
+                    fprintf(stderr, "Load-command (at index %d) of architecture goes past end of area allocated for load-commands", i);
+                } else {
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file goes past end of area allocated for load-commands", i);
+                }
+
+                exit(1);
+            } else if (size_used == sizeofcmds && i != ncmds - 1) {
+                if (is_architecture_) {
+                    fprintf(stderr, "Load-command (at index %d) of architecture takes up all of the remaining space allocated for load-commands", i);
+                } else {
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file takes up all of the remaining space allocated for load-commands", i);
+                }
+
+                exit(1);
+            }
+
+            auto result = callback(load_cmd);
+            if (!result) {
+                break;
+            }
+
+            index += cmdsize;
         }
-
-        fseek(file_, position, SEEK_SET);
     }
 
     void iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback) noexcept {
@@ -178,8 +159,8 @@ public:
         });
 
         if (!symtab_command) {
-            if (base != 0) {
-                fputs("Architecture (at base 0x%.8lX) does not have a symbol-table", stderr);
+            if (is_architecture_) {
+                fputs("Architecture does not have a symbol-table", stderr);
             } else {
                 fputs("Mach-o file does not have a symbol-table", stderr);
             }
@@ -189,8 +170,8 @@ public:
 
         const auto &string_table_offset = symtab_command->stroff;
         if (string_table_offset > size_) {
-            if (base != 0) {
-                fputs("Architecture (at base 0x%.8lX) has a string-table outside of its container", stderr);
+            if (is_architecture_) {
+                fputs("Architecture has a string-table outside of its container", stderr);
             } else {
                 fputs("Mach-o file has a string-table outside of its container", stderr);
             }
@@ -200,8 +181,8 @@ public:
 
         const auto &string_table_size = symtab_command->strsize;
         if (string_table_offset + string_table_size > size_) {
-            if (base != 0) {
-                fputs("Architecture (at base 0x%.8lX) has a string-table that goes outside of its container", stderr);
+            if (is_architecture_) {
+                fputs("Architecture has a string-table that goes outside of its container", stderr);
             } else {
                 fputs("Mach-o file has a string-table that goes outside of its container", stderr);
             }
@@ -211,8 +192,8 @@ public:
 
         const auto &symbol_table_offset = symtab_command->symoff;
         if (symbol_table_offset > size_) {
-            if (base != 0) {
-                fputs("Architecture (at base 0x%.8lX) has a symbol-table that is outside of its container", stderr);
+            if (is_architecture_) {
+                fputs("Architecture has a symbol-table that is outside of its container", stderr);
             } else {
                 fputs("Mach-o file has a symbol-table that is outside of its container", stderr);
             }
@@ -231,7 +212,7 @@ public:
         if (this->is_64_bit()) {
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
-                if (base != 0) {
+                if (is_architecture_) {
                     fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container", stderr);
@@ -268,7 +249,7 @@ public:
         } else {
             const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
-                if (base != 0) {
+                if (is_architecture_) {
                     fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container", stderr);
@@ -310,16 +291,24 @@ public:
         delete[] string_table;
     }
 
+    inline uint32_t &swap_value(uint32_t &value) const noexcept {
+        if (should_swap_) {
+            ::swap_value(&value);
+        }
+
+        return value;
+    }
+
     inline const FILE *file() const noexcept { return file_; }
     inline const struct mach_header &header() const noexcept { return header_; }
 
-    inline bool should_swap() const noexcept { return should_swap_; }
+    inline const bool should_swap() const noexcept { return should_swap_; }
 
-    inline long base() const noexcept { return this->macho_base_ + this->base_; }
-    inline long size() const noexcept { return this->size_; }
+    inline const long base() const noexcept { return this->macho_base_ + this->base_; }
+    inline const long size() const noexcept { return this->size_; }
 
-    inline bool is_32_bit() const noexcept { return header_.magic == MH_MAGIC || header_.magic == MH_CIGAM; }
-    inline bool is_64_bit() const noexcept { return header_.magic == MH_MAGIC_64 || header_.magic == MH_CIGAM_64; }
+    inline const bool is_32_bit() const noexcept { return header_.magic == MH_MAGIC || header_.magic == MH_CIGAM; }
+    inline const bool is_64_bit() const noexcept { return header_.magic == MH_MAGIC_64 || header_.magic == MH_CIGAM_64; }
 
 private:
     FILE *file_;
@@ -329,9 +318,12 @@ private:
     long size_ = 0;
 
     struct mach_header header_;
+
+    bool is_architecture_;
     bool should_swap_ = false;
 
-    std::vector<struct load_command *> cached_;
+    char *cached_ = nullptr;
+    bool swapped_cache = false;
 
     void validate() {
         auto base = this->base();
@@ -376,11 +368,155 @@ public:
         fclose(file_);
     }
 
+    static bool is_valid_file(const std::string &path) noexcept {
+        auto descriptor = open(path.data(), O_RDONLY);
+        if (descriptor == -1) {
+            return false;
+        }
+
+        uint32_t magic;
+        read(descriptor, &magic, sizeof(uint32_t));
+
+        auto result = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64 || magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
+
+        close(descriptor);
+        return result;
+    }
+
+    static bool is_valid_library(const std::string &path) noexcept {
+        auto descriptor = open(path.data(), O_RDONLY);
+        if (descriptor == -1) {
+            return false;
+        }
+
+        uint32_t magic;
+        read(descriptor, &magic, sizeof(uint32_t));
+
+        auto has_library_command = [&](uint64_t base, const struct mach_header &header) {
+            auto should_swap = false;
+            if (header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64) {
+                lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
+
+            }
+
+            if (header.magic == MH_CIGAM_64 || header.magic == MH_CIGAM) {
+                should_swap = true;
+            }
+
+            const auto load_commands = new char[header.sizeofcmds];
+            read(descriptor, load_commands, header.sizeofcmds);
+
+            auto ncmds = header.ncmds;
+            auto index = 0;
+
+            auto size_left = header.sizeofcmds;
+
+            for (auto i = 0; i < ncmds; i++) {
+                const auto load_cmd = (struct load_command *)&load_commands[index];
+                if (should_swap) {
+                    swap_load_command(load_cmd, NX_LittleEndian);
+                }
+
+                if (load_cmd->cmd == LC_ID_DYLIB) {
+                    delete[] load_commands;
+                    return true;
+                }
+
+                auto cmdsize = load_cmd->cmdsize;
+                if (cmdsize < sizeof(struct load_command)) {
+                    fprintf(stderr, "Load-command (%d) is too small to be valid", i);
+                    exit(1);
+                } else if (cmdsize > size_left) {
+                    fprintf(stderr, "Load-command (%d) is larger than remaining space left for load commands", i);
+                    exit(1);
+                } else if (cmdsize == size_left && i != ncmds - 1) {
+                    fprintf(stderr, "Load-command (%d) takes up all the remaining space left for load commands", i);
+                    exit(1);
+                }
+
+                index += cmdsize;
+            }
+
+            return false;
+        };
+
+        if (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
+            uint32_t nfat_arch;
+            read(descriptor, &nfat_arch, sizeof(uint32_t));
+
+            if (magic == FAT_CIGAM_64) {
+                swap_value(&nfat_arch);
+            }
+
+            auto architectures = new struct fat_arch_64[nfat_arch];
+            read(descriptor, architectures, sizeof(struct fat_arch_64) * nfat_arch);
+
+            if (magic == FAT_CIGAM_64) {
+                swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
+            }
+
+            for (auto i = 0; i < nfat_arch; i++) {
+                const auto &architecture = architectures[i];
+                struct mach_header header;
+
+                lseek(descriptor, architecture.offset, SEEK_SET);
+                read(descriptor, &header, sizeof(struct mach_header));
+
+                if (!has_library_command(architecture.offset + sizeof(struct mach_header), header)) {
+                    close(descriptor);
+                    return false;
+                }
+            }
+        } else if (magic == FAT_MAGIC || magic == FAT_CIGAM) {
+            uint32_t nfat_arch;
+            read(descriptor, &nfat_arch, sizeof(uint32_t));
+
+            if (magic == FAT_CIGAM) {
+                swap_value(&nfat_arch);
+            }
+
+            auto architectures = new struct fat_arch[nfat_arch];
+            read(descriptor, architectures, sizeof(struct fat_arch) * nfat_arch);
+
+            if (magic == FAT_CIGAM) {
+                swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
+            }
+
+            for (auto i = 0; i < nfat_arch; i++) {
+                const auto &architecture = architectures[i];
+                struct mach_header header;
+
+                lseek(descriptor, architecture.offset, SEEK_SET);
+                read(descriptor, &header, sizeof(struct mach_header));
+
+                if (!has_library_command(architecture.offset + sizeof(struct mach_header), header)) {
+                    close(descriptor);
+                    return false;
+                }
+            }
+        } else if (magic == MH_MAGIC_64 || magic == MH_CIGAM_64 || magic == MH_MAGIC || magic == MH_CIGAM) {
+            struct mach_header header;
+            header.magic = magic;
+
+            read(descriptor, &header.cputype, sizeof(struct mach_header) - sizeof(uint32_t));
+            if (!has_library_command(sizeof(struct mach_header), header)) {
+                close(descriptor);
+                return false;
+            }
+        } else {
+            close(descriptor);
+            return false;
+        }
+
+        close(descriptor);
+        return true;
+    }
+
     inline const FILE *file() const noexcept { return file_; }
     inline std::vector<macho_container> &containers() noexcept { return containers_; }
 
-    inline bool is_thin() const noexcept { return magic_ == MH_MAGIC || magic_ == MH_CIGAM || magic_ == MH_MAGIC_64 || magic_ == MH_CIGAM_64; }
-    inline bool is_fat() const noexcept { return magic_ == FAT_MAGIC || magic_ == FAT_CIGAM || magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64; }
+    inline const bool is_thin() const noexcept { return magic_ == MH_MAGIC || magic_ == MH_CIGAM || magic_ == MH_MAGIC_64 || magic_ == MH_CIGAM_64; }
+    inline const bool is_fat() const noexcept { return magic_ == FAT_MAGIC || magic_ == FAT_CIGAM || magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64; }
 
 private:
     FILE *file_;
@@ -405,6 +541,7 @@ private:
                 swap_value(&nfat_arch);
             }
 
+            containers_.reserve(nfat_arch);
             if (magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64) {
                 const auto architectures = new struct fat_arch_64[nfat_arch];
                 fread(architectures, sizeof(struct fat_arch) * nfat_arch, 1, file_);
@@ -413,7 +550,6 @@ private:
                     swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
                 }
 
-                containers_.reserve(nfat_arch);
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
                     containers_.emplace_back(file_, 0, architecture);
@@ -428,7 +564,6 @@ private:
                     swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
                 }
 
-                containers_.reserve(nfat_arch);
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
                     containers_.emplace_back(file_, 0, architecture);
@@ -445,9 +580,42 @@ private:
     }
 };
 
+class path {
+public:
+    explicit path(const std::string &path)
+    : path_(path) {
+        this->validate();
+    }
+
+    inline const bool is_file() const noexcept { return S_ISREG(sbuf_.st_mode); }
+    inline const bool is_directory() const noexcept { return S_ISDIR(sbuf_.st_mode); }
+
+    inline const std::string &to_string() const noexcept { return path_; }
+    inline const struct stat &information() const noexcept { return sbuf_; }
+private:
+    std::string path_;
+    struct stat sbuf_;
+
+    void validate() {
+        const auto &path = this->path_;
+        const auto path_data = path.data();
+
+        if (access(path_data, F_OK) != 0) {
+            fprintf(stderr, "Object at path (%s) does not exist\n", path_data);
+            exit(1);
+        }
+
+        auto &sbuf = this->sbuf_;
+        if (stat(path_data, &sbuf) != 0) {
+            fprintf(stderr, "Failed to gather information on object at path (%s), failing with error (%s)\n", path_data, strerror(errno));
+            exit(1);
+        }
+    }
+};
+
 class symbol {
 public:
-    explicit symbol(const std::string &string, bool weak = false) noexcept
+    explicit symbol(const std::string &string, bool weak) noexcept
     : string_(string), weak_(weak) {}
 
     void add_architecture_info(const NXArchInfo *architecture_info) noexcept {
@@ -475,14 +643,16 @@ public:
     : architecture_infos_(architecture_infos) {}
 
     void add_symbol(const symbol &symbol) noexcept {
+        auto &symbols = this->symbols_;
         if (std::find(symbols_.begin(), symbols_.end(), symbol) == symbols_.end()) {
-            symbols_.emplace_back(symbol);
+            symbols.emplace_back(symbol);
         }
     }
 
     void add_reexport(const symbol &reexport) noexcept {
+        auto &reexports = this->reexports_;
         if (std::find(reexports_.begin(), reexports_.end(), reexport) == reexports_.end()) {
-            reexports_.emplace_back(reexport);
+            reexports.emplace_back(reexport);
         }
     }
 
@@ -500,30 +670,40 @@ private:
     std::vector<symbol> reexports_;
 };
 
-void print_usage() noexcept {
-    fprintf(stdout, "Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n");
-    fprintf(stdout, "Options:\n");
-    fprintf(stdout, "    -a, --archs,   Specify Architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n");
-    fprintf(stdout, "    -h, --help,    Print this message\n");
-    fprintf(stdout, "    -o, --output,  Path(s) for output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided\n");
-    fprintf(stdout, "    -p, --path,    Path(s) to mach-o file(s) to convert to a .tbd\n");
-    fprintf(stdout, "    -u, --usage,   Print this message\n");
-    fprintf(stdout, "    -v, --version, Set version of tbd to convert to. Run --versions to see a list of available versions. (ex. -v v1), v2 is the default version\n");
+void print_usage() {
+    fputs("Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n", stdout);
+    fputs("Main options:\n", stdout);
+    fputs("    -a, --archs,    Specify Architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
+    fputs("    -h, --help,     Print this message\n", stdout);
+    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide \"stdout\" to print to stdout\n", stdout);
+    fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd\n", stdout);
+    fputs("    -u, --usage,    Print this message\n", stdout);
+    fputs("    -v, --version,  Set version of tbd to convert to (default is v2)\n", stdout);
+
+    fputs("\n", stdout);
+    fputs("Extra options:\n", stdout);
+    fputs("        --platform, Specify platform for all mach-o files provided\n", stdout);
+    fputs("    -r, --recurse,  Specify directory to recurse and find mach-o files in. Use in conjunction with -p (ex. -p -r /path/to/directory)\n", stdout);
+    fputs("        --versions, Print a list of all valid tbd-versions\n", stdout);
 
     exit(0);
 }
 
-int main(int argc, const char *argv[]) noexcept {
+int main(int argc, const char *argv[]) {
     if (argc < 2) {
         fputs("Please run -h or -u to see a list of options\n", stderr);
         return 1;
     }
 
     auto architecture_infos = std::vector<const NXArchInfo *>();
-    auto macho_paths = std::vector<std::string>();
+
+    auto macho_paths = std::vector<path>();
     auto output_paths = std::vector<std::string>();
 
+    auto platform = std::string();
     auto tbd_version = 2;
+
+    const char *current_directory = nullptr;
 
     for (auto i = 1; i < argc; i++) {
         const auto &argument = argv[i];
@@ -580,23 +760,21 @@ int main(int argc, const char *argv[]) noexcept {
                 }
 
                 if (*path != '/' && strcmp(path, "stdout") != 0) {
-                    auto full_path = std::string(getcwd(nullptr, 0));
+                    if (!current_directory) {
+                        current_directory = getcwd(nullptr, 0);
+
+                        if (!current_directory) {
+                            fputs("Failed to get current-working-directory\n", stderr);
+                            return 1;
+                        }
+                    }
+
+                    auto full_path = std::string(current_directory);
                     if (full_path.back() != '/') {
                         full_path.append(1, '/');
                     }
 
                     full_path.append(path);
-
-                    const auto full_path_data = full_path.data();
-                    struct stat output_sbuf;
-
-                    if (stat(full_path_data, &output_sbuf) != 0) {
-                        if (!S_ISREG(output_sbuf.st_mode)) {
-                            fprintf(stderr, "Output file at path(%s) is not a regular file\n", full_path_data);
-                            return 1;
-                        }
-                    }
-
                     output_paths.emplace_back(full_path);
                 } else {
                     output_paths.emplace_back(path);
@@ -610,45 +788,75 @@ int main(int argc, const char *argv[]) noexcept {
                 return 1;
             }
 
+            auto is_recursive = false;
             for (i++; i < argc; i++) {
                 const auto &path = argv[i];
                 if (*path == '-') {
-                    break;
+                    if (strcmp(path, "-r") == 0 || strcmp(path, "--recurse") == 0) {
+                        is_recursive = true;
+                        continue;
+                    } else {
+                        break;
+                    }
                 }
 
                 if (*path != '/') {
-                    auto full_path = std::string(getcwd(nullptr, 0));
+                    if (!current_directory) {
+                        current_directory = getcwd(nullptr, 0);
+
+                        if (!current_directory) {
+                            fputs("Failed to get current-working-directory\n", stderr);
+                            return 1;
+                        }
+                    }
+
+                    auto full_path = std::string(current_directory);
                     if (full_path.back() != '/') {
                         full_path.append(1, '/');
                     }
 
                     full_path.append(path);
-
-                    const auto full_path_data = full_path.data();
-                    if (access(full_path_data, F_OK) != 0) {
-                        fprintf(stderr, "Mach-o file at path (%s) does not exist\n", full_path.data());
-                        return 1;
-                    }
-
-                    struct stat macho_sbuf;
-                    if (stat(full_path_data, &macho_sbuf) != 0) {
-                        fprintf(stderr, "Unable to get information on mach-o file at path (%s)\n", full_path_data);
-                        return 1;
-                    }
-
-                    if (!S_ISREG(macho_sbuf.st_mode)) {
-                        fprintf(stderr, "Mach-o file at path (%s) is not a regular file\n", full_path_data);
-                        return 1;
-                    }
-
                     macho_paths.emplace_back(full_path);
+
+                    const auto &macho_paths_back = macho_paths.back();
+                    const auto &macho_paths_back_string = macho_paths_back.to_string();
+
+                    if (macho_paths_back.is_directory() && !is_recursive) {
+                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", macho_paths_back_string.data());
+                        return 1;
+                    } else if (!macho_paths_back.is_file()) {
+                        fprintf(stderr, "Object at path (%s) is not a regular file\n", macho_paths_back_string.data());
+                        return 1;
+                    }
                 } else {
                     macho_paths.emplace_back(path);
                 }
+
+                is_recursive = false;
+            }
+
+            if (is_recursive) {
+                fputs("Please provide a path to a directory to recurse through\n", stderr);
+                return 1;
             }
 
             i--;
-        } else if (strcmp(option, "u") == 0 || strcmp(option, "usagae") == 0) {
+        } else if (strcmp(option, "platform") == 0) {
+            if (is_last_argument) {
+                fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
+                return 1;
+            }
+
+            i++;
+
+            const auto &platform_string = argv[i];
+            if (strcmp(platform_string, "ios") != 0 && strcmp(platform_string, "macos") != 0 && strcmp(platform_string, "watchos") != 0 && strcmp(platform_string, "tvos") != 0) {
+                fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
+                return 1;
+            }
+
+            platform = platform_string;
+        } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (i != 1 || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
                 return 1;
@@ -681,8 +889,11 @@ int main(int argc, const char *argv[]) noexcept {
                 return 1;
             }
 
-            fputs("v1\nv2\n", stdout);
+            fputs("v1\nv2 (default)\n", stdout);
             return 0;
+        } else {
+            fprintf(stderr, "Unrecognized argument: %s\n", argument);
+            return 1;
         }
     }
 
@@ -691,17 +902,135 @@ int main(int argc, const char *argv[]) noexcept {
         return 1;
     }
 
+    auto output_paths_index = 0;
+    auto macho_paths_end = macho_paths.end();
+
+    for (auto macho_paths_iter = macho_paths.begin(); macho_paths_iter != macho_paths_end;) {
+        auto &macho_path = *macho_paths_iter;
+        auto &macho_path_string = const_cast<std::string &>(macho_path.to_string());
+
+        auto output_path = std::string();
+        struct stat output_path_sbuf;
+
+        if (output_paths_index < output_paths.size()) {
+            output_path = output_paths.at(output_paths_index);
+
+            if (output_path == "stdout") {
+                fprintf(stderr, "Cannot output mach-o files from recursion directory at path (%s) to standard-out\n", macho_path_string.data());
+                return 1;
+            }
+
+            if (stat(output_path.data(), &output_path_sbuf) != 0) {
+                fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", output_path.data(), strerror(errno));
+                return 1;
+            }
+        }
+
+        if (macho_path.is_directory()) {
+            if (output_path.size() != 0 && S_ISDIR(output_path_sbuf.st_mode) != 0) {
+                fprintf(stderr, "Output path for recursive mach-o directory path (%s) is not a directory\n", output_path.data());
+                return 1;
+            }
+
+            if (output_path.size() != 0 && output_path.back() != '/') {
+                output_path.append(1, '/');
+            }
+
+            auto &directory_path = macho_path_string;
+            if (directory_path.back() != '/') {
+                directory_path.append(1, '/');
+            }
+
+            const auto directory = opendir(directory_path.data());
+            if (!directory) {
+                fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path.data(), strerror(errno));
+                return 1;
+            }
+
+            auto macho_files_from_recurse_directory = std::vector<std::string>();
+            std::function<void(DIR *, const std::string &)> loop_directory = [&](DIR *directory, const std::string &directory_path) {
+                auto directory_entry = readdir(directory);
+                while (directory_entry != nullptr) {
+                    if (directory_entry->d_type == DT_DIR) {
+                        if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
+                            strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
+                            directory_entry = readdir(directory);
+                            continue;
+                        }
+
+                        auto sub_directory_path = directory_path;
+
+                        sub_directory_path.append(directory_entry->d_name);
+                        sub_directory_path.append(1, '/');
+
+                        const auto sub_directory = opendir(sub_directory_path.data());
+                        if (!sub_directory) {
+                            fprintf(stderr, "Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                            exit(1);
+                        }
+
+                        loop_directory(sub_directory, sub_directory_path);
+                        closedir(sub_directory);
+                    } else if (directory_entry->d_type == DT_REG) {
+                        const auto &directory_entry_path = directory_path + directory_entry->d_name;
+
+                        if (macho_file::is_valid_library(directory_entry_path)) {
+                            macho_files_from_recurse_directory.emplace_back(directory_entry_path);
+                        }
+                    }
+
+                    directory_entry = readdir(directory);
+                }
+            };
+
+            loop_directory(directory, directory_path);
+            closedir(directory);
+
+            macho_paths_iter = macho_paths.erase(macho_paths_iter);
+            macho_paths_end = macho_paths.end();
+
+            output_paths.reserve(output_paths.size() + macho_files_from_recurse_directory.size());
+            for (const auto &macho_file_from_recurse_directory : macho_files_from_recurse_directory) {
+                macho_paths_iter = macho_paths.emplace(macho_paths_iter, macho_file_from_recurse_directory);
+                macho_paths_iter ++;
+
+                const auto macho_file_from_recurse_directory_pos = macho_file_from_recurse_directory.find_last_of('/');
+                if (macho_file_from_recurse_directory_pos != std::string::npos) {
+                    auto output_path_for_macho_file_from_recurse_directory = macho_file_from_recurse_directory.substr(macho_file_from_recurse_directory_pos + 1);
+
+                    if (output_path.size() != 0) {
+                        output_path_for_macho_file_from_recurse_directory.insert(0, output_path);
+                    } else {
+                        output_path_for_macho_file_from_recurse_directory.insert(0, macho_file_from_recurse_directory.substr(0, macho_file_from_recurse_directory_pos));
+                    }
+
+                    output_path_for_macho_file_from_recurse_directory.insert(macho_file_from_recurse_directory_pos, 1, '/');
+                    output_path_for_macho_file_from_recurse_directory.append(".tbd");
+
+                    output_paths.insert(output_paths.begin() + output_paths_index, output_path_for_macho_file_from_recurse_directory);
+                    output_paths_index++;
+                }
+            }
+
+            macho_paths_end = macho_paths.end();
+        } else {
+            macho_paths_iter++;
+        }
+    }
+
     if (tbd_version == 2 && architecture_infos.size()) {
         fputs("Cannot use custom architectures for tbd version v2. Specify version v1 to be able to do so\n", stderr);
         return 1;
     }
 
-    auto output_paths_index = 0;
+    output_paths_index = 0;
     for (const auto &macho_file_path : macho_paths) {
-        const auto macho_file_path_data = macho_file_path.data();
-        auto macho_file_object = macho_file(macho_file_path);
+        const auto &macho_file_path_string = macho_file_path.to_string();
+        const auto &macho_file_path_string_data = macho_file_path_string.data();
 
+        auto macho_file_object = macho_file(macho_file_path_string);
         auto output_file = stdout;
+
         if (output_paths_index < output_paths.size()) {
             const auto &output_file_path = output_paths.at(output_paths_index);
             const auto output_file_path_data = output_file_path.data();
@@ -710,14 +1039,14 @@ int main(int argc, const char *argv[]) noexcept {
                 struct stat output_sbuf;
                 if (stat(output_file_path_data, &output_sbuf) == 0) {
                     if (!S_ISREG(output_sbuf.st_mode)) {
-                        fprintf(stderr, "Path to output-file (%s) is not a regular file\n", output_file_path_data);
+                        fprintf(stderr, "Path to output-file (%s) is not a regular file, failing with error (%s)\n", output_file_path_data, strerror(errno));
                         return 1;
                     }
                 }
 
                 output_file = fopen(output_file_path_data, "w");
                 if (!output_file) {
-                    fprintf(stderr, "Failed to open/create file at path (%s) for writing (%s)\n", macho_file_path_data, strerror(errno));
+                    fprintf(stderr, "Failed to open/create file at path (%s) for writing, failing with error (%s)\n", output_file_path_data, strerror(errno));
                     return 1;
                 }
             }
@@ -781,7 +1110,7 @@ int main(int argc, const char *argv[]) noexcept {
                             swap_dylib_command(&id_dylib_command, NX_LittleEndian);
                         }
 
-                        const auto &id_dylib = ((struct dylib_command *)load_cmd)->dylib;
+                        const auto &id_dylib = id_dylib_command.dylib;
                         const auto &id_dylib_installation_name_string_index = id_dylib.name.offset;
 
                         if (id_dylib_installation_name_string_index > load_cmd->cmdsize) {
@@ -810,7 +1139,7 @@ int main(int argc, const char *argv[]) noexcept {
                             swap_dylib_command(&reexport_dylib_command, NX_LittleEndian);
                         }
 
-                        const auto &reexport_dylib = ((struct dylib_command *)load_cmd)->dylib;
+                        const auto &reexport_dylib = reexport_dylib_command.dylib;
                         const auto &reexport_dylib_string_index = reexport_dylib.name.offset;
 
                         if (reexport_dylib_string_index > load_cmd->cmdsize) {
@@ -824,7 +1153,7 @@ int main(int argc, const char *argv[]) noexcept {
                         if (reexports_iter != reexports.end()) {
                             reexports_iter->add_architecture_info(macho_container_architecture_info);
                         } else {
-                            reexports.emplace_back(reexport_dylib_string);
+                            reexports.emplace_back(reexport_dylib_string, false);
                         }
 
                         break;
@@ -849,7 +1178,7 @@ int main(int argc, const char *argv[]) noexcept {
                     }
                 }
 
-                return false;
+                return true;
             });
 
             if (local_installation_name.empty()) {
@@ -951,9 +1280,8 @@ int main(int argc, const char *argv[]) noexcept {
             return lhs_symbols_size < rhs_symbols_size;
         });
 
-        auto platform = std::string();
         while (platform.empty() || (platform != "ios" && platform != "macos" && platform != "watchos" && platform != "tvos")) {
-            std::cout << "Please provied a platform (ios, macos, watchos, or tvos): ";
+            fprintf(stdout, "Please provied a platform for file at path (%s) (ios, macos, watchos, or tvos): ", macho_file_path_string_data);
             getline(std::cin, platform);
         }
 
