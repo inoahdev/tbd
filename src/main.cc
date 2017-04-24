@@ -1366,7 +1366,6 @@ int main(int argc, const char *argv[]) {
                         parse_architectures(local_architectures, i);
 
                         i--;
-                        break;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
@@ -1518,17 +1517,22 @@ int main(int argc, const char *argv[]) {
                     version_tbd = &tbd_version;
                 }
 
+                if (tbd_architectures->size() != 0 && *version_tbd != 1) {
+                    fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
+                    return 1;
+                }
+
                 tbd.set_architectures(*tbd_architectures);
                 tbd.set_platform(::tbd::string_to_platform(tbd_platform->data()));
                 tbd.set_version(*(enum tbd::version *)version_tbd);
 
                 tbds.emplace_back(tbd);
-                is_recursive = false;
 
                 local_architectures.clear();
                 local_platform.clear();
 
                 local_tbd_version = 0;
+                is_recursive = false;
             }
 
             if (is_recursive || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
