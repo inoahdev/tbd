@@ -60,6 +60,10 @@ public:
         if (cached_) {
             delete cached_;
         }
+
+        if (string_table_) {
+            delete[] string_table_;
+        }
     }
 
     auto iterate_load_commands(const std::function<bool(const struct load_command *load_cmd)> &callback) noexcept {
@@ -201,12 +205,14 @@ public:
             exit(1);
         }
 
-        const auto string_table = new char[string_table_size];
+        if (!string_table_) {
+            string_table_ = new char[string_table_size];
+
+            fseek(file_, base + string_table_offset, SEEK_SET);
+            fread(string_table_, string_table_size, 1, file_);
+        }
+
         const auto &symbol_table_count = symtab_command->nsyms;
-
-        fseek(file_, base + string_table_offset, SEEK_SET);
-        fread(string_table, string_table_size, 1, file_);
-
         fseek(file_, base + symbol_table_offset, SEEK_SET);
 
         if (this->is_64_bit()) {
@@ -237,7 +243,7 @@ public:
                     exit(1);
                 }
 
-                const auto symbol_table_string_table_string = &string_table[symbol_table_entry_string_table_index];
+                const auto symbol_table_string_table_string = &string_table_[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry, symbol_table_string_table_string);
 
                 if (!result) {
@@ -276,7 +282,7 @@ public:
 
                 const struct nlist_64 symbol_table_entry_64 = { symbol_table_entry.n_un.n_strx, symbol_table_entry.n_type, symbol_table_entry.n_sect, (uint16_t)symbol_table_entry.n_desc, symbol_table_entry.n_value };
 
-                const auto symbol_table_string_table_string = &string_table[symbol_table_entry_string_table_index];
+                const auto symbol_table_string_table_string = &string_table_[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry_64, symbol_table_string_table_string);
 
                 if (!result) {
@@ -288,7 +294,6 @@ public:
         }
 
         fseek(file_, position, SEEK_SET);
-        delete[] string_table;
     }
 
     inline uint32_t &swap_value(uint32_t &value) const noexcept {
@@ -324,6 +329,8 @@ private:
 
     char *cached_ = nullptr;
     bool swapped_cache = false;
+
+    char *string_table_ = nullptr;
 
     void validate() {
         auto base = this->base();
@@ -580,39 +587,6 @@ private:
     }
 };
 
-class path {
-public:
-    explicit path(const std::string &path)
-    : path_(path) {
-        this->validate();
-    }
-
-    inline const bool is_file() const noexcept { return S_ISREG(sbuf_.st_mode); }
-    inline const bool is_directory() const noexcept { return S_ISDIR(sbuf_.st_mode); }
-
-    inline const std::string &to_string() const noexcept { return path_; }
-    inline const struct stat &information() const noexcept { return sbuf_; }
-private:
-    std::string path_;
-    struct stat sbuf_;
-
-    void validate() {
-        const auto &path = this->path_;
-        const auto path_data = path.data();
-
-        if (access(path_data, F_OK) != 0) {
-            fprintf(stderr, "Object at path (%s) does not exist\n", path_data);
-            exit(1);
-        }
-
-        auto &sbuf = this->sbuf_;
-        if (stat(path_data, &sbuf) != 0) {
-            fprintf(stderr, "Failed to gather information on object at path (%s), failing with error (%s)\n", path_data, strerror(errno));
-            exit(1);
-        }
-    }
-};
-
 class symbol {
 public:
     explicit symbol(const std::string &string, bool weak) noexcept
@@ -670,6 +644,531 @@ private:
     std::vector<symbol> reexports_;
 };
 
+class tbd {
+public:
+    enum platform {
+        ios,
+        macos,
+        watchos,
+        tvos
+    };
+
+    static const char *platform_to_string(const platform &platform) noexcept {
+        switch (platform) {
+            case ios:
+                return "ios";
+                break;
+
+            case macos:
+                return "macos";
+                break;
+
+            case watchos:
+                return "watchos";
+                break;
+
+            case tvos:
+                return "tvos";
+                break;
+
+            default:
+                return nullptr;
+        }
+    }
+
+    static platform string_to_platform(const char *platform) noexcept {
+        if (strcmp(platform, "ios") == 0) {
+            return platform::ios;
+        } else if (strcmp(platform, "macos") == 0) {
+            return platform::macos;
+        } else if (strcmp(platform, "watchos") == 0) {
+            return platform::watchos;
+        } else if (strcmp(platform, "tvos") == 0) {
+            return platform::tvos;
+        }
+
+        return (enum platform)-1;
+    }
+
+    enum class version {
+        v1 = 1,
+        v2
+    };
+
+    static version string_to_version(const char *version) noexcept {
+        if (strcmp(version, "v1") == 0) {
+            return version::v1;
+        } else if (strcmp(version, "v2") == 0) {
+            return version::v2;
+        }
+
+        return (enum version)-1;
+    }
+
+    explicit tbd() = default;
+    explicit tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const platform &platform, const version &version, const std::vector<const NXArchInfo *> &architecture_overrides = std::vector<const NXArchInfo *>())
+    : macho_files_(macho_files), output_files_(output_files), platform_(platform), version_(version), architectures_(architecture_overrides) {
+        this->validate();
+    }
+
+    void execute() {
+        auto output_path_index = 0;
+        for (const auto &macho_file_path : macho_files_) {
+            auto output_file = stdout;
+            if (output_path_index < output_files_.size()) {
+                const auto &output_path_string = output_files_.at(output_path_index);
+                if (output_path_string != "stdout") {
+                    const auto output_path_string_data = output_path_string.data();
+
+                    output_file = fopen(output_path_string_data, "w");
+                    if (!output_file) {
+                        fprintf(stderr, "Failed to open file at path (%s) for writing, failing with error (%s)\n", output_path_string_data, strerror(errno));
+                        exit(1);
+                    }
+                }
+            }
+
+            auto macho_file_object = macho_file(macho_file_path);
+            auto macho_file_has_architecture_overrides = architectures_.size() != 0;
+
+            auto current_version = std::string();
+            auto compatibility_version = std::string();
+
+            auto symbols = std::vector<symbol>();
+            auto reexports = std::vector<symbol>();
+
+            auto installation_name = std::string();
+            auto uuids = std::vector<std::string>();
+
+            auto &macho_file_containers = macho_file_object.containers();
+            auto macho_container_counter = 0;
+
+            const auto macho_file_containers_size = macho_file_containers.size();
+            const auto macho_file_is_fat = macho_file_containers_size != 0;
+
+            for (auto &macho_container : macho_file_containers) {
+                const auto &macho_container_header = macho_container.header();
+                const auto macho_container_should_swap = macho_container.should_swap();
+
+                const auto macho_container_architecture_info = NXGetArchInfoFromCpuType(macho_container_header.cputype, macho_container_header.cpusubtype);
+                if (!macho_container_architecture_info) {
+                    if (macho_file_is_fat) {
+                        fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_counter);
+                    } else {
+                        fputs("Mach-o file is not of a recognizable cputype", stderr);
+                    }
+
+                    exit(1);
+                }
+
+                if (!macho_file_has_architecture_overrides) {
+                    architectures_.emplace_back(macho_container_architecture_info);
+                }
+
+                auto local_current_version = std::string();
+                auto local_compatibility_version = std::string();
+                auto local_installation_name = std::string();
+
+                auto added_uuid = false;
+
+                macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
+                    switch (load_cmd->cmd) {
+                        case LC_ID_DYLIB: {
+                            if (local_installation_name.size() != 0) {
+                                if (macho_file_is_fat) {
+                                    fprintf(stderr, "Architecture (#%d) has two library-identification load-commands\n", macho_container_counter);
+                                } else {
+                                    fputs("Mach-o file has two library-identification load-commands\n", stderr);
+                                }
+
+                                exit(1);
+                            }
+
+                            auto id_dylib_command = (struct dylib_command *)load_cmd;
+                            if (macho_container_should_swap) {
+                                swap_dylib_command(id_dylib_command, NX_LittleEndian);
+                            }
+
+                            const auto &id_dylib = id_dylib_command->dylib;
+                            const auto &id_dylib_installation_name_string_index = id_dylib.name.offset;
+
+                            if (id_dylib_installation_name_string_index > load_cmd->cmdsize) {
+                                fputs("Library identification load-command has an invalid identification-string position\n", stderr);
+                                exit(1);
+                            }
+
+                            const auto &id_dylib_installation_name_string = &((char *)load_cmd)[id_dylib_installation_name_string_index];
+                            local_installation_name = id_dylib_installation_name_string;
+
+                            char id_dylib_current_version_string_data[33];
+                            sprintf(id_dylib_current_version_string_data, "%u.%u.%u", id_dylib.current_version >> 16, (id_dylib.current_version >> 8) & 0xff, id_dylib.current_version & 0xff);
+
+                            char id_dylib_compatibility_version_string_data[33];
+                            sprintf(id_dylib_compatibility_version_string_data, "%u.%u.%u", id_dylib.compatibility_version >> 16, (id_dylib.compatibility_version >> 8) & 0xff, id_dylib.compatibility_version & 0xff);
+
+                            local_current_version = id_dylib_current_version_string_data;
+                            local_compatibility_version = id_dylib_compatibility_version_string_data;
+
+                            break;
+                        }
+
+                        case LC_REEXPORT_DYLIB: {
+                            auto reexport_dylib_command = (struct dylib_command *)load_cmd;
+                            if (macho_container_should_swap) {
+                                swap_dylib_command(reexport_dylib_command, NX_LittleEndian);
+                            }
+
+                            const auto &reexport_dylib = reexport_dylib_command->dylib;
+                            const auto &reexport_dylib_string_index = reexport_dylib.name.offset;
+
+                            if (reexport_dylib_string_index > load_cmd->cmdsize) {
+                                fputs("Re-export dylib load-command has an invalid identification-string position\n", stderr);
+                                exit(1);
+                            }
+
+                            const auto &reexport_dylib_string = &((char *)load_cmd)[reexport_dylib_string_index];
+                            const auto reexports_iter = std::find(reexports.begin(), reexports.end(), reexport_dylib_string);
+
+                            if (reexports_iter != reexports.end()) {
+                                reexports_iter->add_architecture_info(macho_container_architecture_info);
+                            } else {
+                                reexports.emplace_back(reexport_dylib_string, false);
+                            }
+
+                            break;
+                        }
+
+                        case LC_UUID: {
+                            const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
+
+                            char uuid_string[33] = {};
+                            sprintf(uuid_string, "%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X", uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+
+                            const auto uuids_iter = std::find(uuids.begin(), uuids.end(), uuid_string);
+                            if (uuids_iter != uuids.end()) {
+                                fprintf(stderr, "uuid-string (%s) is found in multiple architectures", uuid_string);
+                                exit(1);
+                            }
+
+                            uuids.emplace_back(uuid_string);
+                            added_uuid = true;
+
+                            break;
+                        }
+                    }
+
+                    return true;
+                });
+
+                if (local_installation_name.empty()) {
+                    fputs("Mach-o file is not a library or framework\n", stderr);
+                    exit(1);
+                }
+
+                if (installation_name.size() && installation_name != local_installation_name) {
+                    fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from %s)\n", installation_name.data(), local_installation_name.data(), macho_container_architecture_info->name);
+                    exit(1);
+                } else if (installation_name.empty()) {
+                    installation_name = local_installation_name;
+                }
+
+                if (current_version.size() && current_version != local_current_version) {
+                    fprintf(stderr, "Mach-o file has conflicting current_version (%s vs %s from %s)\n", current_version.data(), local_current_version.data(), macho_container_architecture_info->name);
+                    exit(1);
+                } else if (current_version.empty()) {
+                    current_version = local_current_version;
+                }
+
+                if (compatibility_version.size() && compatibility_version != local_compatibility_version) {
+                    fprintf(stderr, "Mach-o file has conflicting compatibility-version (%s vs %s from %s)\n", compatibility_version.data(), local_compatibility_version.data(), macho_container_architecture_info->name);
+                    exit(1);
+                } else if (compatibility_version.empty()) {
+                    compatibility_version = local_compatibility_version;
+                }
+
+                if (!added_uuid && version_ == version::v2) {
+                    fprintf(stderr, "Macho-file with architecture (%s) does not have a uuid command\n", macho_container_architecture_info->name);
+                    exit(1);
+                }
+
+                macho_container.iterate_symbols([&](const struct nlist_64 &symbol_table_entry, const char *symbol_string) {
+                    const auto &symbol_table_entry_type = symbol_table_entry.n_type;
+                    if ((symbol_table_entry_type & N_TYPE) != N_SECT || (symbol_table_entry_type & N_EXT) != N_EXT) {
+                        return true;
+                    }
+
+                    const auto symbols_iter = std::find(symbols.begin(), symbols.end(), symbol_string);
+                    if (symbols_iter != symbols.end()) {
+                        symbols_iter->add_architecture_info(macho_container_architecture_info);
+                    } else {
+                        symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF);
+                        symbols.back().add_architecture_info(macho_container_architecture_info);
+                    }
+
+                    return true;
+                });
+
+                macho_container_counter++;
+            }
+
+            auto groups = std::vector<group>();
+            if (macho_file_has_architecture_overrides) {
+                groups.emplace_back(architectures_);
+
+                auto &group = groups.front();
+                for (const auto &reexport : reexports) {
+                    group.add_reexport(reexport);
+                }
+
+                for (const auto &symbol : symbols) {
+                    group.add_symbol(symbol);
+                }
+            } else {
+                for (const auto &reexport : reexports) {
+                    const auto &reexport_architecture_infos = reexport.architecture_infos();
+                    const auto group_iter = std::find(groups.begin(), groups.end(), reexport_architecture_infos);
+
+                    if (group_iter != groups.end()) {
+                        group_iter->add_reexport(reexport);
+                    } else {
+                        groups.emplace_back(reexport_architecture_infos);
+                        groups.back().add_reexport(reexport);
+                    }
+                }
+
+                for (const auto &symbol : symbols) {
+                    const auto &symbol_architecture_infos = symbol.architecture_infos();
+                    const auto group_iter = std::find(groups.begin(), groups.end(), symbol_architecture_infos);
+
+                    if (group_iter != groups.end()) {
+                        group_iter->add_symbol(symbol);
+                    } else {
+                        groups.emplace_back(symbol_architecture_infos);
+                        groups.back().add_symbol(symbol);
+                    }
+                }
+            }
+
+            std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
+                const auto &lhs_symbols = lhs.symbols();
+                const auto lhs_symbols_size = lhs_symbols.size();
+
+                const auto &rhs_symbols = rhs.symbols();
+                const auto rhs_symbols_size = rhs_symbols.size();
+
+                return lhs_symbols_size < rhs_symbols_size;
+            });
+
+            fputs("---", output_file);
+            if (version_ == version::v2) {
+                fputs(" !tapi-tbd-v2", output_file);
+            }
+
+            fprintf(output_file, "\narchs:%-17s[ ", "");
+
+            auto architectures_begin = architectures_.begin();
+            fprintf(output_file, "%s", (*architectures_begin)->name);
+
+            for (architectures_begin++; architectures_begin != architectures_.end(); architectures_begin++) {
+                fprintf(output_file, ", %s", (*architectures_begin)->name);
+            }
+
+            fputs(" ]\n", output_file);
+
+            if (version_ == version::v2) {
+                fprintf(output_file, "uuids:%-17s[ ", "");
+
+                auto counter = 1;
+                auto uuids_begin = uuids.begin();
+
+                for (auto architectures_begin = architectures_.begin(); architectures_begin < architectures_.end(); architectures_begin++, uuids_begin++) {
+                    fprintf(output_file, "'%s: %s'", (*architectures_begin)->name, uuids_begin->data());
+
+                    if (architectures_begin != architectures_.end() - 1) {
+                        fputs(", ", output_file);
+
+                        if (counter % 2 == 0) {
+                            fprintf(output_file, "%-27s", "\n");
+                        }
+
+                        counter++;
+                    }
+                }
+
+                fputs(" ]\n", output_file);
+            }
+
+            fprintf(output_file, "platform:%-14s%s\n", "", platform_to_string(platform_));
+            fprintf(output_file, "install-name:%-10s%s\n", "", installation_name.data());
+
+            fprintf(output_file, "current-version:%-7s%s\n", "", current_version.data());
+            fprintf(output_file, "compatibility-version: %s\n", compatibility_version.data());
+
+            if (version_ == version::v2) {
+                fprintf(output_file, "objc-constraint:%-7snone\n", "");
+            }
+
+            fputs("exports:\n", output_file);
+            for (auto &group : groups) {
+                auto ordinary_symbols = std::vector<std::string>();
+                auto weak_symbols = std::vector<std::string>();
+                auto objc_classes = std::vector<std::string>();
+                auto objc_ivars = std::vector<std::string>();
+                auto reexports = std::vector<std::string>();
+
+                for (const auto &reexport : group.reexports()) {
+                    reexports.emplace_back(reexport.string());
+                }
+
+                for (const auto &symbol : group.symbols()) {
+                    auto &symbol_string = const_cast<std::string &>(symbol.string());
+                    auto symbol_string_begin_pos = 0;
+
+                    if (symbol_string.compare(0, 3, "$ld") == 0) {
+                        symbol_string.insert(symbol_string.begin(), '\'');
+                        symbol_string.append(1, '\'');
+
+                        symbol_string_begin_pos += 4;
+                    }
+
+                    if (symbol_string.compare(symbol_string_begin_pos, 13, "_OBJC_CLASS_$") == 0) {
+                        symbol_string.erase(0, 13);
+                        objc_classes.emplace_back(symbol_string);
+                    } else if (symbol_string.compare(symbol_string_begin_pos, 17, "_OBJC_METACLASS_$") == 0) {
+                        symbol_string.erase(0, 17);
+                        objc_classes.emplace_back(symbol_string);
+                    } else if (symbol_string.compare(symbol_string_begin_pos, 12, "_OBJC_IVAR_$") == 0) {
+                        symbol_string.erase(0, 12);
+                        objc_ivars.emplace_back(symbol_string);
+                    } else if (symbol.weak()) {
+                        weak_symbols.emplace_back(symbol_string);
+                    } else {
+                        ordinary_symbols.emplace_back(symbol_string);
+                    }
+                }
+
+                std::sort(ordinary_symbols.begin(), ordinary_symbols.end());
+                std::sort(weak_symbols.begin(), weak_symbols.end());
+                std::sort(objc_classes.begin(), objc_classes.end());
+                std::sort(objc_ivars.begin(), objc_ivars.end());
+                std::sort(reexports.begin(), reexports.end());
+
+                ordinary_symbols.erase(std::unique(ordinary_symbols.begin(), ordinary_symbols.end()), ordinary_symbols.end());
+                weak_symbols.erase(std::unique(weak_symbols.begin(), weak_symbols.end()), weak_symbols.end());
+                objc_classes.erase(std::unique(objc_classes.begin(), objc_classes.end()), objc_classes.end());
+                objc_ivars.erase(std::unique(objc_ivars.begin(), objc_ivars.end()), objc_ivars.end());
+                reexports.erase(std::unique(reexports.begin(), reexports.end()), reexports.end());
+
+                const auto &group_architecture_infos = group.architecture_infos();
+                auto group_architecture_infos_begin = group_architecture_infos.begin();
+
+                fprintf(output_file, "  - archs:%-12s[ %s", "", (*group_architecture_infos_begin)->name);
+                for (group_architecture_infos_begin++; group_architecture_infos_begin < group_architecture_infos.end(); group_architecture_infos_begin++) {
+                    fprintf(output_file, ", %s", (*group_architecture_infos_begin)->name);
+                }
+
+                fputs(" ]\n", output_file);
+
+                const auto line_length_max = 85;
+                const auto key_spacing_length_max = 18;
+
+                auto character_count = 0;
+                const auto print_symbols = [&](const std::vector<std::string> &symbols, const char *key) {
+                    if (symbols.empty()) {
+                        return;
+                    }
+
+                    fprintf(output_file, "%-4s%s:", "", key);
+
+                    auto symbols_begin = symbols.begin();
+                    auto symbols_end = symbols.end();
+
+                    for (auto i = strlen(key) + 1; i < key_spacing_length_max; i++) {
+                        fputs(" ", output_file);
+                    }
+
+                    fprintf(output_file, "[ %s", symbols_begin->data());
+                    character_count += symbols_begin->length();
+
+                    for (symbols_begin++; symbols_begin != symbols_end; symbols_begin++) {
+                        const auto &symbol = *symbols_begin;
+                        auto line_length = symbol.length() + 1;
+
+                        if (character_count >= line_length_max || (character_count != 0 && character_count + line_length > line_length_max)) {
+                            fprintf(output_file, ",\n%-24s", "");
+                            character_count = 0;
+                        } else {
+                            fputs(", ", output_file);
+                            line_length++;
+                        }
+
+                        fputs(symbol.data(), output_file);
+                        character_count += line_length;
+                    }
+
+                    fprintf(output_file, " ]\n");
+                    character_count = 0;
+                };
+
+                print_symbols(reexports, "re-exports");
+                print_symbols(ordinary_symbols, "symbols");
+                print_symbols(weak_symbols, "weak-def-symbols");
+                print_symbols(objc_classes, "objc-classes");
+                print_symbols(objc_ivars, "objc-ivars");
+            }
+
+            fputs("...\n", output_file);
+
+            output_path_index++;
+            if (output_file != stdout) {
+                fclose(output_file);
+            }
+         }
+    }
+
+    inline const std::vector<std::string> &macho_files() const noexcept { return macho_files_; }
+    inline const std::vector<std::string> &output_files() const noexcept { return output_files_; }
+
+    inline void add_macho_file(const std::string &macho_file) noexcept {
+        macho_files_.emplace_back(macho_file);
+    }
+
+    inline void add_output_file(const std::string &output_files) noexcept {
+        output_files_.emplace_back(output_files);
+    }
+
+    inline void set_architectures(const std::vector<const NXArchInfo *> &architectures) noexcept {
+        architectures_ = architectures;
+    }
+
+    inline void set_platform(const platform &platform) noexcept {
+        platform_ = platform;
+    }
+
+    inline void set_version(const version &version) noexcept {
+        version_ = version;
+    }
+
+    inline const platform &platform() const noexcept { return platform_; }
+    inline const version &version() const noexcept { return version_; }
+
+private:
+    std::vector<std::string> macho_files_;
+    std::vector<std::string> output_files_;
+
+    enum platform platform_;
+    enum version version_;
+
+    std::vector<const NXArchInfo *> architectures_;
+
+    void validate() const {
+        if (version_ == version::v2 && architectures_.size() != 0) {
+            fputs("Cannot use custom architectures for tbd version v2. Specify version v1 to be able to do so\n", stderr);
+            exit(1);
+        }
+    }
+};
+
 void print_usage() {
     fputs("Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
@@ -695,16 +1194,33 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    auto architecture_infos = std::vector<const NXArchInfo *>();
-
-    auto macho_paths = std::vector<path>();
-    auto output_paths = std::vector<std::string>();
+    auto architectures = std::vector<const NXArchInfo *>();
+    auto tbds = std::vector<tbd>();
 
     auto platform = std::string();
     auto tbd_version = 2;
 
     const char *current_directory = nullptr;
 
+    auto parse_architectures = [&](std::vector<const NXArchInfo *> &architectures, int &index) {
+        while (index < argc) {
+            const auto &architecture_string = argv[index];
+            if (*architecture_string == '-') {
+                break;
+            }
+
+            const auto architecture = NXGetArchInfoFromName(architecture_string);
+            if (!architecture) {
+                fprintf(stderr, "Architecture (%s) is invalid\n", architecture_string);
+                exit(1);
+            }
+
+            architectures.emplace_back(architecture);
+            index++;
+        }
+    };
+
+    auto output_paths_index = 0;
     for (auto i = 1; i < argc; i++) {
         const auto &argument = argv[i];
         if (*argument != '-') {
@@ -724,21 +1240,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            for (i++; i < argc; i++){
-                const auto &argument = argv[i];
-                if (*argument == '-') {
-                    break;
-                }
-
-                const auto architecture_info = NXGetArchInfoFromName(argument);
-                if (!architecture_info) {
-                    fprintf(stderr, "Architecture (%s) is of an unrecognized type\n", argument);
-                    return 1;
-                }
-
-                architecture_infos.emplace_back(architecture_info);
-            }
-
+            parse_architectures(architectures, i);
             i--;
         } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
             if (i != 1 || !is_last_argument) {
@@ -754,12 +1256,22 @@ int main(int argc, const char *argv[]) {
             }
 
             for (i++; i < argc; i++) {
-                const auto &path = argv[i];
-                if (*path == '-') {
+                auto path = std::string(argv[i]);
+                const auto &path_front = path.front();
+
+                if (path_front == '-') {
                     break;
                 }
 
-                if (*path != '/' && strcmp(path, "stdout") != 0) {
+                if (output_paths_index >= tbds.size()) {
+                    fprintf(stderr, "No coresponding mach-o files for output-path (%s)\n", path.data());
+                    return 1;
+                }
+
+                auto &tbd = tbds.at(output_paths_index);
+                auto &macho_files = tbd.macho_files();
+
+                if (path_front != '/' && path != "stdout") {
                     if (!current_directory) {
                         current_directory = getcwd(nullptr, 0);
 
@@ -769,16 +1281,53 @@ int main(int argc, const char *argv[]) {
                         }
                     }
 
-                    auto full_path = std::string(current_directory);
-                    if (full_path.back() != '/') {
-                        full_path.append(1, '/');
+                    path.insert(0, current_directory);
+                } else if (path == "stdout" && macho_files.size() > 1) {
+                    fputs("Can't output multiple mach-o files to stdout\n", stderr);
+                    return 1;
+                }
+
+                struct stat sbuf;
+                if (stat(path.data(), &sbuf) == 0) {
+                    if (S_ISDIR(sbuf.st_mode)) {
+                        const auto &macho_files = tbd.macho_files();
+                        if (macho_files.size() < 2) {
+                            fprintf(stderr, "Cannot output tbd-file to a directory at path (%s), please provide a full path to a file to output to\n", path.data());
+                            return 1;
+                        } else if (path == "stdout") {
+                            fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to", stderr);
+                            return 1;
+                        }
+
+                        for (const auto &macho_file : tbd.macho_files()) {
+                            const auto macho_file_iter = macho_file.find_last_of('/');
+                            auto macho_file_output_path = macho_file.substr(macho_file_iter);
+
+                            macho_file_output_path.insert(0, path);
+                            macho_file_output_path.append(".tbd");
+
+                            tbd.add_output_file(macho_file_output_path);
+                        }
+                    } else if (S_ISREG(sbuf.st_mode)) {
+                        const auto &macho_files = tbd.macho_files();
+                        if (macho_files.size() > 1) {
+                            fprintf(stderr, "Can't output multiple mach-o files and output to file at path (%s)\n", path.data());
+                            return 1;
+                        }
+
+                        tbd.add_output_file(path);
+                    }
+                } else {
+                    const auto &macho_files = tbd.macho_files();
+                    if (macho_files.size() > 1) {
+                        fprintf(stderr, "Directory at path (%s) does not exist\n", path.data());
+                        return 1;
                     }
 
-                    full_path.append(path);
-                    output_paths.emplace_back(full_path);
-                } else {
-                    output_paths.emplace_back(path);
+                    tbd.add_output_file(path);
                 }
+
+                output_paths_index++;
             }
 
             i--;
@@ -788,19 +1337,78 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
+            auto local_architectures = std::vector<const NXArchInfo *>();
+
+            auto local_platform = std::string();
+            auto local_tbd_version = 0;
+
             auto is_recursive = false;
+            auto should_continue = false;
+
             for (i++; i < argc; i++) {
-                const auto &path = argv[i];
-                if (*path == '-') {
-                    if (strcmp(path, "-r") == 0 || strcmp(path, "--recurse") == 0) {
+                const auto &argument = argv[i];
+                if (*argument == '-') {
+                    const char *option = &argument[1];
+                    if (*option == '-') {
+                        option = &option[1];
+                    }
+
+                    const auto is_last_argument = i == argc - 1;
+                    if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                         is_recursive = true;
-                        continue;
+                    } else if (strcmp(option, "a") == 0 || strcmp(option, "archs") == 0) {
+                        if (is_last_argument) {
+                            fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
+                            return 1;
+                        }
+
+                        i++;
+                        parse_architectures(local_architectures, i);
+
+                        i--;
+                        break;
+                    } else if (strcmp(option, "platform") == 0) {
+                        if (is_last_argument) {
+                            fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
+                            return 1;
+                        }
+
+                        i++;
+
+                        const auto &platform_string = argv[i];
+                        if (strcmp(platform_string, "ios") != 0 && strcmp(platform_string, "macos") != 0 && strcmp(platform_string, "watchos") != 0 && strcmp(platform_string, "tvos") != 0) {
+                            fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
+                            return 1;
+                        }
+
+                        platform = platform_string;
+                    } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
+                        if (is_last_argument) {
+                            fputs("Please provide a tbd-version\n", stderr);
+                            return 1;
+                        }
+
+                        i++;
+                        local_tbd_version = (int)tbd::string_to_version(argv[i]);
+
+                        if (!(int)local_tbd_version) {
+                            fprintf(stderr, "(%s) is not a valid tbd-version\n", argv[i]);
+                            return 1;
+                        }
                     } else {
+                        should_continue = true;
                         break;
                     }
+
+                    continue;
                 }
 
-                if (*path != '/') {
+                if (should_continue) {
+                    continue;
+                }
+
+                auto path = std::string(argument);
+                if (path.front() != '/') {
                     if (!current_directory) {
                         current_directory = getcwd(nullptr, 0);
 
@@ -810,32 +1418,120 @@ int main(int argc, const char *argv[]) {
                         }
                     }
 
-                    auto full_path = std::string(current_directory);
-                    if (full_path.back() != '/') {
-                        full_path.append(1, '/');
-                    }
-
-                    full_path.append(path);
-                    macho_paths.emplace_back(full_path);
-
-                    const auto &macho_paths_back = macho_paths.back();
-                    const auto &macho_paths_back_string = macho_paths_back.to_string();
-
-                    if (macho_paths_back.is_directory() && !is_recursive) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", macho_paths_back_string.data());
-                        return 1;
-                    } else if (!macho_paths_back.is_file()) {
-                        fprintf(stderr, "Object at path (%s) is not a regular file\n", macho_paths_back_string.data());
-                        return 1;
-                    }
-                } else {
-                    macho_paths.emplace_back(path);
+                    path.insert(0, current_directory);
                 }
 
+                struct stat path_sbuf;
+                if (stat(path.data(), &path_sbuf) != 0) {
+                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                    return 1;
+                }
+
+                auto tbd = ::tbd();
+
+                if (S_ISDIR(path_sbuf.st_mode)) {
+                    if (!is_recursive) {
+                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
+                        return 1;
+                    }
+
+                    const auto directory = opendir(path.data());
+                    if (!directory) {
+                        fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                        return 1;
+                    }
+
+                    std::function<void(DIR *, const std::string &)> loop_directory = [&](DIR *directory, const std::string &directory_path) {
+                        auto directory_entry = readdir(directory);
+                        while (directory_entry != nullptr) {
+                            if (directory_entry->d_type == DT_DIR) {
+                                if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
+                                    strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
+                                    directory_entry = readdir(directory);
+                                    continue;
+                                }
+
+                                auto sub_directory_path = directory_path;
+
+                                sub_directory_path.append(directory_entry->d_name);
+                                sub_directory_path.append(1, '/');
+
+                                const auto sub_directory = opendir(sub_directory_path.data());
+                                if (!sub_directory) {
+                                    fprintf(stderr, "Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                                    exit(1);
+                                }
+
+                                loop_directory(sub_directory, sub_directory_path);
+                                closedir(sub_directory);
+                            } else if (directory_entry->d_type == DT_REG) {
+                                const auto &directory_entry_path = directory_path + directory_entry->d_name;
+
+                                if (macho_file::is_valid_library(directory_entry_path)) {
+                                    tbd.add_macho_file(directory_entry_path);
+                                }
+                            }
+
+                            directory_entry = readdir(directory);
+                        }
+                    };
+
+                    loop_directory(directory, path);
+                    closedir(directory);
+                } else if (S_ISREG(path_sbuf.st_mode)) {
+                    if (is_recursive) {
+                        fprintf(stderr, "Cannot recurse file at path (%s)\n", path.data());
+                        return 1;
+                    }
+
+                    if (!macho_file::is_valid_library(path)) {
+                        fprintf(stderr, "File at path (%s) is not a valid mach-o library\n", path.data());
+                    }
+
+                    tbd.add_macho_file(path);
+                } else {
+                    fprintf(stderr, "Object at path (%s) is not a regular file\n", path.data());
+                    return 1;
+                }
+
+                auto tbd_architectures = &local_architectures;
+                if (tbd_architectures->empty()) {
+                    tbd_architectures = &architectures;
+                }
+
+                auto tbd_platform = &local_platform;
+                if (tbd_platform->empty()) {
+                    tbd_platform = &platform;
+                    while (platform.empty() || (platform != "ios" && platform != "macos" && platform != "watchos" && platform != "tvos")) {
+                        if (S_ISDIR(path_sbuf.st_mode)) {
+                            fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                        } else {
+                            fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                        }
+
+                        getline(std::cin, platform);
+                    }
+                }
+
+                auto version_tbd = &local_tbd_version;
+                if (!*version_tbd) {
+                    version_tbd = &tbd_version;
+                }
+
+                tbd.set_architectures(*tbd_architectures);
+                tbd.set_platform(::tbd::string_to_platform(tbd_platform->data()));
+                tbd.set_version(*(enum tbd::version *)version_tbd);
+
+                tbds.emplace_back(tbd);
                 is_recursive = false;
+
+                local_architectures.clear();
+                local_platform.clear();
+
+                local_tbd_version = 0;
             }
 
-            if (is_recursive) {
+            if (is_recursive || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -897,567 +1593,29 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-    if (macho_paths.empty()) {
-        fputs("No mach-o files have been provided\n", stderr);
+    if (!tbds.size()) {
+        fputs("No mach-o files have been provided", stderr);
         return 1;
     }
 
-    auto output_paths_index = 0;
-    auto macho_paths_end = macho_paths.end();
-
-    for (auto macho_paths_iter = macho_paths.begin(); macho_paths_iter != macho_paths_end;) {
-        auto &macho_path = *macho_paths_iter;
-        auto &macho_path_string = const_cast<std::string &>(macho_path.to_string());
-
-        auto output_path = std::string();
-        struct stat output_path_sbuf;
-
-        if (output_paths_index < output_paths.size()) {
-            output_path = output_paths.at(output_paths_index);
-
-            if (output_path == "stdout") {
-                fprintf(stderr, "Cannot output mach-o files from recursion directory at path (%s) to standard-out\n", macho_path_string.data());
-                return 1;
-            }
-
-            if (stat(output_path.data(), &output_path_sbuf) != 0) {
-                fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", output_path.data(), strerror(errno));
-                return 1;
-            }
+    for (auto &tbd : tbds) {
+        auto &output_files = tbd.output_files();
+        if (output_files.size() != 0) {
+            continue;
         }
 
-        if (macho_path.is_directory()) {
-            if (output_path.size() != 0 && S_ISDIR(output_path_sbuf.st_mode) != 0) {
-                fprintf(stderr, "Output path for recursive mach-o directory path (%s) is not a directory\n", output_path.data());
-                return 1;
+        const auto &macho_files = tbd.macho_files();
+        if (macho_files.size() > 1) {
+            for (const auto &macho_file : macho_files) {
+                tbd.add_output_file(macho_file + ".tbd");
             }
-
-            if (output_path.size() != 0 && output_path.back() != '/') {
-                output_path.append(1, '/');
-            }
-
-            auto &directory_path = macho_path_string;
-            if (directory_path.back() != '/') {
-                directory_path.append(1, '/');
-            }
-
-            const auto directory = opendir(directory_path.data());
-            if (!directory) {
-                fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path.data(), strerror(errno));
-                return 1;
-            }
-
-            auto macho_files_from_recurse_directory = std::vector<std::string>();
-            std::function<void(DIR *, const std::string &)> loop_directory = [&](DIR *directory, const std::string &directory_path) {
-                auto directory_entry = readdir(directory);
-                while (directory_entry != nullptr) {
-                    if (directory_entry->d_type == DT_DIR) {
-                        if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
-                            strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
-                            directory_entry = readdir(directory);
-                            continue;
-                        }
-
-                        auto sub_directory_path = directory_path;
-
-                        sub_directory_path.append(directory_entry->d_name);
-                        sub_directory_path.append(1, '/');
-
-                        const auto sub_directory = opendir(sub_directory_path.data());
-                        if (!sub_directory) {
-                            fprintf(stderr, "Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
-                            exit(1);
-                        }
-
-                        loop_directory(sub_directory, sub_directory_path);
-                        closedir(sub_directory);
-                    } else if (directory_entry->d_type == DT_REG) {
-                        const auto &directory_entry_path = directory_path + directory_entry->d_name;
-
-                        if (macho_file::is_valid_library(directory_entry_path)) {
-                            macho_files_from_recurse_directory.emplace_back(directory_entry_path);
-                        }
-                    }
-
-                    directory_entry = readdir(directory);
-                }
-            };
-
-            loop_directory(directory, directory_path);
-            closedir(directory);
-
-            macho_paths_iter = macho_paths.erase(macho_paths_iter);
-            macho_paths_end = macho_paths.end();
-
-            output_paths.reserve(output_paths.size() + macho_files_from_recurse_directory.size());
-            for (const auto &macho_file_from_recurse_directory : macho_files_from_recurse_directory) {
-                macho_paths_iter = macho_paths.emplace(macho_paths_iter, macho_file_from_recurse_directory);
-                macho_paths_iter ++;
-
-                const auto macho_file_from_recurse_directory_pos = macho_file_from_recurse_directory.find_last_of('/');
-                if (macho_file_from_recurse_directory_pos != std::string::npos) {
-                    auto output_path_for_macho_file_from_recurse_directory = macho_file_from_recurse_directory.substr(macho_file_from_recurse_directory_pos + 1);
-
-                    if (output_path.size() != 0) {
-                        output_path_for_macho_file_from_recurse_directory.insert(0, output_path);
-                    } else {
-                        output_path_for_macho_file_from_recurse_directory.insert(0, macho_file_from_recurse_directory.substr(0, macho_file_from_recurse_directory_pos));
-                    }
-
-                    output_path_for_macho_file_from_recurse_directory.insert(macho_file_from_recurse_directory_pos, 1, '/');
-                    output_path_for_macho_file_from_recurse_directory.append(".tbd");
-
-                    output_paths.insert(output_paths.begin() + output_paths_index, output_path_for_macho_file_from_recurse_directory);
-                    output_paths_index++;
-                }
-            }
-
-            macho_paths_end = macho_paths.end();
         } else {
-            macho_paths_iter++;
+            tbd.add_output_file("stdout");
         }
     }
 
-    if (tbd_version == 2 && architecture_infos.size()) {
-        fputs("Cannot use custom architectures for tbd version v2. Specify version v1 to be able to do so\n", stderr);
-        return 1;
-    }
-
-    output_paths_index = 0;
-    for (const auto &macho_file_path : macho_paths) {
-        const auto &macho_file_path_string = macho_file_path.to_string();
-        const auto &macho_file_path_string_data = macho_file_path_string.data();
-
-        auto macho_file_object = macho_file(macho_file_path_string);
-        auto output_file = stdout;
-
-        if (output_paths_index < output_paths.size()) {
-            const auto &output_file_path = output_paths.at(output_paths_index);
-            const auto output_file_path_data = output_file_path.data();
-
-            if (strcmp(output_file_path_data, "stdout") != 0) {
-                struct stat output_sbuf;
-                if (stat(output_file_path_data, &output_sbuf) == 0) {
-                    if (!S_ISREG(output_sbuf.st_mode)) {
-                        fprintf(stderr, "Path to output-file (%s) is not a regular file, failing with error (%s)\n", output_file_path_data, strerror(errno));
-                        return 1;
-                    }
-                }
-
-                output_file = fopen(output_file_path_data, "w");
-                if (!output_file) {
-                    fprintf(stderr, "Failed to open/create file at path (%s) for writing, failing with error (%s)\n", output_file_path_data, strerror(errno));
-                    return 1;
-                }
-            }
-        }
-
-        auto macho_architectures = std::vector<const NXArchInfo *>();
-
-        auto current_version = std::string();
-        auto compatibility_version = std::string();
-
-        auto symbols = std::vector<symbol>();
-        auto reexports = std::vector<symbol>();
-
-        auto installation_name = std::string();
-        auto uuids = std::vector<std::string>();
-
-        auto &macho_file_containers = macho_file_object.containers();
-        auto macho_container_counter = 0;
-
-        const auto macho_file_containers_size = macho_file_containers.size();
-        const auto macho_file_is_fat = macho_file_containers_size != 0;
-
-        for (auto &macho_container : macho_file_containers) {
-            const auto &macho_container_header = macho_container.header();
-            const auto macho_container_should_swap = macho_container.should_swap();
-
-            const auto macho_container_architecture_info = NXGetArchInfoFromCpuType(macho_container_header.cputype, macho_container_header.cpusubtype);
-            if (!macho_container_architecture_info) {
-                if (macho_file_is_fat) {
-                    fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_counter);
-                } else {
-                    fputs("Mach-o file is not of a recognizable cputype", stderr);
-                }
-
-                exit(1);
-            }
-
-            macho_architectures.emplace_back(macho_container_architecture_info);
-
-            auto local_current_version = std::string();
-            auto local_compatibility_version = std::string();
-            auto local_installation_name = std::string();
-
-            auto added_uuid = false;
-
-            macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
-                switch (load_cmd->cmd) {
-                    case LC_ID_DYLIB: {
-                        if (local_installation_name.size() != 0) {
-                            if (macho_file_is_fat) {
-                                fprintf(stderr, "Architecture (#%d) has two library-identification load-commands\n", macho_container_counter);
-                            } else {
-                                fputs("Mach-o file has two library-identification load-commands\n", stderr);
-                            }
-
-                            exit(1);
-                        }
-
-                        auto &id_dylib_command = *(struct dylib_command *)load_cmd;
-                        if (macho_container_should_swap) {
-                            swap_dylib_command(&id_dylib_command, NX_LittleEndian);
-                        }
-
-                        const auto &id_dylib = id_dylib_command.dylib;
-                        const auto &id_dylib_installation_name_string_index = id_dylib.name.offset;
-
-                        if (id_dylib_installation_name_string_index > load_cmd->cmdsize) {
-                            fputs("Library identification load-command has an invalid identification-string position\n", stderr);
-                            exit(1);
-                        }
-
-                        const auto &id_dylib_installation_name_string = &((char *)load_cmd)[id_dylib_installation_name_string_index];
-                        local_installation_name = id_dylib_installation_name_string;
-
-                        char id_dylib_current_version_string_data[33];
-                        sprintf(id_dylib_current_version_string_data, "%u.%u.%u", id_dylib.current_version >> 16, (id_dylib.current_version >> 8) & 0xff, id_dylib.current_version & 0xff);
-
-                        char id_dylib_compatibility_version_string_data[33];
-                        sprintf(id_dylib_compatibility_version_string_data, "%u.%u.%u", id_dylib.compatibility_version >> 16, (id_dylib.compatibility_version >> 8) & 0xff, id_dylib.compatibility_version & 0xff);
-
-                        local_current_version = id_dylib_current_version_string_data;
-                        local_compatibility_version = id_dylib_compatibility_version_string_data;
-
-                        break;
-                    }
-
-                    case LC_REEXPORT_DYLIB: {
-                        auto &reexport_dylib_command = *(struct dylib_command *)load_cmd;
-                        if (macho_container_should_swap) {
-                            swap_dylib_command(&reexport_dylib_command, NX_LittleEndian);
-                        }
-
-                        const auto &reexport_dylib = reexport_dylib_command.dylib;
-                        const auto &reexport_dylib_string_index = reexport_dylib.name.offset;
-
-                        if (reexport_dylib_string_index > load_cmd->cmdsize) {
-                            fputs("Re-export dylib load-command has an invalid identification-string position\n", stderr);
-                            exit(1);
-                        }
-
-                        const auto &reexport_dylib_string = &((char *)load_cmd)[reexport_dylib_string_index];
-                        const auto reexports_iter = std::find(reexports.begin(), reexports.end(), reexport_dylib_string);
-
-                        if (reexports_iter != reexports.end()) {
-                            reexports_iter->add_architecture_info(macho_container_architecture_info);
-                        } else {
-                            reexports.emplace_back(reexport_dylib_string, false);
-                        }
-
-                        break;
-                    }
-
-                    case LC_UUID: {
-                        const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
-
-                        char uuid_string[33] = {};
-                        sprintf(uuid_string, "%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X", uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-
-                        const auto uuids_iter = std::find(uuids.begin(), uuids.end(), uuid_string);
-                        if (uuids_iter != uuids.end()) {
-                            fprintf(stderr, "uuid-string (%s) is found in multiple architectures", uuid_string);
-                            exit(1);
-                        }
-
-                        uuids.emplace_back(uuid_string);
-                        added_uuid = true;
-
-                        break;
-                    }
-                }
-
-                return true;
-            });
-
-            if (local_installation_name.empty()) {
-                fputs("Mach-o file is not a library or framework\n", stderr);
-                exit(1);
-            }
-
-            if (installation_name.size() && installation_name != local_installation_name) {
-                fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from %s)\n", installation_name.data(), local_installation_name.data(), macho_container_architecture_info->name);
-                exit(1);
-            } else if (installation_name.empty()) {
-                installation_name = local_installation_name;
-            }
-
-            if (current_version.size() && current_version != local_current_version) {
-                fprintf(stderr, "Mach-o file has conflicting current_version (%s vs %s from %s)\n", current_version.data(), local_current_version.data(), macho_container_architecture_info->name);
-                exit(1);
-            } else if (current_version.empty()) {
-                current_version = local_current_version;
-            }
-
-            if (compatibility_version.size() && compatibility_version != local_compatibility_version) {
-                fprintf(stderr, "Mach-o file has conflicting compatibility-version (%s vs %s from %s)\n", compatibility_version.data(), local_compatibility_version.data(), macho_container_architecture_info->name);
-                exit(1);
-            } else if (compatibility_version.empty()) {
-                compatibility_version = local_compatibility_version;
-            }
-
-            if (!added_uuid && tbd_version == 2) {
-                fprintf(stderr, "Macho-file with architecture (%s) does not have a uuid command\n", macho_container_architecture_info->name);
-                exit(1);
-            }
-
-            macho_container.iterate_symbols([&](const struct nlist_64 &symbol_table_entry, const char *symbol_string) {
-                const auto &symbol_table_entry_type = symbol_table_entry.n_type;
-                if ((symbol_table_entry_type & N_TYPE) != N_SECT || (symbol_table_entry_type & N_EXT) != N_EXT) {
-                    return true;
-                }
-
-                const auto symbols_iter = std::find(symbols.begin(), symbols.end(), symbol_string);
-                if (symbols_iter != symbols.end()) {
-                    symbols_iter->add_architecture_info(macho_container_architecture_info);
-                } else {
-                    symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF);
-                    symbols.back().add_architecture_info(macho_container_architecture_info);
-                }
-
-                return true;
-            });
-
-            macho_container_counter++;
-        }
-
-        auto groups = std::vector<group>();
-        if (architecture_infos.empty()) {
-            for (const auto &reexport : reexports) {
-                const auto &reexport_architecture_infos = reexport.architecture_infos();
-                const auto group_iter = std::find(groups.begin(), groups.end(), reexport_architecture_infos);
-
-                if (group_iter != groups.end()) {
-                    group_iter->add_reexport(reexport);
-                } else {
-                    groups.emplace_back(reexport_architecture_infos);
-                    groups.back().add_reexport(reexport);
-                }
-            }
-
-            for (const auto &symbol : symbols) {
-                const auto &symbol_architecture_infos = symbol.architecture_infos();
-                const auto group_iter = std::find(groups.begin(), groups.end(), symbol_architecture_infos);
-
-                if (group_iter != groups.end()) {
-                    group_iter->add_symbol(symbol);
-                } else {
-                    groups.emplace_back(symbol_architecture_infos);
-                    groups.back().add_symbol(symbol);
-                }
-            }
-        } else {
-            groups.emplace_back(architecture_infos);
-
-            auto &group = groups.front();
-            for (const auto &reexport : reexports) {
-                group.add_reexport(reexport);
-            }
-
-            for (const auto &symbol : symbols) {
-                group.add_symbol(symbol);
-            }
-        }
-
-        std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
-            const auto &lhs_symbols = lhs.symbols();
-            const auto lhs_symbols_size = lhs_symbols.size();
-
-            const auto &rhs_symbols = rhs.symbols();
-            const auto rhs_symbols_size = rhs_symbols.size();
-
-            return lhs_symbols_size < rhs_symbols_size;
-        });
-
-        while (platform.empty() || (platform != "ios" && platform != "macos" && platform != "watchos" && platform != "tvos")) {
-            fprintf(stdout, "Please provied a platform for file at path (%s) (ios, macos, watchos, or tvos): ", macho_file_path_string_data);
-            getline(std::cin, platform);
-        }
-
-        fputs("---", output_file);
-        if (tbd_version == 2) {
-            fputs(" !tapi-tbd-v2", output_file);
-        }
-
-        fprintf(output_file, "\narchs:%-17s[ ", "");
-        if (architecture_infos.empty()) {
-            auto architecture_info_begin = macho_architectures.begin();
-            fprintf(output_file, "%s", (*architecture_info_begin)->name);
-
-            for (architecture_info_begin++; architecture_info_begin != macho_architectures.end(); architecture_info_begin++) {
-                fprintf(output_file, ", %s", (*architecture_info_begin)->name);
-            }
-
-            fputs(" ]\n", output_file);
-        } else {
-            auto architecture_info_begin = architecture_infos.begin();
-            fprintf(output_file, "%s", (*architecture_info_begin)->name);
-
-            for (architecture_info_begin++; architecture_info_begin != architecture_infos.end(); architecture_info_begin++) {
-                fprintf(output_file, ", %s", (*architecture_info_begin)->name);
-            }
-
-            fputs(" ]\n", output_file);
-        }
-
-        if (tbd_version == 2) {
-            fprintf(output_file, "uuids:%-17s[ ", "");
-
-            auto counter = 1;
-            auto uuids_begin = uuids.begin();
-
-            for (auto architecture_infos_begin = macho_architectures.begin(); architecture_infos_begin < macho_architectures.end(); architecture_infos_begin++, uuids_begin++) {
-                fprintf(output_file, "'%s: %s'", (*architecture_infos_begin)->name, uuids_begin->data());
-
-                if (architecture_infos_begin != macho_architectures.end() - 1) {
-                    fputs(", ", output_file);
-
-                    if (counter % 2 == 0) {
-                        fprintf(output_file, "%-27s", "\n");
-                    }
-
-                    counter++;
-                }
-            }
-
-            fputs(" ]\n", output_file);
-        }
-
-        fprintf(output_file, "platform:%-14s%s\n", "", platform.data());
-        fprintf(output_file, "install-name:%-10s%s\n", "", installation_name.data());
-
-        fprintf(output_file, "current-version:%-7s%s\n", "", current_version.data());
-        fprintf(output_file, "compatibility-version: %s\n", compatibility_version.data());
-
-        if (tbd_version == 2) {
-            fprintf(output_file, "objc-constraint:%-7snone\n", "");
-        }
-
-        fputs("exports:\n", output_file);
-        for (auto &group : groups) {
-            auto ordinary_symbols = std::vector<std::string>();
-            auto weak_symbols = std::vector<std::string>();
-            auto objc_classes = std::vector<std::string>();
-            auto objc_ivars = std::vector<std::string>();
-            auto reexports = std::vector<std::string>();
-
-            for (const auto &reexport : group.reexports()) {
-                reexports.emplace_back(reexport.string());
-            }
-
-            for (const auto &symbol : group.symbols()) {
-                auto &symbol_string = const_cast<std::string &>(symbol.string());
-                auto symbol_string_begin_pos = 0;
-
-                if (symbol_string.compare(0, 3, "$ld") == 0) {
-                    symbol_string.insert(symbol_string.begin(), '\'');
-                    symbol_string.append(1, '\'');
-
-                    symbol_string_begin_pos += 4;
-                }
-
-                if (symbol_string.compare(symbol_string_begin_pos, 13, "_OBJC_CLASS_$") == 0) {
-                    symbol_string.erase(0, 13);
-                    objc_classes.emplace_back(symbol_string);
-                } else if (symbol_string.compare(symbol_string_begin_pos, 17, "_OBJC_METACLASS_$") == 0) {
-                    symbol_string.erase(0, 17);
-                    objc_classes.emplace_back(symbol_string);
-                } else if (symbol_string.compare(symbol_string_begin_pos, 12, "_OBJC_IVAR_$") == 0) {
-                    symbol_string.erase(0, 12);
-                    objc_ivars.emplace_back(symbol_string);
-                } else if (symbol.weak()) {
-                    weak_symbols.emplace_back(symbol_string);
-                } else {
-                    ordinary_symbols.emplace_back(symbol_string);
-                }
-            }
-
-            std::sort(ordinary_symbols.begin(), ordinary_symbols.end());
-            std::sort(weak_symbols.begin(), weak_symbols.end());
-            std::sort(objc_classes.begin(), objc_classes.end());
-            std::sort(objc_ivars.begin(), objc_ivars.end());
-            std::sort(reexports.begin(), reexports.end());
-
-            ordinary_symbols.erase(std::unique(ordinary_symbols.begin(), ordinary_symbols.end()), ordinary_symbols.end());
-            weak_symbols.erase(std::unique(weak_symbols.begin(), weak_symbols.end()), weak_symbols.end());
-            objc_classes.erase(std::unique(objc_classes.begin(), objc_classes.end()), objc_classes.end());
-            objc_ivars.erase(std::unique(objc_ivars.begin(), objc_ivars.end()), objc_ivars.end());
-            reexports.erase(std::unique(reexports.begin(), reexports.end()), reexports.end());
-
-            const auto &group_architecture_infos = group.architecture_infos();
-            auto group_architecture_infos_begin = group_architecture_infos.begin();
-
-            fprintf(output_file, "  - archs:%-12s[ %s", "", (*group_architecture_infos_begin)->name);
-            for (group_architecture_infos_begin++; group_architecture_infos_begin < group_architecture_infos.end(); group_architecture_infos_begin++) {
-                fprintf(output_file, ", %s", (*group_architecture_infos_begin)->name);
-            }
-
-            fputs(" ]\n", output_file);
-
-            const auto line_length_max = 85;
-            const auto key_spacing_length_max = 18;
-
-            auto character_count = 0;
-            const auto print_symbols = [&](const std::vector<std::string> &symbols, const char *key) {
-                if (symbols.empty()) {
-                    return;
-                }
-
-                fprintf(output_file, "%-4s%s:", "", key);
-
-                auto symbols_begin = symbols.begin();
-                auto symbols_end = symbols.end();
-
-                for (auto i = strlen(key) + 1; i < key_spacing_length_max; i++) {
-                    fputs(" ", output_file);
-                }
-
-                fprintf(output_file, "[ %s", symbols_begin->data());
-                character_count += symbols_begin->length();
-
-                for (symbols_begin++; symbols_begin != symbols_end; symbols_begin++) {
-                    const auto &symbol = *symbols_begin;
-                    auto line_length = symbol.length() + 1;
-
-                    if (character_count >= line_length_max || (character_count != 0 && character_count + line_length > line_length_max)) {
-                        fprintf(output_file, ",\n%-24s", "");
-                        character_count = 0;
-                    } else {
-                        fputs(", ", output_file);
-                        line_length++;
-                    }
-
-                    fputs(symbol.data(), output_file);
-                    character_count += line_length;
-                }
-
-                fprintf(output_file, " ]\n");
-                character_count = 0;
-            };
-
-            print_symbols(ordinary_symbols, "symbols");
-            print_symbols(weak_symbols, "weak-def-symbols");
-            print_symbols(objc_classes, "objc-classes");
-            print_symbols(objc_ivars, "objc-ivars");
-            print_symbols(reexports, "reexports");
-        }
-
-        fputs("...\n", output_file);
-
-        output_paths_index++;
-        if (output_file != stdout) {
-            fclose(output_file);
-        }
+    for (auto &tbd : tbds) {
+        tbd.execute();
+        printf("");
     }
 }
