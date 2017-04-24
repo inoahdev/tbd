@@ -1616,6 +1616,5 @@ int main(int argc, const char *argv[]) {
 
     for (auto &tbd : tbds) {
         tbd.execute();
-        printf("");
     }
 }
