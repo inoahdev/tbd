@@ -98,9 +98,9 @@ public:
             const auto &cmdsize = load_cmd->cmdsize;
             if (cmdsize < sizeof(struct load_command)) {
                 if (is_architecture_) {
-                    fprintf(stderr, "Load-command (at index %d) of architecture is too small to be valid", i);
+                    fprintf(stderr, "Load-command (at index %d) of architecture is too small to be valid\n", i);
                 } else {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o file is too small to be valid", i);
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file is too small to be valid\n", i);
                 }
 
                 exit(1);
@@ -108,9 +108,9 @@ public:
 
             if (cmdsize >= sizeofcmds) {
                 if (is_architecture_) {
-                    fprintf(stderr, "Load-command (at index %d) of architecture is larger than/or equal to entire area allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of architecture is larger than/or equal to entire area allocated for load-commands\n", i);
                 } else {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o file is larger than/or equal to entire area allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file is larger than/or equal to entire area allocated for load-commands\n", i);
                 }
 
                 exit(1);
@@ -119,17 +119,17 @@ public:
             size_used += cmdsize;
             if (size_used > sizeofcmds) {
                 if (is_architecture_) {
-                    fprintf(stderr, "Load-command (at index %d) of architecture goes past end of area allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of architecture goes past end of area allocated for load-commands\n", i);
                 } else {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o file goes past end of area allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file goes past end of area allocated for load-commands\n", i);
                 }
 
                 exit(1);
             } else if (size_used == sizeofcmds && i != ncmds - 1) {
                 if (is_architecture_) {
-                    fprintf(stderr, "Load-command (at index %d) of architecture takes up all of the remaining space allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of architecture takes up all of the remaining space allocated for load-commands\n", i);
                 } else {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o file takes up all of the remaining space allocated for load-commands", i);
+                    fprintf(stderr, "Load-command (at index %d) of mach-o file takes up all of the remaining space allocated for load-commands\n", i);
                 }
 
                 exit(1);
@@ -164,9 +164,9 @@ public:
 
         if (!symtab_command) {
             if (is_architecture_) {
-                fputs("Architecture does not have a symbol-table", stderr);
+                fputs("Architecture does not have a symbol-table\n", stderr);
             } else {
-                fputs("Mach-o file does not have a symbol-table", stderr);
+                fputs("Mach-o file does not have a symbol-table\n", stderr);
             }
 
             exit(1);
@@ -175,9 +175,9 @@ public:
         const auto &string_table_offset = symtab_command->stroff;
         if (string_table_offset > size_) {
             if (is_architecture_) {
-                fputs("Architecture has a string-table outside of its container", stderr);
+                fputs("Architecture has a string-table outside of its container\n", stderr);
             } else {
-                fputs("Mach-o file has a string-table outside of its container", stderr);
+                fputs("Mach-o file has a string-table outside of its container\n", stderr);
             }
 
             exit(1);
@@ -186,9 +186,9 @@ public:
         const auto &string_table_size = symtab_command->strsize;
         if (string_table_offset + string_table_size > size_) {
             if (is_architecture_) {
-                fputs("Architecture has a string-table that goes outside of its container", stderr);
+                fputs("Architecture has a string-table that goes outside of its container\n", stderr);
             } else {
-                fputs("Mach-o file has a string-table that goes outside of its container", stderr);
+                fputs("Mach-o file has a string-table that goes outside of its container\n", stderr);
             }
 
             exit(1);
@@ -197,9 +197,9 @@ public:
         const auto &symbol_table_offset = symtab_command->symoff;
         if (symbol_table_offset > size_) {
             if (is_architecture_) {
-                fputs("Architecture has a symbol-table that is outside of its container", stderr);
+                fputs("Architecture has a symbol-table that is outside of its container\n", stderr);
             } else {
-                fputs("Mach-o file has a symbol-table that is outside of its container", stderr);
+                fputs("Mach-o file has a symbol-table that is outside of its container\n", stderr);
             }
 
             exit(1);
@@ -219,9 +219,9 @@ public:
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
                 if (is_architecture_) {
-                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container", stderr);
+                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container\n", stderr);
                 } else {
-                    fputs("Mach-o file has a symbol-table that goes outside of its container", stderr);
+                    fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
                 }
 
                 exit(1);
@@ -239,7 +239,7 @@ public:
                 }
 
                 if (symbol_table_entry_string_table_index > (string_table_size - 1)) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table", i);
+                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table\n", i);
                     exit(1);
                 }
 
@@ -256,9 +256,9 @@ public:
             const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
                 if (is_architecture_) {
-                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container", stderr);
+                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container\n", stderr);
                 } else {
-                    fputs("Mach-o file has a symbol-table that goes outside of its container", stderr);
+                    fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
                 }
 
                 exit(1);
@@ -276,7 +276,7 @@ public:
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > (string_table_size - 1)) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table", i);
+                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table\n", i);
                     exit(1);
                 }
 
@@ -348,10 +348,10 @@ private:
                 swap_mach_header(&header_, NX_LittleEndian);
             }
         } else if (magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
-            fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself", base);
+            fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself\n", base);
             exit(1);
         } else {
-            fprintf(stderr, "Architecture at offset (%ld) is not a valid mach-o base", base);
+            fprintf(stderr, "Architecture at offset (%ld) is not a valid mach-o base\n", base);
             exit(1);
         }
 
@@ -403,7 +403,9 @@ public:
             auto should_swap = false;
             if (header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64) {
                 lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
-
+            } else if (header.magic != MH_MAGIC && header.magic != MH_CIGAM) {
+                close(descriptor);
+                return false;
             }
 
             if (header.magic == MH_CIGAM_64 || header.magic == MH_CIGAM) {
@@ -417,7 +419,6 @@ public:
             auto index = 0;
 
             auto size_left = header.sizeofcmds;
-
             for (auto i = 0; i < ncmds; i++) {
                 const auto load_cmd = (struct load_command *)&load_commands[index];
                 if (should_swap) {
@@ -426,23 +427,24 @@ public:
 
                 if (load_cmd->cmd == LC_ID_DYLIB) {
                     delete[] load_commands;
+                    close(descriptor);
+
                     return true;
                 }
 
                 auto cmdsize = load_cmd->cmdsize;
-                if (cmdsize < sizeof(struct load_command)) {
-                    fprintf(stderr, "Load-command (%d) is too small to be valid", i);
-                    exit(1);
-                } else if (cmdsize > size_left) {
-                    fprintf(stderr, "Load-command (%d) is larger than remaining space left for load commands", i);
-                    exit(1);
-                } else if (cmdsize == size_left && i != ncmds - 1) {
-                    fprintf(stderr, "Load-command (%d) takes up all the remaining space left for load commands", i);
-                    exit(1);
+                if (cmdsize < sizeof(struct load_command) || cmdsize > size_left || (cmdsize == size_left && i != ncmds - 1)) {
+                    delete[] load_commands;
+                    close(descriptor);
+
+                    return false;
                 }
 
                 index += cmdsize;
             }
+
+            delete[] load_commands;
+            close(descriptor);
 
             return false;
         };
@@ -474,6 +476,8 @@ public:
                     return false;
                 }
             }
+
+            delete[] architectures;
         } else if (magic == FAT_MAGIC || magic == FAT_CIGAM) {
             uint32_t nfat_arch;
             read(descriptor, &nfat_arch, sizeof(uint32_t));
@@ -501,6 +505,8 @@ public:
                     return false;
                 }
             }
+
+            delete[] architectures;
         } else if (magic == MH_MAGIC_64 || magic == MH_CIGAM_64 || magic == MH_MAGIC || magic == MH_CIGAM) {
             struct mach_header header;
             header.magic = magic;
@@ -728,7 +734,7 @@ public:
                 }
             }
 
-            auto macho_file_object = macho_file(macho_file_path);
+            auto macho_file = ::macho_file(macho_file_path);
             auto macho_file_has_architecture_overrides = architectures_.size() != 0;
 
             auto current_version = std::string();
@@ -740,7 +746,7 @@ public:
             auto installation_name = std::string();
             auto uuids = std::vector<std::string>();
 
-            auto &macho_file_containers = macho_file_object.containers();
+            auto &macho_file_containers = macho_file.containers();
             auto macho_container_counter = 0;
 
             const auto macho_file_containers_size = macho_file_containers.size();
@@ -1524,7 +1530,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 tbd.set_architectures(*tbd_architectures);
-                tbd.set_platform(::tbd::string_to_platform(tbd_platform->data()));
+                tbd.set_platform(tbd::string_to_platform(tbd_platform->data()));
                 tbd.set_version(*(enum tbd::version *)version_tbd);
 
                 tbds.emplace_back(tbd);
