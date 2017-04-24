@@ -1485,6 +1485,7 @@ int main(int argc, const char *argv[]) {
 
                     if (!macho_file::is_valid_library(path)) {
                         fprintf(stderr, "File at path (%s) is not a valid mach-o library\n", path.data());
+                        return 1;
                     }
 
                     tbd.add_macho_file(path);
