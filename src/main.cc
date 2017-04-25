@@ -1349,8 +1349,6 @@ int main(int argc, const char *argv[]) {
             auto local_tbd_version = 0;
 
             auto is_recursive = false;
-            auto should_continue = false;
-
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
                 if (*argument == '-') {
@@ -1401,14 +1399,9 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
                     } else {
-                        should_continue = true;
                         break;
                     }
 
-                    continue;
-                }
-
-                if (should_continue) {
                     continue;
                 }
 
@@ -1438,6 +1431,10 @@ int main(int argc, const char *argv[]) {
                     if (!is_recursive) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
                         return 1;
+                    }
+
+                    if (path.back() != '/') {
+                        path.append(1, '/');
                     }
 
                     const auto directory = opendir(path.data());
