@@ -653,7 +653,7 @@ private:
 class tbd {
 public:
     enum platform {
-        ios,
+        ios = 1,
         macos,
         watchos,
         tvos
@@ -1204,14 +1204,14 @@ int main(int argc, const char *argv[]) {
     auto tbds = std::vector<tbd>();
 
     auto platform = std::string();
-    auto tbd_version = 2;
+    auto version = 2;
 
     const char *current_directory = nullptr;
 
     auto parse_architectures = [&](std::vector<const NXArchInfo *> &architectures, int &index) {
         while (index < argc) {
             const auto &architecture_string = argv[index];
-            if (*architecture_string == '-') {
+            if (*architecture_string == '-' || *architecture_string == '/') {
                 break;
             }
 
@@ -1515,19 +1515,19 @@ int main(int argc, const char *argv[]) {
                     }
                 }
 
-                auto version_tbd = &local_tbd_version;
-                if (!*version_tbd) {
-                    version_tbd = &tbd_version;
+                auto tbd_version = &local_tbd_version;
+                if (!*tbd_version) {
+                    tbd_version = &version;
                 }
 
-                if (tbd_architectures->size() != 0 && *version_tbd != 1) {
+                if (tbd_architectures->size() != 0 && *tbd_version != 1) {
                     fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
                     return 1;
                 }
 
                 tbd.set_architectures(*tbd_architectures);
                 tbd.set_platform(tbd::string_to_platform(tbd_platform->data()));
-                tbd.set_version(*(enum tbd::version *)version_tbd);
+                tbd.set_version(*(enum tbd::version *)tbd_version);
 
                 tbds.emplace_back(tbd);
 
@@ -1573,17 +1573,17 @@ int main(int argc, const char *argv[]) {
             }
 
             i++;
-            const auto &version = argv[i];
+            const auto &version_string = argv[i];
 
-            if (*version == '-') {
+            if (*version_string == '-') {
                 fputs("Please provide a tbd-version\n", stderr);
                 return 1;
             }
 
-            if (strcmp(version, "v1") == 0) {
-                tbd_version = 1;
-            } else if (strcmp(version, "v2") != 0) {
-                fprintf(stderr, "tbd-version (%s) is invalid\n", version);
+            if (strcmp(version_string, "v1") == 0) {
+                version = 1;
+            } else if (strcmp(version_string, "v2") != 0) {
+                fprintf(stderr, "tbd-version (%s) is invalid\n", version_string);
                 return 1;
             }
         } else if (strcmp(option, "versions") == 0) {
