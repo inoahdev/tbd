@@ -1217,8 +1217,7 @@ int main(int argc, const char *argv[]) {
 
             const auto architecture = NXGetArchInfoFromName(architecture_string);
             if (!architecture) {
-                fprintf(stderr, "Architecture (%s) is invalid\n", architecture_string);
-                exit(1);
+                break;
             }
 
             architectures.emplace_back(architecture);
