@@ -29,7 +29,7 @@ namespace macho {
     }
 
     bool file::is_valid_file(const std::string &path) noexcept {
-        auto descriptor = open(path.data(), O_RDONLY);
+        const auto descriptor = open(path.data(), O_RDONLY);
         if (descriptor == -1) {
             return false;
         }
@@ -44,7 +44,7 @@ namespace macho {
     }
 
     bool file::is_valid_library(const std::string &path) noexcept {
-        auto descriptor = open(path.data(), O_RDONLY);
+        const auto descriptor = open(path.data(), O_RDONLY);
         if (descriptor == -1) {
             return false;
         }

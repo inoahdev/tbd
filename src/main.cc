@@ -251,7 +251,7 @@ int main(int argc, const char *argv[]) {
                         current_directory = getcwd(nullptr, 0);
 
                         if (!current_directory) {
-                            fputs("Failed to get current-working-directory\n", stderr);
+                            fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
                             return 1;
                         }
                     }
@@ -463,6 +463,6 @@ int main(int argc, const char *argv[]) {
     }
 
     for (auto &tbd : tbds) {
-        tbd.execute();
+        tbd.run();
     }
 }

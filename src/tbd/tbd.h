@@ -31,7 +31,7 @@ public:
     explicit tbd() = default;
     explicit tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const platform &platform, const version &version, const std::vector<const NXArchInfo *> &architecture_overrides = std::vector<const NXArchInfo *>());
 
-    void execute();
+    void run();
 
     inline const std::vector<std::string> &macho_files() const noexcept { return macho_files_; }
     inline const std::vector<std::string> &output_files() const noexcept { return output_files_; }

@@ -91,7 +91,7 @@ namespace macho {
         auto index = 0;
 
         for (auto i = 0; i < ncmds; i++) {
-            auto load_cmd = (struct load_command *)&((char *)cached_)[index];
+            auto load_cmd = (struct load_command *)&cached_[index];
             if (should_swap_ && !swapped_cache) {
                 swap_load_command(load_cmd, NX_LittleEndian);
             }
@@ -220,7 +220,7 @@ namespace macho {
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
                 if (is_architecture_) {
-                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container\n", stderr);
+                    fputs("Architecture has a symbol-table that goes outside of its container\n", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
                 }
@@ -257,7 +257,7 @@ namespace macho {
             const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
                 if (is_architecture_) {
-                    fputs("Architecture (at base 0x%.8lX) has a symbol-table that goes outside of its container\n", stderr);
+                    fputs("Architecture has a symbol-table that goes outside of its container\n", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
                 }

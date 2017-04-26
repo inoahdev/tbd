@@ -66,7 +66,7 @@ tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::str
     this->validate();
 }
 
-void tbd::execute() {
+void tbd::run() {
     auto output_path_index = 0;
     for (const auto &macho_file_path : macho_files_) {
         auto output_file = stdout;
