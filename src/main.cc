@@ -345,14 +345,8 @@ int main(int argc, const char *argv[]) {
                 auto tbd_platform = &local_platform;
                 if (tbd_platform->empty()) {
                     tbd_platform = &platform;
-                    while (platform.empty() || (platform != "ios" && platform != "macos" && platform != "watchos" && platform != "tvos")) {
-                        if (S_ISDIR(path_sbuf.st_mode)) {
-                            fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
-                        } else {
-                            fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macos, watchos, or tvos): ", path.data());
-                        }
-
-                        getline(std::cin, platform);
+                    if (tbd_platform->empty()) {
+                        tbd_platform->assign("platform");
                     }
                 }
 
@@ -447,12 +441,35 @@ int main(int argc, const char *argv[]) {
     }
 
     for (auto &tbd : tbds) {
+        const auto &platform = tbd.platform();
+        const auto &macho_files = tbd.macho_files();
+
+        auto path = macho_files.front();
+        if (macho_files.size() > 1) {
+            const auto path_position = path.find_last_of('/');
+            path.erase(path_position + 1);
+        }
+
+        auto platform_string = std::string();
+        if (platform == (platform)-1) {
+            while (platform_string.empty() || (platform_string != "ios" && platform_string != "macos" && platform_string != "watchos" && platform_string != "tvos")) {
+                if (path.back() == '/') {
+                    fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                } else {
+                    fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                }
+
+                getline(std::cin, platform_string);
+            }
+        }
+
+        tbd.set_platform(tbd::string_to_platform(platform_string.data()));
+
         auto &output_files = tbd.output_files();
         if (output_files.size() != 0) {
             continue;
         }
 
-        const auto &macho_files = tbd.macho_files();
         if (macho_files.size() > 1) {
             for (const auto &macho_file : macho_files) {
                 tbd.add_output_file(macho_file + ".tbd");

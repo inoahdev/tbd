@@ -7,6 +7,8 @@
 //
 
 #include <mach-o/swap.h>
+#include <cstdlib>
+
 #include "container.h"
 
 namespace macho {

@@ -7,6 +7,7 @@
 //
 
 #include <mach-o/swap.h>
+#include <cstdlib>
 
 #include <fcntl.h>
 #include <unistd.h>

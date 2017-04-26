@@ -10,6 +10,7 @@
 #include <mach-o/swap.h>
 
 #include <cerrno>
+#include <cstdlib>
 
 #include "group.h"
 #include "tbd.h"
