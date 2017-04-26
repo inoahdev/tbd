@@ -92,6 +92,7 @@ namespace macho {
         auto size_used = 0;
         auto index = 0;
 
+        auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_[index];
             if (should_swap_ && !swapped_cache) {
@@ -138,8 +139,12 @@ namespace macho {
                 exit(1);
             }
 
-            auto result = callback(load_cmd);
-            if (!result) {
+            if (should_callback) {
+                auto result = callback(load_cmd);
+                if (!result) {
+                    should_callback = false;
+                }
+            } else if (swapped_cache) {
                 break;
             }
 
