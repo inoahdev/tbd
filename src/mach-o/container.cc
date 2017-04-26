@@ -145,6 +145,8 @@ namespace macho {
 
             index += cmdsize;
         }
+
+        swapped_cache = true;
     }
 
     void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {
