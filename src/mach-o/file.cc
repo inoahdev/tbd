@@ -52,7 +52,7 @@ namespace macho {
         uint32_t magic;
         read(descriptor, &magic, sizeof(uint32_t));
 
-        auto has_library_command = [&](uint64_t base, const struct mach_header &header) {
+        auto has_library_command = [&](const uint64_t &base, const struct mach_header &header) {
             auto should_swap = false;
             if (header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64) {
                 lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
@@ -68,7 +68,7 @@ namespace macho {
             const auto load_commands = new char[header.sizeofcmds];
             read(descriptor, load_commands, header.sizeofcmds);
 
-            auto ncmds = header.ncmds;
+            const auto &ncmds = header.ncmds;
             auto index = 0;
 
             auto size_left = header.sizeofcmds;
@@ -196,7 +196,7 @@ namespace macho {
             containers_.reserve(nfat_arch);
             if (magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64) {
                 const auto architectures = new struct fat_arch_64[nfat_arch];
-                fread(architectures, sizeof(struct fat_arch) * nfat_arch, 1, file_);
+                fread(architectures, sizeof(struct fat_arch_64) * nfat_arch, 1, file_);
 
                 if (should_swap) {
                     swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
