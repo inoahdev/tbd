@@ -233,13 +233,13 @@ namespace macho {
             const auto symbol_table = new struct nlist_64[symbol_table_count];
             fread(symbol_table, symbol_table_size, 1, file_);
 
+            if (should_swap_) {
+                swap_nlist_64(symbol_table, symbol_table_count, NX_LittleEndian);
+            }
+
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = symbol_table[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
-
-                if (should_swap_) {
-                    swap_nlist_64(symbol_table, symbol_table_count, NX_LittleEndian);
-                }
 
                 if (symbol_table_entry_string_table_index > (string_table_size - 1)) {
                     fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table\n", i);
