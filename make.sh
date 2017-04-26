@@ -13,7 +13,7 @@ fi
 
 type=$1
 
-rm -rf >/dev/null 2>/dev/null
+rm -rf build >/dev/null 2>/dev/null
 if [ "$type" == "build" ]; then
     build_flag="-O3"
     if [ $# -ge 1 ]; then
