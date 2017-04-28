@@ -461,9 +461,9 @@ int main(int argc, const char *argv[]) {
 
                 getline(std::cin, platform_string);
             }
-        }
 
-        tbd.set_platform(tbd::string_to_platform(platform_string.data()));
+            tbd.set_platform(tbd::string_to_platform(platform_string.data()));
+        }
 
         auto &output_files = tbd.output_files();
         if (output_files.size() != 0) {
