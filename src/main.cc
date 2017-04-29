@@ -345,9 +345,6 @@ int main(int argc, const char *argv[]) {
                 auto tbd_platform = &local_platform;
                 if (tbd_platform->empty()) {
                     tbd_platform = &platform;
-                    if (tbd_platform->empty()) {
-                        tbd_platform->assign("platform");
-                    }
                 }
 
                 auto tbd_version = &local_tbd_version;
@@ -445,7 +442,7 @@ int main(int argc, const char *argv[]) {
             path.erase(path_position + 1);
         }
 
-        if (platform == (platform)-1) {
+        if (platform == (enum tbd::platform)-1) {
             auto platform_string = std::string();
             while (platform_string.empty() || (platform_string != "ios" && platform_string != "macos" && platform_string != "watchos" && platform_string != "tvos")) {
                 if (path.back() == '/') {
