@@ -67,7 +67,16 @@ tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::str
     this->validate();
 }
 
+void tbd::validate() const {
+    if (version_ == version::v2 && architectures_.size() != 0) {
+        fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
+        exit(1);
+    }
+}
+
 void tbd::run() {
+    this->validate();
+
     auto output_path_index = 0;
     for (const auto &macho_file_path : macho_files_) {
         auto output_file = stdout;

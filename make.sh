@@ -27,6 +27,7 @@ if [ "$type" == "build" ]; then
         should_log=$3
     fi
 
+    mkdir -p build >/dev/null 2>/dev/null
     if [ $should_log = true ]; then
         clang++ -std=c++14 -stdlib=libc++ src/main.cc src/tbd/group.cc src/tbd/symbol.cc src/tbd/tbd.cc src/mach-o/container.cc src/mach-o/file.cc $build_flag -o build/tbd
     else

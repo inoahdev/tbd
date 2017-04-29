@@ -67,11 +67,5 @@ private:
     enum version version_;
 
     std::vector<const NXArchInfo *> architectures_;
-
-    void validate() const {
-        if (version_ == version::v2 && architectures_.size() != 0) {
-            fputs("Cannot use custom architectures for tbd version v2. Specify version v1 to be able to do so\n", stderr);
-            exit(1);
-        }
-    }
+    void validate() const;
 };

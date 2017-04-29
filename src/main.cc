@@ -207,8 +207,8 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
-                        parse_architectures(local_architectures, i);
 
+                        parse_architectures(local_architectures, i);
                         i--;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
@@ -232,9 +232,9 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
-                        local_tbd_version = (int)tbd::string_to_version(argv[i]);
 
-                        if (!(int)local_tbd_version) {
+                        local_tbd_version = (int)tbd::string_to_version(argv[i]);
+                        if (!local_tbd_version) {
                             fprintf(stderr, "(%s) is not a valid tbd-version\n", argv[i]);
                             return 1;
                         }
@@ -355,11 +355,6 @@ int main(int argc, const char *argv[]) {
                     tbd_version = &version;
                 }
 
-                if (tbd_architectures->size() != 0 && *tbd_version != 1) {
-                    fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
-                    return 1;
-                }
-
                 tbd.set_architectures(*tbd_architectures);
                 tbd.set_platform(tbd::string_to_platform(tbd_platform->data()));
                 tbd.set_version(*(enum tbd::version *)tbd_version);
@@ -408,8 +403,8 @@ int main(int argc, const char *argv[]) {
             }
 
             i++;
-            const auto &version_string = argv[i];
 
+            const auto &version_string = argv[i];
             if (*version_string == '-') {
                 fputs("Please provide a tbd-version\n", stderr);
                 return 1;
@@ -450,8 +445,8 @@ int main(int argc, const char *argv[]) {
             path.erase(path_position + 1);
         }
 
-        auto platform_string = std::string();
         if (platform == (platform)-1) {
+            auto platform_string = std::string();
             while (platform_string.empty() || (platform_string != "ios" && platform_string != "macos" && platform_string != "watchos" && platform_string != "tvos")) {
                 if (path.back() == '/') {
                     fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
