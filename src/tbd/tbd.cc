@@ -484,6 +484,10 @@ void tbd::run() {
 
         fputs("...\n", output_file);
 
+        if (!macho_file_has_architecture_overrides) {
+            architectures_.clear();
+        }
+
         output_path_index++;
         if (output_file != stdout) {
             fclose(output_file);

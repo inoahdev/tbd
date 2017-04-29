@@ -44,7 +44,7 @@ int main(int argc, const char *argv[]) {
     auto architectures = std::vector<const NXArchInfo *>();
     auto tbds = std::vector<tbd>();
 
-    auto platform = std::string();
+    auto platform_string = std::string();
     auto version = 2;
 
     const char *current_directory = nullptr;
@@ -218,13 +218,13 @@ int main(int argc, const char *argv[]) {
 
                         i++;
 
-                        const auto &platform_string = argv[i];
-                        if (strcmp(platform_string, "ios") != 0 && strcmp(platform_string, "macos") != 0 && strcmp(platform_string, "watchos") != 0 && strcmp(platform_string, "tvos") != 0) {
-                            fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
+                        const auto &platform_string_arg = argv[i];
+                        if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macos") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
+                            fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
                             return 1;
                         }
 
-                        platform = platform_string;
+                        platform_string = platform_string_arg;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a tbd-version\n", stderr);
@@ -344,7 +344,7 @@ int main(int argc, const char *argv[]) {
 
                 auto tbd_platform = &local_platform;
                 if (tbd_platform->empty()) {
-                    tbd_platform = &platform;
+                    tbd_platform = &platform_string;
                 }
 
                 auto tbd_version = &local_tbd_version;
@@ -363,14 +363,14 @@ int main(int argc, const char *argv[]) {
 
                 local_tbd_version = 0;
                 is_recursive = false;
+
+                break;
             }
 
             if (is_recursive || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
-
-            i--;
         } else if (strcmp(option, "platform") == 0) {
             if (is_last_argument) {
                 fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
@@ -379,13 +379,13 @@ int main(int argc, const char *argv[]) {
 
             i++;
 
-            const auto &platform_string = argv[i];
-            if (strcmp(platform_string, "ios") != 0 && strcmp(platform_string, "macos") != 0 && strcmp(platform_string, "watchos") != 0 && strcmp(platform_string, "tvos") != 0) {
-                fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
+            const auto &platform_string_arg = argv[i];
+            if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macos") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
+                fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
                 return 1;
             }
 
-            platform = platform_string;
+            platform_string = platform_string_arg;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (i != 1 || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -443,7 +443,6 @@ int main(int argc, const char *argv[]) {
         }
 
         if (platform == (enum tbd::platform)-1) {
-            auto platform_string = std::string();
             while (platform_string.empty() || (platform_string != "ios" && platform_string != "macos" && platform_string != "watchos" && platform_string != "tvos")) {
                 if (path.back() == '/') {
                     fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
