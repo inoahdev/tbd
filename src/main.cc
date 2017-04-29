@@ -212,14 +212,14 @@ int main(int argc, const char *argv[]) {
                         i--;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
-                            fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
+                            fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
                             return 1;
                         }
 
                         i++;
 
                         const auto &platform_string_arg = argv[i];
-                        if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macos") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
+                        if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macosx") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
                             fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
                             return 1;
                         }
@@ -373,14 +373,14 @@ int main(int argc, const char *argv[]) {
             }
         } else if (strcmp(option, "platform") == 0) {
             if (is_last_argument) {
-                fputs("Please provide a platform-string (ios, macos, tvos, watchos)", stderr);
+                fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
                 return 1;
             }
 
             i++;
 
             const auto &platform_string_arg = argv[i];
-            if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macos") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
+            if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macosx") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
                 return 1;
             }
@@ -443,11 +443,11 @@ int main(int argc, const char *argv[]) {
         }
 
         if (platform == (enum tbd::platform)-1) {
-            while (platform_string.empty() || (platform_string != "ios" && platform_string != "macos" && platform_string != "watchos" && platform_string != "tvos")) {
+            while (platform_string.empty() || (platform_string != "ios" && platform_string != "macosx" && platform_string != "watchos" && platform_string != "tvos")) {
                 if (path.back() == '/') {
-                    fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                    fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
                 } else {
-                    fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macos, watchos, or tvos): ", path.data());
+                    fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
                 }
 
                 getline(std::cin, platform_string);

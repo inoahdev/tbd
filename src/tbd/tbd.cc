@@ -21,8 +21,8 @@ const char *tbd::platform_to_string(const enum tbd::platform &platform) noexcept
             return "ios";
             break;
 
-        case macos:
-            return "macos";
+        case macosx:
+            return "macosx";
             break;
 
         case watchos:
@@ -41,8 +41,8 @@ const char *tbd::platform_to_string(const enum tbd::platform &platform) noexcept
 enum tbd::platform tbd::string_to_platform(const char *platform) noexcept {
     if (strcmp(platform, "ios") == 0) {
         return platform::ios;
-    } else if (strcmp(platform, "macos") == 0) {
-        return platform::macos;
+    } else if (strcmp(platform, "macosx") == 0) {
+        return platform::macosx;
     } else if (strcmp(platform, "watchos") == 0) {
         return platform::watchos;
     } else if (strcmp(platform, "tvos") == 0) {

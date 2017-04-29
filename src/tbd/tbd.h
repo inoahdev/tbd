@@ -13,7 +13,7 @@ class tbd {
 public:
     enum platform {
         ios = 1,
-        macos,
+        macosx,
         watchos,
         tvos
     };
