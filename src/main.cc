@@ -44,7 +44,15 @@ int main(int argc, const char *argv[]) {
     auto architectures = std::vector<const NXArchInfo *>();
     auto tbds = std::vector<tbd>();
 
+    enum class recurse {
+        none,
+        once,
+        all
+    };
+
+    auto tbds_recursive = std::vector<recurse>();
     auto platform_string = std::string();
+
     auto version = 2;
 
     auto current_directory = std::string();
@@ -66,6 +74,8 @@ int main(int argc, const char *argv[]) {
     };
 
     auto output_paths_index = 0;
+    auto provided_macho_files = false;
+
     for (auto i = 1; i < argc; i++) {
         const auto &argument = argv[i];
         if (*argument != '-') {
@@ -136,11 +146,12 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
 
+                const auto &tbd_recursive = tbds_recursive.at(output_paths_index);
+
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) == 0) {
                     if (S_ISDIR(sbuf.st_mode)) {
-                        const auto &macho_files = tbd.macho_files();
-                        if (macho_files.size() < 2) {
+                        if (tbd_recursive == recurse::none) {
                             fprintf(stderr, "Cannot output tbd-file to a directory at path (%s), please provide a full path to a file to output to\n", path.data());
                             return 1;
                         } else if (path == "stdout") {
@@ -191,18 +202,33 @@ int main(int argc, const char *argv[]) {
             auto local_platform = std::string();
             auto local_tbd_version = 0;
 
-            auto is_recursive = false;
+            auto recurse_type = recurse::none;
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
                 if (*argument == '-') {
                     auto option = &argument[1];
                     if (*option == '-') {
-                        option = &option[1];
+                        option++;
                     }
 
                     const auto is_last_argument = i == argc - 1;
                     if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                        is_recursive = true;
+                        recurse_type = recurse::all;
+                    } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
+                        const auto recurse_type_string = strchr(option, '=') + 1;
+                        if (!*recurse_type_string) {
+                            fputs("Please provide a recurse type", stderr);
+                            return 1;
+                        }
+
+                        if (strcmp(recurse_type_string, "once") == 0) {
+                            recurse_type = recurse::once;
+                        } else if (strcmp(recurse_type_string, "all") == 0) {
+                            recurse_type = recurse::all;
+                        } else {
+                            fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
+                            return 1;
+                        }
                     } else if (strcmp(option, "a") == 0 || strcmp(option, "archs") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
@@ -275,7 +301,7 @@ int main(int argc, const char *argv[]) {
                 auto tbd = ::tbd();
 
                 if (S_ISDIR(path_sbuf.st_mode)) {
-                    if (!is_recursive) {
+                    if (recurse_type == recurse::none) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
                         return 1;
                     }
@@ -293,7 +319,7 @@ int main(int argc, const char *argv[]) {
                     std::function<void(DIR *, const std::string &)> loop_directory = [&](DIR *directory, const std::string &directory_path) {
                         auto directory_entry = readdir(directory);
                         while (directory_entry != nullptr) {
-                            if (directory_entry->d_type == DT_DIR) {
+                            if (directory_entry->d_type == DT_DIR && recurse_type == recurse::all) {
                                 if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
                                     strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
                                     directory_entry = readdir(directory);
@@ -328,7 +354,7 @@ int main(int argc, const char *argv[]) {
                     loop_directory(directory, path);
                     closedir(directory);
                 } else if (S_ISREG(path_sbuf.st_mode)) {
-                    if (is_recursive) {
+                    if (recurse_type != recurse::none) {
                         fprintf(stderr, "Cannot recurse file at path (%s)\n", path.data());
                         return 1;
                     }
@@ -341,6 +367,27 @@ int main(int argc, const char *argv[]) {
                     tbd.add_macho_file(path);
                 } else {
                     fprintf(stderr, "Object at path (%s) is not a regular file\n", path.data());
+                    return 1;
+                }
+
+                provided_macho_files = true;
+
+                const auto &tbd_macho_files = tbd.macho_files();
+                if (tbd_macho_files.empty()) {
+                    switch (recurse_type) {
+                        case recurse::none:
+                            fprintf(stdout, "File at path (%s) is not a mach-o library file\n", path.data());
+                            break;
+
+                        case recurse::once:
+                            fprintf(stdout, "No mach-o library files found while recursing once in directory at path (%s)\n", path.data());
+                            break;
+
+                        case recurse::all:
+                            fprintf(stdout, "No mach-o library files found while recursing through all files and directories in directory at path (%s)\n", path.data());
+                            break;
+                    }
+
                     return 1;
                 }
 
@@ -364,17 +411,18 @@ int main(int argc, const char *argv[]) {
                 tbd.set_version(*(enum tbd::version *)tbd_version);
 
                 tbds.emplace_back(tbd);
+                tbds_recursive.emplace_back(recurse_type);
 
                 local_architectures.clear();
                 local_platform.clear();
 
                 local_tbd_version = 0;
-                is_recursive = false;
+                recurse_type = recurse::none;
 
                 break;
             }
 
-            if (is_recursive || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
+            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -434,17 +482,20 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-    if (!tbds.size()) {
-        fputs("No mach-o files have been provided", stderr);
+    if (!provided_macho_files) {
+        fputs("No mach-o files have been provided\n", stderr);
         return 1;
     }
 
+    auto tbd_recursive_index = 0;
     for (auto &tbd : tbds) {
         const auto &platform = tbd.platform();
         const auto &macho_files = tbd.macho_files();
 
         auto path = macho_files.front();
-        if (macho_files.size() > 1) {
+        const auto &tbd_recursive = tbds_recursive.at(tbd_recursive_index);
+
+        if (tbd_recursive != recurse::none) {
             const auto path_position = path.find_last_of('/');
             path.erase(path_position + 1);
         }
@@ -461,7 +512,7 @@ int main(int argc, const char *argv[]) {
                 getline(std::cin, platform_string);
             }
 
-            tbd.set_platform(tbd::string_to_platform(platform_string.data()));
+            tbd.set_platform(tbd_platform);
         }
 
         auto &output_files = tbd.output_files();
@@ -469,11 +520,13 @@ int main(int argc, const char *argv[]) {
             continue;
         }
 
-        if (macho_files.size() > 1) {
+        if (tbd_recursive != recurse::none) {
             for (const auto &macho_file : macho_files) {
                 tbd.add_output_file(macho_file + ".tbd");
             }
         }
+
+        tbd_recursive_index++;
     }
 
     for (auto &tbd : tbds) {

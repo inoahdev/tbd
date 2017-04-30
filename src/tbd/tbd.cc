@@ -198,6 +198,7 @@ void tbd::run() {
                             reexports_iter->add_architecture_info(macho_container_architecture_info);
                         } else {
                             reexports.emplace_back(reexport_dylib_string, false);
+                            reexports.back().add_architecture_info(macho_container_architecture_info);
                         }
 
                         break;
@@ -353,7 +354,7 @@ void tbd::run() {
                     fputs(", ", output_file);
 
                     if (counter % 2 == 0) {
-                        fprintf(output_file, "%-27s", "\n");
+                        fprintf(output_file, "%-26s", "\n");
                     }
 
                     counter++;
