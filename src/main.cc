@@ -195,7 +195,7 @@ int main(int argc, const char *argv[]) {
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
                 if (*argument == '-') {
-                    const char *option = &argument[1];
+                    auto option = &argument[1];
                     if (*option == '-') {
                         option = &option[1];
                     }
@@ -450,7 +450,8 @@ int main(int argc, const char *argv[]) {
         }
 
         if (platform == (enum tbd::platform)-1) {
-            while (platform_string.empty() || (platform_string != "ios" && platform_string != "macosx" && platform_string != "watchos" && platform_string != "tvos")) {
+            auto tbd_platform = (enum tbd::platform)-1;
+            while (platform_string.empty() || (tbd_platform = tbd::string_to_platform(platform_string.data())) == (enum tbd::platform)-1) {
                 if (path.back() == '/') {
                     fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
                 } else {
@@ -472,8 +473,6 @@ int main(int argc, const char *argv[]) {
             for (const auto &macho_file : macho_files) {
                 tbd.add_output_file(macho_file + ".tbd");
             }
-        } else {
-            tbd.add_output_file("stdout");
         }
     }
 

@@ -69,10 +69,10 @@ namespace macho {
             const auto load_commands = new char[header.sizeofcmds];
             read(descriptor, load_commands, header.sizeofcmds);
 
-            const auto &ncmds = header.ncmds;
             auto index = 0;
-
             auto size_left = header.sizeofcmds;
+
+            const auto &ncmds = header.ncmds;
             for (auto i = 0; i < ncmds; i++) {
                 const auto load_cmd = (struct load_command *)&load_commands[index];
                 if (should_swap) {
