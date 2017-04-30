@@ -74,7 +74,7 @@ namespace macho {
         const auto &sizeofcmds = header_.sizeofcmds;
 
         if (!cached_) {
-            cached_ = new char[header_.sizeofcmds];
+            cached_ = new char[sizeofcmds];
 
             auto base = this->base() + sizeof(struct mach_header);
             if (this->is_64_bit()) {
@@ -84,7 +84,7 @@ namespace macho {
             const auto position = ftell(file_);
 
             fseek(file_, base, SEEK_SET);
-            fread(cached_, header_.sizeofcmds, 1, file_);
+            fread(cached_, sizeofcmds, 1, file_);
 
             fseek(file_, position, SEEK_SET);
         }

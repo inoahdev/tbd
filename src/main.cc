@@ -302,7 +302,7 @@ int main(int argc, const char *argv[]) {
 
                                 auto sub_directory_path = directory_path;
 
-                                sub_directory_path.append(directory_entry->d_name);
+                                sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
                                 sub_directory_path.append(1, '/');
 
                                 const auto sub_directory = opendir(sub_directory_path.data());
@@ -387,7 +387,7 @@ int main(int argc, const char *argv[]) {
             i++;
 
             const auto &platform_string_arg = argv[i];
-            if (strcmp(platform_string_arg, "ios") != 0 && strcmp(platform_string_arg, "macosx") != 0 && strcmp(platform_string_arg, "watchos") != 0 && strcmp(platform_string_arg, "tvos") != 0) {
+            if (tbd::string_to_platform(platform_string_arg) == (enum tbd::platform)-1) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
                 return 1;
             }
