@@ -47,8 +47,7 @@ int main(int argc, const char *argv[]) {
     auto platform_string = std::string();
     auto version = 2;
 
-    const char *current_directory = nullptr;
-
+    auto current_directory = std::string();
     auto parse_architectures = [&](std::vector<const NXArchInfo *> &architectures, int &index) {
         while (index < argc) {
             const auto &architecture_string = argv[index];
@@ -118,12 +117,16 @@ int main(int argc, const char *argv[]) {
                 auto &macho_files = tbd.macho_files();
 
                 if (path_front != '/' && path != "stdout") {
-                    if (!current_directory) {
-                        current_directory = getcwd(nullptr, 0);
-
-                        if (!current_directory) {
-                            fputs("Failed to get current-working-directory\n", stderr);
+                    if (current_directory.empty()) {
+                        const auto current_directory_string = getcwd(nullptr, 0);
+                        if (!current_directory_string) {
+                            fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
                             return 1;
+                        }
+
+                        current_directory = current_directory_string;
+                        if (current_directory.back() != '/') {
+                            current_directory.append(1, '/');
                         }
                     }
 
@@ -247,12 +250,16 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argument);
                 if (path.front() != '/') {
-                    if (!current_directory) {
-                        current_directory = getcwd(nullptr, 0);
-
-                        if (!current_directory) {
+                    if (current_directory.empty()) {
+                        const auto current_directory_string = getcwd(nullptr, 0);
+                        if (!current_directory_string) {
                             fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
                             return 1;
+                        }
+
+                        current_directory = current_directory_string;
+                        if (current_directory.back() != '/') {
+                            current_directory.append(1, '/');
                         }
                     }
 
