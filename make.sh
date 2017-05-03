@@ -17,7 +17,7 @@ rm -rf build >/dev/null 2>/dev/null
 if [ "$type" == "build" ]; then
     build_flag="-O3"
     if [ $# -ge 1 ]; then
-        if [ $2 == "Debug" ]; then
+        if [[ $2 == "Debug" ]]; then
             build_flag="-O0 -g"
         fi
     fi
