@@ -56,18 +56,28 @@ int main(int argc, const char *argv[]) {
     auto tbds = std::vector<tbd_recursive>();
 
     auto platform_string = std::string();
-    auto version = 2;
-
     auto current_directory = std::string();
+
+    auto version = 2;
     auto parse_architectures = [&](std::vector<const NXArchInfo *> &architectures, int &index) {
         while (index < argc) {
             const auto &architecture_string = argv[index];
             if (*architecture_string == '-' || *architecture_string == '/') {
+                if (architectures.empty()) {
+                    fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
+                    exit(1);
+                }
+
                 break;
             }
 
             const auto architecture = NXGetArchInfoFromName(architecture_string);
             if (!architecture) {
+                if (architectures.empty()) {
+                    fprintf(stderr, "Unrecognized architecture with name (%s)\n", architecture_string);
+                    exit(1);
+                }
+
                 break;
             }
 
@@ -75,9 +85,7 @@ int main(int argc, const char *argv[]) {
             index++;
         }
 
-        if (architectures.size() != 0) {
-            index--;
-        }
+        index--;
     };
 
     auto output_paths_index = 0;
@@ -126,7 +134,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (output_paths_index >= tbds.size()) {
-                    fprintf(stderr, "No coresponding mach-o files for output-path (%s)\n", path.data());
+                    fprintf(stderr, "No coresponding mach-o files for output-path (%s, at index %d)\n", path.data(), output_paths_index);
                     return 1;
                 }
 
@@ -134,7 +142,6 @@ int main(int argc, const char *argv[]) {
                 auto &tbd = tbd_recursive.tbd;
 
                 auto &macho_files = tbd.macho_files();
-
                 if (path_front != '/' && path != "stdout") {
                     if (current_directory.empty()) {
                         const auto current_directory_string = getcwd(nullptr, 0);
@@ -168,7 +175,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        for (const auto &macho_file : tbd.macho_files()) {
+                        for (const auto &macho_file : macho_files) {
                             const auto macho_file_iter = macho_file.find_last_of('/');
                             auto macho_file_output_path = macho_file.substr(macho_file_iter);
 
@@ -178,7 +185,6 @@ int main(int argc, const char *argv[]) {
                             tbd.add_output_file(macho_file_output_path);
                         }
                     } else if (S_ISREG(sbuf.st_mode)) {
-                        const auto &macho_files = tbd.macho_files();
                         if (macho_files.size() > 1) {
                             fprintf(stderr, "Can't output multiple mach-o files and output to file at path (%s)\n", path.data());
                             return 1;
@@ -187,7 +193,6 @@ int main(int argc, const char *argv[]) {
                         tbd.add_output_file(path);
                     }
                 } else {
-                    const auto &macho_files = tbd.macho_files();
                     if (macho_files.size() > 1) {
                         fprintf(stderr, "Directory at path (%s) does not exist\n", path.data());
                         return 1;
