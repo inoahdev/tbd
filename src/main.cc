@@ -250,6 +250,8 @@ int main(int argc, const char *argv[]) {
                     } else {
                         paths.emplace_back(argument, recurse_type);
                     }
+
+                    recurse_type = recurse::none;
                 }
 
                 if (paths.empty()) {
