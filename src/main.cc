@@ -74,6 +74,10 @@ int main(int argc, const char *argv[]) {
             architectures.emplace_back(architecture);
             index++;
         }
+
+        if (architectures.size() != 0) {
+            index--;
+        }
     };
 
     auto output_paths_index = 0;
@@ -98,8 +102,8 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
+            i++;
             parse_architectures(architectures, i);
-            i--;
         } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
             if (i != 1 || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -241,9 +245,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
-
                         parse_architectures(local_architectures, i);
-                        i--;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
