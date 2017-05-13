@@ -14,4 +14,8 @@ Extra options:
         --platform, Specify platform for all mach-o files provided
     -r, --recurse,  Specify directory to recurse and find mach-o files in. Use in conjunction with -p (ex. -p -r /path/to/directory)
         --versions, Print a list of all valid tbd-versions
+
+List options:
+        --list-architectures,   List all valid architectures for tbd-files
+        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))
 ```
