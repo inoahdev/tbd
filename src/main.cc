@@ -464,24 +464,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     const auto is_last_argument = i == argc - 1;
-                    if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                        recurse_type = recurse::all;
-                    } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
-                        const auto recurse_type_string = strchr(option, '=') + 1;
-                        if (!*recurse_type_string) {
-                            fputs("Please provide a recurse type", stderr);
-                            return 1;
-                        }
-
-                        if (strcmp(recurse_type_string, "once") == 0) {
-                            recurse_type = recurse::once;
-                        } else if (strcmp(recurse_type_string, "all") == 0) {
-                            recurse_type = recurse::all;
-                        } else {
-                            fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
-                            return 1;
-                        }
-                    } else if (strcmp(option, "a") == 0 || strcmp(option, "archs") == 0) {
+                    if (strcmp(option, "a") == 0 || strcmp(option, "archs") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
                             return 1;
@@ -507,6 +490,23 @@ int main(int argc, const char *argv[]) {
                         }
 
                         platform_string = platform_string_arg;
+                    } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
+                        recurse_type = recurse::all;
+                    } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
+                        const auto recurse_type_string = strchr(option, '=') + 1;
+                        if (!*recurse_type_string) {
+                            fputs("Please provide a recurse type", stderr);
+                            return 1;
+                        }
+
+                        if (strcmp(recurse_type_string, "once") == 0) {
+                            recurse_type = recurse::once;
+                        } else if (strcmp(recurse_type_string, "all") == 0) {
+                            recurse_type = recurse::all;
+                        } else {
+                            fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
+                            return 1;
+                        }
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a tbd-version\n", stderr);
