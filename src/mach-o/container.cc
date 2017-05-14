@@ -290,7 +290,7 @@ namespace macho {
                     exit(1);
                 }
 
-                const struct nlist_64 symbol_table_entry_64 = { symbol_table_entry.n_un.n_strx, symbol_table_entry.n_type, symbol_table_entry.n_sect, (uint16_t)symbol_table_entry.n_desc, symbol_table_entry.n_value };
+                const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry.n_un.n_strx }, symbol_table_entry.n_type, symbol_table_entry.n_sect, (uint16_t)symbol_table_entry.n_desc, symbol_table_entry.n_value };
 
                 const auto symbol_table_string_table_string = &string_table_[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry_64, symbol_table_string_table_string);
