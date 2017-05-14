@@ -489,6 +489,9 @@ int main(int argc, const char *argv[]) {
 
                         i++;
                         parse_architectures(local_architectures, i);
+                    } else if (strcmp(option, "p") == 0) {
+                        fprintf(stderr, "Please provide a path for option (%s)\n", argument);
+                        return 1;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
@@ -518,7 +521,8 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
                     } else {
-                        break;
+                        fprintf(stderr, "Unrecognized argument (%s)\n", argument);
+                        return 1;
                     }
 
                     continue;
