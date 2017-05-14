@@ -168,7 +168,7 @@ int main(int argc, const char *argv[]) {
             }
 
             auto architectures = NXGetAllArchInfos();
-            while (architectures->name != NULL) {
+            while (architectures->name != nullptr) {
                 fprintf(stdout, "%s\n", architectures->name);
                 architectures++;
             }
