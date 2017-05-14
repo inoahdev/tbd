@@ -246,7 +246,7 @@ int main(int argc, const char *argv[]) {
                         auto path = std::string(argument);
                         path.insert(0, current_directory);
 
-                        paths.emplace_back(path, recurse_type);
+                        paths.emplace_back(std::move(path), recurse_type);
                     } else {
                         paths.emplace_back(argument, recurse_type);
                     }
@@ -309,7 +309,7 @@ int main(int argc, const char *argv[]) {
 
                     auto library_paths = std::vector<std::string>();
                     loop_directory_for_libraries(directory, path, recurse_type, [&](const std::string &path) {
-                        library_paths.emplace_back(path);
+                        library_paths.emplace_back(std::move(path));
                     });
 
                     if (library_paths.empty()) {

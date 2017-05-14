@@ -283,11 +283,11 @@ void tbd::run() {
 
             auto &group = groups.front();
             for (const auto &reexport : reexports) {
-                group.add_reexport(reexport);
+                group.add_reexport(std::move(reexport));
             }
 
             for (const auto &symbol : symbols) {
-                group.add_symbol(symbol);
+                group.add_symbol(std::move(symbol));
             }
         } else {
             for (const auto &reexport : reexports) {
@@ -295,10 +295,10 @@ void tbd::run() {
                 const auto group_iter = std::find(groups.begin(), groups.end(), reexport_architecture_infos);
 
                 if (group_iter != groups.end()) {
-                    group_iter->add_reexport(reexport);
+                    group_iter->add_reexport(std::move(reexport));
                 } else {
-                    groups.emplace_back(reexport_architecture_infos);
-                    groups.back().add_reexport(reexport);
+                    groups.emplace_back(std::move(reexport_architecture_infos));
+                    groups.back().add_reexport(std::move(reexport));
                 }
             }
 
@@ -307,10 +307,10 @@ void tbd::run() {
                 const auto group_iter = std::find(groups.begin(), groups.end(), symbol_architecture_infos);
 
                 if (group_iter != groups.end()) {
-                    group_iter->add_symbol(symbol);
+                    group_iter->add_symbol(std::move(symbol));
                 } else {
-                    groups.emplace_back(symbol_architecture_infos);
-                    groups.back().add_symbol(symbol);
+                    groups.emplace_back(std::move(symbol_architecture_infos));
+                    groups.back().add_symbol(std::move(symbol));
                 }
             }
         }
@@ -399,17 +399,17 @@ void tbd::run() {
 
                 if (symbol_string.compare(symbol_string_begin_pos, 13, "_OBJC_CLASS_$") == 0) {
                     symbol_string.erase(0, 13);
-                    objc_classes.emplace_back(symbol_string);
+                    objc_classes.emplace_back(std::move(symbol_string));
                 } else if (symbol_string.compare(symbol_string_begin_pos, 17, "_OBJC_METACLASS_$") == 0) {
                     symbol_string.erase(0, 17);
-                    objc_classes.emplace_back(symbol_string);
+                    objc_classes.emplace_back(std::move(symbol_string));
                 } else if (symbol_string.compare(symbol_string_begin_pos, 12, "_OBJC_IVAR_$") == 0) {
                     symbol_string.erase(0, 12);
-                    objc_ivars.emplace_back(symbol_string);
+                    objc_ivars.emplace_back(std::move(symbol_string));
                 } else if (symbol.weak()) {
-                    weak_symbols.emplace_back(symbol_string);
+                    weak_symbols.emplace_back(std::move(symbol_string));
                 } else {
-                    ordinary_symbols.emplace_back(symbol_string);
+                    ordinary_symbols.emplace_back(std::move(symbol_string));
                 }
             }
 
