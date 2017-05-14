@@ -36,6 +36,8 @@ public:
     inline const std::vector<std::string> &macho_files() const noexcept { return macho_files_; }
     inline const std::vector<std::string> &output_files() const noexcept { return output_files_; }
 
+    inline const std::vector<const NXArchInfo *> architectures() const noexcept { return architectures_; }
+
     inline void add_macho_file(const std::string &macho_file) noexcept {
         macho_files_.emplace_back(macho_file);
     }

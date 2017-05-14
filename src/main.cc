@@ -98,7 +98,7 @@ int main(int argc, const char *argv[]) {
     auto platform_string = std::string();
     auto current_directory = std::string();
 
-    auto version = 2;
+    auto version = tbd::version::v2;
     auto parse_architectures = [&](std::vector<const NXArchInfo *> &architectures, int &index) {
         while (index < argc) {
             const auto &architecture_string = argv[index];
@@ -452,7 +452,7 @@ int main(int argc, const char *argv[]) {
             auto local_architectures = std::vector<const NXArchInfo *>();
 
             auto local_platform = std::string();
-            auto local_tbd_version = 0;
+            auto local_tbd_version = (enum tbd::version)0;
 
             auto recurse_type = recurse::none;
             for (i++; i < argc; i++) {
@@ -512,8 +512,8 @@ int main(int argc, const char *argv[]) {
 
                         i++;
 
-                        local_tbd_version = (int)tbd::string_to_version(argv[i]);
-                        if (!local_tbd_version) {
+                        local_tbd_version = tbd::string_to_version(argv[i]);
+                        if (!(int)local_tbd_version) {
                             fprintf(stderr, "(%s) is not a valid tbd-version\n", argv[i]);
                             return 1;
                         }
@@ -620,7 +620,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto tbd_version = &local_tbd_version;
-                if (!*tbd_version) {
+                if (!(int)*tbd_version) {
                     tbd_version = &version;
                 }
 
@@ -634,13 +634,13 @@ int main(int argc, const char *argv[]) {
                 local_architectures.clear();
                 local_platform.clear();
 
-                local_tbd_version = 0;
+                local_tbd_version = (enum tbd::version)0;
                 recurse_type = recurse::none;
 
                 break;
             }
 
-            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform.size() != 0 || local_tbd_version != 0) {
+            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform.size() != 0 || (int)local_tbd_version != 0) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -681,7 +681,7 @@ int main(int argc, const char *argv[]) {
             }
 
             if (strcmp(version_string, "v1") == 0) {
-                version = 1;
+                version = tbd::version::v1;
             } else if (strcmp(version_string, "v2") != 0) {
                 fprintf(stderr, "tbd-version (%s) is invalid\n", version_string);
                 return 1;
@@ -709,17 +709,28 @@ int main(int argc, const char *argv[]) {
     for (auto &tbd_recursive : tbds) {
         auto &tbd = tbd_recursive.tbd;
 
-        const auto &platform = tbd.platform();
+        const auto &tbd_architectures = tbd.architectures();
+        const auto &tbd_version = tbd.version();
+
+        if (tbd_version == tbd::version::v2) {
+            if (tbd_architectures.size() != 0 || architectures.size() != 0) {
+                fputs("Cannot have custom architectures on tbd-version v2, Please specify tbd-version v1\n", stderr);
+                return 1;
+            }
+        } else if (tbd_architectures.empty() && architectures.size() != 0) {
+            tbd.set_architectures(architectures);
+        }
+
         const auto &macho_files = tbd.macho_files();
+        const auto &tbd_recurse_type = tbd_recursive.recurse;
 
         auto path = macho_files.front();
-
-        const auto &tbd_recurse_type = tbd_recursive.recurse;
         if (tbd_recurse_type != recurse::none) {
             const auto path_position = path.find_last_of('/');
             path.erase(path_position + 1);
         }
 
+        const auto &platform = tbd.platform();
         if (platform == (enum tbd::platform)-1) {
             auto tbd_platform = (enum tbd::platform)-1;
             const auto is_directory = path.back() == '/';
