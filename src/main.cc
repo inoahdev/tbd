@@ -632,6 +632,11 @@ int main(int argc, const char *argv[]) {
                 tbd.set_platform(tbd::string_to_platform(tbd_platform->data()));
                 tbd.set_version(*(enum tbd::version *)tbd_version);
 
+                auto &macho_files = tbd.macho_files();
+                auto &output_files = tbd.output_files();
+
+                output_files.reserve(macho_files.size());
+
                 auto tbd_recurse = tbd_recursive({ tbd, recurse_type });
                 tbds.emplace_back(tbd_recurse);
 
@@ -756,6 +761,7 @@ int main(int argc, const char *argv[]) {
         }
 
         if (tbd_recurse_type != recurse::none) {
+            output_files.reserve(macho_files.size());
             for (const auto &macho_file : macho_files) {
                 tbd.add_output_file(macho_file + ".tbd");
             }

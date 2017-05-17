@@ -33,8 +33,8 @@ public:
 
     void run();
 
-    inline const std::vector<std::string> &macho_files() const noexcept { return macho_files_; }
-    inline const std::vector<std::string> &output_files() const noexcept { return output_files_; }
+    inline std::vector<std::string> &macho_files() noexcept { return macho_files_; }
+    inline std::vector<std::string> &output_files() noexcept { return output_files_; }
 
     inline const std::vector<const NXArchInfo *> architectures() const noexcept { return architectures_; }
 
