@@ -62,13 +62,12 @@ void loop_directory_for_libraries(DIR *directory, const std::string &directory_p
             sub_directory_path.append(1, '/');
 
             const auto sub_directory = opendir(sub_directory_path.data());
-            if (!sub_directory) {
-                fprintf(stderr, "Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
-                exit(1);
+            if (sub_directory) {
+                loop_directory_for_libraries(sub_directory, sub_directory_path, recurse_type, callback);
+                closedir(sub_directory);
+            } else {
+                fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
             }
-
-            loop_directory_for_libraries(sub_directory, sub_directory_path, recurse_type, callback);
-            closedir(sub_directory);
         } else if (directory_entry->d_type == DT_REG) {
             const auto &directory_entry_path = directory_path + directory_entry->d_name;
 
