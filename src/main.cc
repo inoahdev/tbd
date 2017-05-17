@@ -69,8 +69,7 @@ void loop_directory_for_libraries(DIR *directory, const std::string &directory_p
                 fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
             }
         } else if (directory_entry->d_type == DT_REG) {
-            const auto &directory_entry_path = directory_path + directory_entry->d_name;
-
+            auto directory_entry_path = directory_path + directory_entry->d_name;
             if (macho::file::is_valid_library(directory_entry_path)) {
                 callback(directory_entry_path);
             }
@@ -412,6 +411,11 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
+                        auto &output_files = tbd.output_files();
+                        const auto output_files_size = output_files.size();
+
+                        output_files.reserve(output_files_size + macho_files.size());
+
                         for (const auto &macho_file : macho_files) {
                             const auto macho_file_iter = macho_file.find_last_of('/');
                             auto macho_file_output_path = macho_file.substr(macho_file_iter);
@@ -419,7 +423,7 @@ int main(int argc, const char *argv[]) {
                             macho_file_output_path.insert(0, path);
                             macho_file_output_path.append(".tbd");
 
-                            tbd.add_output_file(macho_file_output_path);
+                            output_files.emplace_back(std::move(macho_file_output_path));
                         }
                     } else if (S_ISREG(sbuf.st_mode)) {
                         if (macho_files.size() > 1) {
@@ -570,7 +574,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     loop_directory_for_libraries(directory, path, recurse_type, [&](const std::string &path) {
-                        tbd.add_macho_file(path);
+                        tbd.add_macho_file(std::move(path));
                     });
 
                     closedir(directory);
