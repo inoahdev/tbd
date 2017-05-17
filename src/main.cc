@@ -57,6 +57,9 @@ void loop_directory_for_libraries(DIR *directory, const std::string &directory_p
             }
 
             auto sub_directory_path = directory_path;
+            auto sub_directory_path_length = sub_directory_path.length();
+
+            sub_directory_path.reserve(sub_directory_path_length + directory_entry->d_namlen + 1);
 
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
@@ -418,7 +421,11 @@ int main(int argc, const char *argv[]) {
 
                         for (const auto &macho_file : macho_files) {
                             const auto macho_file_iter = macho_file.find_last_of('/');
+
                             auto macho_file_output_path = macho_file.substr(macho_file_iter);
+                            auto macho_file_output_path_length = macho_file_output_path.length();
+
+                            macho_file_output_path.reserve(macho_file_output_path_length + path.length() + 4);
 
                             macho_file_output_path.insert(0, path);
                             macho_file_output_path.append(".tbd");
