@@ -304,7 +304,7 @@ int main(int argc, const char *argv[]) {
                     const auto directory = opendir(path.data());
                     if (!directory) {
                         fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
-                        exit(1);
+                        return 1;
                     }
 
                     auto library_paths = std::vector<std::string>();
