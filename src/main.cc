@@ -734,12 +734,10 @@ int main(int argc, const char *argv[]) {
             path.erase(path_position + 1);
         }
 
-        const auto &platform = tbd.platform();
+        auto platform = tbd.platform();
         if (platform == (enum tbd::platform)-1) {
-            auto tbd_platform = (enum tbd::platform)-1;
             const auto is_directory = path.back() == '/';
-
-            while (platform_string.empty() || (tbd_platform = tbd::string_to_platform(platform_string.data())) == (enum tbd::platform)-1) {
+            while (platform_string.empty() || (platform = tbd::string_to_platform(platform_string.data())) == (enum tbd::platform)-1) {
                 if (is_directory) {
                     fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
                 } else {
@@ -749,7 +747,7 @@ int main(int argc, const char *argv[]) {
                 getline(std::cin, platform_string);
             }
 
-            tbd.set_platform(tbd_platform);
+            tbd.set_platform(platform);
         }
 
         auto &output_files = tbd.output_files();
