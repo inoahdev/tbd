@@ -679,7 +679,7 @@ int main(int argc, const char *argv[]) {
 
             platform_string = platform_string_arg;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
-            if (i != 1 || !is_last_argument) {
+            if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
                 return 1;
             }
@@ -706,7 +706,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
         } else if (strcmp(option, "versions") == 0) {
-            if (i != 1 || !is_last_argument) {
+            if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
                 return 1;
             }
