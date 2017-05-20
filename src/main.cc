@@ -402,6 +402,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 const auto &tbd_recurse_type = tbd_recursive.recurse;
+                auto &output_files = tbd.output_files();
 
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) == 0) {
@@ -414,9 +415,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        auto &output_files = tbd.output_files();
                         const auto output_files_size = output_files.size();
-
                         output_files.reserve(output_files_size + macho_files.size());
 
                         for (const auto &macho_file : macho_files) {
@@ -438,7 +437,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        tbd.add_output_file(path);
+                        output_files.emplace_back(path);
                     }
                 } else {
                     if (macho_files.size() > 1) {
@@ -446,7 +445,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    tbd.add_output_file(path);
+                    output_files.emplace_back(path);
                 }
 
                 output_paths_index++;
@@ -563,6 +562,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto tbd = ::tbd();
+                auto &macho_files = tbd.macho_files();
 
                 if (S_ISDIR(path_sbuf.st_mode)) {
                     if (recurse_type == recurse::none) {
@@ -581,7 +581,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     loop_directory_for_libraries(directory, path, recurse_type, [&](const std::string &path) {
-                        tbd.add_macho_file(std::move(path));
+                        macho_files.emplace_back(std::move(path));
                     });
 
                     closedir(directory);
@@ -596,7 +596,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    tbd.add_macho_file(path);
+                    macho_files.emplace_back(path);
                 } else {
                     fprintf(stderr, "Object at path (%s) is not a regular file\n", path.data());
                     return 1;
@@ -773,7 +773,7 @@ int main(int argc, const char *argv[]) {
         if (tbd_recurse_type != recurse::none) {
             output_files.reserve(macho_files.size());
             for (const auto &macho_file : macho_files) {
-                tbd.add_output_file(macho_file + ".tbd");
+                output_files.emplace_back(macho_file + ".tbd");
             }
         }
 

@@ -38,14 +38,6 @@ public:
 
     inline const std::vector<const NXArchInfo *> architectures() const noexcept { return architectures_; }
 
-    inline void add_macho_file(const std::string &macho_file) noexcept {
-        macho_files_.emplace_back(macho_file);
-    }
-
-    inline void add_output_file(const std::string &output_files) noexcept {
-        output_files_.emplace_back(output_files);
-    }
-
     inline void set_architectures(const std::vector<const NXArchInfo *> &architectures) noexcept {
         architectures_ = architectures;
     }
