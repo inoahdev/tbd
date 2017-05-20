@@ -434,7 +434,7 @@ int main(int argc, const char *argv[]) {
                         }
                     } else if (S_ISREG(sbuf.st_mode)) {
                         if (macho_files.size() > 1) {
-                            fprintf(stderr, "Can't output multiple mach-o files and output to file at path (%s)\n", path.data());
+                            fprintf(stderr, "Can't output multiple mach-o files to file at path (%s)\n", path.data());
                             return 1;
                         }
 
