@@ -111,6 +111,8 @@ void tbd::run() {
         const auto macho_file_containers_size = macho_file_containers.size();
         const auto macho_file_is_fat = macho_file_containers_size != 0;
 
+        uuids.reserve(macho_file_containers_size);
+
         for (auto &macho_container : macho_file_containers) {
             const auto &macho_container_header = macho_container.header();
             const auto macho_container_should_swap = macho_container.should_swap();
