@@ -52,18 +52,22 @@ namespace macho {
         fseek(file_, base_, SEEK_SET);
         fread(&magic, sizeof(uint32_t), 1, file_);
 
-        if (magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64) {
+        const auto is_regular_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
+        if (is_regular_macho_file) {
             fread(&header_.cputype, sizeof(struct mach_header) - sizeof(uint32_t), 1, file_);
             if (magic == MH_CIGAM || magic == MH_CIGAM_64) {
                 should_swap_ = true;
                 swap_mach_header(&header_, NX_LittleEndian);
             }
-        } else if (magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
-            fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself\n", base);
-            exit(1);
         } else {
-            fprintf(stderr, "Architecture at offset (%ld) is not a valid mach-o base\n", base);
-            exit(1);
+            const auto is_fat_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
+            if (is_fat_macho_file) {
+                fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself\n", base);
+                exit(1);
+            } else {
+                fprintf(stderr, "Architecture at offset (%ld) is not a valid mach-o base\n", base);
+                exit(1);
+            }
         }
 
         fseek(file_, position, SEEK_SET);
@@ -90,11 +94,11 @@ namespace macho {
         }
 
         auto size_used = 0;
-        auto index = 0;
+        auto cached_index = 0;
 
         auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
-            auto load_cmd = (struct load_command *)&cached_[index];
+            auto load_cmd = (struct load_command *)&cached_[cached_index];
             if (should_swap_ && !swapped_cache) {
                 swap_load_command(load_cmd, NX_LittleEndian);
             }
@@ -148,7 +152,7 @@ namespace macho {
                 break;
             }
 
-            index += cmdsize;
+            cached_index += cmdsize;
         }
 
         swapped_cache = true;
