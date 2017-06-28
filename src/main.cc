@@ -215,6 +215,7 @@ int main(int argc, const char *argv[]) {
             }
 
             print_usage();
+            return 0;
         } else if (strcmp(option, "list-architectures") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
