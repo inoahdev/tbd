@@ -81,6 +81,8 @@ const std::string &retrieve_current_directory() {
         if (current_directory.back() != '/') {
             current_directory.append(1, '/');
         }
+
+        free(current_directory_string);
     }
 
     return current_directory;
