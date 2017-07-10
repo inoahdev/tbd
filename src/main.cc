@@ -91,7 +91,9 @@ const std::string &retrieve_current_directory() {
 void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, int &index, int argc, const char *argv[]) {
     while (index < argc) {
         const auto &architecture_string = argv[index];
-        if (*architecture_string == '-' || *architecture_string == '/') {
+        const auto &architecture_string_front = architecture_string[0];
+
+        if (architecture_string_front == '-' || architecture_string_front == '/') {
             if (architectures.empty()) {
                 fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
                 exit(1);
@@ -118,15 +120,15 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
 }
 
 void recursively_create_directories_from_file_path(char *path) {
-    char *slash = strchr(path, '/');
+    auto slash = strchr(path, '/');
     while (slash != nullptr) {
-        *slash = '\0';
+        slash[0] = '\0';
 
         if (access(path, F_OK) != 0) {
             mkdir(path, 0755);
         }
 
-        *slash = '/';
+        slash[0] = '/';
         slash = strchr(slash + 1, '/');
     }
 }
@@ -134,28 +136,36 @@ void recursively_create_directories_from_file_path(char *path) {
 void print_usage() {
     fputs("Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
-    fputs("    -a, --archs,    Specify Architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
     fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide \"stdout\" to print to stdout\n", stdout);
     fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd\n", stdout);
     fputs("    -u, --usage,    Print this message\n", stdout);
-    fputs("    -v, --version,  Set version of tbd to convert to (default is v2)\n", stdout);
 
-    fputs("\n", stdout);
-    fputs("Extra options:\n", stdout);
-    fputs("        --platform, Specify platform for all mach-o files provided\n", stdout);
-    fputs("    -r, --recurse,  Specify directory to recurse and find mach-o files in. Use in conjunction with -p (ex. -p -r /path/to/directory)\n", stdout);
-    fputs("        --versions, Print a list of all valid tbd-versions\n", stdout);
+    fputc('\n', stdout);
+    fputs("Path options:\n", stdout);
+    fputs("Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/-r=once/all/--recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
+    fputs("    -a, --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
+    fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
+    fputs("    -r, --recurse,  Specify directory to recurse and find mach-o library files in\n", stdout);
+    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2)\n", stdout);
 
-    fputs("\n", stdout);
+    fputc('\n', stdout);
     fputs("Outputting options:\n", stdout);
-    fputs("        --maintain-directories, Maintain folders mach-o library was found in (subtracting the path provided)\n", stdout);
+    fputs("Usage: tbd -o [--maintain-directories] /path/to/output/file\n", stdout);
+    fputs("        --maintain-directories, Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
 
+    fputc('\n', stdout);
+    fputs("Global options:\n", stdout);
+    fputs("    -a, --archs,    Specify architecture(s) to use, replacing default architectures (where default architectures were not already provided)\n", stdout);
+    fputs("        --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)\n", stdout);
+    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)\n", stdout);
 
-    fputs("\n", stdout);
+    fputc('\n', stdout);
     fputs("List options:\n", stdout);
     fputs("        --list-architectures,   List all valid architectures for tbd-files\n", stdout);
     fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
+    fputs("        --list-recurse,         List all valid recurse options for parsing directories\n", stdout);
+    fputs("        --list-versions,        List all valid versions for tbd-files\n", stdout);
 }
 
 int main(int argc, const char *argv[]) {
@@ -182,21 +192,23 @@ int main(int argc, const char *argv[]) {
 
     for (auto i = 1; i < argc; i++) {
         const auto &argument = argv[i];
-        const auto &argument_front = *argument;
+        const auto &argument_front = argument[0];
 
         if (argument_front != '-') {
-            fprintf(stderr, "1. Unrecognized argument: %s\n", argument);
+            fprintf(stderr, "Unrecognized argument: %s\n", argument);
             return 1;
         }
 
         auto option = &argument[1];
-        if (*option == '-') {
-            option++;
-        }
+        const auto &option_front = option[0];
 
-        if (!*option) {
+        if (!option_front) {
             fputs("Please provide a valid option\n", stderr);
             exit(1);
+        }
+
+        if (option_front == '-') {
+            option++;
         }
 
         const auto is_first_argument = i == 1;
@@ -244,24 +256,26 @@ int main(int argc, const char *argv[]) {
                 auto recurse_type = recurse::none;
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
-                    const auto &argument_front = *argument;
+                    const auto &argument_front = argument[0];
 
                     if (argument_front == '-') {
                         auto option = &argument[1];
-                        if (*option == '-') {
-                            option++;
-                        }
+                        auto option_front = option[0];
 
-                        if (!*option) {
+                        if (!option_front) {
                             fputs("Please provide a valid option\n", stderr);
                             exit(1);
+                        }
+
+                        if (option_front == '-') {
+                            option++;
                         }
 
                         if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                             recurse_type = recurse::all;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                             const auto recurse_type_string = strchr(option, '=') + 1;
-                            const auto &recurse_type_string_front = *recurse_type_string;
+                            const auto &recurse_type_string_front = recurse_type_string[0];
 
                             if (!recurse_type_string_front) {
                                 fputs("Please provide a recurse type", stderr);
@@ -277,7 +291,7 @@ int main(int argc, const char *argv[]) {
                                 return 1;
                             }
                         } else {
-                            fprintf(stderr, "2. Unrecognized argument: %s\n", argument);
+                            fprintf(stderr, "Unrecognized argument: %s\n", argument);
                             return 1;
                         }
 
@@ -386,6 +400,24 @@ int main(int argc, const char *argv[]) {
             }
 
             return 0;
+        } else if (strcmp(option, "list-recurse") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            fputs("once, Recurse through all of a directory's files\n", stdout);
+            fputs("all,  Recurse through all of a directory's files and sub-directories (default)\n", stdout);
+
+            return 0;
+        } else if (strcmp(option, "list-versions") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            fputs("v1\nv2 (default)\n", stdout);
+            return 0;
         } else if (strcmp(option, "o") == 0 || strcmp(option, "output") == 0) {
             if (is_last_argument) {
                 fputs("Please provide path(s) to output files\n", stderr);
@@ -396,15 +428,17 @@ int main(int argc, const char *argv[]) {
 
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
-                const auto &argument_front = *argument;
+                const auto &argument_front = argument[0];
 
                 if (argument_front == '-') {
                     auto option = &argument[1];
-                    if (*option == '-') {
+                    const auto &option_front = option[0];
+
+                    if (option_front == '-') {
                         option++;
                     }
 
-                    if (!*option) {
+                    if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         exit(1);
                     }
@@ -480,7 +514,6 @@ int main(int argc, const char *argv[]) {
                             macho_file_output_path.append(".tbd");
 
                             recursively_create_directories_from_file_path((char *)macho_file_output_path.data());
-
                             output_files.emplace_back(std::move(macho_file_output_path));
                         }
                     } else {
@@ -520,13 +553,17 @@ int main(int argc, const char *argv[]) {
             auto recurse_type = recurse::none;
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
-                if (*argument == '-') {
+                const auto &argument_front = argument[0];
+
+                if (argument_front == '-') {
                     auto option = &argument[1];
-                    if (*option == '-') {
+                    const auto &option_front = option[0];
+
+                    if (option_front == '-') {
                         option++;
                     }
 
-                    if (!*option) {
+                    if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         exit(1);
                     }
@@ -562,7 +599,9 @@ int main(int argc, const char *argv[]) {
                         recurse_type = recurse::all;
                     } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                         const auto recurse_type_string = strchr(option, '=') + 1;
-                        if (!*recurse_type_string) {
+                        const auto &recurse_type_string_front = recurse_type_string[0];
+
+                        if (!recurse_type_string_front) {
                             fputs("Please provide a recurse type", stderr);
                             return 1;
                         }
@@ -589,7 +628,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
                     } else {
-                        fprintf(stderr, "3. Unrecognized argument: %s\n", argument);
+                        fprintf(stderr, "Unrecognized argument: %s\n", argument);
                         return 1;
                     }
 
@@ -747,7 +786,9 @@ int main(int argc, const char *argv[]) {
             i++;
 
             const auto &version_string = argv[i];
-            if (*version_string == '-') {
+            const auto &version_string_front = version_string[0];
+
+            if (version_string_front == '-') {
                 fputs("Please provide a tbd-version\n", stderr);
                 return 1;
             }
@@ -758,16 +799,8 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "tbd-version (%s) is invalid\n", version_string);
                 return 1;
             }
-        } else if (strcmp(option, "versions") == 0) {
-            if (!is_first_argument || !is_last_argument) {
-                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
-                return 1;
-            }
-
-            fputs("v1\nv2 (default)\n", stdout);
-            return 0;
         } else {
-            fprintf(stderr, "4. Unrecognized argument: %s\n", argument);
+            fprintf(stderr, "Unrecognized argument: %s\n", argument);
             return 1;
         }
     }

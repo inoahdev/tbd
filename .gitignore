@@ -2,7 +2,9 @@
 .vs/
 
 build/
-ide/
+
+ide/Xcode/tbd.xcodeproj/xcuserdata/
+ide/Xcode/tbd.xcodeproj/project.xcworkspace/xcuserdata/
 
 Makefile
 a.out

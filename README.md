@@ -3,19 +3,30 @@ Convert Mach-O Libraries &amp; Frameworks to .tbd
 ```
 Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]
 Main options:
-    -a, --archs,    Specify Architecture(s) to use, instead of the ones in the provieded mach-o file(s)
     -h, --help,     Print this message
-    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide "stdout" to print to stdout
+    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide \"stdout\" to print to stdout
     -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd
     -u, --usage,    Print this message
-    -v, --version,  Set version of tbd to convert to (default is v2)
 
-Extra options:
-        --platform, Specify platform for all mach-o files provided
-    -r, --recurse,  Specify directory to recurse and find mach-o files in. Use in conjunction with -p (ex. -p -r /path/to/directory)
-        --versions, Print a list of all valid tbd-versions
+Path options:
+Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/-r=once/all/--recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
+    -a, --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)
+        --platform, Specify platform for all mach-o library files provided
+    -r, --recurse,  Specify directory to recurse and find mach-o library files in
+    -v, --version,  Specify version of tbd to convert to (default is v2)
+
+Outputting options:
+Usage: tbd -o [--maintain-directories] /path/to/output/file
+        --maintain-directories, Maintain directories where mach-o library files were found in (subtracting the path provided)
+
+Global options:
+    -a, --archs,    Specify architecture(s) to use, replacing default architectures (where default architectures were not already provided)
+        --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)
+    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)
 
 List options:
         --list-architectures,   List all valid architectures for tbd-files
         --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))
+        --list-recurse,         List all valid recurse options for parsing directories
+        --list-versions,        List all valid versions for tbd-files
 ```
