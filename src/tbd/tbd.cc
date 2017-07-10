@@ -68,10 +68,70 @@ tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::str
 }
 
 void tbd::validate() const {
-    if (version_ == version::v2 && architectures_.size() != 0) {
+    const auto &architectures = architectures_;
+    const auto &version = version_;
+    
+    const auto architectures_size = architectures.size();
+    if (version == version::v2 && architectures_size != 0) {
         fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
         exit(1);
     }
+}
+
+void tbd::print_symbols(FILE *output_file, const std::vector<const char *> &symbols, tbd::symbols_type type) const noexcept {
+    if (symbols.empty()) {
+        return;
+    }
+
+    switch (type) {
+        case symbols_type::reexports:
+            fprintf(output_file, "%-4sre-exports:%-7s", "", "");
+            break;
+            
+        case symbols_type::symbols:
+            fprintf(output_file, "%-4ssymbols:%-10s", "", "");
+            break;
+            
+        case symbols_type::weak_symbols:
+            fprintf(output_file, "%-4sweak-def-symbols: ", "");
+            break;
+            
+        case symbols_type::objc_classes:
+            fprintf(output_file, "%-4sobjc-classes:%-6s", "", "");
+            break;
+            
+        case symbols_type::objc_ivars:
+            fprintf(output_file, "%-4sobjc-ivars:%-9s", "", "");
+            break;
+    }
+    
+    auto symbols_begin = symbols.begin();
+    auto symbols_end = symbols.end();
+
+    auto &symbols_begin_string = *symbols_begin;
+    auto current_line_length = strlen(symbols_begin_string);
+    
+    fprintf(output_file, "[ %s", symbols_begin_string);
+    
+    const auto line_length_max = 85;
+    for (symbols_begin++; symbols_begin != symbols_end; symbols_begin++) {
+        const auto &symbol = *symbols_begin;
+        const auto line_length = strlen(symbol) + 1;
+        
+        auto new_line_length = current_line_length + line_length + 1;
+        if (current_line_length >= line_length_max || (current_line_length != 0 && new_line_length > line_length_max)) {
+            fprintf(output_file, ",\n%-24s", "");
+            new_line_length = 0;
+        } else {
+            fputs(", ", output_file);
+            new_line_length++;
+        }
+
+        fputs(symbol, output_file);
+        current_line_length = new_line_length;
+    }
+
+    fprintf(output_file, " ]\n");
 }
 
 void tbd::run() {
@@ -335,10 +395,15 @@ void tbd::run() {
         fprintf(output_file, "\narchs:%-17s[ ", "");
 
         auto architectures_begin = architectures_.begin();
-        fprintf(output_file, "%s", (*architectures_begin)->name);
+        const auto architectures_begin_arch_info = *architectures_begin;
+
+        fprintf(output_file, "%s", architectures_begin_arch_info->name);
 
         for (architectures_begin++; architectures_begin != architectures_.end(); architectures_begin++) {
-            fprintf(output_file, ", %s", (*architectures_begin)->name);
+            const auto architectures_begin_arch_info = *architectures_begin;
+            const auto architectures_begin_arch_info_name = architectures_begin_arch_info->name;
+
+            fprintf(output_file, ", %s", architectures_begin_arch_info_name);
         }
 
         fputs(" ]\n", output_file);
@@ -350,7 +415,10 @@ void tbd::run() {
             auto uuids_begin = uuids.begin();
 
             for (auto architectures_begin = architectures_.begin(); architectures_begin < architectures_.end(); architectures_begin++, uuids_begin++) {
-                fprintf(output_file, "'%s: %s'", (*architectures_begin)->name, uuids_begin->data());
+                auto architecture_being_arch_info = *architectures_begin;
+                auto architecture_being_arch_info_name = architecture_being_arch_info->name;
+
+                fprintf(output_file, "'%s: %s'", architecture_being_arch_info_name, uuids_begin->data());
 
                 if (architectures_begin != architectures_.end() - 1) {
                     fputs(", ", output_file);
@@ -378,105 +446,23 @@ void tbd::run() {
 
         fputs("exports:\n", output_file);
         for (auto &group : groups) {
-            auto ordinary_symbols = std::vector<std::string>();
-            auto weak_symbols = std::vector<std::string>();
-            auto objc_classes = std::vector<std::string>();
-            auto objc_ivars = std::vector<std::string>();
-            auto reexports = std::vector<std::string>();
-
-            for (const auto &reexport : group.reexports()) {
-                reexports.emplace_back(reexport.string());
-            }
-
-            for (const auto &symbol : group.symbols()) {
-                auto &symbol_string = const_cast<std::string &>(symbol.string());
-                auto symbol_string_begin_pos = 0;
-
-                if (symbol_string.compare(0, 3, "$ld") == 0) {
-                    symbol_string.insert(symbol_string.begin(), '\'');
-                    symbol_string.append(1, '\'');
-
-                    symbol_string_begin_pos += 4;
-                }
-
-                if (symbol_string.compare(symbol_string_begin_pos, 13, "_OBJC_CLASS_$") == 0) {
-                    symbol_string.erase(0, 13);
-                    objc_classes.emplace_back(std::move(symbol_string));
-                } else if (symbol_string.compare(symbol_string_begin_pos, 17, "_OBJC_METACLASS_$") == 0) {
-                    symbol_string.erase(0, 17);
-                    objc_classes.emplace_back(std::move(symbol_string));
-                } else if (symbol_string.compare(symbol_string_begin_pos, 12, "_OBJC_IVAR_$") == 0) {
-                    symbol_string.erase(0, 12);
-                    objc_ivars.emplace_back(std::move(symbol_string));
-                } else if (symbol.weak()) {
-                    weak_symbols.emplace_back(std::move(symbol_string));
-                } else {
-                    ordinary_symbols.emplace_back(std::move(symbol_string));
-                }
-            }
-
-            std::sort(ordinary_symbols.begin(), ordinary_symbols.end());
-            std::sort(weak_symbols.begin(), weak_symbols.end());
-            std::sort(objc_classes.begin(), objc_classes.end());
-            std::sort(objc_ivars.begin(), objc_ivars.end());
-            std::sort(reexports.begin(), reexports.end());
-
-            ordinary_symbols.erase(std::unique(ordinary_symbols.begin(), ordinary_symbols.end()), ordinary_symbols.end());
-            weak_symbols.erase(std::unique(weak_symbols.begin(), weak_symbols.end()), weak_symbols.end());
-            objc_classes.erase(std::unique(objc_classes.begin(), objc_classes.end()), objc_classes.end());
-            objc_ivars.erase(std::unique(objc_ivars.begin(), objc_ivars.end()), objc_ivars.end());
-            reexports.erase(std::unique(reexports.begin(), reexports.end()), reexports.end());
-
             const auto &group_architecture_infos = group.architecture_infos();
-            auto group_architecture_infos_begin = group_architecture_infos.begin();
 
-            fprintf(output_file, "  - archs:%-12s[ %s", "", (*group_architecture_infos_begin)->name);
+            auto group_architecture_infos_begin = group_architecture_infos.begin();
+            auto group_architecture_infos_begin_arch_info = *group_architecture_infos_begin;
+
+            fprintf(output_file, "  - archs:%-12s[ %s", "", group_architecture_infos_begin_arch_info->name);
             for (group_architecture_infos_begin++; group_architecture_infos_begin < group_architecture_infos.end(); group_architecture_infos_begin++) {
-                fprintf(output_file, ", %s", (*group_architecture_infos_begin)->name);
+                auto group_architecture_infos_begin_arch_info = *group_architecture_infos_begin;
+                auto group_architecture_infos_begin_arch_info_name = group_architecture_infos_begin_arch_info->name;
+
+                fprintf(output_file, ", %s", group_architecture_infos_begin_arch_info_name);
             }
 
             fputs(" ]\n", output_file);
 
             const auto line_length_max = 85;
             const auto key_spacing_length_max = 18;
-
-            auto character_count = 0;
-            const auto print_symbols = [&](const std::vector<std::string> &symbols, const char *key) {
-                if (symbols.empty()) {
-                    return;
-                }
-
-                fprintf(output_file, "%-4s%s:", "", key);
-
-                auto symbols_begin = symbols.begin();
-                auto symbols_end = symbols.end();
-
-                for (auto i = strlen(key) + 1; i < key_spacing_length_max; i++) {
-                    fputs(" ", output_file);
-                }
-
-                fprintf(output_file, "[ %s", symbols_begin->data());
-                character_count += symbols_begin->length();
-
-                for (symbols_begin++; symbols_begin != symbols_end; symbols_begin++) {
-                    const auto &symbol = *symbols_begin;
-                    auto line_length = symbol.length() + 1;
-
-                    if (character_count >= line_length_max || (character_count != 0 && character_count + line_length > line_length_max)) {
-                        fprintf(output_file, ",\n%-24s", "");
-                        character_count = 0;
-                    } else {
-                        fputs(", ", output_file);
-                        line_length++;
-                    }
-
-                    fputs(symbol.data(), output_file);
-                    character_count += line_length;
-                }
-
-                fprintf(output_file, " ]\n");
-                character_count = 0;
-            };
 
             print_symbols(reexports, "re-exports");
             print_symbols(ordinary_symbols, "symbols");

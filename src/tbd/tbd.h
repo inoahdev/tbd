@@ -61,5 +61,15 @@ private:
     enum version version_;
 
     std::vector<const NXArchInfo *> architectures_;
+
+    enum class symbols_type {
+        reexports,
+        symbols,
+        weak_symbols,
+        objc_classes,
+        objc_ivars
+    };
+
+    void print_symbols(FILE *output_file, const std::vector<const char *> &symbols, symbols_type type) const noexcept;
     void validate() const;
 };
