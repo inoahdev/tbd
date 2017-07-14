@@ -15,9 +15,9 @@
 namespace macho {
     class container {
     public:
-        explicit container(FILE *file, const long &macho_base);
-        explicit container(FILE *file, const long &macho_base, const struct fat_arch &architecture);
-        explicit container(FILE *file, const long &macho_base, const struct fat_arch_64 &architecture);
+        explicit container(FILE *file, long base);
+        explicit container(FILE *file, long base, const struct fat_arch &architecture);
+        explicit container(FILE *file, long base, const struct fat_arch_64 &architecture);
 
         ~container();
 

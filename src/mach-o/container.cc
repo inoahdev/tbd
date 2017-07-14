@@ -12,7 +12,7 @@
 #include "container.h"
 
 namespace macho {
-    container::container(FILE *file, const long &macho_base)
+    container::container(FILE *file, long base)
     : file_(file), macho_base_(macho_base), is_architecture_(false) {
         const auto position = ftell(file);
         fseek(file, 0, SEEK_END);
@@ -23,12 +23,12 @@ namespace macho {
         this->validate();
     }
 
-    container::container(FILE *file, const long &macho_base, const struct fat_arch &architecture)
+    container::container(FILE *file, long macho_base, const struct fat_arch &architecture)
     : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
 
-    container::container(FILE *file, const long &macho_base, const struct fat_arch_64 &architecture)
+    container::container(FILE *file, long macho_base, const struct fat_arch_64 &architecture)
     : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
