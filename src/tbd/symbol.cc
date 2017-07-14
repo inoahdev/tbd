@@ -9,9 +9,9 @@
 
 #include "symbol.h"
 
-symbol::symbol(const std::string &string, bool weak) noexcept
-: string_(string), weak_(weak) {}
+symbol::symbol(const char *string, bool weak, int flags_length) noexcept
+: string_(string), weak_(weak), flags_(flags_length) {}
 
-void symbol::add_architecture_info(const NXArchInfo *architecture_info) noexcept {
-    architecture_infos_.emplace_back(architecture_info);
+void symbol::add_architecture(int number) noexcept {
+    flags_.cast(number, true);
 }

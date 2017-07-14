@@ -19,19 +19,15 @@ const char *tbd::platform_to_string(const enum tbd::platform &platform) noexcept
     switch (platform) {
         case ios:
             return "ios";
-            break;
 
         case macosx:
             return "macosx";
-            break;
 
         case watchos:
             return "watchos";
-            break;
 
         case tvos:
             return "tvos";
-            break;
 
         default:
             return nullptr;
@@ -70,7 +66,7 @@ tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::str
 void tbd::validate() const {
     const auto &architectures = architectures_;
     const auto &version = version_;
-    
+
     const auto architectures_size = architectures.size();
     if (version == version::v2 && architectures_size != 0) {
         fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
@@ -78,57 +74,169 @@ void tbd::validate() const {
     }
 }
 
-void tbd::print_symbols(FILE *output_file, const std::vector<const char *> &symbols, tbd::symbols_type type) const noexcept {
+void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept {
     if (symbols.empty()) {
         return;
     }
 
     switch (type) {
         case symbols_type::reexports:
-            fprintf(output_file, "%-4sre-exports:%-7s", "", "");
+            fprintf(output_file, "%-4sre-exports:%7s", "", "");
             break;
-            
+
         case symbols_type::symbols:
-            fprintf(output_file, "%-4ssymbols:%-10s", "", "");
+            fprintf(output_file, "%-4ssymbols:%10s", "", "");
             break;
-            
+
         case symbols_type::weak_symbols:
             fprintf(output_file, "%-4sweak-def-symbols: ", "");
             break;
-            
+
         case symbols_type::objc_classes:
-            fprintf(output_file, "%-4sobjc-classes:%-6s", "", "");
+            fprintf(output_file, "%-4sobjc-classes:%5s", "", "");
             break;
-            
+
         case symbols_type::objc_ivars:
-            fprintf(output_file, "%-4sobjc-ivars:%-9s", "", "");
+            fprintf(output_file, "%-4sobjc-ivars:%7s", "", "");
             break;
     }
-    
+
+    const auto is_valid_symbol = [](const symbol &symbol, symbols_type type) {
+        const auto symbols_string = symbol.string();
+
+        switch (type) {
+            case symbols_type::reexports:
+                return true;
+
+            case symbols_type::symbols: {
+                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) != 0;
+                const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) != 0;
+                const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) != 0;
+
+                const auto symbol_is_weak = symbol.weak();
+
+                return !symbols_string_is_objc_class && !symbols_string_is_objc_metaclass && !symbols_string_is_objc_ivar && !symbol_is_weak;
+                break;
+            }
+
+            case symbols_type::weak_symbols:
+                return symbol.weak();
+
+            case symbols_type::objc_classes:
+                return strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
+
+            case symbols_type::objc_ivars:
+                return strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
+        }
+
+        return false;
+    };
+
     auto symbols_begin = symbols.begin();
     auto symbols_end = symbols.end();
 
-    auto &symbols_begin_string = *symbols_begin;
-    auto current_line_length = strlen(symbols_begin_string);
-    
-    fprintf(output_file, "[ %s", symbols_begin_string);
-    
-    const auto line_length_max = 85;
-    for (symbols_begin++; symbols_begin != symbols_end; symbols_begin++) {
+    for (; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
-        const auto line_length = strlen(symbol) + 1;
-        
-        auto new_line_length = current_line_length + line_length + 1;
-        if (current_line_length >= line_length_max || (current_line_length != 0 && new_line_length > line_length_max)) {
-            fprintf(output_file, ",\n%-24s", "");
-            new_line_length = 0;
-        } else {
-            fputs(", ", output_file);
-            new_line_length++;
+        const auto symbol_is_valid = is_valid_symbol(symbol, type);
+
+        if (!symbol_is_valid) {
+            continue;
         }
 
-        fputs(symbol, output_file);
-        current_line_length = new_line_length;
+        const auto &symbol_flags = symbol.flags();
+        if (symbol_flags != flags) {
+            continue;
+        }
+
+        break;
+    }
+
+    if (symbols_begin == symbols_end) {
+        return;
+    }
+
+    const auto parse_symbol_string = [](const char *symbol_string, symbols_type type) {
+        switch (type) {
+            case symbols_type::reexports:
+            case symbols_type::symbols:
+                return symbol_string;
+
+            case symbols_type::objc_classes: {
+                if (strncmp(symbol_string, "_OBJC_CLASS_$", 13) == 0) {
+                    return &symbol_string[13];
+                }
+
+                if (strncmp(symbol_string, "_OBJC_METACLASS_$", 17) == 0) {
+                    return &symbol_string[17];
+                }
+
+                return symbol_string;
+            }
+
+            case symbols_type::objc_ivars:
+                return &symbol_string[12];
+
+            default:
+                break;
+        }
+
+        return symbol_string;
+    };
+
+    const auto line_length_max = 85;
+
+    auto symbols_begin_string = symbols_begin->string();
+    auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
+
+    fprintf(output_file, "[ %s", parsed_symbols_begin_string);
+
+    auto current_line_length = strlen(parsed_symbols_begin_string);
+    for (; symbols_begin < symbols_end; symbols_begin++) {
+        const auto &symbol = *symbols_begin;
+        const auto &symbol_flags = symbol.flags();
+
+        if (symbol_flags != flags) {
+            continue;
+        }
+
+        const auto symbol_is_valid = is_valid_symbol(symbol, type);
+        if (!symbol_is_valid) {
+            symbols_begin++;
+            continue;
+        }
+
+        const auto symbol_string = symbol.string();
+        const auto symbol_string_needs_quotes = strncmp(symbol_string, "$ld", 3) == 0;
+
+        auto symbol_string_to_print = parse_symbol_string(symbol_string, type);
+        const auto symbol_string_to_print_length = strlen(symbol_string_to_print);
+
+        auto new_line_length = symbol_string_to_print_length + 1;
+        auto new_current_line_length = current_line_length + new_line_length;
+
+        if (symbol_string_needs_quotes) {
+            new_current_line_length += 2;
+        }
+
+        if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
+            fprintf(output_file, ",\n%-24s", "");
+            new_current_line_length = 0;
+        } else {
+            fputs(", ", output_file);
+            new_current_line_length++;
+        }
+
+        if (symbol_string_needs_quotes) {
+            fputc('\'', output_file);
+        }
+
+        fputs(symbol_string_to_print, output_file);
+
+        if (symbol_string_needs_quotes) {
+            fputc('\'', output_file);
+        }
+
+        current_line_length = new_current_line_length;
     }
 
     fprintf(output_file, " ]\n");
@@ -137,11 +245,20 @@ void tbd::print_symbols(FILE *output_file, const std::vector<const char *> &symb
 void tbd::run() {
     this->validate();
 
-    auto output_path_index = 0;
-    for (const auto &macho_file_path : macho_files_) {
+    const auto &platform = platform_;
+    const auto &macho_files = macho_files_;
+    const auto &output_files = output_files_;
+    const auto &version = version_;
+
+    auto &architectures = architectures_;
+    auto output_file_index = 0;
+
+    const auto output_files_size = output_files.size();
+    for (const auto &macho_file_path : macho_files) {
         auto output_file = stdout;
-        if (output_path_index < output_files_.size()) {
-            const auto &output_path_string = output_files_.at(output_path_index);
+
+        if (output_file_index < output_files_size) {
+            const auto &output_path_string = output_files.at(output_file_index);
             if (output_path_string != "stdout") {
                 const auto output_path_string_data = output_path_string.data();
 
@@ -154,56 +271,61 @@ void tbd::run() {
         }
 
         auto macho_file = macho::file(macho_file_path);
-        auto macho_file_has_architecture_overrides = architectures_.size() != 0;
+        auto macho_file_has_architecture_overrides = architectures.size() != 0;
 
-        auto current_version = std::string();
-        auto compatibility_version = std::string();
+        uint32_t current_version = -1;
+        uint32_t compatibility_version = -1;
+
+        const char *installation_name = nullptr;
 
         auto symbols = std::vector<symbol>();
         auto reexports = std::vector<symbol>();
 
-        auto installation_name = std::string();
-        auto uuids = std::vector<std::string>();
+        auto uuids = std::vector<uint8_t *>();
 
         auto &macho_file_containers = macho_file.containers();
-        auto macho_container_counter = 0;
+        auto macho_container_index = 0;
 
         const auto macho_file_containers_size = macho_file_containers.size();
-        const auto macho_file_is_fat = macho_file_containers_size != 0;
+        const auto macho_file_is_fat = macho_file_containers_size != 1;
 
         uuids.reserve(macho_file_containers_size);
 
         for (auto &macho_container : macho_file_containers) {
             const auto &macho_container_header = macho_container.header();
-            const auto macho_container_should_swap = macho_container.should_swap();
 
-            const auto macho_container_architecture_info = NXGetArchInfoFromCpuType(macho_container_header.cputype, macho_container_header.cpusubtype);
+            const auto &macho_container_header_cputype = macho_container_header.cputype;
+            const auto &macho_container_header_cpusubtype = macho_container_header.cpusubtype;
+
+            const auto macho_container_architecture_info = NXGetArchInfoFromCpuType(macho_container_header_cputype, macho_container_header_cpusubtype);
             if (!macho_container_architecture_info) {
                 if (macho_file_is_fat) {
-                    fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_counter);
+                    fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_index);
                 } else {
-                    fputs("Mach-o file is not of a recognizable cputype", stderr);
+                    fputs("Mach-o file is not of a recognizable cputype\n", stderr);
                 }
 
                 exit(1);
             }
 
             if (!macho_file_has_architecture_overrides) {
-                architectures_.emplace_back(macho_container_architecture_info);
+                architectures.emplace_back(macho_container_architecture_info);
             }
 
-            auto local_current_version = std::string();
-            auto local_compatibility_version = std::string();
-            auto local_installation_name = std::string();
+            const auto macho_container_should_swap = macho_container.should_swap();
 
+            uint32_t local_current_version = -1;
+            uint32_t local_compatibility_version = -1;
+
+            const char *local_installation_name = nullptr;
             auto added_uuid = false;
 
             macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
                 switch (load_cmd->cmd) {
                     case LC_ID_DYLIB: {
-                        if (local_installation_name.size() != 0) {
+                        if (local_installation_name != 0) {
                             if (macho_file_is_fat) {
-                                fprintf(stderr, "Architecture (#%d) has two library-identification load-commands\n", macho_container_counter);
+                                fprintf(stderr, "Architecture (#%d) has two library-identification load-commands\n", macho_container_index);
                             } else {
                                 fputs("Mach-o file has two library-identification load-commands\n", stderr);
                             }
@@ -219,22 +341,16 @@ void tbd::run() {
                         const auto &id_dylib = id_dylib_command->dylib;
                         const auto &id_dylib_installation_name_string_index = id_dylib.name.offset;
 
-                        if (id_dylib_installation_name_string_index > load_cmd->cmdsize) {
+                        if (id_dylib_installation_name_string_index >= load_cmd->cmdsize) {
                             fputs("Library identification load-command has an invalid identification-string position\n", stderr);
                             exit(1);
                         }
 
                         const auto &id_dylib_installation_name_string = &((char *)load_cmd)[id_dylib_installation_name_string_index];
+
                         local_installation_name = id_dylib_installation_name_string;
-
-                        char id_dylib_current_version_string_data[33];
-                        sprintf(id_dylib_current_version_string_data, "%u.%u.%u", id_dylib.current_version >> 16, (id_dylib.current_version >> 8) & 0xff, id_dylib.current_version & 0xff);
-
-                        char id_dylib_compatibility_version_string_data[33];
-                        sprintf(id_dylib_compatibility_version_string_data, "%u.%u.%u", id_dylib.compatibility_version >> 16, (id_dylib.compatibility_version >> 8) & 0xff, id_dylib.compatibility_version & 0xff);
-
-                        local_current_version = id_dylib_current_version_string_data;
-                        local_compatibility_version = id_dylib_compatibility_version_string_data;
+                        local_current_version = id_dylib.current_version;
+                        local_compatibility_version = id_dylib.compatibility_version;
 
                         break;
                     }
@@ -257,10 +373,10 @@ void tbd::run() {
                         const auto reexports_iter = std::find(reexports.begin(), reexports.end(), reexport_dylib_string);
 
                         if (reexports_iter != reexports.end()) {
-                            reexports_iter->add_architecture_info(macho_container_architecture_info);
+                            reexports_iter->add_architecture(macho_container_index);
                         } else {
-                            reexports.emplace_back(reexport_dylib_string, false);
-                            reexports.back().add_architecture_info(macho_container_architecture_info);
+                            auto &reexport = reexports.emplace_back(reexport_dylib_string, false, macho_file_containers_size);
+                            reexport.add_architecture(macho_container_index);
                         }
 
                         break;
@@ -268,18 +384,18 @@ void tbd::run() {
 
                     case LC_UUID: {
                         const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
+                        const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *uuid2) {
+                            return memcmp(&uuid, uuid, 16) == 0;
+                        });
 
-                        char uuid_string[33] = {};
-                        sprintf(uuid_string, "%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X", uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-
-                        const auto uuids_iter = std::find(uuids.begin(), uuids.end(), uuid_string);
                         if (uuids_iter != uuids.end()) {
-                            fprintf(stderr, "uuid-string (%s) is found in multiple architectures", uuid_string);
+                            fprintf(stderr, "uuid-string (%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X) is found in multiple architectures", uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                             exit(1);
                         }
 
-                        uuids.emplace_back(uuid_string);
+                        uuids.emplace_back((uint8_t *)&uuid);
                         added_uuid = true;
+
 
                         break;
                     }
@@ -288,33 +404,33 @@ void tbd::run() {
                 return true;
             });
 
-            if (local_installation_name.empty()) {
+            if (!local_installation_name) {
                 fputs("Mach-o file is not a library or framework\n", stderr);
                 exit(1);
             }
 
-            if (installation_name.size() && installation_name != local_installation_name) {
-                fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from %s)\n", installation_name.data(), local_installation_name.data(), macho_container_architecture_info->name);
+            if (installation_name != nullptr && strcmp(installation_name, local_installation_name) != 0) {
+                fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from %d)\n", installation_name, local_installation_name, macho_container_index);
                 exit(1);
-            } else if (installation_name.empty()) {
+            } else if (!installation_name) {
                 installation_name = local_installation_name;
             }
 
-            if (current_version.size() && current_version != local_current_version) {
-                fprintf(stderr, "Mach-o file has conflicting current_version (%s vs %s from %s)\n", current_version.data(), local_current_version.data(), macho_container_architecture_info->name);
+            if (current_version != -1 && current_version != local_current_version) {
+                fprintf(stderr, "Mach-o file has conflicting current_version (%d vs %d from #%d)\n", current_version, local_current_version, macho_container_index);
                 exit(1);
-            } else if (current_version.empty()) {
+            } else if (current_version == -1) {
                 current_version = local_current_version;
             }
 
-            if (compatibility_version.size() && compatibility_version != local_compatibility_version) {
-                fprintf(stderr, "Mach-o file has conflicting compatibility-version (%s vs %s from %s)\n", compatibility_version.data(), local_compatibility_version.data(), macho_container_architecture_info->name);
+            if (compatibility_version != -1 && compatibility_version != local_compatibility_version) {
+                fprintf(stderr, "Mach-o file has conflicting compatibility-version (%d vs %d from #%d)\n", compatibility_version, local_compatibility_version, macho_container_index);
                 exit(1);
-            } else if (compatibility_version.empty()) {
+            } else if (compatibility_version == -1) {
                 compatibility_version = local_compatibility_version;
             }
 
-            if (!added_uuid && version_ == version::v2) {
+            if (!added_uuid && version == version::v2) {
                 fprintf(stderr, "Macho-file with architecture (%s) does not have a uuid command\n", macho_container_architecture_info->name);
                 exit(1);
             }
@@ -327,100 +443,108 @@ void tbd::run() {
 
                 const auto symbols_iter = std::find(symbols.begin(), symbols.end(), symbol_string);
                 if (symbols_iter != symbols.end()) {
-                    symbols_iter->add_architecture_info(macho_container_architecture_info);
+                    symbols_iter->add_architecture(macho_container_index);
                 } else {
-                    symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF);
-                    symbols.back().add_architecture_info(macho_container_architecture_info);
+                    auto symbol_is_weak = symbol_table_entry.n_desc & N_WEAK_DEF;
+                    auto &symbol = symbols.emplace_back(symbol_string, symbol_is_weak, macho_file_containers_size);
+
+                    symbol.add_architecture(macho_container_index);
                 }
 
                 return true;
             });
 
-            macho_container_counter++;
+            macho_container_index++;
         }
+
+        std::sort(reexports.begin(), reexports.end(), [](const symbol &lhs, const symbol &rhs) {
+            const auto lhs_string = lhs.string();
+            const auto rhs_string = rhs.string();
+
+            return strcmp(lhs_string, rhs_string);
+        });
+
+        std::sort(symbols.begin(), symbols.end(), [](const symbol &lhs, const symbol &rhs) {
+            const auto lhs_string = lhs.string();
+            const auto rhs_string = rhs.string();
+
+            return strcmp(lhs_string, rhs_string);
+        });
 
         auto groups = std::vector<group>();
         if (macho_file_has_architecture_overrides) {
-            groups.emplace_back(architectures_);
-
-            auto &group = groups.front();
-            for (const auto &reexport : reexports) {
-                group.add_reexport(std::move(reexport));
-            }
-
-            for (const auto &symbol : symbols) {
-                group.add_symbol(std::move(symbol));
-            }
+            groups.emplace_back(flags(0));
         } else {
             for (const auto &reexport : reexports) {
-                const auto &reexport_architecture_infos = reexport.architecture_infos();
-                const auto group_iter = std::find(groups.begin(), groups.end(), reexport_architecture_infos);
+                const auto &reexport_flags = reexport.flags();
+                const auto group_iter = std::find(groups.begin(), groups.end(), reexport_flags);
 
                 if (group_iter != groups.end()) {
-                    group_iter->add_reexport(std::move(reexport));
+                    group_iter->increment_reexport_count();
                 } else {
-                    groups.emplace_back(std::move(reexport_architecture_infos));
-                    groups.back().add_reexport(std::move(reexport));
+                    auto &group = groups.emplace_back(reexport_flags);
+                    group.increment_reexport_count();
                 }
             }
 
             for (const auto &symbol : symbols) {
-                const auto &symbol_architecture_infos = symbol.architecture_infos();
-                const auto group_iter = std::find(groups.begin(), groups.end(), symbol_architecture_infos);
+                const auto &symbol_flags = symbol.flags();
+                const auto group_iter = std::find(groups.begin(), groups.end(), symbol_flags);
 
                 if (group_iter != groups.end()) {
-                    group_iter->add_symbol(std::move(symbol));
+                    group_iter->increment_symbol_count();
                 } else {
-                    groups.emplace_back(std::move(symbol_architecture_infos));
-                    groups.back().add_symbol(std::move(symbol));
+                    auto &group = groups.emplace_back(symbol_flags);
+                    group.increment_symbol_count();
                 }
             }
         }
 
         std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
-            const auto &lhs_symbols = lhs.symbols();
-            const auto lhs_symbols_size = lhs_symbols.size();
+            const auto lhs_symbols_count = lhs.symbols_count();
+            const auto rhs_symbols_count = rhs.symbols_count();
 
-            const auto &rhs_symbols = rhs.symbols();
-            const auto rhs_symbols_size = rhs_symbols.size();
-
-            return lhs_symbols_size < rhs_symbols_size;
+            return lhs_symbols_count < rhs_symbols_count;
         });
 
         fputs("---", output_file);
-        if (version_ == version::v2) {
+        if (version == version::v2) {
             fputs(" !tapi-tbd-v2", output_file);
         }
 
         fprintf(output_file, "\narchs:%-17s[ ", "");
 
-        auto architectures_begin = architectures_.begin();
-        const auto architectures_begin_arch_info = *architectures_begin;
+        auto architectures_begin = architectures.begin();
+        auto architectures_begin_arch_info = *architectures_begin;
 
         fprintf(output_file, "%s", architectures_begin_arch_info->name);
 
-        for (architectures_begin++; architectures_begin != architectures_.end(); architectures_begin++) {
-            const auto architectures_begin_arch_info = *architectures_begin;
-            const auto architectures_begin_arch_info_name = architectures_begin_arch_info->name;
+        const auto architectures_end = architectures.end();
+        for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
+            auto architecture_arch_info = *architectures_begin;
+            auto architecture_arch_info_name = architecture_arch_info->name;
 
-            fprintf(output_file, ", %s", architectures_begin_arch_info_name);
+            fprintf(output_file, ", %s", architecture_arch_info_name);
         }
 
         fputs(" ]\n", output_file);
 
-        if (version_ == version::v2) {
+        if (version == version::v2) {
             fprintf(output_file, "uuids:%-17s[ ", "");
 
             auto counter = 1;
             auto uuids_begin = uuids.begin();
 
-            for (auto architectures_begin = architectures_.begin(); architectures_begin < architectures_.end(); architectures_begin++, uuids_begin++) {
-                auto architecture_being_arch_info = *architectures_begin;
-                auto architecture_being_arch_info_name = architecture_being_arch_info->name;
+            const auto &architectures_end = architectures.end();
+            const auto &architectures_back = architectures_end - 1;
 
-                fprintf(output_file, "'%s: %s'", architecture_being_arch_info_name, uuids_begin->data());
+            for (auto architectures_begin = architectures.begin(); architectures_begin < architectures_end; architectures_begin++, uuids_begin++) {
+                const auto &architecture_arch_info = *architectures_begin;
+                const auto &uuid = *uuids_begin;
 
-                if (architectures_begin != architectures_.end() - 1) {
+                fprintf(output_file, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+
+                if (architectures_begin != architectures_back) {
                     fputs(", ", output_file);
 
                     if (counter % 2 == 0) {
@@ -434,52 +558,74 @@ void tbd::run() {
             fputs(" ]\n", output_file);
         }
 
-        fprintf(output_file, "platform:%-14s%s\n", "", platform_to_string(platform_));
-        fprintf(output_file, "install-name:%-10s%s\n", "", installation_name.data());
+        fprintf(output_file, "platform:%-14s%s\n", "", platform_to_string(platform));
+        fprintf(output_file, "install-name:%-10s%s\n", "", installation_name);
 
-        fprintf(output_file, "current-version:%-7s%s\n", "", current_version.data());
-        fprintf(output_file, "compatibility-version: %s\n", compatibility_version.data());
+        fprintf(output_file, "current-version:%-7s%u.%u.%u\n", "", current_version >> 16, (current_version >> 8) & 0xff, current_version & 0xff);
+        fprintf(output_file, "compatibility-version: %u.%u.%u\n", compatibility_version >> 16, (compatibility_version >> 8) & 0xff, compatibility_version & 0xff);
 
-        if (version_ == version::v2) {
+        if (version == version::v2) {
             fprintf(output_file, "objc-constraint:%-7snone\n", "");
         }
 
         fputs("exports:\n", output_file);
         for (auto &group : groups) {
-            const auto &group_architecture_infos = group.architecture_infos();
+            const auto &group_flags = group.flags();
 
-            auto group_architecture_infos_begin = group_architecture_infos.begin();
-            auto group_architecture_infos_begin_arch_info = *group_architecture_infos_begin;
+            if (macho_file_has_architecture_overrides) {
+                const auto architectures_begin = architectures.begin();
+                const auto architectures_begin_arch_info = *architectures_begin;
 
-            fprintf(output_file, "  - archs:%-12s[ %s", "", group_architecture_infos_begin_arch_info->name);
-            for (group_architecture_infos_begin++; group_architecture_infos_begin < group_architecture_infos.end(); group_architecture_infos_begin++) {
-                auto group_architecture_infos_begin_arch_info = *group_architecture_infos_begin;
-                auto group_architecture_infos_begin_arch_info_name = group_architecture_infos_begin_arch_info->name;
+                fprintf(output_file, "  - archs:%-12s[ %s", "", architectures_begin_arch_info->name);
 
-                fprintf(output_file, ", %s", group_architecture_infos_begin_arch_info_name);
+                const auto architectures_end = architectures.end();
+                for (auto architectures_iter = architectures_begin + 1; architectures_iter < architectures_end; architectures_iter++) {
+                    auto architectures_iter_arch_info = *architectures_iter;
+                    auto architectures_iter_arch_info_name = architectures_iter_arch_info->name;
+
+                    fprintf(output_file, ", %s", architectures_iter_arch_info_name);
+                }
+            } else {
+                const auto architectures_size = architectures.size();
+
+                auto architectures_index = architectures_size - 1;
+                auto has_printed_first_architecture = false;
+
+                for (; architectures_index < architectures_size; architectures_index--) {
+                    const auto architecture = group_flags.at_index(architectures_index);
+                    if (!architecture) {
+                        continue;
+                    }
+
+                    const auto architecture_info = architectures.at(architectures_index);
+
+                    if (!has_printed_first_architecture) {
+                        fprintf(output_file, "  - archs:%-12s[ %s", "", architecture_info->name);
+                        has_printed_first_architecture = true;
+                    } else {
+                        fprintf(output_file, ", %s", architecture_info->name);
+                    }
+                }
             }
 
             fputs(" ]\n", output_file);
 
-            const auto line_length_max = 85;
-            const auto key_spacing_length_max = 18;
-
-            print_symbols(reexports, "re-exports");
-            print_symbols(ordinary_symbols, "symbols");
-            print_symbols(weak_symbols, "weak-def-symbols");
-            print_symbols(objc_classes, "objc-classes");
-            print_symbols(objc_ivars, "objc-ivars");
+            print_symbols(output_file, group_flags, reexports, symbols_type::reexports);
+            print_symbols(output_file, group_flags, symbols, symbols_type::symbols);
+            print_symbols(output_file, group_flags, symbols, symbols_type::weak_symbols);
+            print_symbols(output_file, group_flags, symbols, symbols_type::objc_classes);
+            print_symbols(output_file, group_flags, symbols, symbols_type::objc_ivars);
         }
 
         fputs("...\n", output_file);
 
         if (!macho_file_has_architecture_overrides) {
-            architectures_.clear();
+            architectures.clear();
         }
 
-        output_path_index++;
+        output_file_index++;
         if (output_file != stdout) {
             fclose(output_file);
         }
-     }
+    }
 }

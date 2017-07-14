@@ -1,15 +1,15 @@
 # tbd
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 ```
-Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]
+Usage: tbd [-p file-paths][-o/-output output-paths-or-stdout]
 Main options:
     -h, --help,     Print this message
-    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide \"stdout\" to print to stdout
+    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overriden. Can also provide \"stdout\" to print to stdout
     -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd
     -u, --usage,    Print this message
 
 Path options:
-Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/-r=once/all/--recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
+Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
     -a, --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)
         --platform, Specify platform for all mach-o library files provided
     -r, --recurse,  Specify directory to recurse and find mach-o library files in
@@ -22,7 +22,7 @@ Usage: tbd -o [--maintain-directories] /path/to/output/file
 Global options:
     -a, --archs,    Specify architecture(s) to use, replacing default architectures (where default architectures were not already provided)
         --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)
-    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)
+    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)
 
 List options:
         --list-architectures,   List all valid architectures for tbd-files

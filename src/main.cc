@@ -22,13 +22,11 @@ enum class recurse {
     all
 };
 
-void loop_directory_for_libraries(DIR *directory, const std::string &directory_path, const recurse &recurse_type, const std::function<void(const std::string &)> &callback) {
+void loop_subdirectories_for_libraries(DIR *directory, const std::string &directory_path, const std::function<void(const std::string &)> &callback) {
     auto directory_entry = readdir(directory);
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
-        const auto should_recurse_all_of_directory_entry = recurse_type == recurse::all;
-
-        if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
+        if (directory_entry_is_directory) {
             if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
                 strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
                 directory_entry = readdir(directory);
@@ -47,7 +45,7 @@ void loop_directory_for_libraries(DIR *directory, const std::string &directory_p
 
             const auto sub_directory = opendir(sub_directory_path.data());
             if (sub_directory) {
-                loop_directory_for_libraries(sub_directory, sub_directory_path, recurse_type, callback);
+                loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
                 closedir(sub_directory);
             } else {
                 fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
@@ -68,21 +66,81 @@ void loop_directory_for_libraries(DIR *directory, const std::string &directory_p
     }
 }
 
-const std::string &retrieve_current_directory() {
-    static auto current_directory = std::string();
-    if (current_directory.empty()) {
+void loop_directory_for_libraries(const std::string &directory_path, const recurse &recurse_type, const std::function<void(const std::string &)> &callback) {
+    const auto directory = opendir(directory_path);
+    if (directory) {
+        fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));
+        exit(1);
+    }
+
+    const auto directory_path_length = strlen(directory_path);
+    const auto should_recurse_all_of_directory_entry = recurse_type == recurse::all;
+
+    auto directory_entry = readdir(directory);
+    while (directory_entry != nullptr) {
+        const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
+        if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
+            if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
+                strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
+                directory_entry = readdir(directory);
+                continue;
+            }
+
+            auto sub_directory_path = std::string(directory_path);
+
+            auto sub_directory_path_length = sub_directory_path.length();
+            auto sub_directory_path_new_length = sub_directory_path_length + directory_entry->d_namlen + 1;
+
+            sub_directory_path.reserve(sub_directory_path_new_length);
+
+            sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
+            sub_directory_path.append(1, '/');
+
+            const auto sub_directory = opendir(sub_directory_path.data());
+            if (sub_directory) {
+                loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
+                closedir(sub_directory);
+            } else {
+                fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+            }
+        } else {
+            const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
+            if (directory_entry_is_regular_file) {
+                auto directory_entry_path = std::string();
+
+                directory_entry_path.reserve(directory_path_length + directory_entry->d_namlen);
+                directory_entry_path.append(directory_path);
+                directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
+
+                auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
+                if (directory_entry_path_is_valid_library) {
+                    callback(directory_entry_path);
+                }
+            }
+        }
+
+        directory_entry = readdir(directory);
+    }
+}
+
+const char *retrieve_current_directory() {
+    static const char *current_directory = nullptr;
+    if (!current_directory) {
         const auto current_directory_string = getcwd(nullptr, 0);
         if (!current_directory_string) {
             fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
             exit(1);
         }
 
-        current_directory = current_directory_string;
-        if (current_directory.back() != '/') {
-            current_directory.append(1, '/');
-        }
+        const auto current_directory_length = strlen(current_directory);
+        const auto &current_directory_back = current_directory[current_directory_length - 1];
 
-        free(current_directory_string);
+        if (current_directory_back != '/') {
+            current_directory = strcat(current_directory_string, "/");
+            free(current_directory_string);
+        } else {
+            current_directory = current_directory_string;
+        }
     }
 
     return current_directory;
@@ -134,16 +192,16 @@ void recursively_create_directories_from_file_path(char *path) {
 }
 
 void print_usage() {
-    fputs("Usage: tbd [-p file-paths] [-v/--version v2] [-a/--archs architectures] [-o/-output output-paths-or-stdout]\n", stdout);
+    fputs("Usage: tbd [-p file-paths][-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
-    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will get overrided. Can also provide \"stdout\" to print to stdout\n", stdout);
+    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overriden. Can also provide \"stdout\" to print to stdout\n", stdout);
     fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd\n", stdout);
     fputs("    -u, --usage,    Print this message\n", stdout);
 
     fputc('\n', stdout);
     fputs("Path options:\n", stdout);
-    fputs("Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/-r=once/all/--recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
+    fputs("Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
     fputs("    -a, --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
     fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
     fputs("    -r, --recurse,  Specify directory to recurse and find mach-o library files in\n", stdout);
@@ -278,7 +336,7 @@ int main(int argc, const char *argv[]) {
                             const auto &recurse_type_string_front = recurse_type_string[0];
 
                             if (!recurse_type_string_front) {
-                                fputs("Please provide a recurse type", stderr);
+                                fputs("Please provide a recurse type\n", stderr);
                                 return 1;
                             }
 
@@ -300,7 +358,7 @@ int main(int argc, const char *argv[]) {
 
                     if (argument_front != '/') {
                         auto path = std::string(argument);
-                        auto &current_directory = retrieve_current_directory();
+                        auto current_directory = retrieve_current_directory();
 
                         path.insert(0, current_directory);
                         paths.emplace_back(std::move(path), recurse_type);
@@ -318,34 +376,30 @@ int main(int argc, const char *argv[]) {
 
             for (const auto &pair : paths) {
                 const auto &path = pair.first;
-                const auto &recurse_type = pair.second;
+                const auto path_data = path.data();
 
-                if (access(path.data(), F_OK) != 0) {
-                    fprintf(stderr, "Object at path (%s) does not exist\n", path.data());
+                if (access(path_data, F_OK) != 0) {
+                    fprintf(stderr, "Object at path (%s) does not exist\n", path_data);
                     return 1;
                 }
 
                 struct stat sbuf;
-                if (stat(path.data(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                if (stat(path_data, &sbuf) != 0) {
+                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path_data, strerror(errno));
                     return 1;
                 }
 
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
+                const auto &recurse_type = pair.second;
+
                 if (recurse_type != recurse::none) {
                     if (!path_is_directory && recurse_type != recurse::none) {
-                        fprintf(stderr, "Cannot recurse file at path (%s)\n", path.data());
-                        return 1;
-                    }
-
-                    const auto directory = opendir(path.data());
-                    if (!directory) {
-                        fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                        fprintf(stderr, "Cannot recurse file at path (%s)\n", path_data);
                         return 1;
                     }
 
                     auto library_paths = std::vector<std::string>();
-                    loop_directory_for_libraries(directory, path, recurse_type, [&](const std::string &path) {
+                    loop_directory_for_libraries(path_data, recurse_type, [&](const std::string &path) {
                         library_paths.emplace_back(std::move(path));
                     });
 
@@ -355,11 +409,11 @@ int main(int argc, const char *argv[]) {
                                 break;
 
                             case recurse::once:
-                                fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path.data());
+                                fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
                                 break;
 
                             case recurse::all:
-                                fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path.data());
+                                fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path_data);
                                 break;
                         }
                     } else {
@@ -368,11 +422,11 @@ int main(int argc, const char *argv[]) {
                                 break;
 
                             case recurse::once:
-                                fprintf(stdout, "Found the following mach-o libraries while recursing once through path (%s)\n", path.data());
+                                fprintf(stdout, "Found the following mach-o libraries while recursing once through path (%s)\n", path_data);
                                 break;
 
                             case recurse::all:
-                                fprintf(stdout, "Found the following mach-o libraries while recursing through path (%s)\n", path.data());
+                                fprintf(stdout, "Found the following mach-o libraries while recursing through path (%s)\n", path_data);
                                 break;
                         }
 
@@ -382,19 +436,19 @@ int main(int argc, const char *argv[]) {
                             fprintf(stdout, "%s\n", library_path.data());
                         }
 
-                        fputs("\n", stdout);
+                        fputc('\n', stdout);
                     }
                 } else {
                     if (path_is_directory) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path.data());
+                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                         return 1;
                     }
 
                     const auto path_is_library = macho::file::is_valid_library(path);
                     if (path_is_library) {
-                        fprintf(stdout, "Mach-o file at path (%s) is a library\n", path.data());
+                        fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
                     } else {
-                        fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path.data());
+                        fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path_data);
                     }
                 }
             }
@@ -486,7 +540,7 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Cannot output tbd-file to a directory at path (%s), please provide a full path to a file to output to\n", path.data());
                             return 1;
                         } else if (path == "stdout") {
-                            fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to", stderr);
+                            fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to\n", stderr);
                             return 1;
                         }
 
@@ -582,7 +636,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
-                            fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
+                            fputs("Please provide a platform-string (ios, macosx, tvos, watchos)\n", stderr);
                             return 1;
                         }
 
@@ -602,7 +656,7 @@ int main(int argc, const char *argv[]) {
                         const auto &recurse_type_string_front = recurse_type_string[0];
 
                         if (!recurse_type_string_front) {
-                            fputs("Please provide a recurse type", stderr);
+                            fputs("Please provide a recurse type\n", stderr);
                             return 1;
                         }
 
@@ -669,7 +723,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    loop_directory_for_libraries(directory, path, recurse_type, [&](const std::string &path) {
+                    loop_directory_for_libraries(path.data(), recurse_type, [&](const std::string &path) {
                         macho_files.emplace_back(std::move(path));
                     });
 
@@ -756,7 +810,7 @@ int main(int argc, const char *argv[]) {
             }
         } else if (strcmp(option, "platform") == 0) {
             if (is_last_argument) {
-                fputs("Please provide a platform-string (ios, macosx, tvos, watchos)", stderr);
+                fputs("Please provide a platform-string (ios, macosx, tvos, watchos)\n", stderr);
                 return 1;
             }
 

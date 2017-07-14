@@ -7,7 +7,9 @@
 //
 
 #include <mach-o/arch.h>
+
 #include "../mach-o/file.h"
+#include "symbol.h"
 
 class tbd {
 public:
@@ -70,6 +72,6 @@ private:
         objc_ivars
     };
 
-    void print_symbols(FILE *output_file, const std::vector<const char *> &symbols, symbols_type type) const noexcept;
+    void print_symbols(FILE *output_file, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept;
     void validate() const;
 };

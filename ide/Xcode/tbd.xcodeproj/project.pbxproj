@@ -12,6 +12,7 @@
 		C3BA3CAE1F131AD00049C652 /* file.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CAB1F131AD00049C652 /* file.cc */; };
 		C3BA3CB31F131B160049C652 /* group.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB01F131B160049C652 /* group.cc */; };
 		C3BA3CB41F131B160049C652 /* symbol.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB11F131B160049C652 /* symbol.cc */; };
+		C3BA3CBA1F1389690049C652 /* flags.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB81F1389690049C652 /* flags.cc */; };
 		C3DB91371F10F23B00A7C2E7 /* tbd.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DB91351F10F23B00A7C2E7 /* tbd.cc */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,8 @@
 		C3BA3CB01F131B160049C652 /* group.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = group.cc; path = ../../src/tbd/group.cc; sourceTree = "<group>"; };
 		C3BA3CB11F131B160049C652 /* symbol.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = symbol.cc; path = ../../src/tbd/symbol.cc; sourceTree = "<group>"; };
 		C3BA3CB21F131B160049C652 /* symbol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = symbol.h; path = ../../src/tbd/symbol.h; sourceTree = "<group>"; };
+		C3BA3CB81F1389690049C652 /* flags.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = flags.cc; path = ../../src/tbd/flags.cc; sourceTree = "<group>"; };
+		C3BA3CB91F1389690049C652 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = ../../src/tbd/flags.h; sourceTree = "<group>"; };
 		C3DB912A1F10F20C00A7C2E7 /* file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file.h; path = "../../src/mach-o/file.h"; sourceTree = "<group>"; };
 		C3DB91351F10F23B00A7C2E7 /* tbd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tbd.cc; path = ../../src/tbd/tbd.cc; sourceTree = "<group>"; };
 		C3DB91361F10F23B00A7C2E7 /* tbd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = ../../src/tbd/tbd.h; sourceTree = "<group>"; };
@@ -82,10 +85,10 @@
 		C32A7AAC1F10E611000BF14E /* mach-o */ = {
 			isa = PBXGroup;
 			children = (
-				C3BA3CA91F131AD00049C652 /* container.cc */,
-				C3BA3CAC1F131AD00049C652 /* container.h */,
-				C3BA3CAB1F131AD00049C652 /* file.cc */,
 				C3DB912A1F10F20C00A7C2E7 /* file.h */,
+				C3BA3CAB1F131AD00049C652 /* file.cc */,
+				C3BA3CAC1F131AD00049C652 /* container.h */,
+				C3BA3CA91F131AD00049C652 /* container.cc */,
 			);
 			name = "mach-o";
 			sourceTree = "<group>";
@@ -93,6 +96,8 @@
 		C32A7AB31F10E62E000BF14E /* tbd */ = {
 			isa = PBXGroup;
 			children = (
+				C3BA3CB91F1389690049C652 /* flags.h */,
+				C3BA3CB81F1389690049C652 /* flags.cc */,
 				C3BA3CB21F131B160049C652 /* symbol.h */,
 				C3BA3CB11F131B160049C652 /* symbol.cc */,
 				C3BA3CAF1F131B160049C652 /* group.h */,
@@ -165,6 +170,7 @@
 				C3BA3CB31F131B160049C652 /* group.cc in Sources */,
 				C3BA3CAE1F131AD00049C652 /* file.cc in Sources */,
 				C3BA3CA81F131AC30049C652 /* main.cc in Sources */,
+				C3BA3CBA1F1389690049C652 /* flags.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

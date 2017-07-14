@@ -7,25 +7,30 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include "symbol.h"
+#include <vector>
+#include "flags.h"
 
 class group {
 public:
-    explicit group(const std::vector<const NXArchInfo *> &architecture_infos) noexcept;
+    explicit group(const flags &flags) noexcept;
 
-    void add_symbol(const symbol &symbol) noexcept;
-    void add_reexport(const symbol &reexport) noexcept;
+    inline void increment_symbol_count() noexcept { symbols_count_++; }
+    inline void increment_reexport_count() noexcept { reexports_count_++; }
 
-    inline const std::vector<const NXArchInfo *> &architecture_infos() const noexcept { return architecture_infos_; }
+    inline const flags &flags() const noexcept { return flags_; }
 
-    inline const std::vector<symbol> &symbols() const noexcept { return symbols_; }
-    inline const std::vector<symbol> &reexports() const noexcept { return reexports_; }
+    inline unsigned int symbols_count() const noexcept { return symbols_count_; }
+    inline unsigned int reexports_count() const noexcept { return reexports_count_; }
 
-    inline const bool operator==(const std::vector<const NXArchInfo *> &architecture_infos) const noexcept { return architecture_infos_ == architecture_infos; }
-
+    inline const bool operator==(const class flags &flags) const noexcept { return flags_ == flags; }
+    inline const bool operator==(const group &group) const noexcept { return flags_ == group.flags_; }
+    
+    inline const bool operator!=(const class flags &flags) const noexcept { return flags_ != flags; }
+    inline const bool operator!=(const group &group) const noexcept { return flags_ != group.flags_; }
+    
 private:
-    std::vector<const NXArchInfo *> architecture_infos_;
-
-    std::vector<symbol> symbols_;
-    std::vector<symbol> reexports_;
+    class flags flags_;
+    
+    unsigned int symbols_count_ = 0;
+    unsigned int reexports_count_ = 0;
 };
