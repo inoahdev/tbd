@@ -46,7 +46,6 @@ namespace macho {
 
     private:
         FILE *file_;
-        long macho_base_;
 
         long base_ = 0;
         long size_ = 0;

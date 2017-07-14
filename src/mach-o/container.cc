@@ -13,7 +13,7 @@
 
 namespace macho {
     container::container(FILE *file, long base)
-    : file_(file), macho_base_(macho_base), is_architecture_(false) {
+    : file_(file), base_(base), is_architecture_(false) {
         const auto position = ftell(file);
         fseek(file, 0, SEEK_END);
 
@@ -24,12 +24,12 @@ namespace macho {
     }
 
     container::container(FILE *file, long macho_base, const struct fat_arch &architecture)
-    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
+    : file_(file), base_(macho_base), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
 
     container::container(FILE *file, long macho_base, const struct fat_arch_64 &architecture)
-    : file_(file), macho_base_(macho_base), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
+    : file_(file), base_(architecture.offset), size_(architecture.size), is_architecture_(true) {
         this->validate();
     }
 
@@ -46,7 +46,7 @@ namespace macho {
     }
 
     void container::validate() {
-        auto base = this->base();
+        auto &base = base_;
         auto &file = file_;
         
         auto &header = header_;
@@ -67,7 +67,8 @@ namespace macho {
             }
         } else {
             const auto is_fat_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
-            if (is_fat_macho_file) {
+            if 
+                (is_fat_macho_file) {
                 fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself\n", base);
                 exit(1);
             } else {
@@ -80,8 +81,10 @@ namespace macho {
     }
 
     void container::iterate_load_commands(const std::function<bool (const struct load_command *)> &callback) {
+        const auto &base = base_;
         const auto &header = header_;
         const auto &file = file_;
+        
         const auto &is_architecture = is_architecture_;
         const auto &should_swap = should_swap_;
         
@@ -92,14 +95,14 @@ namespace macho {
         if (!cached) {
             cached = new char[sizeofcmds];
 
-            auto base = this->base() + sizeof(struct mach_header);
+            auto load_command_base = base + sizeof(struct mach_header);
             if (this->is_64_bit()) {
-                base += sizeof(uint32_t);
+                load_command_base += sizeof(uint32_t);
             }
 
             const auto position = ftell(file);
 
-            fseek(file, base, SEEK_SET);
+            fseek(file, load_command_base, SEEK_SET);
             fread(cached, sizeofcmds, 1, file);
 
             fseek(file, position, SEEK_SET);
@@ -171,11 +174,11 @@ namespace macho {
     }
 
     void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {
+        auto &base = base_;
         auto &file = file_;
         auto &is_architecture = is_architecture_;
         auto &should_swap = should_swap_;
         
-        auto base = this->base();
         auto position = ftell(file);
 
         struct symtab_command *symtab_command = nullptr;
