@@ -34,30 +34,36 @@ namespace macho {
     }
 
     container::~container() {
-        if (cached_) {
-            delete cached_;
+        auto &cached = cached_;
+        if (cached) {
+            delete cached;
         }
-
-        if (string_table_) {
-            delete[] string_table_;
+        
+        auto &string_table = string_table_;
+        if (string_table) {
+            delete[] string_table;
         }
     }
 
     void container::validate() {
         auto base = this->base();
-        auto position = ftell(file_);
-
-        auto &magic = header_.magic;
-
-        fseek(file_, base_, SEEK_SET);
-        fread(&magic, sizeof(uint32_t), 1, file_);
+        auto &file = file_;
+        
+        auto &header = header_;
+        auto &magic = header.magic;
+        auto &should_swap = should_swap_;
+        
+        auto position = ftell(file);
+        
+        fseek(file, base, SEEK_SET);
+        fread(&magic, sizeof(uint32_t), 1, file);
 
         const auto is_regular_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
         if (is_regular_macho_file) {
-            fread(&header_.cputype, sizeof(struct mach_header) - sizeof(uint32_t), 1, file_);
+            fread(&header.cputype, sizeof(struct mach_header) - sizeof(uint32_t), 1, file);
             if (magic == MH_CIGAM || magic == MH_CIGAM_64) {
-                should_swap_ = true;
-                swap_mach_header(&header_, NX_LittleEndian);
+                should_swap = true;
+                swap_mach_header(&header, NX_LittleEndian);
             }
         } else {
             const auto is_fat_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
@@ -70,27 +76,33 @@ namespace macho {
             }
         }
 
-        fseek(file_, position, SEEK_SET);
+        fseek(file, position, SEEK_SET);
     }
 
     void container::iterate_load_commands(const std::function<bool (const struct load_command *)> &callback) {
-        const auto &ncmds = header_.ncmds;
-        const auto &sizeofcmds = header_.sizeofcmds;
-
-        if (!cached_) {
-            cached_ = new char[sizeofcmds];
+        const auto &header = header_;
+        const auto &file = file_;
+        const auto &is_architecture = is_architecture_;
+        const auto &should_swap = should_swap_;
+        
+        const auto &ncmds = header.ncmds;
+        const auto &sizeofcmds = header.sizeofcmds;
+        
+        auto &cached = cached_;
+        if (!cached) {
+            cached = new char[sizeofcmds];
 
             auto base = this->base() + sizeof(struct mach_header);
             if (this->is_64_bit()) {
                 base += sizeof(uint32_t);
             }
 
-            const auto position = ftell(file_);
+            const auto position = ftell(file);
 
-            fseek(file_, base, SEEK_SET);
-            fread(cached_, sizeofcmds, 1, file_);
+            fseek(file, base, SEEK_SET);
+            fread(cached, sizeofcmds, 1, file);
 
-            fseek(file_, position, SEEK_SET);
+            fseek(file, position, SEEK_SET);
         }
 
         auto size_used = 0;
@@ -98,14 +110,14 @@ namespace macho {
 
         auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
-            auto load_cmd = (struct load_command *)&cached_[cached_index];
-            if (should_swap_ && !swapped_cache) {
+            auto load_cmd = (struct load_command *)&cached[cached_index];
+            if (should_swap && !swapped_cache) {
                 swap_load_command(load_cmd, NX_LittleEndian);
             }
 
             const auto &cmdsize = load_cmd->cmdsize;
             if (cmdsize < sizeof(struct load_command)) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fprintf(stderr, "Load-command (at index %d) of architecture is too small to be valid\n", i);
                 } else {
                     fprintf(stderr, "Load-command (at index %d) of mach-o file is too small to be valid\n", i);
@@ -115,7 +127,7 @@ namespace macho {
             }
 
             if (cmdsize >= sizeofcmds) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fprintf(stderr, "Load-command (at index %d) of architecture is larger than/or equal to entire area allocated for load-commands\n", i);
                 } else {
                     fprintf(stderr, "Load-command (at index %d) of mach-o file is larger than/or equal to entire area allocated for load-commands\n", i);
@@ -126,7 +138,7 @@ namespace macho {
 
             size_used += cmdsize;
             if (size_used > sizeofcmds) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fprintf(stderr, "Load-command (at index %d) of architecture goes past end of area allocated for load-commands\n", i);
                 } else {
                     fprintf(stderr, "Load-command (at index %d) of mach-o file goes past end of area allocated for load-commands\n", i);
@@ -134,7 +146,7 @@ namespace macho {
 
                 exit(1);
             } else if (size_used == sizeofcmds && i != ncmds - 1) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fprintf(stderr, "Load-command (at index %d) of architecture takes up all of the remaining space allocated for load-commands\n", i);
                 } else {
                     fprintf(stderr, "Load-command (at index %d) of mach-o file takes up all of the remaining space allocated for load-commands\n", i);
@@ -159,8 +171,12 @@ namespace macho {
     }
 
     void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {
+        auto &file = file_;
+        auto &is_architecture = is_architecture_;
+        auto &should_swap = should_swap_;
+        
         auto base = this->base();
-        auto position = ftell(file_);
+        auto position = ftell(file);
 
         struct symtab_command *symtab_command = nullptr;
         iterate_load_commands([&](const struct load_command *load_cmd) {
@@ -169,7 +185,7 @@ namespace macho {
             }
 
             symtab_command = (struct symtab_command *)load_cmd;
-            if (should_swap_) {
+            if (should_swap) {
                 swap_symtab_command(symtab_command, NX_LittleEndian);
             }
 
@@ -177,7 +193,7 @@ namespace macho {
         });
 
         if (!symtab_command) {
-            if (is_architecture_) {
+            if (is_architecture) {
                 fputs("Architecture does not have a symbol-table\n", stderr);
             } else {
                 fputs("Mach-o file does not have a symbol-table\n", stderr);
@@ -188,7 +204,7 @@ namespace macho {
 
         const auto &string_table_offset = symtab_command->stroff;
         if (string_table_offset > size_) {
-            if (is_architecture_) {
+            if (is_architecture) {
                 fputs("Architecture has a string-table outside of its container\n", stderr);
             } else {
                 fputs("Mach-o file has a string-table outside of its container\n", stderr);
@@ -199,7 +215,7 @@ namespace macho {
 
         const auto &string_table_size = symtab_command->strsize;
         if (string_table_offset + string_table_size > size_) {
-            if (is_architecture_) {
+            if (is_architecture) {
                 fputs("Architecture has a string-table that goes outside of its container\n", stderr);
             } else {
                 fputs("Mach-o file has a string-table that goes outside of its container\n", stderr);
@@ -210,7 +226,7 @@ namespace macho {
 
         const auto &symbol_table_offset = symtab_command->symoff;
         if (symbol_table_offset > size_) {
-            if (is_architecture_) {
+            if (is_architecture) {
                 fputs("Architecture has a symbol-table that is outside of its container\n", stderr);
             } else {
                 fputs("Mach-o file has a symbol-table that is outside of its container\n", stderr);
@@ -218,21 +234,22 @@ namespace macho {
 
             exit(1);
         }
+        
+        auto &string_table = string_table_;
+        if (!string_table) {
+            string_table = new char[string_table_size];
 
-        if (!string_table_) {
-            string_table_ = new char[string_table_size];
-
-            fseek(file_, base + string_table_offset, SEEK_SET);
-            fread(string_table_, string_table_size, 1, file_);
+            fseek(file, base + string_table_offset, SEEK_SET);
+            fread(string_table, string_table_size, 1, file);
         }
 
         const auto &symbol_table_count = symtab_command->nsyms;
-        fseek(file_, base + symbol_table_offset, SEEK_SET);
+        fseek(file, base + symbol_table_offset, SEEK_SET);
 
         if (this->is_64_bit()) {
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fputs("Architecture has a symbol-table that goes outside of its container\n", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
@@ -242,9 +259,9 @@ namespace macho {
             }
 
             const auto symbol_table = new struct nlist_64[symbol_table_count];
-            fread(symbol_table, symbol_table_size, 1, file_);
+            fread(symbol_table, symbol_table_size, 1, file);
 
-            if (should_swap_) {
+            if (should_swap) {
                 swap_nlist_64(symbol_table, symbol_table_count, NX_LittleEndian);
             }
 
@@ -257,7 +274,7 @@ namespace macho {
                     exit(1);
                 }
 
-                const auto symbol_table_string_table_string = &string_table_[symbol_table_entry_string_table_index];
+                const auto symbol_table_string_table_string = &string_table[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry, symbol_table_string_table_string);
 
                 if (!result) {
@@ -269,7 +286,7 @@ namespace macho {
         } else {
             const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
             if (symbol_table_offset + symbol_table_size > size_) {
-                if (is_architecture_) {
+                if (is_architecture) {
                     fputs("Architecture has a symbol-table that goes outside of its container\n", stderr);
                 } else {
                     fputs("Mach-o file has a symbol-table that goes outside of its container\n", stderr);
@@ -279,9 +296,9 @@ namespace macho {
             }
 
             const auto symbol_table = new struct nlist[symbol_table_count];
-            fread(symbol_table, symbol_table_size, 1, file_);
+            fread(symbol_table, symbol_table_size, 1, file);
 
-            if (should_swap_) {
+            if (should_swap) {
                 swap_nlist(symbol_table, symbol_table_count, NX_LittleEndian);
             }
 
@@ -296,7 +313,7 @@ namespace macho {
 
                 const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry.n_un.n_strx }, symbol_table_entry.n_type, symbol_table_entry.n_sect, (uint16_t)symbol_table_entry.n_desc, symbol_table_entry.n_value };
 
-                const auto symbol_table_string_table_string = &string_table_[symbol_table_entry_string_table_index];
+                const auto symbol_table_string_table_string = &string_table[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry_64, symbol_table_string_table_string);
 
                 if (!result) {
@@ -307,6 +324,6 @@ namespace macho {
             delete[] symbol_table;
         }
 
-        fseek(file_, position, SEEK_SET);
+        fseek(file, position, SEEK_SET);
     }
 }

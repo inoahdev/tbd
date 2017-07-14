@@ -17,7 +17,8 @@
 namespace macho {
     file::file(const std::string &path)
     : file_(fopen(path.data(), "r")) {
-        if (!file_) {
+        auto &file = file_;
+        if (!file) {
             fprintf(stderr, "Unable to open mach-o file at path (%s)\n", path.data());
             exit(1);
         }
@@ -187,27 +188,31 @@ namespace macho {
     }
 
     void file::validate() {
-        fread(&magic_, sizeof(uint32_t), 1, file_);
+        auto &containers = containers_;
+        auto &file = file_;
+        auto &magic = magic_;
+        
+        fread(&magic, sizeof(uint32_t), 1, file);
 
-        const auto magic_is_fat = magic_ == FAT_MAGIC || magic_ == FAT_CIGAM || magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64;
+        const auto magic_is_fat = magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
         if (magic_is_fat) {
             uint32_t nfat_arch;
-            fread(&nfat_arch, sizeof(uint32_t), 1, file_);
+            fread(&nfat_arch, sizeof(uint32_t), 1, file);
 
             if (!nfat_arch) {
                 fprintf(stderr, "Mach-o file has 0 architectures");
                 exit(1);
             }
 
-            auto should_swap = magic_ == FAT_CIGAM || magic_ == FAT_CIGAM_64;
+            auto should_swap = magic == FAT_CIGAM || magic == FAT_CIGAM_64;
             if (should_swap) {
                 swap_value(nfat_arch);
             }
 
-            containers_.reserve(nfat_arch);
-            if (magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64) {
+            containers.reserve(nfat_arch);
+            if (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
                 const auto architectures = new struct fat_arch_64[nfat_arch];
-                fread(architectures, sizeof(struct fat_arch_64) * nfat_arch, 1, file_);
+                fread(architectures, sizeof(struct fat_arch_64) * nfat_arch, 1, file);
 
                 if (should_swap) {
                     swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
@@ -215,13 +220,13 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers_.emplace_back(file_, 0, architecture);
+                    containers.emplace_back(file, 0, architecture);
                 }
 
                 delete[] architectures;
             } else {
                 const auto architectures = new struct fat_arch[nfat_arch];
-                fread(architectures, sizeof(struct fat_arch) * nfat_arch, 1, file_);
+                fread(architectures, sizeof(struct fat_arch) * nfat_arch, 1, file);
 
                 if (should_swap) {
                     swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
@@ -229,15 +234,15 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers_.emplace_back(file_, 0, architecture);
+                    containers.emplace_back(file, 0, architecture);
                 }
 
                 delete[] architectures;
             }
         } else {
-            const auto magic_is_thin = magic_ == MH_MAGIC || magic_ == MH_CIGAM || magic_ == MH_MAGIC_64 || magic_ == MH_CIGAM_64;
+            const auto magic_is_thin = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
             if (magic_is_thin) {
-                containers_.emplace_back(file_, 0);
+                containers.emplace_back(file, 0);
             } else {
                 fputs("Mach-o file is invalid, does not have a valid magic-number", stderr);
                 exit(1);
