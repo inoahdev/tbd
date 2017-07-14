@@ -36,7 +36,7 @@ namespace macho {
     container::~container() {
         auto &cached = cached_;
         if (cached) {
-            delete cached;
+            delete[] cached;
         }
         
         auto &string_table = string_table_;
