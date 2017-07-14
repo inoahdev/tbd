@@ -51,8 +51,8 @@ namespace macho {
         if (header_magic_is_64_bit) {
             lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
         } else {
-            const auto header_magic_is_32_bit = header.magic != MH_MAGIC && header.magic != MH_CIGAM;
-            if (header_magic_is_32_bit) {
+            const auto header_magic_is_32_bit = header.magic == MH_MAGIC || header.magic == MH_CIGAM;
+            if (!header_magic_is_32_bit) {
                 close(descriptor);
                 return false;
             }
