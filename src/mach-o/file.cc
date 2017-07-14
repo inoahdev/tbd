@@ -43,6 +43,67 @@ namespace macho {
         close(descriptor);
         return result;
     }
+    
+    bool file::has_library_command(int descriptor, const struct mach_header &header) noexcept {
+        auto should_swap = false;
+        
+        const auto header_magic_is_64_bit = header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
+        if (header_magic_is_64_bit) {
+            lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
+        } else {
+            const auto header_magic_is_32_bit = header.magic != MH_MAGIC && header.magic != MH_CIGAM;
+            if (header_magic_is_32_bit) {
+                close(descriptor);
+                return false;
+            }
+        }
+        
+        const auto header_magic_is_big_endian = header.magic == MH_CIGAM_64 || header.magic == MH_CIGAM;
+        if (header_magic_is_big_endian) {
+            should_swap = true;
+        }
+        
+        const auto load_commands = new char[header.sizeofcmds];
+        read(descriptor, load_commands, header.sizeofcmds);
+        
+        auto index = 0;
+        auto size_left = header.sizeofcmds;
+        
+        const auto &ncmds = header.ncmds;
+        for (auto i = 0; i < ncmds; i++) {
+            const auto load_cmd = (struct load_command *)&load_commands[index];
+            if (should_swap) {
+                swap_load_command(load_cmd, NX_LittleEndian);
+            }
+            
+            if (load_cmd->cmd == LC_ID_DYLIB) {
+                delete[] load_commands;
+                close(descriptor);
+                
+                return true;
+            }
+            
+            auto cmdsize = load_cmd->cmdsize;
+            
+            const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
+            const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
+            const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
+            
+            if (cmdsize_is_too_small || cmdsize_is_larger_than_load_command_space || cmdsize_takes_up_rest_of_load_command_space) {
+                delete[] load_commands;
+                close(descriptor);
+                
+                return false;
+            }
+            
+            index += cmdsize;
+        }
+        
+        delete[] load_commands;
+        close(descriptor);
+        
+        return false;
+    };
 
     bool file::is_valid_library(const std::string &path) noexcept {
         const auto descriptor = open(path.data(), O_RDONLY);
@@ -52,67 +113,6 @@ namespace macho {
 
         uint32_t magic;
         read(descriptor, &magic, sizeof(uint32_t));
-
-        auto has_library_command = [&](const uint64_t &base, const struct mach_header &header) {
-            auto should_swap = false;
-
-            const auto header_magic_is_64_bit = header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
-            if (header_magic_is_64_bit) {
-                lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
-            } else {
-                const auto header_magic_is_32_bit = header.magic != MH_MAGIC && header.magic != MH_CIGAM;
-                if (header_magic_is_32_bit) {
-                    close(descriptor);
-                    return false;
-                }
-            }
-
-            const auto header_magic_is_big_endian = header.magic == MH_CIGAM_64 || header.magic == MH_CIGAM;
-            if (header_magic_is_big_endian) {
-                should_swap = true;
-            }
-
-            const auto load_commands = new char[header.sizeofcmds];
-            read(descriptor, load_commands, header.sizeofcmds);
-
-            auto index = 0;
-            auto size_left = header.sizeofcmds;
-
-            const auto &ncmds = header.ncmds;
-            for (auto i = 0; i < ncmds; i++) {
-                const auto load_cmd = (struct load_command *)&load_commands[index];
-                if (should_swap) {
-                    swap_load_command(load_cmd, NX_LittleEndian);
-                }
-
-                if (load_cmd->cmd == LC_ID_DYLIB) {
-                    delete[] load_commands;
-                    close(descriptor);
-
-                    return true;
-                }
-
-                auto cmdsize = load_cmd->cmdsize;
-
-                const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
-                const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
-                const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
-
-                if (cmdsize_is_too_small || cmdsize_is_larger_than_load_command_space || cmdsize_takes_up_rest_of_load_command_space) {
-                    delete[] load_commands;
-                    close(descriptor);
-
-                    return false;
-                }
-
-                index += cmdsize;
-            }
-
-            delete[] load_commands;
-            close(descriptor);
-
-            return false;
-        };
 
         if (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
             uint32_t nfat_arch;
