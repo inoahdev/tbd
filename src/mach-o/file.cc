@@ -75,11 +75,6 @@ namespace macho {
                 swap_load_command(load_cmd, NX_LittleEndian);
             }
             
-            if (load_cmd->cmd == LC_ID_DYLIB) {
-                delete[] load_commands;
-                return true;
-            }
-            
             auto cmdsize = load_cmd->cmdsize;
             
             const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
@@ -89,6 +84,11 @@ namespace macho {
             if (cmdsize_is_too_small || cmdsize_is_larger_than_load_command_space || cmdsize_takes_up_rest_of_load_command_space) {
                 delete[] load_commands;
                 return false;
+            }
+            
+            if (load_cmd->cmd == LC_ID_DYLIB) {
+                delete[] load_commands;
+                return true;
             }
             
             index += cmdsize;
