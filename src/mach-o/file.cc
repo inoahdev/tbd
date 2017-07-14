@@ -53,7 +53,6 @@ namespace macho {
         } else {
             const auto header_magic_is_32_bit = header.magic == MH_MAGIC || header.magic == MH_CIGAM;
             if (!header_magic_is_32_bit) {
-                close(descriptor);
                 return false;
             }
         }
@@ -78,8 +77,6 @@ namespace macho {
             
             if (load_cmd->cmd == LC_ID_DYLIB) {
                 delete[] load_commands;
-                close(descriptor);
-                
                 return true;
             }
             
@@ -91,8 +88,6 @@ namespace macho {
             
             if (cmdsize_is_too_small || cmdsize_is_larger_than_load_command_space || cmdsize_takes_up_rest_of_load_command_space) {
                 delete[] load_commands;
-                close(descriptor);
-                
                 return false;
             }
             
@@ -100,8 +95,6 @@ namespace macho {
         }
         
         delete[] load_commands;
-        close(descriptor);
-        
         return false;
     };
 
@@ -137,7 +130,7 @@ namespace macho {
                 lseek(descriptor, architecture.offset, SEEK_SET);
                 read(descriptor, &header, sizeof(struct mach_header));
 
-                if (!has_library_command(architecture.offset + sizeof(struct mach_header), header)) {
+                if (!has_library_command(descriptor, header)) {
                     close(descriptor);
                     return false;
                 }
@@ -165,7 +158,7 @@ namespace macho {
                 lseek(descriptor, architecture.offset, SEEK_SET);
                 read(descriptor, &header, sizeof(struct mach_header));
 
-                if (!has_library_command(architecture.offset + sizeof(struct mach_header), header)) {
+                if (!has_library_command(descriptor, header)) {
                     close(descriptor);
                     return false;
                 }
@@ -179,7 +172,7 @@ namespace macho {
                 header.magic = magic;
 
                 read(descriptor, &header.cputype, sizeof(struct mach_header) - sizeof(uint32_t));
-                if (!has_library_command(sizeof(struct mach_header), header)) {
+                if (!has_library_command(descriptor, header)) {
                     close(descriptor);
                     return false;
                 }
