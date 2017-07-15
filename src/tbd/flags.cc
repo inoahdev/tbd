@@ -37,10 +37,10 @@ void flags::cast(long index, bool result) noexcept {
     if (length_ > bit_size()) {
         auto ptr = (unsigned int *)flags_.ptr;
         
-        const auto bit_size = this->bit_size(); // 16
-        const auto bits_length = bit_size * length_; // 32
+        const auto bit_size = this->bit_size();
+        const auto bits_length = bit_size * length_;
         
-        auto index_from_back = (bits_length - 1) - index; // 13
+        auto index_from_back = (bits_length - 1) - index;
         if (index_from_back > bit_size) {
             do {
                 index_from_back -= 8;
@@ -73,10 +73,10 @@ bool flags::at_index(long index) const noexcept {
     if (length_ > bit_size()) {
         auto ptr = (unsigned int *)flags_.ptr;
         
-        const auto bit_size = this->bit_size(); // 16
-        const auto bits_length = bit_size * length_; // 32
+        const auto bit_size = this->bit_size();
+        const auto bits_length = bit_size * length_;
         
-        auto index_from_back = (bits_length - 1) - index; // 13
+        auto index_from_back = (bits_length - 1) - index;
         if (index_from_back > bit_size) {
             do {
                 index_from_back -= 8;
