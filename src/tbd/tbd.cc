@@ -79,28 +79,6 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         return;
     }
 
-    switch (type) {
-        case symbols_type::reexports:
-            fprintf(output_file, "%-4sre-exports:%7s", "", "");
-            break;
-
-        case symbols_type::symbols:
-            fprintf(output_file, "%-4ssymbols:%10s", "", "");
-            break;
-
-        case symbols_type::weak_symbols:
-            fprintf(output_file, "%-4sweak-def-symbols: ", "");
-            break;
-
-        case symbols_type::objc_classes:
-            fprintf(output_file, "%-4sobjc-classes:%5s", "", "");
-            break;
-
-        case symbols_type::objc_ivars:
-            fprintf(output_file, "%-4sobjc-ivars:%7s", "", "");
-            break;
-    }
-
     const auto is_valid_symbol = [](const symbol &symbol, symbols_type type) {
         const auto symbols_string = symbol.string();
 
@@ -154,7 +132,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     if (symbols_begin == symbols_end) {
         return;
     }
-
+    
     const auto parse_symbol_string = [](const char *symbol_string, symbols_type type) {
         switch (type) {
             case symbols_type::reexports:
@@ -182,6 +160,28 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         return symbol_string;
     };
+    
+    switch (type) {
+        case symbols_type::reexports:
+            fprintf(output_file, "%-4sre-exports:%7s", "", "");
+            break;
+            
+        case symbols_type::symbols:
+            fprintf(output_file, "%-4ssymbols:%10s", "", "");
+            break;
+            
+        case symbols_type::weak_symbols:
+            fprintf(output_file, "%-4sweak-def-symbols: ", "");
+            break;
+            
+        case symbols_type::objc_classes:
+            fprintf(output_file, "%-4sobjc-classes:%5s", "", "");
+            break;
+            
+        case symbols_type::objc_ivars:
+            fprintf(output_file, "%-4sobjc-ivars:%7s", "", "");
+            break;
+    }
 
     const auto line_length_max = 85;
 
