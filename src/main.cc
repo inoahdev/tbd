@@ -597,6 +597,11 @@ int main(int argc, const char *argv[]) {
                             recursively_create_directories_from_file_path((char *)path.data());
                         }
                         
+                        const auto &path_back = path.back();
+                        if (path_back != '/') {
+                            path.append(1, '/');
+                        }
+                        
                         create_output_file_for_path(macho_files, path);
                     } else {
                         output_files.emplace_back(path);
