@@ -51,8 +51,6 @@ namespace macho {
         long size_ = 0;
 
         struct mach_header header_;
-
-        bool is_architecture_;
         bool should_swap_ = false;
 
         char *cached_ = nullptr;
