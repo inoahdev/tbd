@@ -201,7 +201,6 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         const auto symbol_is_valid = is_valid_symbol(symbol, type);
         if (!symbol_is_valid) {
-            symbols_begin++;
             continue;
         }
 
