@@ -7,6 +7,8 @@
 //
 
 #include <mach-o/swap.h>
+
+#include <cerrno>
 #include <cstdlib>
 
 #include <fcntl.h>
@@ -19,7 +21,7 @@ namespace macho {
     : file_(fopen(path.data(), "r")) {
         auto &file = file_;
         if (!file) {
-            fprintf(stderr, "Unable to open mach-o file at path (%s)\n", path.data());
+            fprintf(stderr, "Failed to open mach-o file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
             exit(1);
         }
 
