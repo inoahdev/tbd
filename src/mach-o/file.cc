@@ -107,8 +107,9 @@ namespace macho {
 
         uint32_t magic;
         read(descriptor, &magic, sizeof(uint32_t));
-
-        if (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
+        
+        const auto magic_is_fat_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
+        if (magic_is_fat_64) {
             uint32_t nfat_arch;
             read(descriptor, &nfat_arch, sizeof(uint32_t));
 
@@ -138,48 +139,51 @@ namespace macho {
             }
 
             delete[] architectures;
-        } else if (magic == FAT_MAGIC || magic == FAT_CIGAM) {
-            uint32_t nfat_arch;
-            read(descriptor, &nfat_arch, sizeof(uint32_t));
-
-            swap_value(nfat_arch);
-
-            auto architectures = new struct fat_arch[nfat_arch];
-            read(descriptor, architectures, sizeof(struct fat_arch) * nfat_arch);
-
-            const auto magic_is_big_endian = magic == FAT_CIGAM;
-            if (magic_is_big_endian) {
-                swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
-            }
-
-            for (auto i = 0; i < nfat_arch; i++) {
-                const auto &architecture = architectures[i];
-                struct mach_header header;
-
-                lseek(descriptor, architecture.offset, SEEK_SET);
-                read(descriptor, &header, sizeof(struct mach_header));
-
-                if (!has_library_command(descriptor, header)) {
-                    close(descriptor);
-                    return false;
-                }
-            }
-
-            delete[] architectures;
         } else {
-            const auto magic_is_thin = magic == MH_MAGIC_64 || magic == MH_CIGAM_64 || magic == MH_MAGIC || magic == MH_CIGAM;
-            if (magic_is_thin) {
-                struct mach_header header;
-                header.magic = magic;
+            const auto magic_is_fat_32 = magic == FAT_MAGIC || magic == FAT_CIGAM;
+            if (magic_is_fat_32) {
+                uint32_t nfat_arch;
+                read(descriptor, &nfat_arch, sizeof(uint32_t));
 
-                read(descriptor, &header.cputype, sizeof(struct mach_header) - sizeof(uint32_t));
-                if (!has_library_command(descriptor, header)) {
+                swap_value(nfat_arch);
+
+                auto architectures = new struct fat_arch[nfat_arch];
+                read(descriptor, architectures, sizeof(struct fat_arch) * nfat_arch);
+
+                const auto magic_is_big_endian = magic == FAT_CIGAM;
+                if (magic_is_big_endian) {
+                    swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
+                }
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+                    struct mach_header header;
+
+                    lseek(descriptor, architecture.offset, SEEK_SET);
+                    read(descriptor, &header, sizeof(struct mach_header));
+
+                    if (!has_library_command(descriptor, header)) {
+                        close(descriptor);
+                        return false;
+                    }
+                }
+
+                delete[] architectures;
+            } else {
+                const auto magic_is_thin = magic == MH_MAGIC_64 || magic == MH_CIGAM_64 || magic == MH_MAGIC || magic == MH_CIGAM;
+                if (magic_is_thin) {
+                    struct mach_header header;
+                    header.magic = magic;
+
+                    read(descriptor, &header.cputype, sizeof(struct mach_header) - sizeof(uint32_t));
+                    if (!has_library_command(descriptor, header)) {
+                        close(descriptor);
+                        return false;
+                    }
+                } else {
                     close(descriptor);
                     return false;
                 }
-            } else {
-                close(descriptor);
-                return false;
             }
         }
 
@@ -210,7 +214,9 @@ namespace macho {
             }
 
             containers.reserve(nfat_arch);
-            if (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64) {
+            
+            const auto magic_is_fat_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
+            if (magic_is_fat_64) {
                 const auto architectures = new struct fat_arch_64[nfat_arch];
                 fread(architectures, sizeof(struct fat_arch_64) * nfat_arch, 1, file);
 

@@ -67,8 +67,7 @@ namespace macho {
             }
         } else {
             const auto is_fat_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
-            if 
-                (is_fat_macho_file) {
+            if (is_fat_macho_file) {
                 fprintf(stderr, "Architecture at offset (%ld) cannot be a fat mach-o file itself\n", base);
                 exit(1);
             } else {
