@@ -178,10 +178,7 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
 }
 
 void recursively_create_directories_from_file_path(char *path) {
-    auto slash = strchr(path, '/');
-    if (slash == path) {
-        slash = strchr(&path[1], '/');
-    }
+    auto slash = strchr(&path[1], '/');
 
     while (slash != nullptr) {
         slash[0] = '\0';
@@ -574,7 +571,12 @@ int main(int argc, const char *argv[]) {
                             fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to\n", stderr);
                             return 1;
                         }
-
+                        
+                        const auto &path_back = path.back();
+                        if (path_back != '/') {
+                            path.append(1, '/');
+                        }
+                        
                         const auto output_files_size = output_files.size();
                         const auto output_files_new_size = output_files_size + macho_files_size;
 
@@ -593,13 +595,13 @@ int main(int argc, const char *argv[]) {
                     }
                 } else {
                     if (macho_files_size > 1) {
-                        if (access(path.data(), F_OK) != 0) {
-                            recursively_create_directories_from_file_path((char *)path.data());
-                        }
-                        
                         const auto &path_back = path.back();
                         if (path_back != '/') {
                             path.append(1, '/');
+                        }
+                        
+                        if (access(path.data(), F_OK) != 0) {
+                            recursively_create_directories_from_file_path((char *)path.data());
                         }
                         
                         create_output_file_for_path(macho_files, path);
