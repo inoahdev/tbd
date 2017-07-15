@@ -244,7 +244,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         current_line_length = new_current_line_length;
     }
 
-    fprintf(output_file, " ]\n");
+    fputs(" ]\n", output_file);
 }
 
 void tbd::run() {
