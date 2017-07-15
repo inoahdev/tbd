@@ -53,9 +53,10 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
-                auto directory_entry_path = directory_path + directory_entry->d_name;
+                auto directory_entry_path = directory_path;
+                directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
+                
                 auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
-
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
                 }
