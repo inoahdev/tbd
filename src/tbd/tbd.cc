@@ -470,7 +470,7 @@ void tbd::run() {
 
         auto groups = std::vector<group>();
         if (macho_file_has_architecture_overrides) {
-            groups.emplace_back(flags(0));
+            groups.emplace_back();
         } else {
             for (const auto &reexport : reexports) {
                 const auto &reexport_flags = reexport.flags();

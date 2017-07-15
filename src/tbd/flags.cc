@@ -6,17 +6,24 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <memory.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+
+#include <cerrno>
+#include <cstring>
 
 #include "flags.h"
 
 flags::flags(long length)
 : length_(length) {
     if (length > bit_size()) {
-        flags_.ptr = malloc((length / bit_size()) + 1);
-    } else {
-        flags_.flags = 0;
+        size_t size = (length * bit_size());
+        flags_.ptr = calloc(1, size);
+        
+        if (!flags_.ptr) {
+            fprintf(stderr, "Failed to allocate data of size (%ld), failing with error (%s)\n", size, strerror(errno));
+            exit(1);
+        }
     }
 }
 

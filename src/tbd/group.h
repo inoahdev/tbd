@@ -12,6 +12,7 @@
 
 class group {
 public:
+    explicit group() noexcept = default;
     explicit group(const flags &flags) noexcept;
 
     inline void increment_symbol_count() noexcept { symbols_count_++; }
