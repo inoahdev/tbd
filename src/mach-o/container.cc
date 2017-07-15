@@ -61,7 +61,7 @@ namespace macho {
                 swap_mach_header(&header, NX_LittleEndian);
             }
         } else {
-            const auto is_fat_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
+            const auto is_fat_macho_file = magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
             if (is_fat_macho_file) {
                 fprintf(stderr, "Architecture at location (%ld) cannot be a fat mach-o file itself\n", base);
                 exit(1);
