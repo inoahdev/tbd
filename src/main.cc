@@ -68,7 +68,7 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
 
 void loop_directory_for_libraries(const char *directory_path, const recurse &recurse_type, const std::function<void(const std::string &)> &callback) {
     const auto directory = opendir(directory_path);
-    if (directory) {
+    if (!directory) {
         fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));
         exit(1);
     }
@@ -132,7 +132,7 @@ const char *retrieve_current_directory() {
             exit(1);
         }
 
-        const auto current_directory_length = strlen(current_directory);
+        const auto current_directory_length = strlen(current_directory_string);
         const auto &current_directory_back = current_directory[current_directory_length - 1];
 
         if (current_directory_back != '/') {
@@ -179,17 +179,22 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
 
 void recursively_create_directories_from_file_path(char *path) {
     auto slash = strchr(path, '/');
+    if (slash == path) {
+        slash = strchr(&path[1], '/');
+    }
+    
     while (slash != nullptr) {
         slash[0] = '\0';
-
+        
         if (access(path, F_OK) != 0) {
             if (mkdir(path, 0755) != 0) {
                 fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                exit(1);
             }
         }
 
         slash[0] = '/';
-        slash = strchr(slash + 1, '/');
+        slash = strchr(&slash[1], '/');
     }
 }
 
@@ -533,7 +538,31 @@ int main(int argc, const char *argv[]) {
 
                 auto &tbd_recurse_type = tbd_recursive.recurse;
                 auto &output_files = tbd.output_files();
-
+                
+                auto create_output_file_for_path = [&](const std::vector<std::string> &paths, const std::string &output_path) {
+                    for (const auto &path : paths) {
+                        auto path_iter = std::string::npos;
+                        if (should_maintain_directories) {
+                            path_iter = tbd_recursive.provided_path.length();
+                        } else {
+                            path_iter = path.find_last_of('/');
+                        }
+                    
+                        auto path_output_path = path.substr(path_iter);
+                    
+                        auto path_output_path_length = path_output_path.length();
+                        auto path_output_path_new_length = path_output_path_length + output_path.length() + 4;
+                    
+                        path_output_path.reserve(path_output_path_new_length);
+                    
+                        path_output_path.insert(0, output_path);
+                        path_output_path.append(".tbd");
+                    
+                        recursively_create_directories_from_file_path((char *)path_output_path.data());
+                        output_files.emplace_back(std::move(path_output_path));
+                    }
+                };
+                
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) == 0) {
                     const auto path_is_directory = S_ISDIR(sbuf.st_mode);
@@ -550,28 +579,7 @@ int main(int argc, const char *argv[]) {
                         const auto output_files_new_size = output_files_size + macho_files_size;
 
                         output_files.reserve(output_files_new_size);
-
-                        for (const auto &macho_file : macho_files) {
-                            auto macho_file_iter = std::string::npos;
-                            if (should_maintain_directories) {
-                                macho_file_iter = tbd_recursive.provided_path.length();
-                            } else {
-                                macho_file.find_last_of('/');
-                            }
-
-                            auto macho_file_output_path = macho_file.substr(macho_file_iter);
-
-                            auto macho_file_output_path_length = macho_file_output_path.length();
-                            auto macho_file_output_path_new_length = macho_file_output_path_length + path.length() + 4;
-
-                            macho_file_output_path.reserve(macho_file_output_path_new_length);
-
-                            macho_file_output_path.insert(0, path);
-                            macho_file_output_path.append(".tbd");
-
-                            recursively_create_directories_from_file_path((char *)macho_file_output_path.data());
-                            output_files.emplace_back(std::move(macho_file_output_path));
-                        }
+                        create_output_file_for_path(macho_files, path);
                     } else {
                         const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                         if (path_is_regular_file) {
@@ -584,12 +592,15 @@ int main(int argc, const char *argv[]) {
                         }
                     }
                 } else {
-                    if (mkdir(path.data(), 0755) != 0) {
-                        fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path.data(), strerror(errno));
-                        return 1;
+                    if (macho_files_size > 1) {
+                        if (access(path.data(), F_OK) != 0) {
+                            recursively_create_directories_from_file_path((char *)path.data());
+                        }
+                        
+                        create_output_file_for_path(macho_files, path);
+                    } else {
+                        output_files.emplace_back(path);
                     }
-                    
-                    output_files.emplace_back(path);
                 }
 
                 output_paths_index++;
