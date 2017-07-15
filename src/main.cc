@@ -183,7 +183,9 @@ void recursively_create_directories_from_file_path(char *path) {
         slash[0] = '\0';
 
         if (access(path, F_OK) != 0) {
-            mkdir(path, 0755);
+            if (mkdir(path, 0755) != 0) {
+                fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+            }
         }
 
         slash[0] = '/';
@@ -262,7 +264,7 @@ int main(int argc, const char *argv[]) {
 
         if (!option_front) {
             fputs("Please provide a valid option\n", stderr);
-            exit(1);
+            return 1;
         }
 
         if (option_front == '-') {
@@ -322,7 +324,7 @@ int main(int argc, const char *argv[]) {
 
                         if (!option_front) {
                             fputs("Please provide a valid option\n", stderr);
-                            exit(1);
+                            return 1;
                         }
 
                         if (option_front == '-') {
@@ -494,14 +496,14 @@ int main(int argc, const char *argv[]) {
 
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
-                        exit(1);
+                        return 1;
                     }
 
                     if (strcmp(option, "maintain-directories") == 0) {
                         should_maintain_directories = true;
                     } else {
                         fputs("Please provide path(s) to output files\n", stderr);
-                        exit(1);
+                        return 1;
                     }
 
                     continue;
@@ -582,11 +584,11 @@ int main(int argc, const char *argv[]) {
                         }
                     }
                 } else {
-                    if (macho_files_size > 1) {
-                        fprintf(stderr, "Directory at path (%s) does not exist\n", path.data());
+                    if (mkdir(path.data(), 0755) != 0) {
+                        fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path.data(), strerror(errno));
                         return 1;
                     }
-
+                    
                     output_files.emplace_back(path);
                 }
 
@@ -619,7 +621,7 @@ int main(int argc, const char *argv[]) {
 
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
-                        exit(1);
+                        return 1;
                     }
 
                     const auto is_last_argument = i == argc - 1;
