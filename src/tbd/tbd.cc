@@ -112,7 +112,9 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
     auto symbols_begin = symbols.begin();
     auto symbols_end = symbols.end();
-
+    
+    const auto should_check_flags = flags.was_created();
+    
     for (; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
         const auto symbol_is_valid = is_valid_symbol(symbol, type);
@@ -120,10 +122,12 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         if (!symbol_is_valid) {
             continue;
         }
-
-        const auto &symbol_flags = symbol.flags();
-        if (symbol_flags != flags) {
-            continue;
+        
+        if (should_check_flags) {
+            const auto &symbol_flags = symbol.flags();
+            if (symbol_flags != flags) {
+                continue;
+            }
         }
 
         break;
@@ -184,7 +188,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     }
 
     const auto line_length_max = 85;
-
+    
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
 
@@ -193,15 +197,17 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     auto current_line_length = strlen(parsed_symbols_begin_string);
     for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
-        const auto &symbol_flags = symbol.flags();
-
-        if (symbol_flags != flags) {
-            continue;
-        }
-
         const auto symbol_is_valid = is_valid_symbol(symbol, type);
+        
         if (!symbol_is_valid) {
             continue;
+        }
+        
+        if (should_check_flags) {
+            const auto &symbol_flags = symbol.flags();
+            if (symbol_flags != flags) {
+                continue;
+            }
         }
 
         const auto symbol_string = symbol.string();
@@ -315,18 +321,20 @@ void tbd::run() {
 
             uint32_t local_current_version = -1;
             uint32_t local_compatibility_version = -1;
-
+            
             const char *local_installation_name = nullptr;
+            
+            const auto needs_uuid = version == version::v2;
             auto added_uuid = false;
 
             macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
                 switch (load_cmd->cmd) {
                     case LC_ID_DYLIB: {
-                        if (local_installation_name != 0) {
+                        if (local_installation_name != nullptr) {
                             if (macho_file_is_fat) {
-                                fprintf(stderr, "Architecture (#%d) has two library-identification load-commands\n", macho_container_index);
+                                fprintf(stderr, "Architecture (#%d) has multiple library-identification load-commands\n", macho_container_index);
                             } else {
-                                fputs("Mach-o file has two library-identification load-commands\n", stderr);
+                                fputs("Mach-o file has multiple library-identification load-commands\n", stderr);
                             }
 
                             exit(1);
@@ -382,9 +390,23 @@ void tbd::run() {
                     }
 
                     case LC_UUID: {
+                        if (!needs_uuid) {
+                            break;
+                        }
+                        
+                        if (added_uuid) {
+                            if (macho_file_is_fat) {
+                                fprintf(stderr, "Architecture (#%d) has multiple uuid load-commands\n", macho_container_index);
+                            } else {
+                                fputs("Mach-o file has multiple uuid load-commands\n", stderr);
+                            }
+                            
+                            exit(1);
+                        }
+                        
                         const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
-                        const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *uuid2) {
-                            return memcmp(&uuid, uuid2, 16) == 0;
+                        const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *rhs) {
+                            return memcmp(&uuid, rhs, 16) == 0;
                         });
 
                         if (uuids_iter != uuids.end()) {
@@ -394,7 +416,6 @@ void tbd::run() {
 
                         uuids.emplace_back((uint8_t *)&uuid);
                         added_uuid = true;
-
 
                         break;
                     }
