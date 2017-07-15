@@ -16,8 +16,8 @@ namespace macho {
     class container {
     public:
         explicit container(FILE *file, long base);
-        explicit container(FILE *file, long base, const struct fat_arch &architecture);
-        explicit container(FILE *file, long base, const struct fat_arch_64 &architecture);
+        explicit container(FILE *file, long base, size_t size);
+        explicit container(FILE *file, long base, size_t size);
 
         ~container();
 
@@ -48,7 +48,7 @@ namespace macho {
         FILE *file_;
 
         long base_ = 0;
-        long size_ = 0;
+        size_t size_ = 0;
 
         struct mach_header header_;
         bool should_swap_ = false;

@@ -226,7 +226,7 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers.emplace_back(file, 0, architecture);
+                    containers.emplace_back(file, architecture.offset, architecture.size);
                 }
 
                 delete[] architectures;
@@ -240,7 +240,7 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers.emplace_back(file, 0, architecture);
+                    containers.emplace_back(file, architecture.offset, architecture.size);
                 }
 
                 delete[] architectures;
