@@ -66,7 +66,7 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
     }
 }
 
-void loop_directory_for_libraries(const std::string &directory_path, const recurse &recurse_type, const std::function<void(const std::string &)> &callback) {
+void loop_directory_for_libraries(const char *directory_path, const recurse &recurse_type, const std::function<void(const std::string &)> &callback) {
     const auto directory = opendir(directory_path);
     if (directory) {
         fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));

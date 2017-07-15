@@ -17,7 +17,6 @@ namespace macho {
     public:
         explicit container(FILE *file, long base);
         explicit container(FILE *file, long base, size_t size);
-        explicit container(FILE *file, long base, size_t size);
 
         ~container();
 

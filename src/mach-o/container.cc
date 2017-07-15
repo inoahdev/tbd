@@ -28,11 +28,6 @@ namespace macho {
         this->validate();
     }
 
-    container::container(FILE *file, long base, size_t size)
-    : file_(file), base_(base), size_(size) {
-        this->validate();
-    }
-
     container::~container() {
         auto &cached = cached_;
         if (cached) {
