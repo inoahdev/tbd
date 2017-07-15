@@ -491,14 +491,14 @@ int main(int argc, const char *argv[]) {
                 if (argument_front == '-') {
                     auto option = &argument[1];
                     const auto &option_front = option[0];
-
-                    if (option_front == '-') {
-                        option++;
-                    }
-
+                    
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         return 1;
+                    }
+                    
+                    if (option_front == '-') {
+                        option++;
                     }
 
                     if (strcmp(option, "maintain-directories") == 0) {
@@ -632,14 +632,14 @@ int main(int argc, const char *argv[]) {
                 if (argument_front == '-') {
                     auto option = &argument[1];
                     const auto &option_front = option[0];
-
-                    if (option_front == '-') {
-                        option++;
-                    }
-
+                    
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         return 1;
+                    }
+                    
+                    if (option_front == '-') {
+                        option++;
                     }
 
                     const auto is_last_argument = i == argc - 1;
