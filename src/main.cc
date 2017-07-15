@@ -525,7 +525,7 @@ int main(int argc, const char *argv[]) {
 
                 if (path_front != '/' && path != "stdout") {
                     path.insert(0, retrieve_current_directory());
-                } else if (path == "stdout" && macho_files.size() > 1) {
+                } else if (path == "stdout" && macho_files_size > 1) {
                     fputs("Can't output multiple mach-o files to stdout\n", stderr);
                     return 1;
                 }
@@ -563,9 +563,6 @@ int main(int argc, const char *argv[]) {
                     if (path_is_directory) {
                         if (tbd_recurse_type == recurse::none) {
                             fprintf(stderr, "Cannot output tbd-file to a directory at path (%s), please provide a full path to a file to output to\n", path.data());
-                            return 1;
-                        } else if (path == "stdout") {
-                            fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to\n", stderr);
                             return 1;
                         }
 
@@ -659,13 +656,13 @@ int main(int argc, const char *argv[]) {
 
                         i++;
 
-                        const auto &platform_string_arg = argv[i];
-                        if (tbd::string_to_platform(platform_string_arg) == (enum tbd::platform)-1) {
-                            fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
+                        const auto &platform_string = argv[i];
+                        local_platform = tbd::string_to_platform(platform_string);
+                        
+                        if (local_platform == (enum tbd::platform)-1) {
+                            fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                             return 1;
                         }
-
-                        local_platform = tbd::string_to_platform(platform_string_arg);
                     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                         recurse_type = recurse::all;
                     } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
@@ -692,10 +689,12 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
+                        
+                        const auto &version_string = argv[i];
 
-                        local_tbd_version = tbd::string_to_version(argv[i]);
-                        if (!(int)local_tbd_version) {
-                            fprintf(stderr, "(%s) is not a valid tbd-version\n", argv[i]);
+                        local_tbd_version = tbd::string_to_version(version_string);
+                        if (local_tbd_version == (enum tbd::version)-1) {
+                            fprintf(stderr, "(%s) is not a valid tbd-version\n", version_string);
                             return 1;
                         }
                     } else {
