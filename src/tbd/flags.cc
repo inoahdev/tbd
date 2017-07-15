@@ -15,6 +15,8 @@ flags::flags(long length)
 : length_(length) {
     if (length > bit_size()) {
         flags_.ptr = malloc((length / bit_size()) + 1);
+    } else {
+        flags_.flags = 0;
     }
 }
 
