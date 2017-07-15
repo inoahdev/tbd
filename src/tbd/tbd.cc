@@ -109,9 +109,9 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
                 return true;
 
             case symbols_type::symbols: {
-                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) != 0;
-                const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) != 0;
-                const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) != 0;
+                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0;
+                const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
+                const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
 
                 const auto symbol_is_weak = symbol.weak();
 
