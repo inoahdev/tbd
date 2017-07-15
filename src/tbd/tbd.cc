@@ -374,8 +374,8 @@ void tbd::run() {
                         if (reexports_iter != reexports.end()) {
                             reexports_iter->add_architecture(macho_container_index);
                         } else {
-                            auto &reexport = reexports.emplace_back(reexport_dylib_string, false, macho_file_containers_size);
-                            reexport.add_architecture(macho_container_index);
+                            reexports.emplace_back(reexport_dylib_string, false, macho_file_containers_size);
+                            reexports.back().add_architecture(macho_container_index);
                         }
 
                         break;
@@ -444,10 +444,8 @@ void tbd::run() {
                 if (symbols_iter != symbols.end()) {
                     symbols_iter->add_architecture(macho_container_index);
                 } else {
-                    auto symbol_is_weak = symbol_table_entry.n_desc & N_WEAK_DEF;
-                    auto &symbol = symbols.emplace_back(symbol_string, symbol_is_weak, macho_file_containers_size);
-
-                    symbol.add_architecture(macho_container_index);
+                    symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF, macho_file_containers_size);
+                    symbols.back().add_architecture(macho_container_index);
                 }
 
                 return true;
@@ -481,8 +479,8 @@ void tbd::run() {
                 if (group_iter != groups.end()) {
                     group_iter->increment_reexport_count();
                 } else {
-                    auto &group = groups.emplace_back(reexport_flags);
-                    group.increment_reexport_count();
+                    groups.emplace_back(reexport_flags);
+                    groups.back().increment_reexport_count();
                 }
             }
 
@@ -493,8 +491,8 @@ void tbd::run() {
                 if (group_iter != groups.end()) {
                     group_iter->increment_symbol_count();
                 } else {
-                    auto &group = groups.emplace_back(symbol_flags);
-                    group.increment_symbol_count();
+                    groups.emplace_back(symbol_flags);
+                    groups.back().increment_symbol_count();
                 }
             }
         }
