@@ -516,14 +516,14 @@ void tbd::run() {
                     groups.back().increment_symbol_count();
                 }
             }
+            
+            std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
+                const auto lhs_symbols_count = lhs.symbols_count();
+                const auto rhs_symbols_count = rhs.symbols_count();
+                
+                return lhs_symbols_count < rhs_symbols_count;
+            });
         }
-
-        std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
-            const auto lhs_symbols_count = lhs.symbols_count();
-            const auto rhs_symbols_count = rhs.symbols_count();
-
-            return lhs_symbols_count < rhs_symbols_count;
-        });
 
         fputs("---", output_file);
         if (version == version::v2) {
