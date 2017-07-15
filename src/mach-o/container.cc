@@ -63,10 +63,10 @@ namespace macho {
         } else {
             const auto is_fat_macho_file = magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
             if (is_fat_macho_file) {
-                fprintf(stderr, "Architecture at location (%ld) cannot be a fat mach-o file itself\n", base);
+                fprintf(stderr, "Architecture at location (0x%.8lX) cannot be a fat mach-o file itself\n", base);
                 exit(1);
             } else {
-                fprintf(stderr, "Architecture at location (%ld) is not a valid mach-o base\n", base);
+                fprintf(stderr, "Architecture at location (0x%.8lX) is not a valid mach-o base\n", base);
                 exit(1);
             }
         }
@@ -113,21 +113,21 @@ namespace macho {
 
             const auto &cmdsize = load_cmd->cmdsize;
             if (cmdsize < sizeof(struct load_command)) {
-                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base %ld) is too small to be valid\n", i, base);
+                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is too small to be valid\n", i, base);
                 exit(1);
             }
 
             if (cmdsize >= sizeofcmds) {
-                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base %ld) is larger than/or equal to entire area allocated for load-commands\n", i, base);
+                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is larger than/or equal to entire area allocated for load-commands\n", i, base);
                 exit(1);
             }
 
             size_used += cmdsize;
             if (size_used > sizeofcmds) {
-                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base %ld) goes past end of area allocated for load-commands\n", i, base);
+                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) goes past end of area allocated for load-commands\n", i, base);
                 exit(1);
             } else if (size_used == sizeofcmds && i != ncmds - 1) {
-                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base %ld) takes up all of the remaining space allocated for load-commands\n", i, base);
+                fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) takes up all of the remaining space allocated for load-commands\n", i, base);
                 exit(1);
             }
 
@@ -168,31 +168,31 @@ namespace macho {
         });
 
         if (!symtab_command) {
-            fprintf(stderr, "Mach-o container (at base %ld) does not have a symbol-table\n", base);
+            fprintf(stderr, "Mach-o container (at base 0x%.8lX) does not have a symbol-table\n", base);
             exit(1);
         }
 
         const auto &string_table_location = symtab_command->stroff;
         if (string_table_location > size_) {
-            fprintf(stderr, "Mach-o container (at base %ld) has a string-table outside of its container\n", base);
+            fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table outside of its container\n", base);
             exit(1);
         }
 
         const auto &string_table_size = symtab_command->strsize;
         if (string_table_size > size_) {
-            fprintf(stderr, "Mach-o container (at base %ld) has a string-table with a size larger than that of itself\n", base);
+            fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table with a size larger than that of itself\n", base);
             exit(1);
         }
         
         const auto string_table_end = string_table_location + string_table_size;
         if (string_table_end > size_) {
-            fprintf(stderr, "Mach-o container (at base %ld) has a string-table that goes outside of its container\n", base);
+            fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table that goes outside of its container\n", base);
             exit(1);
         }
 
         const auto &symbol_table_location = symtab_command->symoff;
         if (symbol_table_location > size_) {
-            fprintf(stderr, "Mach-o container (at base %ld) has a symbol-table that is outside of its container\n", base);
+            fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that is outside of its container\n", base);
             exit(1);
         }
         
@@ -208,16 +208,18 @@ namespace macho {
         const auto string_table_max_index = string_table_size - 1;
         
         fseek(file, base + symbol_table_location, SEEK_SET);
-        if (this->is_64_bit()) {
+        
+        const auto is_64_bit = this->is_64_bit();
+        if (is_64_bit) {
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
             if (symbol_table_size > size_) {
-                fprintf(stderr, "Mach-o container (at base %ld) has a symbol-table with a size larger than itself\n", base);
+                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
                 exit(1);
             }
             
             const auto symbol_table_end = symbol_table_location + symbol_table_size;
             if (symbol_table_end > size_) {
-                fprintf(stderr, "Mach-o container (at base %ld) has a symbol-table that goes outside of its boundaries\n", base);
+                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);
                 exit(1);
             }
 
@@ -233,7 +235,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table\n", i);
+                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table of mach-o container (at base 0x%.8lX)\n", i, base);
                     exit(1);
                 }
 
@@ -249,13 +251,13 @@ namespace macho {
         } else {
             const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
             if (symbol_table_size > size_) {
-                fprintf(stderr, "Mach-o container (at base %ld) has a symbol-table with a size larger than itself\n", base);
+                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
                 exit(1);
             }
             
             const auto symbol_table_end = symbol_table_location + symbol_table_size;
             if (symbol_table_end > size_) {
-                fprintf(stderr, "Mach-o container (at base %ld) has a symbol-table that goes outside of its boundaries\n", base);
+                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);
                 exit(1);
             }
 
@@ -271,7 +273,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table\n", i);
+                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table of mach-o container (at base 0x%.8lX)\n", i, base);
                     exit(1);
                 }
 
