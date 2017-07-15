@@ -74,10 +74,9 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
         exit(1);
     }
 
-    const auto directory_path_length = strlen(directory_path);
     const auto should_recurse_all_of_directory_entry = recurse_type == recurse::all;
-
     auto directory_entry = readdir(directory);
+    
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
@@ -107,10 +106,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
-                auto directory_entry_path = std::string();
-
-                directory_entry_path.reserve(directory_path_length + directory_entry->d_namlen);
-                directory_entry_path.append(directory_path);
+                auto directory_entry_path = std::string(directory_path);
                 directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
 
                 auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
