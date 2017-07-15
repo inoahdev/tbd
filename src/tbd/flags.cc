@@ -86,10 +86,10 @@ bool flags::at_index(long index) const noexcept {
             index = bit_size - index;
         }
         
-        return *ptr | 1 << index;
+        return (*ptr & 1 << index) ? true : false;
     } else {
         const auto flags = flags_.flags;
-        return flags | 0x1;
+        return (flags & 1 << index) ? true : false;
     }
 }
 
