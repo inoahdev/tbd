@@ -13,6 +13,7 @@
 		C3BA3CB31F131B160049C652 /* group.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB01F131B160049C652 /* group.cc */; };
 		C3BA3CB41F131B160049C652 /* symbol.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB11F131B160049C652 /* symbol.cc */; };
 		C3BA3CBA1F1389690049C652 /* flags.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CB81F1389690049C652 /* flags.cc */; };
+		C3D027011F1AAFD900BAA510 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = C3D026FF1F1AAFD900BAA510 /* README.md */; };
 		C3DB91371F10F23B00A7C2E7 /* tbd.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DB91351F10F23B00A7C2E7 /* tbd.cc */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,8 @@
 		C3BA3CB21F131B160049C652 /* symbol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = symbol.h; path = ../../src/tbd/symbol.h; sourceTree = "<group>"; };
 		C3BA3CB81F1389690049C652 /* flags.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = flags.cc; path = ../../src/tbd/flags.cc; sourceTree = "<group>"; };
 		C3BA3CB91F1389690049C652 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = ../../src/tbd/flags.h; sourceTree = "<group>"; };
+		C3D026FF1F1AAFD900BAA510 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
+		C3D027001F1AAFD900BAA510 /* make.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make.sh; path = ../../make.sh; sourceTree = "<group>"; };
 		C3DB912A1F10F20C00A7C2E7 /* file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file.h; path = "../../src/mach-o/file.h"; sourceTree = "<group>"; };
 		C3DB91351F10F23B00A7C2E7 /* tbd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tbd.cc; path = ../../src/tbd/tbd.cc; sourceTree = "<group>"; };
 		C3DB91361F10F23B00A7C2E7 /* tbd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = ../../src/tbd/tbd.h; sourceTree = "<group>"; };
@@ -60,6 +63,8 @@
 			isa = PBXGroup;
 			children = (
 				C32A7AA91F10E600000BF14E /* src */,
+				C3D026FF1F1AAFD900BAA510 /* README.md */,
+				C3D027001F1AAFD900BAA510 /* make.sh */,
 				C32A7AA01F10E5DA000BF14E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -170,6 +175,7 @@
 				C3BA3CB31F131B160049C652 /* group.cc in Sources */,
 				C3BA3CAE1F131AD00049C652 /* file.cc in Sources */,
 				C3BA3CA81F131AC30049C652 /* main.cc in Sources */,
+				C3D027011F1AAFD900BAA510 /* README.md in Sources */,
 				C3BA3CBA1F1389690049C652 /* flags.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

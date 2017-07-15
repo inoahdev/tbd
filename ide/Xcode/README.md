@@ -1,7 +1,7 @@
 # tbd
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 ```
-Usage: tbd [-p file-paths] [-o/-output output-paths-or-stdout]
+Usage: tbd [-p file-paths][-o/-output output-paths-or-stdout]
 Main options:
     -h, --help,     Print this message
     -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overriden. Can also provide \"stdout\" to print to stdout
