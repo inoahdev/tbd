@@ -112,9 +112,9 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
     auto symbols_begin = symbols.begin();
     auto symbols_end = symbols.end();
-    
+
     const auto should_check_flags = flags.was_created();
-    
+
     for (; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
         const auto symbol_is_valid = is_valid_symbol(symbol, type);
@@ -122,7 +122,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         if (!symbol_is_valid) {
             continue;
         }
-        
+
         if (should_check_flags) {
             const auto &symbol_flags = symbol.flags();
             if (symbol_flags != flags) {
@@ -136,7 +136,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     if (symbols_begin == symbols_end) {
         return;
     }
-    
+
     const auto parse_symbol_string = [](const char *symbol_string, symbols_type type) {
         switch (type) {
             case symbols_type::reexports:
@@ -164,31 +164,31 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         return symbol_string;
     };
-    
+
     switch (type) {
         case symbols_type::reexports:
             fprintf(output_file, "%-4sre-exports:%7s", "", "");
             break;
-            
+
         case symbols_type::symbols:
             fprintf(output_file, "%-4ssymbols:%10s", "", "");
             break;
-            
+
         case symbols_type::weak_symbols:
             fprintf(output_file, "%-4sweak-def-symbols: ", "");
             break;
-            
+
         case symbols_type::objc_classes:
             fprintf(output_file, "%-4sobjc-classes:%5s", "", "");
             break;
-            
+
         case symbols_type::objc_ivars:
             fprintf(output_file, "%-4sobjc-ivars:%7s", "", "");
             break;
     }
 
     const auto line_length_max = 85;
-    
+
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
 
@@ -198,11 +198,11 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
         const auto symbol_is_valid = is_valid_symbol(symbol, type);
-        
+
         if (!symbol_is_valid) {
             continue;
         }
-        
+
         if (should_check_flags) {
             const auto &symbol_flags = symbol.flags();
             if (symbol_flags != flags) {
@@ -321,9 +321,9 @@ void tbd::run() {
 
             uint32_t local_current_version = -1;
             uint32_t local_compatibility_version = -1;
-            
+
             const char *local_installation_name = nullptr;
-            
+
             const auto needs_uuid = version == version::v2;
             auto added_uuid = false;
 
@@ -393,7 +393,7 @@ void tbd::run() {
                         if (!needs_uuid) {
                             break;
                         }
-                        
+
                         if (added_uuid) {
                             if (macho_file_is_fat) {
                                 fprintf(stderr, "Architecture (#%d) has multiple uuid load-commands\n", macho_container_index);
@@ -403,7 +403,7 @@ void tbd::run() {
                             
                             exit(1);
                         }
-                        
+
                         const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
                         const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *rhs) {
                             return memcmp(&uuid, rhs, 16) == 0;
@@ -516,11 +516,11 @@ void tbd::run() {
                     groups.back().increment_symbol_count();
                 }
             }
-            
+
             std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
                 const auto lhs_symbols_count = lhs.symbols_count();
                 const auto rhs_symbols_count = rhs.symbols_count();
-                
+
                 return lhs_symbols_count < rhs_symbols_count;
             });
         }

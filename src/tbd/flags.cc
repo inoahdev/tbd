@@ -19,7 +19,7 @@ flags::flags(long length)
     if (length > bit_size()) {
         size_t size = length * bit_size();
         flags_.ptr = calloc(1, size);
-        
+
         if (!flags_.ptr) {
             fprintf(stderr, "Failed to allocate data of size (%ld), failing with error (%s)\n", size, strerror(errno));
             exit(1);
@@ -36,10 +36,10 @@ flags::~flags() {
 void flags::cast(long index, bool result) noexcept {
     if (length_ > bit_size()) {
         auto ptr = (unsigned int *)flags_.ptr;
-        
+
         const auto bit_size = this->bit_size();
         const auto bits_length = bit_size * length_;
-        
+
         auto index_from_back = (bits_length - 1) - index;
         if (index_from_back > bit_size) {
             do {
@@ -49,22 +49,22 @@ void flags::cast(long index, bool result) noexcept {
         } else {
             index = bit_size - index;
         }
-        
+
         if (result) {
             *ptr |= 1 << index;
         } else {
             *ptr &= ~(1 << index);
         }
-        
+
     } else {
         auto flags = flags_.flags;
-        
+
         if (result) {
             flags |= 1 << index;
         } else {
             flags &= ~(1 << index);
         }
-        
+
         flags_.flags = flags;
     }
 }
@@ -72,10 +72,10 @@ void flags::cast(long index, bool result) noexcept {
 bool flags::at_index(long index) const noexcept {
     if (length_ > bit_size()) {
         auto ptr = (unsigned int *)flags_.ptr;
-        
+
         const auto bit_size = this->bit_size();
         const auto bits_length = bit_size * length_;
-        
+
         auto index_from_back = (bits_length - 1) - index;
         if (index_from_back > bit_size) {
             do {
@@ -85,7 +85,7 @@ bool flags::at_index(long index) const noexcept {
         } else {
             index = bit_size - index;
         }
-        
+
         return (*ptr & 1 << index) ? true : false;
     } else {
         const auto flags = flags_.flags;
@@ -97,7 +97,7 @@ bool flags::operator==(const flags &flags) const noexcept {
     if (length_ != flags.length_) {
         return false;
     }
-    
+
     if (length_ > bit_size()) {
         return memcmp(flags_.ptr, flags_.ptr, length_);
     } else {

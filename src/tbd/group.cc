@@ -11,4 +11,3 @@
 
 group::group(const class flags &flags) noexcept
 : flags_(flags) {}
-

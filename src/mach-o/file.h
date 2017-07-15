@@ -38,7 +38,7 @@ namespace macho {
 
             return value;
         }
-        
+
         static bool has_library_command(int descriptor, const struct mach_header &header) noexcept;
         void validate();
     };

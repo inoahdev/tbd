@@ -25,13 +25,13 @@ public:
 
     inline const bool operator==(const class flags &flags) const noexcept { return flags_ == flags; }
     inline const bool operator==(const group &group) const noexcept { return flags_ == group.flags_; }
-    
+
     inline const bool operator!=(const class flags &flags) const noexcept { return flags_ != flags; }
     inline const bool operator!=(const group &group) const noexcept { return flags_ != group.flags_; }
-    
+
 private:
     class flags flags_;
-    
+
     unsigned int symbols_count_ = 0;
     unsigned int reexports_count_ = 0;
 };

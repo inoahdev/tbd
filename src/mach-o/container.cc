@@ -33,7 +33,7 @@ namespace macho {
         if (cached) {
             delete[] cached;
         }
-        
+
         auto &string_table = string_table_;
         if (string_table) {
             delete[] string_table;
@@ -43,13 +43,13 @@ namespace macho {
     void container::validate() {
         auto &base = base_;
         auto &file = file_;
-        
+
         auto &header = header_;
         auto &magic = header.magic;
         auto &should_swap = should_swap_;
-        
+
         auto position = ftell(file);
-        
+
         fseek(file, base, SEEK_SET);
         fread(&magic, sizeof(uint32_t), 1, file);
 
@@ -77,13 +77,13 @@ namespace macho {
     void container::iterate_load_commands(const std::function<bool (const struct load_command *)> &callback) {
         const auto &base = base_;
         const auto &file = file_;
-        
+
         const auto &header = header_;
         const auto &should_swap = should_swap_;
-        
+
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
-        
+
         auto &cached = cached_;
         if (!cached) {
             cached = new char[sizeofcmds];
@@ -149,7 +149,7 @@ namespace macho {
     void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {
         auto &base = base_;
         auto &file = file_;
-        
+
         auto &should_swap = should_swap_;
         auto position = ftell(file);
 
@@ -183,7 +183,7 @@ namespace macho {
             fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table with a size larger than that of itself\n", base);
             exit(1);
         }
-        
+
         const auto string_table_end = string_table_location + string_table_size;
         if (string_table_end > size_) {
             fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table that goes outside of its container\n", base);
@@ -195,7 +195,7 @@ namespace macho {
             fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that is outside of its container\n", base);
             exit(1);
         }
-        
+
         auto &string_table = string_table_;
         if (!string_table) {
             string_table = new char[string_table_size];
@@ -206,9 +206,9 @@ namespace macho {
 
         const auto &symbol_table_count = symtab_command->nsyms;
         const auto string_table_max_index = string_table_size - 1;
-        
+
         fseek(file, base + symbol_table_location, SEEK_SET);
-        
+
         const auto is_64_bit = this->is_64_bit();
         if (is_64_bit) {
             const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
@@ -216,7 +216,7 @@ namespace macho {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
                 exit(1);
             }
-            
+
             const auto symbol_table_end = symbol_table_location + symbol_table_size;
             if (symbol_table_end > size_) {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);
@@ -254,7 +254,7 @@ namespace macho {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
                 exit(1);
             }
-            
+
             const auto symbol_table_end = symbol_table_location + symbol_table_size;
             if (symbol_table_end > size_) {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);

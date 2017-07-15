@@ -55,7 +55,7 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
             if (directory_entry_is_regular_file) {
                 auto directory_entry_path = directory_path;
                 directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
-                
+
                 auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
@@ -492,12 +492,12 @@ int main(int argc, const char *argv[]) {
                 if (argument_front == '-') {
                     auto option = &argument[1];
                     const auto &option_front = option[0];
-                    
+
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         return 1;
                     }
-                    
+
                     if (option_front == '-') {
                         option++;
                     }
@@ -572,12 +572,12 @@ int main(int argc, const char *argv[]) {
                             fputs("Cannot output recursive mach-o files to stdout. Please provide a directory to output to\n", stderr);
                             return 1;
                         }
-                        
+
                         const auto &path_back = path.back();
                         if (path_back != '/') {
                             path.append(1, '/');
                         }
-                        
+
                         const auto output_files_size = output_files.size();
                         const auto output_files_new_size = output_files_size + macho_files_size;
 
@@ -600,11 +600,11 @@ int main(int argc, const char *argv[]) {
                         if (path_back != '/') {
                             path.append(1, '/');
                         }
-                        
+
                         if (access(path.data(), F_OK) != 0) {
                             recursively_create_directories_from_file_path((char *)path.data());
                         }
-                        
+
                         create_output_file_for_path(macho_files, path);
                     } else {
                         output_files.emplace_back(path);
@@ -633,12 +633,12 @@ int main(int argc, const char *argv[]) {
                 if (argument_front == '-') {
                     auto option = &argument[1];
                     const auto &option_front = option[0];
-                    
+
                     if (!option_front) {
                         fputs("Please provide a valid option\n", stderr);
                         return 1;
                     }
-                    
+
                     if (option_front == '-') {
                         option++;
                     }
