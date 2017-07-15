@@ -242,10 +242,10 @@ int main(int argc, const char *argv[]) {
     auto architectures = std::vector<const NXArchInfo *>();
     auto tbds = std::vector<tbd_recursive>();
 
-    auto platform_string = std::string();
     auto current_directory = std::string();
-
     auto output_paths_index = 0;
+    
+    auto platform = (enum tbd::platform)-1;
     auto version = tbd::version::v2;
 
     for (auto i = 1; i < argc; i++) {
@@ -601,7 +601,7 @@ int main(int argc, const char *argv[]) {
 
             auto local_architectures = std::vector<const NXArchInfo *>();
 
-            auto local_platform = std::string();
+            auto local_platform = (enum tbd::platform)-1;
             auto local_tbd_version = (enum tbd::version)0;
 
             auto recurse_type = recurse::none;
@@ -648,7 +648,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        platform_string = platform_string_arg;
+                        local_platform = tbd::string_to_platform(platform_string_arg);
                     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                         recurse_type = recurse::all;
                     } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
@@ -775,19 +775,19 @@ int main(int argc, const char *argv[]) {
                     tbd_architectures = &architectures;
                 }
 
-                auto tbd_platform = &local_platform;
-                if (tbd_platform->empty()) {
-                    tbd_platform = &platform_string;
+                auto tbd_platform = local_platform;
+                if (tbd_platform == (enum tbd::platform)-1) {
+                    tbd_platform = platform;
                 }
 
-                auto tbd_version = &local_tbd_version;
-                if (!(int)*tbd_version) {
-                    tbd_version = &version;
+                auto tbd_version = local_tbd_version;
+                if (tbd_version == (enum tbd::version)-1) {
+                    tbd_version = version;
                 }
 
                 tbd.set_architectures(*tbd_architectures);
-                tbd.set_platform(tbd::string_to_platform(tbd_platform->data()));
-                tbd.set_version(*(enum tbd::version *)tbd_version);
+                tbd.set_platform(tbd_platform);
+                tbd.set_version(tbd_version);
 
                 auto &output_files = tbd.output_files();
                 output_files.reserve(macho_files.size());
@@ -796,15 +796,15 @@ int main(int argc, const char *argv[]) {
                 tbds.emplace_back(tbd_recurse);
 
                 local_architectures.clear();
-                local_platform.clear();
-
-                local_tbd_version = (enum tbd::version)0;
+                local_platform = (enum tbd::platform)-1;
+                local_tbd_version = (enum tbd::version)-1;
+                
                 recurse_type = recurse::none;
 
                 break;
             }
 
-            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform.size() != 0 || (int)local_tbd_version != 0) {
+            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform != (enum tbd::platform)-1 || local_tbd_version != (enum tbd::version)-1) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -816,13 +816,13 @@ int main(int argc, const char *argv[]) {
 
             i++;
 
-            const auto &platform_string_arg = argv[i];
-            if ((int)tbd::string_to_platform(platform_string_arg) == -1) {
-                fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string_arg);
+            const auto &platform_string = argv[i];
+            platform = tbd::string_to_platform(platform_string);
+            
+            if (platform == (enum tbd::platform)-1) {
+                fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
-
-            platform_string = platform_string_arg;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -868,10 +868,15 @@ int main(int argc, const char *argv[]) {
     auto tbd_recursive_index = 0;
     for (auto &tbd_recursive : tbds) {
         auto &tbd = tbd_recursive.tbd;
-
+        
+        auto tbd_version = tbd.version();
+        if (tbd_version == (enum tbd::version)-1) {
+            tbd_version = version;
+            tbd.set_version(version);
+        }
+        
         const auto &tbd_architectures = tbd.architectures();
-        const auto &tbd_version = tbd.version();
-
+        
         const auto architectures_size = architectures.size();
         const auto tbd_architectures_size = tbd_architectures.size();
 
@@ -885,21 +890,28 @@ int main(int argc, const char *argv[]) {
         }
 
         const auto &path = tbd_recursive.provided_path;
-        auto platform = tbd.platform();
+        auto tbd_platform = tbd.platform();
 
-        if (platform == (enum tbd::platform)-1) {
-            const auto path_is_directory = path.back() == '/';
-            while (platform_string.empty() || (platform = tbd::string_to_platform(platform_string.data())) == (enum tbd::platform)-1) {
-                if (path_is_directory) {
-                    fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
-                } else {
-                    fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
-                }
-
-                getline(std::cin, platform_string);
+        if (tbd_platform == (enum tbd::platform)-1) {
+            if (platform != (enum tbd::platform)-1) {
+                tbd_platform = platform;
+            } else {
+                const auto path_is_directory = path.back() == '/';
+                auto platform_string = std::string();
+                
+                do {
+                    if (path_is_directory) {
+                        fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
+                    } else {
+                        fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
+                    }
+                    
+                    getline(std::cin, platform_string);
+                    tbd_platform = tbd::string_to_platform(platform_string.data());
+                } while (tbd_platform == (enum tbd::platform)-1);
             }
 
-            tbd.set_platform(platform);
+            tbd.set_platform(tbd_platform);
         }
 
         auto &output_files = tbd.output_files();

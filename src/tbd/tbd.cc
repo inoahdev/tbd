@@ -384,7 +384,7 @@ void tbd::run() {
                     case LC_UUID: {
                         const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
                         const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *uuid2) {
-                            return memcmp(&uuid, uuid, 16) == 0;
+                            return memcmp(&uuid, uuid2, 16) == 0;
                         });
 
                         if (uuids_iter != uuids.end()) {

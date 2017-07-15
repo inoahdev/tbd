@@ -17,7 +17,7 @@
 flags::flags(long length)
 : length_(length) {
     if (length > bit_size()) {
-        size_t size = (length * bit_size());
+        size_t size = length * bit_size();
         flags_.ptr = calloc(1, size);
         
         if (!flags_.ptr) {
