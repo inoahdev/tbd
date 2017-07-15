@@ -191,7 +191,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
     fprintf(output_file, "[ %s", parsed_symbols_begin_string);
 
     auto current_line_length = strlen(parsed_symbols_begin_string);
-    for (; symbols_begin < symbols_end; symbols_begin++) {
+    for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
         const auto &symbol_flags = symbol.flags();
 
@@ -458,14 +458,14 @@ void tbd::run() {
             const auto lhs_string = lhs.string();
             const auto rhs_string = rhs.string();
 
-            return strcmp(lhs_string, rhs_string);
+            return strcmp(lhs_string, rhs_string) < 0;
         });
 
         std::sort(symbols.begin(), symbols.end(), [](const symbol &lhs, const symbol &rhs) {
             const auto lhs_string = lhs.string();
             const auto rhs_string = rhs.string();
 
-            return strcmp(lhs_string, rhs_string);
+            return strcmp(lhs_string, rhs_string) < 0;
         });
 
         auto groups = std::vector<group>();
