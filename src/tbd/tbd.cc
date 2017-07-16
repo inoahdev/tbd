@@ -91,6 +91,9 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
                 return true;
 
             case symbols_type::symbols: {
+                // Avoid unnecessary calls to strncmp when
+                // only one variable can be true
+
                 const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0;
                 const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
                 const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
@@ -622,23 +625,33 @@ void tbd::run() {
         }
 
         fputs("exports:\n", output_file);
-        for (auto &group : groups) {
+
+        if (macho_file_has_architecture_overrides) {
+            const auto architectures_begin = architectures.begin();
+            const auto architectures_begin_arch_info = *architectures_begin;
+
+            fprintf(output_file, "  - archs:%-12s[ %s", "", architectures_begin_arch_info->name);
+
+            const auto architectures_end = architectures.end();
+            for (auto architectures_iter = architectures_begin + 1; architectures_iter < architectures_end; architectures_iter++) {
+                auto architectures_iter_arch_info = *architectures_iter;
+                auto architectures_iter_arch_info_name = architectures_iter_arch_info->name;
+
+                fprintf(output_file, ", %s", architectures_iter_arch_info_name);
+            }
+
+            const auto &group = groups.front();
             const auto &group_flags = group.flags();
 
-            if (macho_file_has_architecture_overrides) {
-                const auto architectures_begin = architectures.begin();
-                const auto architectures_begin_arch_info = *architectures_begin;
+            print_symbols(output_file, group_flags, reexports, symbols_type::reexports);
+            print_symbols(output_file, group_flags, symbols, symbols_type::symbols);
+            print_symbols(output_file, group_flags, symbols, symbols_type::weak_symbols);
+            print_symbols(output_file, group_flags, symbols, symbols_type::objc_classes);
+            print_symbols(output_file, group_flags, symbols, symbols_type::objc_ivars);
 
-                fprintf(output_file, "  - archs:%-12s[ %s", "", architectures_begin_arch_info->name);
-
-                const auto architectures_end = architectures.end();
-                for (auto architectures_iter = architectures_begin + 1; architectures_iter < architectures_end; architectures_iter++) {
-                    auto architectures_iter_arch_info = *architectures_iter;
-                    auto architectures_iter_arch_info_name = architectures_iter_arch_info->name;
-
-                    fprintf(output_file, ", %s", architectures_iter_arch_info_name);
-                }
-            } else {
+        } else {
+            for (auto &group : groups) {
+                const auto &group_flags = group.flags();
                 const auto architectures_size = architectures.size();
 
                 auto architectures_index = architectures_size - 1;
@@ -659,24 +672,32 @@ void tbd::run() {
                         fprintf(output_file, ", %s", architecture_info->name);
                     }
                 }
+
+                fputs(" ]\n", output_file);
+
+                print_symbols(output_file, group_flags, reexports, symbols_type::reexports);
+                print_symbols(output_file, group_flags, symbols, symbols_type::symbols);
+                print_symbols(output_file, group_flags, symbols, symbols_type::weak_symbols);
+                print_symbols(output_file, group_flags, symbols, symbols_type::objc_classes);
+                print_symbols(output_file, group_flags, symbols, symbols_type::objc_ivars);
             }
-
-            fputs(" ]\n", output_file);
-
-            print_symbols(output_file, group_flags, reexports, symbols_type::reexports);
-            print_symbols(output_file, group_flags, symbols, symbols_type::symbols);
-            print_symbols(output_file, group_flags, symbols, symbols_type::weak_symbols);
-            print_symbols(output_file, group_flags, symbols, symbols_type::objc_classes);
-            print_symbols(output_file, group_flags, symbols, symbols_type::objc_ivars);
         }
 
         fputs("...\n", output_file);
+
+        // Clear internal architectures vector that was used
+        // to store architecture-information for file-containers
+        // if no custom architectures were provided
 
         if (!macho_file_has_architecture_overrides) {
             architectures.clear();
         }
 
         output_file_index++;
+
+        // Close the output file that was opened for
+        // writing earlier
+
         if (output_file != stdout) {
             fclose(output_file);
         }
