@@ -348,7 +348,10 @@ void tbd::run() {
             }
 
             const auto macho_container_should_swap = macho_container.should_swap();
-
+            
+            // Use local variables of current_version and compatibility_version and
+            // and installation_name to make sure details are the same across containers
+            
             uint32_t local_current_version = -1;
             uint32_t local_compatibility_version = -1;
 
