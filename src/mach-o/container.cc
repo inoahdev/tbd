@@ -87,8 +87,11 @@ namespace macho {
         const auto &sizeofcmds = header.sizeofcmds;
 
         auto &cached = cached_;
+        auto created_cache = false;
+
         if (!cached) {
             cached = new char[sizeofcmds];
+            created_cache = true;
 
             auto load_command_base = base + sizeof(struct mach_header);
             if (this->is_64_bit()) {
@@ -109,7 +112,7 @@ namespace macho {
         auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached[cached_index];
-            if (should_swap && !swapped_cache) {
+            if (should_swap && created_cache) {
                 swap_load_command(load_cmd, NX_LittleEndian);
             }
 
@@ -138,14 +141,14 @@ namespace macho {
                 if (!result) {
                     should_callback = false;
                 }
-            } else if (swapped_cache) {
+            }
+
+            if (!should_callback && !created_cache) {
                 break;
             }
 
             cached_index += cmdsize;
         }
-
-        swapped_cache = true;
     }
 
     void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {

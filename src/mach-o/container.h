@@ -50,13 +50,11 @@ namespace macho {
         size_t size_ = 0;
 
         struct mach_header header_;
-        bool should_swap_ = false;
 
         char *cached_ = nullptr;
-        bool swapped_cache = false;
-
         char *string_table_ = nullptr;
 
+        bool should_swap_ = false;        
         void validate();
     };
 }
