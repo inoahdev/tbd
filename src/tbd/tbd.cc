@@ -94,7 +94,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
                 // Avoid unnecessary calls to strncmp when
                 // only one variable can be true
 
-                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0;
+                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, ".objc_class_name", 16) == 0;
                 const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
                 const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
 
@@ -592,7 +592,7 @@ void tbd::run() {
         if (version == version::v2) {
             fprintf(output_file, "uuids:%-17s[ ", "");
 
-            auto counter = 1;
+            auto uuid_counter = 1;
             auto uuids_begin = uuids.begin();
 
             const auto &architectures_end = architectures.end();
@@ -607,11 +607,11 @@ void tbd::run() {
                 if (architectures_begin != architectures_back) {
                     fputs(", ", output_file);
 
-                    if (counter % 2 == 0) {
+                    if (uuid_counter % 2 == 0) {
                         fprintf(output_file, "%-26s", "\n");
                     }
 
-                    counter++;
+                    uuid_counter++;
                 }
             }
 

@@ -56,7 +56,9 @@ namespace macho {
         const auto is_regular_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
         if (is_regular_macho_file) {
             fread(&header.cputype, sizeof(struct mach_header) - sizeof(uint32_t), 1, file);
-            if (magic == MH_CIGAM || magic == MH_CIGAM_64) {
+
+            const auto magic_is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+            if (magic_is_big_endian) {
                 should_swap = true;
                 swap_mach_header(&header, NX_LittleEndian);
             }

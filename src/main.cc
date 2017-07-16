@@ -524,7 +524,7 @@ int main(int argc, const char *argv[]) {
                     }
                 } else {
                     // Provided a recurse type of none requires only a file be provided.
-                    
+
                     if (path_is_directory) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                         return 1;
@@ -534,7 +534,6 @@ int main(int argc, const char *argv[]) {
                     if (path_is_library) {
                         fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
                     } else {
-
                         // As the user provided only one path to a specific mach-o library file,
                         // --list-macho-libraries is expected to explicity print out whether or
                         // not the provided mach-o library file is valid.
