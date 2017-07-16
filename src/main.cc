@@ -27,6 +27,9 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory) {
+            // Ignore the directory-entry for the directory itself, and that of its
+            // superior in the directory hierarchy.
+            
             if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
                 strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
                 directory_entry = readdir(directory);
@@ -34,12 +37,18 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
             }
 
             auto sub_directory_path = directory_path;
-
+            
+            // Avoid re-allocations by calculating new total-length, and reserving space
+            // accordingly.
+            
             auto sub_directory_path_length = sub_directory_path.length();
             auto sub_directory_path_new_length = sub_directory_path_length + directory_entry->d_namlen + 1;
 
             sub_directory_path.reserve(sub_directory_path_new_length);
-
+            
+            // Add a final forward slash to the path as it is a directory, and reduces work
+            // needing to be done if a sub-directory is found and needs to be recursed.
+            
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
 
@@ -48,11 +57,17 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
                 loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
                 closedir(sub_directory);
             } else {
+                // In the context of recursing through files and directories, Erroring out here would
+                // be a mistake. Warning the user that opening the directory failed is good enough.
+                
                 fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
             }
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
+                // Only append the valid part of the directory_entry->d_name buffer,
+                // which is directory_entry->d_namlen long.
+                
                 auto directory_entry_path = directory_path;
                 directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
 
@@ -80,6 +95,9 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
+            // Ignore the directory-entry for the directory itself, and that of its
+            // superior in the directory hierarchy.
+            
             if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
                 strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
                 directory_entry = readdir(directory);
@@ -87,12 +105,18 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
             }
 
             auto sub_directory_path = std::string(directory_path);
-
+            
+            // Avoid re-allocations by calculating new total-length, and reserving space
+            // accordingly.
+            
             auto sub_directory_path_length = sub_directory_path.length();
             auto sub_directory_path_new_length = sub_directory_path_length + directory_entry->d_namlen + 1;
 
             sub_directory_path.reserve(sub_directory_path_new_length);
-
+            
+            // Add a final forward slash to the path as it is a directory, and reduces work
+            // needing to be done if a sub-directory is found and needs to be recursed.
+            
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
 
@@ -101,11 +125,17 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
                 loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
                 closedir(sub_directory);
             } else {
+                // In the context of recursing through files and directories, Erroring out here would
+                // be a mistake. Warning the user that opening the directory failed is good enough.
+                
                 fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
             }
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
+                // Only append the valid part of the directory_entry->d_name buffer,
+                // which is directory_entry->d_namlen long.
+                
                 auto directory_entry_path = std::string(directory_path);
                 directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
 
@@ -121,8 +151,15 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 }
 
 const char *retrieve_current_directory() {
+    // Store current-directory as a static variable to avoid
+    // calling getcwd more times than necessary.
+    
     static const char *current_directory = nullptr;
     if (!current_directory) {
+        // getcwd(nullptr, 0) will return a dynamically
+        // allocated buffer just large enough to store
+        // the current-directory.
+        
         const auto current_directory_string = getcwd(nullptr, 0);
         if (!current_directory_string) {
             fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
@@ -133,7 +170,16 @@ const char *retrieve_current_directory() {
         const auto &current_directory_back = current_directory[current_directory_length - 1];
 
         if (current_directory_back != '/') {
+            // As current_directory is a path to a directory,
+            // the caller of this function expects to have a
+            // path ending with a forward slash.
+            
             current_directory = strcat(current_directory_string, "/");
+            
+            // As strcat dynamically allocates a new buffer to store
+            // the appended string, free the older buffer, which had
+            // been dynamically allocated by getcwd.
+            
             free(current_directory_string);
         } else {
             current_directory = current_directory_string;
@@ -147,8 +193,15 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
     while (index < argc) {
         const auto &architecture_string = argv[index];
         const auto &architecture_string_front = architecture_string[0];
-
+        
+        // Quickly filter out an option or path instead of a (relatively)
+        // expensive call to NXGetArchInfoFromName().
+        
         if (architecture_string_front == '-' || architecture_string_front == '/') {
+            // If the architectures vector is empty, the user did not provide any architectures
+            // but did provided the architecture option, which requires at leasr one architecture
+            // being provided.
+            
             if (architectures.empty()) {
                 fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
                 exit(1);
@@ -159,6 +212,15 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
 
         const auto architecture = NXGetArchInfoFromName(architecture_string);
         if (!architecture) {
+            // NXGetArchInfoFromName() returning nullptr can be the result of one
+            // of two scenarios, The string stored in architecture being invalid,
+            // such as being mispelled, or the string being the path object inevitebly
+            // following the architecture argument.
+            
+            // If the architectures vector is empty, the user did not provide any architectures
+            // but did provided the architecture option, which requires at leasr one architecture
+            // being provided.
+            
             if (architectures.empty()) {
                 fprintf(stderr, "Unrecognized architecture with name (%s)\n", architecture_string);
                 exit(1);
@@ -170,16 +232,29 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
         architectures.emplace_back(architecture);
         index++;
     }
-
+    
+    // As the caller of this function is in a for loop,
+    // the index is incremented once again once this function
+    // returns. To make up for this, decrement index by 1.
+    
     index--;
 }
 
 void recursively_create_directories_from_file_path(char *path) {
+    // If the path starts off with a forward slash, it will
+    // result in the while loop running on a path that is
+    // empty. To avoid this, start the search at the first
+    // index.
+    
     auto slash = strchr(&path[1], '/');
 
     while (slash != nullptr) {
+        // In order to avoid unnecessary (and expensive) allocations,
+        // terminate the string at the location of the forward slash
+        // and revert back after use.
+        
         slash[0] = '\0';
-
+        
         if (access(path, F_OK) != 0) {
             if (mkdir(path, 0755) != 0) {
                 fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
@@ -248,11 +323,15 @@ int main(int argc, const char *argv[]) {
 
     auto platform = (enum tbd::platform)-1;
     auto version = tbd::version::v2;
-
+    
+    // To parse the argument list, the for loop below parses
+    // each option, and requires each option to parse its own
+    // user input in the argument-list.
+    
     for (auto i = 1; i < argc; i++) {
         const auto &argument = argv[i];
         const auto &argument_front = argument[0];
-
+        
         if (argument_front != '-') {
             fprintf(stderr, "Unrecognized argument: %s\n", argument);
             return 1;
@@ -310,6 +389,9 @@ int main(int argc, const char *argv[]) {
 
             auto paths = std::vector<std::pair<std::string, recurse>>();
             if (is_last_argument) {
+                // If a path was not provided, --list-macho-libraries is
+                // expected to instead recurse the current-directory.
+                
                 paths.emplace_back(retrieve_current_directory(), recurse::all);
             } else {
                 auto recurse_type = recurse::none;
@@ -371,6 +453,9 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (paths.empty()) {
+                    // If no path was provided, --list-macho-libraries is expected
+                    // to instead recurse the current-directory.
+                    
                     paths.emplace_back(retrieve_current_directory(), recurse_type);
                 }
             }
@@ -394,7 +479,7 @@ int main(int argc, const char *argv[]) {
                 const auto &recurse_type = pair.second;
 
                 if (recurse_type != recurse::none) {
-                    if (!path_is_directory && recurse_type != recurse::none) {
+                    if (!path_is_directory) {
                         fprintf(stderr, "Cannot recurse file at path (%s)\n", path_data);
                         return 1;
                     }
@@ -433,6 +518,10 @@ int main(int argc, const char *argv[]) {
 
                         const auto &path_length = path.length();
                         for (auto &library_path : library_paths) {
+                            // --list-macho-libraries is expected to trim off the provided path
+                            // from the resulting mach-o library paths to avoid extremely long
+                            // paths being printed unnecessarily.
+                            
                             library_path.erase(library_path.begin(), library_path.begin() + path_length);
                             fprintf(stdout, "%s\n", library_path.data());
                         }
@@ -440,6 +529,8 @@ int main(int argc, const char *argv[]) {
                         fputc('\n', stdout);
                     }
                 } else {
+                    // Provided a recurse type of none requires only a file be provided.
+                    
                     if (path_is_directory) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                         return 1;
@@ -449,6 +540,10 @@ int main(int argc, const char *argv[]) {
                     if (path_is_library) {
                         fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
                     } else {
+                        // As the user provided only one path to a specific mach-o library file,
+                        // --list-macho-libraries is expected to explicity print out whether or
+                        // not the provided mach-o library file is valid.
+                        
                         fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path_data);
                     }
                 }
@@ -480,7 +575,12 @@ int main(int argc, const char *argv[]) {
             }
 
             auto should_maintain_directories = false;
-
+            
+            // To parse options for the output command in the middle of an
+            // argument list, while also keeping a similar argument and option
+            // stype, the output option handles custom output options in between
+            // the output option argument and the output path argument.
+            
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
                 const auto &argument_front = argument[0];
@@ -501,7 +601,7 @@ int main(int argc, const char *argv[]) {
                     if (strcmp(option, "maintain-directories") == 0) {
                         should_maintain_directories = true;
                     } else {
-                        fputs("Please provide path(s) to output files\n", stderr);
+                        fputs("Unrecognized option: %s\n", stderr);
                         return 1;
                     }
 
@@ -524,6 +624,10 @@ int main(int argc, const char *argv[]) {
                 auto macho_files_size = macho_files.size();
 
                 if (path_front != '/' && path != "stdout") {
+                    // If the user-provided path-string does not begin with
+                    // a forward slash, it is assumed that the path exists
+                    // in the current-directory.
+                    
                     path.insert(0, retrieve_current_directory());
                 } else if (path == "stdout" && macho_files_size > 1) {
                     fputs("Can't output multiple mach-o files to stdout\n", stderr);
@@ -533,26 +637,41 @@ int main(int argc, const char *argv[]) {
                 auto &tbd_recurse_type = tbd_recursive.recurse;
                 auto &output_files = tbd.output_files();
 
-                auto create_output_file_for_path = [&](const std::vector<std::string> &paths, const std::string &output_path) {
+                auto create_output_files_for_paths = [&](const std::vector<std::string> &paths, const std::string &provided_path) {
+                    const auto provided_path_length = provided_path.length();
                     for (const auto &path : paths) {
                         auto path_iter = std::string::npos;
                         if (should_maintain_directories) {
+                            // --maintain-directories requires that directories not
+                            // present in the provided path be created in the provided
+                            // output-path's directory along with the tbd-file.
+                            
                             path_iter = tbd_recursive.provided_path.length();
                         } else {
+                            // Resulting tbd-files are stored with the name
+                            // of the mach-o library file
+                            
                             path_iter = path.find_last_of('/');
                         }
 
                         auto path_output_path = path.substr(path_iter);
 
                         auto path_output_path_length = path_output_path.length();
-                        auto path_output_path_new_length = path_output_path_length + output_path.length() + 4;
+                        auto path_output_path_new_length = path_output_path_length + provided_path_length + 4;
 
                         path_output_path.reserve(path_output_path_new_length);
 
-                        path_output_path.insert(0, output_path);
+                        path_output_path.insert(0, provided_path);
                         path_output_path.append(".tbd");
+                        
+                        // Recursively create directories in the final output-path for the mach-o
+                        // library file as required by --maintain-directories.
 
                         recursively_create_directories_from_file_path((char *)path_output_path.data());
+                        
+                        // To avoid unnecessary allocation, Use std::move to move the output-path
+                        // data to the new string object in the output_files vector.
+                        
                         output_files.emplace_back(std::move(path_output_path));
                     }
                 };
@@ -575,7 +694,7 @@ int main(int argc, const char *argv[]) {
                         const auto output_files_new_size = output_files_size + macho_files_size;
 
                         output_files.reserve(output_files_new_size);
-                        create_output_file_for_path(macho_files, path);
+                        create_output_files_for_paths(macho_files, path);
                     } else {
                         const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                         if (path_is_regular_file) {
@@ -583,7 +702,12 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, "Can't output multiple mach-o files to file at path (%s)\n", path.data());
                                 return 1;
                             }
-
+                            
+                            // If an output-file at path does not exist, it is expected
+                            // to be created. This is extended to the directories where the
+                            // output-file is to exist.
+                            
+                            recursively_create_directories_from_file_path(path.data());
                             output_files.emplace_back(path);
                         }
                     }
@@ -595,15 +719,21 @@ int main(int argc, const char *argv[]) {
                         }
 
                         if (access(path.data(), F_OK) != 0) {
+                            // If an output-directory does not exist, it is expected
+                            // to be created.
+                            
                             recursively_create_directories_from_file_path((char *)path.data());
                         }
 
-                        create_output_file_for_path(macho_files, path);
+                        create_output_files_for_paths(macho_files, path);
                     } else {
                         output_files.emplace_back(path);
                     }
                 }
-
+                
+                // To support the current format of providing output options,
+                // a single output option only supports a single output-path
+                
                 output_paths_index++;
                 break;
             }
@@ -612,7 +742,12 @@ int main(int argc, const char *argv[]) {
                 fputs("Please provide path(s) to mach-o files\n", stderr);
                 return 1;
             }
-
+            
+            // To parse options for the path command in the middle of an
+            // argument list, while also keeping a similar argument and option
+            // stype, the path option handles custom output options in between
+            // the path option argument and the mach-o library path argument.
+            
             auto local_architectures = std::vector<const NXArchInfo *>();
 
             auto local_platform = (enum tbd::platform)-1;
@@ -707,7 +842,11 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argument);
                 auto &path_front = path.front();
-
+                
+                // If the user-provided path-string does not begin with
+                // a forward slash, it is assumed that the path exists
+                // in the current-directory
+                
                 if (path_front != '/') {
                     path.insert(0, retrieve_current_directory());
                 }
@@ -785,21 +924,17 @@ int main(int argc, const char *argv[]) {
 
                     return 1;
                 }
-
+                
+                // A fallback to global options (or defaults) is expected
+                // in the absence of local user input
+                
                 auto tbd_architectures = &local_architectures;
                 if (tbd_architectures->empty()) {
                     tbd_architectures = &architectures;
                 }
 
                 auto tbd_platform = local_platform;
-                if (tbd_platform == (enum tbd::platform)-1) {
-                    tbd_platform = platform;
-                }
-
                 auto tbd_version = local_tbd_version;
-                if (tbd_version == (enum tbd::version)-1) {
-                    tbd_version = version;
-                }
 
                 tbd.set_architectures(*tbd_architectures);
                 tbd.set_platform(tbd_platform);
@@ -810,7 +945,10 @@ int main(int argc, const char *argv[]) {
 
                 auto tbd_recurse = tbd_recursive({ path, tbd, recurse_type });
                 tbds.emplace_back(tbd_recurse);
-
+                
+                // Clear the local option fields to signal that a
+                // path was provided
+                
                 local_architectures.clear();
                 local_platform = (enum tbd::platform)-1;
                 local_tbd_version = (enum tbd::version)-1;
@@ -819,8 +957,12 @@ int main(int argc, const char *argv[]) {
 
                 break;
             }
-
-            if (recurse_type != recurse::none || local_architectures.size() != 0 || local_platform != (enum tbd::platform)-1 || local_tbd_version != (enum tbd::version)-1) {
+            
+            // It is expected for --path to error out if the user has
+            // not provided a path to a mach-o library path or to a
+            // directory where some could be found
+            
+            if (local_architectures.size() != 0 || local_platform != (enum tbd::platform)-1 || local_tbd_version != (enum tbd::version)-1 || recurse_type != recurse::none) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -881,10 +1023,13 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    auto tbd_recursive_index = 0;
     for (auto &tbd_recursive : tbds) {
         auto &tbd = tbd_recursive.tbd;
-
+        
+        // If a global tbd-version was provided after providing
+        // path(s) to mach-o library files, it is expected to apply
+        // to mach-o library files where version was not set locally
+        
         auto tbd_version = tbd.version();
         if (tbd_version == (enum tbd::version)-1) {
             tbd_version = version;
@@ -892,26 +1037,43 @@ int main(int argc, const char *argv[]) {
         }
 
         const auto &tbd_architectures = tbd.architectures();
-
+        
         const auto architectures_size = architectures.size();
         const auto tbd_architectures_size = tbd_architectures.size();
-
+        
+        // Support for multiple architectures is available to only
+        // tbd-version v1 as tbd-version v2 requires a uuid to be
+        // associated with the architecture
+        
         if (tbd_version == tbd::version::v2) {
             if (tbd_architectures_size != 0 || architectures_size != 0) {
                 fputs("Cannot have custom architectures on tbd-version v2, Please specify tbd-version v1\n", stderr);
                 return 1;
             }
         } else if (!tbd_architectures_size && architectures_size != 0) {
+            // If global custom architectures was provided after providing
+            // path(s) to mach-o library files, it is expected to apply
+            // to mach-o library files where custom architectures were not
+            // set locally, and where tbd-version is v1
+            
             tbd.set_architectures(architectures);
         }
 
         const auto &path = tbd_recursive.provided_path;
         auto tbd_platform = tbd.platform();
-
+        
+        // If a global platform was provided after providing
+        // path(s) to mach-o library files, it is expected to apply
+        // to mach-o library files where version was not set locally
+        
         if (tbd_platform == (enum tbd::platform)-1) {
             if (platform != (enum tbd::platform)-1) {
                 tbd_platform = platform;
             } else {
+                // If a global platform was not provided, it is then expected
+                // to give a prompt to the user requiring them to specify their
+                // platform
+                
                 const auto path_is_directory = path.back() == '/';
                 auto platform_string = std::string();
 
@@ -936,18 +1098,21 @@ int main(int argc, const char *argv[]) {
         if (output_files_size != 0) {
             continue;
         }
-
+        
         const auto &macho_files = tbd.macho_files();
         const auto tbd_recurse_type = tbd_recursive.recurse;
 
         if (tbd_recurse_type != recurse::none) {
+            // If no output-files were provided for multiple
+            // mach-o files, it is expected the tbd-files are
+            // outputted to the same directory with the same
+            // file-name (with the file-extension .tbd)
+            
             output_files.reserve(macho_files.size());
             for (const auto &macho_file : macho_files) {
                 output_files.emplace_back(macho_file + ".tbd");
             }
         }
-
-        tbd_recursive_index++;
     }
 
     for (auto &tbd_recursive : tbds) {

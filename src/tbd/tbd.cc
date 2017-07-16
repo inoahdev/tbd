@@ -69,6 +69,10 @@ void tbd::validate() const {
 
     const auto architectures_size = architectures.size();
     if (version == version::v2 && architectures_size != 0) {
+        // Support for multiple architectures is available to only
+        // tbd-version v1 as tbd-version v2 requires a uuid to be
+        // associated with the architecture
+        
         fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
         exit(1);
     }
@@ -109,7 +113,11 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         return false;
     };
-
+    
+    // Find the first valid symbol (as determined by flags and symbol-type)
+    // as printing a symbol-list requires a special format-string being print
+    // for the first string, and a different one from the rest.
+    
     auto symbols_begin = symbols.begin();
     auto symbols_end = symbols.end();
 
@@ -132,7 +140,10 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         break;
     }
-
+    
+    // If no valid symbols were found, print_symbols should
+    // return immedietly.
+    
     if (symbols_begin == symbols_end) {
         return;
     }
@@ -164,7 +175,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         return symbol_string;
     };
-
+    
     switch (type) {
         case symbols_type::reexports:
             fprintf(output_file, "%-4sre-exports:%7s", "", "");
@@ -209,6 +220,9 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
                 continue;
             }
         }
+        
+        // If a symbol-string has a dollar sign, quotes must be
+        // added around the string.
 
         const auto symbol_string = symbol.string();
         const auto symbol_string_needs_quotes = strncmp(symbol_string, "$ld", 3) == 0;
@@ -216,13 +230,18 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         auto symbol_string_to_print = parse_symbol_string(symbol_string, type);
         const auto symbol_string_to_print_length = strlen(symbol_string_to_print);
 
-        auto new_line_length = symbol_string_to_print_length + 1;
+        auto new_line_length = symbol_string_to_print_length + 2;
         auto new_current_line_length = current_line_length + new_line_length;
 
         if (symbol_string_needs_quotes) {
             new_current_line_length += 2;
         }
-
+        
+        // A line that is printed is allowed to go upto a line_length_max. When
+        // calculating additional line length for a symbol, in addition to the
+        // symbol-length, 2 is added for the comma and the space behind it
+        // exception is made only when one symbol is longer than line_length_max.
+        
         if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
             fprintf(output_file, ",\n%-24s", "");
             new_current_line_length = 0;
@@ -257,9 +276,13 @@ void tbd::run() {
 
     auto &architectures = architectures_;
     auto output_file_index = 0;
-
+    
     const auto output_files_size = output_files.size();
     for (const auto &macho_file_path : macho_files) {
+        // The output-file by default is set to stdout, this is
+        // for the user-expected behavior when a output file is
+        // not provided.
+        
         auto output_file = stdout;
 
         if (output_file_index < output_files_size) {
@@ -277,7 +300,10 @@ void tbd::run() {
 
         auto macho_file = macho::file(macho_file_path);
         auto macho_file_has_architecture_overrides = architectures.size() != 0;
-
+        
+        // To create a tbd-file, current and compatibility versions of the
+        // mach-o library file need to be found.
+        
         uint32_t current_version = -1;
         uint32_t compatibility_version = -1;
 
@@ -314,6 +340,10 @@ void tbd::run() {
             }
 
             if (!macho_file_has_architecture_overrides) {
+                // As custom architectures are not being stored, Use
+                // architectures to store the architecture-information
+                // of the architectures of the mach-o file
+                
                 architectures.emplace_back(macho_container_architecture_info);
             }
 
@@ -408,8 +438,9 @@ void tbd::run() {
                         const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *rhs) {
                             return memcmp(&uuid, rhs, 16) == 0;
                         });
-
-                        if (uuids_iter != uuids.end()) {
+                        
+                        const auto &uuids_end = uuids.end();
+                        if (uuids_iter != uuids_end) {
                             fprintf(stderr, "uuid-string (%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X) is found in multiple architectures", uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                             exit(1);
                         }
