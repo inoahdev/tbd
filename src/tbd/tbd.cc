@@ -201,7 +201,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
             break;
     }
 
-    const auto line_length_max = 85;
+    const auto line_length_max = 125;
 
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
@@ -234,11 +234,11 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
         const auto symbol_string_to_print_length = strlen(symbol_string_to_print);
 
         auto new_line_length = symbol_string_to_print_length + 2;
-        auto new_current_line_length = current_line_length + new_line_length;
-
         if (symbol_string_needs_quotes) {
-            new_current_line_length += 2;
+            new_line_length += 2;
         }
+
+        auto new_current_line_length = current_line_length + new_line_length;
 
         // A line that is printed is allowed to go upto a line_length_max. When
         // calculating additional line length for a symbol, in addition to the
@@ -247,7 +247,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 
         if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
             fprintf(output_file, ",\n%-24s", "");
-            new_current_line_length = 0;
+            new_current_line_length = new_line_length;
         } else {
             fputs(", ", output_file);
             new_current_line_length++;
