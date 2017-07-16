@@ -201,7 +201,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
             break;
     }
 
-    const auto line_length_max = 125;
+    const auto line_length_max = 105;
 
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
