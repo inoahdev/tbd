@@ -605,7 +605,7 @@ int main(int argc, const char *argv[]) {
                     if (strcmp(option, "maintain-directories") == 0) {
                         should_maintain_directories = true;
                     } else {
-                        fputs("Unrecognized option: %s\n", stderr);
+                        fprintf(stderr, "Unrecognized option: %s\n", argument);
                         return 1;
                     }
 
@@ -737,6 +737,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 provided_output_path = true;
+                break;
             }
 
             // To support the current format of providing output options,
