@@ -108,7 +108,7 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
                 return symbol.weak();
 
             case symbols_type::objc_classes:
-                return strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
+                return strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, ".objc_class_name", 16) == 0 || strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
 
             case symbols_type::objc_ivars:
                 return strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
@@ -160,6 +160,10 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
             case symbols_type::objc_classes: {
                 if (strncmp(symbol_string, "_OBJC_CLASS_$", 13) == 0) {
                     return &symbol_string[13];
+                }
+
+                if (strncmp(symbol_string, ".objc_class_name", 16) == 0) {
+                    return &symbol_string[16];
                 }
 
                 if (strncmp(symbol_string, "_OBJC_METACLASS_$", 17) == 0) {
