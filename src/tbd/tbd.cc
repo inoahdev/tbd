@@ -640,6 +640,8 @@ void tbd::run() {
                 fprintf(output_file, ", %s", architectures_iter_arch_info_name);
             }
 
+            fputs(" ]\n", output_file);
+
             const auto &group = groups.front();
             const auto &group_flags = group.flags();
 
