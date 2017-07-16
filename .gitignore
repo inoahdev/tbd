@@ -3,8 +3,7 @@
 
 build/
 
-ide/Xcode/tbd.xcodeproj/xcuserdata/
-ide/Xcode/tbd.xcodeproj/project.xcworkspace/xcuserdata/
+**/xcuserdata/
 
 Makefile
 a.out
