@@ -460,7 +460,8 @@ int main(int argc, const char *argv[]) {
                     paths.emplace_back(retrieve_current_directory(), recurse_type);
                 }
             }
-
+            
+            const auto &paths_back = paths.back();
             for (const auto &pair : paths) {
                 const auto &path = pair.first;
                 const auto path_data = path.data();
@@ -521,7 +522,13 @@ int main(int argc, const char *argv[]) {
                             library_path.erase(library_path.begin(), library_path.begin() + path_length);
                             fprintf(stdout, "%s\n", library_path.data());
                         }
-
+                    }
+                    
+                    // Print a newline between each pair for readibility
+                    // purposes, But an extra new-line is not needed for the
+                    // last pair
+                    
+                    if (pair != paths_back) {
                         fputc('\n', stdout);
                     }
                 } else {
