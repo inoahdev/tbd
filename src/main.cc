@@ -174,13 +174,15 @@ const char *retrieve_current_directory() {
             // the caller of this function expects to have a
             // path ending with a forward slash.
 
-            current_directory = strcat(current_directory_string, "/");
+            auto new_current_directory_string = (char *)malloc(current_directory_length + 2);
 
-            // As strcat dynamically allocates a new buffer to store
-            // the appended string, free the older buffer, which had
-            // been dynamically allocated by getcwd.
-
+            strcpy(new_current_directory_string, current_directory_string);
             free(current_directory_string);
+
+            new_current_directory_string[current_directory_length] = '/';
+            new_current_directory_string[current_directory_length + 1] = '\0';
+
+            current_directory = new_current_directory_string;
         } else {
             current_directory = current_directory_string;
         }
