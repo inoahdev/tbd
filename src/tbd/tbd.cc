@@ -347,6 +347,7 @@ void tbd::run() {
                 architectures.emplace_back(macho_container_architecture_info);
             }
 
+            const auto &macho_container_base = macho_container.base();
             const auto macho_container_should_swap = macho_container.should_swap();
 
             // Use local variables of current_version and compatibility_version and
@@ -356,8 +357,8 @@ void tbd::run() {
             uint32_t local_compatibility_version = -1;
 
             const char *local_installation_name = nullptr;
-
             const auto needs_uuid = version == version::v2;
+
             auto added_uuid = false;
 
             macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
@@ -458,27 +459,27 @@ void tbd::run() {
                 return true;
             });
 
-            if (!local_installation_name) {
+            if (local_current_version == -1 || local_compatibility_version == -1 || !local_installation_name) {
                 fputs("Mach-o file is not a library or framework\n", stderr);
                 exit(1);
             }
 
             if (installation_name != nullptr && strcmp(installation_name, local_installation_name) != 0) {
-                fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from %d)\n", installation_name, local_installation_name, macho_container_index);
+                fprintf(stderr, "Mach-o file has conflicting installation-names (%s vs %s from container at base (0x%.8lX))\n", installation_name, local_installation_name, macho_container_base);
                 exit(1);
             } else if (!installation_name) {
                 installation_name = local_installation_name;
             }
 
             if (current_version != -1 && current_version != local_current_version) {
-                fprintf(stderr, "Mach-o file has conflicting current_version (%d vs %d from #%d)\n", current_version, local_current_version, macho_container_index);
+                fprintf(stderr, "Mach-o file has conflicting current_version (%d vs %d from container at base (0x%.8lX))\n", current_version, local_current_version, macho_container_base);
                 exit(1);
             } else if (current_version == -1) {
                 current_version = local_current_version;
             }
 
             if (compatibility_version != -1 && compatibility_version != local_compatibility_version) {
-                fprintf(stderr, "Mach-o file has conflicting compatibility-version (%d vs %d from #%d)\n", compatibility_version, local_compatibility_version, macho_container_index);
+                fprintf(stderr, "Mach-o file has conflicting compatibility-version (%d vs %d from container at base (0x%.8lX))\n", compatibility_version, local_compatibility_version, macho_container_base);
                 exit(1);
             } else if (compatibility_version == -1) {
                 compatibility_version = local_compatibility_version;
