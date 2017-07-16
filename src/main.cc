@@ -876,17 +876,9 @@ int main(int argc, const char *argv[]) {
                         path.append(1, '/');
                     }
 
-                    const auto directory = opendir(path.data());
-                    if (!directory) {
-                        fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
-                        return 1;
-                    }
-
                     loop_directory_for_libraries(path.data(), recurse_type, [&](const std::string &path) {
                         macho_files.emplace_back(std::move(path));
                     });
-
-                    closedir(directory);
                 } else {
                     const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                     if (path_is_regular_file) {
