@@ -749,7 +749,6 @@ int main(int argc, const char *argv[]) {
             }
 
             output_paths_index++;
-            break;
         } else if (strcmp(option, "p") == 0 || strcmp(option, "path") == 0) {
             if (is_last_argument) {
                 fputs("Please provide path(s) to mach-o files\n", stderr);
