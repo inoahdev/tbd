@@ -464,11 +464,6 @@ int main(int argc, const char *argv[]) {
                 const auto &path = pair.first;
                 const auto path_data = path.data();
 
-                if (access(path_data, F_OK) != 0) {
-                    fprintf(stderr, "Object at path (%s) does not exist\n", path_data);
-                    return 1;
-                }
-
                 struct stat sbuf;
                 if (stat(path_data, &sbuf) != 0) {
                     fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path_data, strerror(errno));
