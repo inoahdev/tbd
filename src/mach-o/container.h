@@ -35,10 +35,10 @@ namespace macho {
         inline const FILE *file() const noexcept { return file_; }
         inline const struct mach_header &header() const noexcept { return header_; }
 
-        inline const bool should_swap() const noexcept { return should_swap_; }
+        inline const bool &should_swap() const noexcept { return should_swap_; }
 
-        inline const long base() const noexcept { return base_; }
-        inline const long size() const noexcept { return size_; }
+        inline const long &base() const noexcept { return base_; }
+        inline const size_t &size() const noexcept { return size_; }
 
         inline const bool is_32_bit() const noexcept { return header_.magic == MH_MAGIC || header_.magic == MH_CIGAM; }
         inline const bool is_64_bit() const noexcept { return header_.magic == MH_MAGIC_64 || header_.magic == MH_CIGAM_64; }
