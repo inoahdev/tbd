@@ -20,7 +20,7 @@ namespace macho {
         static bool is_valid_file(const std::string &path) noexcept;
         static bool is_valid_library(const std::string &path) noexcept;
 
-        inline const FILE *file_pointer() const noexcept { return file_; }
+        inline const FILE *stream() const noexcept { return file_; }
         inline std::vector<container> &containers() noexcept { return containers_; }
 
         inline const bool is_thin() const noexcept { return magic_ == MH_MAGIC || magic_ == MH_CIGAM || magic_ == MH_MAGIC_64 || magic_ == MH_CIGAM_64; }
