@@ -167,7 +167,7 @@ const char *retrieve_current_directory() {
         }
 
         const auto current_directory_length = strlen(current_directory_string);
-        const auto &current_directory_back = current_directory[current_directory_length - 1];
+        const auto &current_directory_back = current_directory_string[current_directory_length - 1];
 
         if (current_directory_back != '/') {
             // As current_directory is a path to a directory,
