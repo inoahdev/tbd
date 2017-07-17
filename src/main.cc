@@ -24,7 +24,7 @@ enum class recurse {
 
 void loop_subdirectories_for_libraries(DIR *directory, const std::string &directory_path, const std::function<void(const std::string &)> &callback) {
     auto directory_entry = readdir(directory);
-    const auto directory_path_length = directory_path.length();
+    auto directory_path_length = directory_path.length();
 
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
@@ -77,7 +77,7 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
 
-                auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
+                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
                 }

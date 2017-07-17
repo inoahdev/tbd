@@ -59,24 +59,7 @@ enum tbd::version tbd::string_to_version(const char *version) noexcept {
 }
 
 tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const enum tbd::platform &platform, const enum tbd::version &version, const std::vector<const NXArchInfo *> &architecture_overrides)
-: macho_files_(macho_files), output_files_(output_files), platform_(platform), version_(version), architectures_(architecture_overrides) {
-    this->validate();
-}
-
-void tbd::validate() const {
-    const auto &architectures = architectures_;
-    const auto &version = version_;
-
-    const auto architectures_size = architectures.size();
-    if (version == version::v2 && architectures_size != 0) {
-        // Support for multiple architectures is available to only
-        // tbd-version v1 as tbd-version v2 requires a uuid to be
-        // associated with the architecture
-
-        fputs("Overriding architectures is only supported on tbd-version v1\n", stderr);
-        exit(1);
-    }
-}
+: macho_files_(macho_files), output_files_(output_files), platform_(platform), version_(version), architectures_(architecture_overrides) {}
 
 void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept {
     if (symbols.empty()) {
@@ -274,8 +257,6 @@ void tbd::print_symbols(FILE *output_file, const flags &flags, std::vector<symbo
 }
 
 void tbd::run() {
-    this->validate();
-
     const auto &platform = platform_;
     const auto &macho_files = macho_files_;
     const auto &output_files = output_files_;
