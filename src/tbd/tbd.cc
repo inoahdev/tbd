@@ -624,7 +624,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     continue;
                 }
 
-                const auto architecture_info = architectures.at(architectures_index);
+                const auto &architecture_info = architectures.at(architectures_index);
 
                 if (!has_printed_first_architecture) {
                     fprintf(output, "  - archs:%-12s[ %s", "", architecture_info->name);
