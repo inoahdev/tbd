@@ -24,6 +24,8 @@ enum class recurse {
 
 void loop_subdirectories_for_libraries(DIR *directory, const std::string &directory_path, const std::function<void(const std::string &)> &callback) {
     auto directory_entry = readdir(directory);
+    const auto directory_path_length = directory_path.length();
+    
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory) {
@@ -36,19 +38,18 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
                 continue;
             }
 
-            auto sub_directory_path = directory_path;
-
+            auto sub_directory_path = std::string();
+            auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
+            
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
-
-            auto sub_directory_path_length = sub_directory_path.length();
-            auto sub_directory_path_new_length = sub_directory_path_length + directory_entry->d_namlen + 1;
-
-            sub_directory_path.reserve(sub_directory_path_new_length);
+            
+            sub_directory_path.reserve(sub_directory_path_length);
 
             // Add a final forward slash to the path as it is a directory, and reduces work
             // needing to be done if a sub-directory is found and needs to be recursed.
-
+            
+            sub_directory_path.append(directory_path);
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
 
@@ -68,7 +69,12 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
                 // Only append the valid part of the directory_entry->d_name buffer,
                 // which is directory_entry->d_namlen long.
 
-                auto directory_entry_path = directory_path;
+                auto directory_entry_path = std::string();
+                auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
+                
+                directory_entry_path.reserve(directory_entry_path_length);
+                
+                directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
 
                 auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
@@ -89,9 +95,10 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
         exit(1);
     }
 
+    const auto directory_path_length = strlen(directory_path);
     const auto should_recurse_all_of_directory_entry = recurse_type == recurse::all;
+    
     auto directory_entry = readdir(directory);
-
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
@@ -104,19 +111,18 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
                 continue;
             }
 
-            auto sub_directory_path = std::string(directory_path);
-
+            auto sub_directory_path = std::string();
+            auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
+            
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
 
-            auto sub_directory_path_length = sub_directory_path.length();
-            auto sub_directory_path_new_length = sub_directory_path_length + directory_entry->d_namlen + 1;
-
-            sub_directory_path.reserve(sub_directory_path_new_length);
+            sub_directory_path.reserve(sub_directory_path_length);
 
             // Add a final forward slash to the path as it is a directory, and reduces work
             // needing to be done if a sub-directory is found and needs to be recursed.
-
+            
+            sub_directory_path.append(directory_path);
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
 
@@ -136,7 +142,12 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
                 // Only append the valid part of the directory_entry->d_name buffer,
                 // which is directory_entry->d_namlen long.
 
-                auto directory_entry_path = std::string(directory_path);
+                auto directory_entry_path = std::string();
+                auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
+                
+                directory_entry_path.reserve(directory_entry_path_length);
+                
+                directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
 
                 auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
@@ -450,10 +461,18 @@ int main(int argc, const char *argv[]) {
                     }
 
                     if (argument_front != '/') {
-                        auto path = std::string(argument);
+                        auto path = std::string();
                         auto current_directory = retrieve_current_directory();
-
-                        path.insert(0, current_directory);
+                        
+                        auto argument_length = strlen(argument);
+                        auto current_directory_length = strlen(current_directory);
+                        
+                        auto path_length = argument_length + current_directory_length;
+                        path.reserve(path_length);
+                        
+                        path.append(current_directory);
+                        path.append(argument);
+                        
                         paths.emplace_back(std::move(path), recurse_type);
                     } else {
                         paths.emplace_back(argument, recurse_type);
