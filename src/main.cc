@@ -25,7 +25,7 @@ enum class recurse {
 void loop_subdirectories_for_libraries(DIR *directory, const std::string &directory_path, const std::function<void(const std::string &)> &callback) {
     auto directory_entry = readdir(directory);
     const auto directory_path_length = directory_path.length();
-    
+
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory) {
@@ -40,15 +40,15 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
 
             auto sub_directory_path = std::string();
             auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
-            
+
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
-            
+
             sub_directory_path.reserve(sub_directory_path_length);
 
             // Add a final forward slash to the path as it is a directory, and reduces work
             // needing to be done if a sub-directory is found and needs to be recursed.
-            
+
             sub_directory_path.append(directory_path);
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
@@ -71,9 +71,9 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
 
                 auto directory_entry_path = std::string();
                 auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
-                
+
                 directory_entry_path.reserve(directory_entry_path_length);
-                
+
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
 
@@ -97,7 +97,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 
     const auto directory_path_length = strlen(directory_path);
     const auto should_recurse_all_of_directory_entry = recurse_type == recurse::all;
-    
+
     auto directory_entry = readdir(directory);
     while (directory_entry != nullptr) {
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
@@ -113,7 +113,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 
             auto sub_directory_path = std::string();
             auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
-            
+
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
 
@@ -121,7 +121,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 
             // Add a final forward slash to the path as it is a directory, and reduces work
             // needing to be done if a sub-directory is found and needs to be recursed.
-            
+
             sub_directory_path.append(directory_path);
             sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
             sub_directory_path.append(1, '/');
@@ -144,9 +144,9 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 
                 auto directory_entry_path = std::string();
                 auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
-                
+
                 directory_entry_path.reserve(directory_entry_path_length);
-                
+
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
 
@@ -253,7 +253,7 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
     index--;
 }
 
-void recursively_create_directories_from_file_path(char *path, bool create_last_as_direcory) {
+void recursively_create_directories_from_file_path(char *path, bool create_last_as_directory) {
     // If the path starts off with a forward slash, it will
     // result in the while loop running on a path that is
     // empty. To avoid this, start the search at the first
@@ -276,13 +276,13 @@ void recursively_create_directories_from_file_path(char *path, bool create_last_
 
         slash[0] = '/';
         slash = strchr(&slash[1], '/');
-        
-        if (!slash && create_last_as_direcory) {
-            if (access(path, F_OK) != 0) {
-                if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
-                    exit(1);
-                }
+    }
+
+    if (create_last_as_directory) {
+        if (access(path, F_OK) != 0) {
+            if (mkdir(path, 0755) != 0) {
+                fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                exit(1);
             }
         }
     }
@@ -463,16 +463,16 @@ int main(int argc, const char *argv[]) {
                     if (argument_front != '/') {
                         auto path = std::string();
                         auto current_directory = retrieve_current_directory();
-                        
+
                         auto argument_length = strlen(argument);
                         auto current_directory_length = strlen(current_directory);
-                        
+
                         auto path_length = argument_length + current_directory_length;
                         path.reserve(path_length);
-                        
+
                         path.append(current_directory);
                         path.append(argument);
-                        
+
                         paths.emplace_back(std::move(path), recurse_type);
                     } else {
                         paths.emplace_back(argument, recurse_type);
@@ -488,7 +488,7 @@ int main(int argc, const char *argv[]) {
                     paths.emplace_back(retrieve_current_directory(), recurse_type);
                 }
             }
-            
+
             const auto &paths_back = paths.back();
             for (const auto &pair : paths) {
                 const auto &path = pair.first;
@@ -551,11 +551,11 @@ int main(int argc, const char *argv[]) {
                             fprintf(stdout, "%s\n", library_path.data());
                         }
                     }
-                    
+
                     // Print a newline between each pair for readibility
                     // purposes, But an extra new-line is not needed for the
                     // last pair
-                    
+
                     if (pair != paths_back) {
                         fputc('\n', stdout);
                     }
