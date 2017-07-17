@@ -73,4 +73,5 @@ private:
     };
 
     void print_symbols(FILE *output_file, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept;
+    void run(macho::file &macho, FILE *output);
 };
