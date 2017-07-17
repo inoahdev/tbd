@@ -242,7 +242,7 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
     index--;
 }
 
-void recursively_create_directories_from_file_path(char *path) {
+void recursively_create_directories_from_file_path(char *path, bool create_last_as_direcory) {
     // If the path starts off with a forward slash, it will
     // result in the while loop running on a path that is
     // empty. To avoid this, start the search at the first
@@ -265,6 +265,15 @@ void recursively_create_directories_from_file_path(char *path) {
 
         slash[0] = '/';
         slash = strchr(&slash[1], '/');
+        
+        if (!slash && create_last_as_direcory) {
+            if (access(path, F_OK) != 0) {
+                if (mkdir(path, 0755) != 0) {
+                    fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                    exit(1);
+                }
+            }
+        }
     }
 }
 
@@ -671,7 +680,7 @@ int main(int argc, const char *argv[]) {
                         // Recursively create directories in the final output-path for the mach-o
                         // library file as required by --maintain-directories.
 
-                        recursively_create_directories_from_file_path((char *)path_output_path.data());
+                        recursively_create_directories_from_file_path((char *)path_output_path.data(), false);
 
                         // To avoid unnecessary allocation, Use std::move to move the output-path
                         // data to the new string object in the output_files vector.
@@ -711,7 +720,7 @@ int main(int argc, const char *argv[]) {
                             // to be created. This is extended to the directories where the
                             // output-file is to exist.
 
-                            recursively_create_directories_from_file_path((char *)path.data());
+                            recursively_create_directories_from_file_path((char *)path.data(), false);
                             output_files.emplace_back(path);
                         }
                     }
@@ -726,7 +735,7 @@ int main(int argc, const char *argv[]) {
                             // If an output-directory does not exist, it is expected
                             // to be created.
 
-                            recursively_create_directories_from_file_path((char *)path.data());
+                            recursively_create_directories_from_file_path((char *)path.data(), true);
                         }
 
                         create_output_files_for_paths(macho_files, path);
