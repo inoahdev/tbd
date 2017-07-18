@@ -240,7 +240,9 @@ namespace macho {
                 delete[] architectures;
             } else {
                 const auto architectures = new struct fat_arch[nfat_arch];
-                fread(architectures, sizeof(struct fat_arch) * nfat_arch, 1, file);
+                const auto architectures_size = sizeof(struct fat_arch_64) * nfat_arch;
+
+                fread(architectures, architectures_size, 1, file);
 
                 if (should_swap) {
                     swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
