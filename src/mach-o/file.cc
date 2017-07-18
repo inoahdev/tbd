@@ -6,8 +6,6 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <mach-o/swap.h>
-
 #include <cerrno>
 #include <cstdlib>
 
@@ -15,6 +13,7 @@
 #include <unistd.h>
 
 #include "file.h"
+#include "swap.h"
 
 namespace macho {
     file::file(const std::string &path)
@@ -75,7 +74,7 @@ namespace macho {
         for (auto i = 0; i < ncmds; i++) {
             const auto load_cmd = (struct load_command *)&load_commands[index];
             if (should_swap) {
-                swap_load_command(load_cmd, NX_LittleEndian);
+                swap_load_command(load_cmd);
             }
 
             auto cmdsize = load_cmd->cmdsize;
@@ -126,7 +125,7 @@ namespace macho {
             read(descriptor, architectures, architectures_size);
 
             if (magic_is_64_bit) {
-                swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
+                swap_fat_arch_64(architectures, nfat_arch);
             }
 
             for (auto i = 0; i < nfat_arch; i++) {
@@ -158,7 +157,7 @@ namespace macho {
 
                 const auto magic_is_big_endian = magic == FAT_CIGAM;
                 if (magic_is_big_endian) {
-                    swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
+                    swap_fat_arch(architectures, nfat_arch);
                 }
 
                 for (auto i = 0; i < nfat_arch; i++) {
@@ -229,7 +228,7 @@ namespace macho {
                 fread(architectures, architectures_size, 1, file);
 
                 if (should_swap) {
-                    swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
+                    swap_fat_arch_64(architectures, nfat_arch);
                 }
 
                 for (auto i = 0; i < nfat_arch; i++) {
@@ -245,7 +244,7 @@ namespace macho {
                 fread(architectures, architectures_size, 1, file);
 
                 if (should_swap) {
-                    swap_fat_arch(architectures, nfat_arch, NX_LittleEndian);
+                    swap_fat_arch(architectures, nfat_arch);
                 }
 
                 for (auto i = 0; i < nfat_arch; i++) {

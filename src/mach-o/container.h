@@ -6,11 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <mach-o/loader.h>
-#include <mach-o/fat.h>
-
-#include <cstdio>
 #include <functional>
+#include "swap.h"
 
 namespace macho {
     class container {
@@ -54,7 +51,7 @@ namespace macho {
         char *cached_ = nullptr;
         char *string_table_ = nullptr;
 
-        bool should_swap_ = false;        
+        bool should_swap_ = false;
         void validate();
     };
 }

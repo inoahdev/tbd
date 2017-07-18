@@ -6,10 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <mach-o/swap.h>
-#include <cstdlib>
-
 #include "container.h"
+#include "swap.h"
 
 namespace macho {
     container::container(FILE *file, long base)
@@ -60,7 +58,7 @@ namespace macho {
             const auto magic_is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
             if (magic_is_big_endian) {
                 should_swap = true;
-                swap_mach_header(&header, NX_LittleEndian);
+                swap_mach_header(&header);
             }
         } else {
             const auto is_fat_macho_file = magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
@@ -113,7 +111,7 @@ namespace macho {
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached[cached_index];
             if (should_swap && created_cache) {
-                swap_load_command(load_cmd, NX_LittleEndian);
+                swap_load_command(load_cmd);
             }
 
             const auto &cmdsize = load_cmd->cmdsize;
@@ -166,7 +164,7 @@ namespace macho {
 
             symtab_command = (struct symtab_command *)load_cmd;
             if (should_swap) {
-                swap_symtab_command(symtab_command, NX_LittleEndian);
+                swap_symtab_command(symtab_command);
             }
 
             return false;
@@ -232,7 +230,7 @@ namespace macho {
             fread(symbol_table, symbol_table_size, 1, file);
 
             if (should_swap) {
-                swap_nlist_64(symbol_table, symbol_table_count, NX_LittleEndian);
+                swap_nlist_64(symbol_table, symbol_table_count);
             }
 
             for (auto i = 0; i < symbol_table_count; i++) {
@@ -270,7 +268,7 @@ namespace macho {
             fread(symbol_table, symbol_table_size, 1, file);
 
             if (should_swap) {
-                swap_nlist(symbol_table, symbol_table_count, NX_LittleEndian);
+                swap_nlist(symbol_table, symbol_table_count);
             }
 
             for (auto i = 0; i < symbol_table_count; i++) {

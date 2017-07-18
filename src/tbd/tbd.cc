@@ -6,11 +6,7 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <mach-o/nlist.h>
-#include <mach-o/swap.h>
-
 #include <cerrno>
-#include <cstdlib>
 
 #include "group.h"
 #include "tbd.h"
@@ -338,7 +334,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
                     auto id_dylib_command = (struct dylib_command *)load_cmd;
                     if (macho_container_should_swap) {
-                        swap_dylib_command(id_dylib_command, NX_LittleEndian);
+                        macho::swap_dylib_command(id_dylib_command);
                     }
 
                     const auto &id_dylib = id_dylib_command->dylib;
@@ -361,7 +357,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                 case LC_REEXPORT_DYLIB: {
                     auto reexport_dylib_command = (struct dylib_command *)load_cmd;
                     if (macho_container_should_swap) {
-                        swap_dylib_command(reexport_dylib_command, NX_LittleEndian);
+                        macho::swap_dylib_command(reexport_dylib_command);
                     }
 
                     const auto &reexport_dylib = reexport_dylib_command->dylib;
