@@ -58,7 +58,7 @@ enum tbd::version tbd::string_to_version(const char *version) noexcept {
     return (enum tbd::version)-1;
 }
 
-tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const enum tbd::platform &platform, const enum tbd::version &version, const std::vector<const NXArchInfo *> &architecture_overrides)
+tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const enum tbd::platform &platform, const enum tbd::version &version, const std::vector<const macho::architecture_info *> &architecture_overrides)
 : macho_files_(macho_files), output_files_(output_files), platform_(platform), version_(version), architectures_(architecture_overrides) {}
 
 void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept {
@@ -287,10 +287,10 @@ void tbd::run(macho::file &macho_file, FILE *output) {
     for (auto &macho_container : macho_file_containers) {
         const auto &macho_container_header = macho_container.header();
 
-        const auto &macho_container_header_cputype = macho_container_header.cputype;
-        const auto &macho_container_header_cpusubtype = macho_container_header.cpusubtype;
+        const auto &macho_container_header_cputype = macho::cputype(macho_container_header.cputype);
+        const auto &macho_container_header_cpusubtype = macho::subtype_from_cputype(macho_container_header_cputype, macho_container_header.cpusubtype);
 
-        const auto macho_container_architecture_info = NXGetArchInfoFromCpuType(macho_container_header_cputype, macho_container_header_cpusubtype);
+        const auto macho_container_architecture_info = macho::architecture_info_from_cputype(macho_container_header_cputype, macho_container_header_cpusubtype);
         if (!macho_container_architecture_info) {
             if (macho_file_is_fat) {
                 fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_index);

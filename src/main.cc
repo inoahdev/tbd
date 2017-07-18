@@ -202,13 +202,13 @@ const char *retrieve_current_directory() {
     return current_directory;
 }
 
-void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, int &index, int argc, const char *argv[]) {
+void parse_architectures_list(std::vector<const macho::architecture_info *> &architectures, int &index, int argc, const char *argv[]) {
     while (index < argc) {
         const auto &architecture_string = argv[index];
         const auto &architecture_string_front = architecture_string[0];
 
         // Quickly filter out an option or path instead of a (relatively)
-        // expensive call to NXGetArchInfoFromName().
+        // expensive call to macho::architecture_info_from_name().
 
         if (architecture_string_front == '-' || architecture_string_front == '/') {
             // If the architectures vector is empty, the user did not provide any architectures
@@ -223,9 +223,9 @@ void parse_architectures_list(std::vector<const NXArchInfo *> &architectures, in
             break;
         }
 
-        const auto architecture = NXGetArchInfoFromName(architecture_string);
+        const auto architecture = macho::architecture_info_from_name(architecture_string);
         if (!architecture) {
-            // NXGetArchInfoFromName() returning nullptr can be the result of one
+            // macho::architecture_info_from_name() returning nullptr can be the result of one
             // of two scenarios, The string stored in architecture being invalid,
             // such as being mispelled, or the string being the path object inevitebly
             // following the architecture argument.
@@ -336,7 +336,7 @@ int main(int argc, const char *argv[]) {
         recurse recurse;
     } tbd_recursive;
 
-    auto architectures = std::vector<const NXArchInfo *>();
+    auto architectures = std::vector<const macho::architecture_info *>();
     auto tbds = std::vector<tbd_recursive>();
 
     auto current_directory = std::string();
@@ -395,10 +395,10 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto architectures = NXGetAllArchInfos();
-            while (architectures->name != nullptr) {
-                fprintf(stdout, "%s\n", architectures->name);
-                architectures++;
+            auto architecture_info = macho::get_architecture_info_table();
+            while (architecture_info->name != nullptr) {
+                fprintf(stdout, "%s\n", architecture_info->name);
+                architecture_info++;
             }
 
             return 0;
@@ -788,7 +788,7 @@ int main(int argc, const char *argv[]) {
             // stype, the path option handles custom output options in between
             // the path option argument and the mach-o library path argument.
 
-            auto local_architectures = std::vector<const NXArchInfo *>();
+            auto local_architectures = std::vector<const macho::architecture_info *>();
 
             auto local_platform = (enum tbd::platform)-1;
             auto local_tbd_version = (enum tbd::version)0;
