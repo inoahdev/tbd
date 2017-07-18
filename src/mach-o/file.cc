@@ -120,8 +120,10 @@ namespace macho {
                 swap_value(nfat_arch);
             }
 
-            auto architectures = new struct fat_arch_64[nfat_arch];
-            read(descriptor, architectures, sizeof(struct fat_arch_64) * nfat_arch);
+            const auto architectures = new struct fat_arch_64[nfat_arch];
+            const auto architectures_size = sizeof(struct fat_arch_64) * nfat_arch;
+
+            read(descriptor, architectures, architectures_size);
 
             if (magic_is_64_bit) {
                 swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
@@ -149,8 +151,10 @@ namespace macho {
 
                 swap_value(nfat_arch);
 
-                auto architectures = new struct fat_arch[nfat_arch];
-                read(descriptor, architectures, sizeof(struct fat_arch) * nfat_arch);
+                const auto architectures = new struct fat_arch[nfat_arch];
+                const auto architectures_size = sizeof(struct fat_arch) * nfat_arch;
+
+                read(descriptor, architectures, architectures_size);
 
                 const auto magic_is_big_endian = magic == FAT_CIGAM;
                 if (magic_is_big_endian) {
@@ -220,7 +224,9 @@ namespace macho {
             const auto magic_is_fat_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
             if (magic_is_fat_64) {
                 const auto architectures = new struct fat_arch_64[nfat_arch];
-                fread(architectures, sizeof(struct fat_arch_64) * nfat_arch, 1, file);
+                const auto architectures_size = sizeof(struct fat_arch_64) * nfat_arch;
+
+                fread(architectures, architectures_size, 1, file);
 
                 if (should_swap) {
                     swap_fat_arch_64(architectures, nfat_arch, NX_LittleEndian);
