@@ -44,9 +44,9 @@ namespace macho {
     }
 
     bool file::has_library_command(int descriptor, const struct header &header) noexcept {
-        auto should_swap = false;
-
+        const auto header_magic_is_big_endian = magic_is_big_endian(header.magic);
         const auto header_magic_is_64_bit = magic_is_64_bit(header.magic);
+
         if (header_magic_is_64_bit) {
             lseek(descriptor, sizeof(uint32_t), SEEK_CUR);
         } else {
@@ -54,11 +54,6 @@ namespace macho {
             if (!header_magic_is_32_bit) {
                 return false;
             }
-        }
-
-        const auto header_magic_is_big_endian = magic_is_big_endian(header.magic);
-        if (header_magic_is_big_endian) {
-            should_swap = true;
         }
 
         const auto load_commands = new char[header.sizeofcmds];
@@ -70,29 +65,35 @@ namespace macho {
         const auto &ncmds = header.ncmds;
         for (auto i = 0; i < ncmds; i++) {
             const auto load_cmd = (struct load_command *)&load_commands[index];
-            if (should_swap) {
+            if (header_magic_is_big_endian) {
                 swap_load_command(load_cmd);
             }
 
             auto cmdsize = load_cmd->cmdsize;
 
             const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
-            const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
-            const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
+            if (cmdsize_is_too_small) {
+                goto fail;
+            }
 
-            if (cmdsize_is_too_small || cmdsize_is_larger_than_load_command_space || cmdsize_takes_up_rest_of_load_command_space) {
-                delete[] load_commands;
-                return false;
+            const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
+            if (cmdsize_is_larger_than_load_command_space) {
+                goto fail;
+            }
+
+            const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
+            if (cmdsize_takes_up_rest_of_load_command_space) {
+                goto fail;
             }
 
             if (load_cmd->cmd == load_commands::identification_dylib) {
-                delete[] load_commands;
                 return true;
             }
 
             index += cmdsize;
         }
 
+    fail:
         delete[] load_commands;
         return false;
     };
@@ -111,17 +112,17 @@ namespace macho {
             uint32_t nfat_arch;
             read(descriptor, &nfat_arch, sizeof(uint32_t));
 
-            const auto magic_is_64_bit = magic == magic::fat_64_big_endian;
-            if (magic_is_64_bit) {
+            const auto magic_is_big_endian = magic == magic::fat_64_big_endian;
+            if (magic_is_big_endian) {
                 swap_value(nfat_arch);
             }
 
-            const auto architectures = new struct architecture_64[nfat_arch];
-            const auto architectures_size = sizeof(struct architecture_64) * nfat_arch;
+            const auto architectures = new architecture_64[nfat_arch];
+            const auto architectures_size = sizeof(architecture_64) * nfat_arch;
 
             read(descriptor, architectures, architectures_size);
 
-            if (magic_is_64_bit) {
+            if (magic_is_big_endian) {
                 swap_fat_arch_64(architectures, nfat_arch);
             }
 
@@ -145,14 +146,16 @@ namespace macho {
                 uint32_t nfat_arch;
                 read(descriptor, &nfat_arch, sizeof(uint32_t));
 
-                swap_value(nfat_arch);
+                const auto magic_is_big_endian = magic == magic::fat_big_endian;
+                if (magic_is_big_endian) {
+                    swap_value(nfat_arch);
+                }
 
                 const auto architectures = new architecture[nfat_arch];
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
 
                 read(descriptor, architectures, architectures_size);
 
-                const auto magic_is_big_endian = magic == magic::fat_big_endian;
                 if (magic_is_big_endian) {
                     swap_fat_arch(architectures, nfat_arch);
                 }
@@ -198,7 +201,7 @@ namespace macho {
         auto &file = file_;
 
         auto &magic = magic_;
-        fread(&magic, sizeof(uint32_t), 1, file);
+        fread(&magic, sizeof(magic), 1, file);
 
         const auto magic_is_fat = macho::magic_is_fat(magic);
         if (magic_is_fat) {
@@ -210,8 +213,8 @@ namespace macho {
                 exit(1);
             }
 
-            auto should_swap = magic_is_big_endian(magic);
-            if (should_swap) {
+            auto magic_is_big_endian = macho::magic_is_big_endian(magic);
+            if (magic_is_big_endian) {
                 swap_value(nfat_arch);
             }
 
@@ -224,7 +227,7 @@ namespace macho {
 
                 fread(architectures, architectures_size, 1, file);
 
-                if (should_swap) {
+                if (magic_is_big_endian) {
                     swap_fat_arch_64(architectures, nfat_arch);
                 }
 
@@ -240,7 +243,7 @@ namespace macho {
 
                 fread(architectures, architectures_size, 1, file);
 
-                if (should_swap) {
+                if (magic_is_big_endian) {
                     swap_fat_arch(architectures, nfat_arch);
                 }
 

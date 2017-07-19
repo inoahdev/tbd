@@ -303,7 +303,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         }
 
         const auto &macho_container_base = macho_container.base();
-        const auto macho_container_should_swap = macho_container.should_swap();
+        const auto macho_container_is_big_endian = macho_container.magic_is_big_endian();
 
         // Use local variables of current_version and compatibility_version and
         // and installation_name to make sure details are the same across containers
@@ -330,7 +330,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     }
 
                     auto id_dylib_command = (macho::dylib_command *)load_cmd;
-                    if (macho_container_should_swap) {
+                    if (macho_container_is_big_endian) {
                         macho::swap_dylib_command(id_dylib_command);
                     }
 
@@ -352,7 +352,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
                 case macho::load_commands::reexport_dylib: {
                     auto reexport_dylib_command = (macho::dylib_command *)load_cmd;
-                    if (macho_container_should_swap) {
+                    if (macho_container_is_big_endian) {
                         macho::swap_dylib_command(reexport_dylib_command);
                     }
 

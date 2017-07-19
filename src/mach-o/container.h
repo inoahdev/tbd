@@ -23,9 +23,9 @@ namespace macho {
         void iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback);
 
         inline uint32_t &swap_value(uint32_t &value) const noexcept {
-            if (should_swap_) {
-                value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
-                value = ((value >> 16) & 0x0000ffff) | ((value << 16) & 0xffff0000);
+            const auto magic_is_big_endian = this->magic_is_big_endian();
+            if (magic_is_big_endian) {
+                swap_uint32(&value);
             }
 
             return value;
@@ -34,7 +34,7 @@ namespace macho {
         inline const FILE *file() const noexcept { return file_; }
         inline const header &header() const noexcept { return header_; }
 
-        inline const bool &should_swap() const noexcept { return should_swap_; }
+        inline const bool magic_is_big_endian() const noexcept { return macho::magic_is_big_endian(header_.magic); }
 
         inline const long &base() const noexcept { return base_; }
         inline const size_t &size() const noexcept { return size_; }
@@ -53,7 +53,6 @@ namespace macho {
         char *cached_ = nullptr;
         char *string_table_ = nullptr;
 
-        bool should_swap_ = false;
         void validate();
     };
 }
