@@ -6,6 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
+
 #include "../mach-o/architecture_info.h"
 #include "../mach-o/file.h"
 

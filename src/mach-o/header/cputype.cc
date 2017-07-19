@@ -1,5 +1,5 @@
 //
-//  src/mach-o/cputype.cc
+//  src/mach-o/header/cputype.cc
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.

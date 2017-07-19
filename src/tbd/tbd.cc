@@ -70,9 +70,6 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
                 return true;
 
             case symbols_type::symbols: {
-                // Avoid unnecessary calls to strncmp when
-                // only one variable can be true
-
                 const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, ".objc_class_name", 16) == 0;
                 const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
                 const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
@@ -319,9 +316,9 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
         auto added_uuid = false;
 
-        macho_container.iterate_load_commands([&](const struct load_command *load_cmd) {
+        macho_container.iterate_load_commands([&](const macho::load_command *load_cmd) {
             switch (load_cmd->cmd) {
-                case LC_ID_DYLIB: {
+                case macho::load_commands::identification_dylib: {
                     if (local_installation_name != nullptr) {
                         if (macho_file_is_fat) {
                             fprintf(stderr, "Architecture (#%d) has multiple library-identification load-commands\n", macho_container_index);
@@ -332,13 +329,12 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                         exit(1);
                     }
 
-                    auto id_dylib_command = (struct dylib_command *)load_cmd;
+                    auto id_dylib_command = (macho::dylib_command *)load_cmd;
                     if (macho_container_should_swap) {
                         macho::swap_dylib_command(id_dylib_command);
                     }
 
-                    const auto &id_dylib = id_dylib_command->dylib;
-                    const auto &id_dylib_installation_name_string_index = id_dylib.name.offset;
+                    const auto &id_dylib_installation_name_string_index = id_dylib_command->name.offset;
 
                     if (id_dylib_installation_name_string_index >= load_cmd->cmdsize) {
                         fputs("Library identification load-command has an invalid identification-string position\n", stderr);
@@ -348,21 +344,19 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     const auto &id_dylib_installation_name_string = &((char *)load_cmd)[id_dylib_installation_name_string_index];
 
                     local_installation_name = id_dylib_installation_name_string;
-                    local_current_version = id_dylib.current_version;
-                    local_compatibility_version = id_dylib.compatibility_version;
+                    local_current_version = id_dylib_command->current_version;
+                    local_compatibility_version = id_dylib_command->compatibility_version;
 
                     break;
                 }
 
-                case LC_REEXPORT_DYLIB: {
-                    auto reexport_dylib_command = (struct dylib_command *)load_cmd;
+                case macho::load_commands::reexport_dylib: {
+                    auto reexport_dylib_command = (macho::dylib_command *)load_cmd;
                     if (macho_container_should_swap) {
                         macho::swap_dylib_command(reexport_dylib_command);
                     }
 
-                    const auto &reexport_dylib = reexport_dylib_command->dylib;
-                    const auto &reexport_dylib_string_index = reexport_dylib.name.offset;
-
+                    const auto &reexport_dylib_string_index = reexport_dylib_command->name.offset;
                     if (reexport_dylib_string_index >= load_cmd->cmdsize) {
                         fputs("Re-export dylib load-command has an invalid identification-string position\n", stderr);
                         exit(1);
@@ -381,7 +375,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     break;
                 }
 
-                case LC_UUID: {
+                case macho::load_commands::uuid: {
                     if (!needs_uuid) {
                         break;
                     }
@@ -396,7 +390,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                         exit(1);
                     }
 
-                    const auto &uuid = ((struct uuid_command *)load_cmd)->uuid;
+                    const auto &uuid = ((macho::uuid_command *)load_cmd)->uuid;
                     const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *rhs) {
                         return memcmp(&uuid, rhs, 16) == 0;
                     });
@@ -412,6 +406,9 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
                     break;
                 }
+
+                default:
+                    break;
             }
 
             return true;
@@ -448,9 +445,9 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             exit(1);
         }
 
-        macho_container.iterate_symbols([&](const struct nlist_64 &symbol_table_entry, const char *symbol_string) {
+        macho_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
-            if ((symbol_table_entry_type & N_TYPE) != N_SECT || (symbol_table_entry_type & N_EXT) != N_EXT) {
+            if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section || (symbol_table_entry_type & macho::symbol_table::flags::external) != macho::symbol_table::flags::external) {
                 return true;
             }
 
@@ -458,7 +455,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             if (symbols_iter != symbols.end()) {
                 symbols_iter->add_architecture(macho_container_index);
             } else {
-                symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & N_WEAK_DEF, macho_file_containers_size);
+                symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition, macho_file_containers_size);
                 symbols.back().add_architecture(macho_container_index);
             }
 

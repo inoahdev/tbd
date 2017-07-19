@@ -6,6 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
+
 #include <string>
 #include <vector>
 
@@ -23,12 +25,12 @@ namespace macho {
         inline const FILE *stream() const noexcept { return file_; }
         inline std::vector<container> &containers() noexcept { return containers_; }
 
-        inline const bool is_thin() const noexcept { return magic_ == MH_MAGIC || magic_ == MH_CIGAM || magic_ == MH_MAGIC_64 || magic_ == MH_CIGAM_64; }
-        inline const bool is_fat() const noexcept { return magic_ == FAT_MAGIC || magic_ == FAT_CIGAM || magic_ == FAT_MAGIC_64 || magic_ == FAT_CIGAM_64; }
+        inline const bool is_thin() const noexcept { return magic_is_thin(magic_); }
+        inline const bool is_fat() const noexcept { return magic_is_fat(magic_); }
 
     private:
         FILE *file_;
-        uint32_t magic_;
+        magic magic_;
 
         std::vector<container> containers_ = std::vector<container>();
 
@@ -39,7 +41,7 @@ namespace macho {
             return value;
         }
 
-        static bool has_library_command(int descriptor, const struct mach_header &header) noexcept;
+        static bool has_library_command(int descriptor, const header &header) noexcept;
         void validate();
     };
 }

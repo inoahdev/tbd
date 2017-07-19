@@ -28,20 +28,20 @@ namespace macho {
         swap_uint32(&str->offset);
     }
 
-    void swap_mach_header(struct mach_header *header) {
+    void swap_mach_header(header *header) {
         swap_uint32((uint32_t *)&header->cputype);
         swap_uint32((uint32_t *)&header->cpusubtype);
-        swap_uint32(&header->filetype);
+        swap_uint32((uint32_t *)&header->filetype);
         swap_uint32(&header->ncmds);
         swap_uint32(&header->sizeofcmds);
         swap_uint32(&header->flags);
     }
 
-    void swap_fat_header(struct fat_header *header) {
+    void swap_fat_header(fat *header) {
         swap_uint32(&header->nfat_arch);
     }
 
-    void swap_fat_arch(struct fat_arch *archs, uint32_t count) {
+    void swap_fat_arch(architecture *archs, uint32_t count) {
         while (count) {
             swap_uint32((uint32_t *)&archs->cputype);
             swap_uint32((uint32_t *)&archs->cpusubtype);
@@ -54,7 +54,7 @@ namespace macho {
         }
     }
 
-    void swap_fat_arch_64(struct fat_arch_64 *archs, uint32_t count) {
+    void swap_fat_arch_64(architecture_64 *archs, uint32_t count) {
         while (count) {
             swap_uint32((uint32_t *)&archs->cputype);
             swap_uint32((uint32_t *)&archs->cpusubtype);
@@ -67,12 +67,12 @@ namespace macho {
         }
     }
 
-    void swap_load_command(struct load_command *load_cmd) {
-        swap_uint32(&load_cmd->cmd);
+    void swap_load_command(load_command *load_cmd) {
+        swap_uint32((uint32_t *)&load_cmd->cmd);
         swap_uint32(&load_cmd->cmdsize);
     }
 
-    void swap_segment_command(struct segment_command *segment) {
+    void swap_segment_command(segment_command *segment) {
         swap_load_command((struct load_command *)segment);
 
         swap_uint32(&segment->vmaddr);
@@ -88,7 +88,7 @@ namespace macho {
         swap_uint32(&segment->flags);
     }
 
-    void swap_segment_command_64(struct segment_command_64 *segment) {
+    void swap_segment_command_64(segment_command_64 *segment) {
         swap_load_command((struct load_command *)segment);
 
         swap_uint64(&segment->vmaddr);
@@ -104,70 +104,40 @@ namespace macho {
         swap_uint32(&segment->flags);
     }
 
-    void swap_section(struct section *section, uint32_t count) {
-        while (count) {
-            swap_uint32(&section->addr);
-            swap_uint32(&section->size);
-            swap_uint32(&section->offset);
-            swap_uint32(&section->align);
-            swap_uint32(&section->reloff);
-            swap_uint32(&section->nreloc);
-            swap_uint32(&section->flags);
-
-            section++;
-            count--;
-        }
-    }
-
-    void swap_section_64(struct section_64 *section, uint32_t count) {
-        while (count) {
-            swap_uint64(&section->addr);
-            swap_uint64(&section->size);
-            swap_uint32(&section->offset);
-            swap_uint32(&section->align);
-            swap_uint32(&section->reloff);
-            swap_uint32(&section->nreloc);
-            swap_uint32(&section->flags);
-
-            section++;
-            count--;
-        }
-    }
-
-    void swap_fvmlib_command(struct fvmlib_command *fvmlib) {
+    void swap_fvmlib_command(fvmlib_command *fvmlib) {
         swap_load_command((struct load_command *)fvmlib);
-        swap_uint32(&fvmlib->fvmlib.name.offset);
+        swap_uint32(&fvmlib->name.offset);
     }
 
-    void swap_dylib_command(struct dylib_command *dylib) {
+    void swap_dylib_command(dylib_command *dylib) {
         swap_load_command((struct load_command *)dylib);
 
-        swap_uint32(&dylib->dylib.name.offset);
-        swap_uint32(&dylib->dylib.current_version);
-        swap_uint32(&dylib->dylib.compatibility_version);
+        swap_uint32(&dylib->name.offset);
+        swap_uint32(&dylib->current_version);
+        swap_uint32(&dylib->compatibility_version);
     }
 
-    void swap_sub_framework_command(struct sub_framework_command *sub_framework) {
+    void swap_sub_framework_command(sub_framework_command *sub_framework) {
         swap_load_command((struct load_command *)sub_framework);
         swap_lc_str(&sub_framework->umbrella);
     }
 
-    void swap_sub_client_command(struct sub_client_command *sub_client) {
+    void swap_sub_client_command(sub_client_command *sub_client) {
         swap_load_command((struct load_command *)sub_client);
         swap_lc_str(&sub_client->client);
     }
 
-    void swap_sub_umbrella_command(struct sub_umbrella_command *sub_umbrella) {
+    void swap_sub_umbrella_command(sub_umbrella_command *sub_umbrella) {
         swap_load_command((struct load_command *)sub_umbrella);
         swap_lc_str(&sub_umbrella->sub_umbrella);;
     }
 
-    void swap_sub_library_command(struct sub_library_command *sub_library) {
+    void swap_sub_library_command(sub_library_command *sub_library) {
         swap_load_command((struct load_command *)sub_library);
         swap_lc_str(&sub_library->sub_library);
     }
 
-    void swap_prebound_dylib_command(struct prebound_dylib_command *prebound_dylib) {
+    void swap_prebound_dylib_command(prebound_dylib_command *prebound_dylib) {
         swap_load_command((struct load_command *)prebound_dylib);
 
         swap_lc_str(&prebound_dylib->name);
@@ -176,12 +146,12 @@ namespace macho {
         swap_uint32(&prebound_dylib->nmodules);
     }
 
-    void swap_dylinker_command(struct dylinker_command *dylinker) {
+    void swap_dylinker_command(dylinker_command *dylinker) {
         swap_load_command((struct load_command *)dylinker);
         swap_lc_str(&dylinker->name);
     }
 
-    void swap_routines_command(struct routines_command *routines) {
+    void swap_routines_command(routines_command *routines) {
         swap_load_command((struct load_command *)routines);
 
         swap_uint32(&routines->init_address);
@@ -195,7 +165,7 @@ namespace macho {
         swap_uint32(&routines->reserved6);
     }
 
-    void swap_routines_command_64(struct routines_command_64 *routines) {
+    void swap_routines_command_64(routines_command_64 *routines) {
         swap_load_command((struct load_command *)routines);
 
         swap_uint64(&routines->init_address);
@@ -209,7 +179,7 @@ namespace macho {
         swap_uint64(&routines->reserved6);
     }
 
-    void swap_symtab_command(struct symtab_command *symtab) {
+    void swap_symtab_command(symtab_command *symtab) {
         swap_load_command((struct load_command *)symtab);
 
         swap_uint32(&symtab->symoff);
@@ -218,7 +188,7 @@ namespace macho {
         swap_uint32(&symtab->strsize);
     }
 
-    void swap_dysymtab_command(struct dysymtab_command *dysymtab) {
+    void swap_dysymtab_command(dysymtab_command *dysymtab) {
         swap_load_command((struct load_command *)dysymtab);
 
         swap_uint32(&dysymtab->ilocalsym);
@@ -240,7 +210,7 @@ namespace macho {
         swap_uint32(&dysymtab->nextrel);
     }
 
-    void swap_nlist(struct nlist *nlist, uint32_t count) {
+    void swap_nlist(nlist *nlist, uint32_t count) {
         while (count) {
             swap_uint32(&nlist->n_un.n_strx);
 
@@ -252,7 +222,7 @@ namespace macho {
         }
     }
 
-    void swap_nlist_64(struct nlist_64 *nlist, uint32_t count) {
+    void swap_nlist_64(nlist_64 *nlist, uint32_t count) {
         while (count) {
             swap_uint32(&nlist->n_un.n_strx);
 
@@ -264,35 +234,35 @@ namespace macho {
         }
     }
 
-    void swap_twolevel_hints_command(struct twolevel_hints_command *twolevel_hints) {
+    void swap_twolevel_hints_command(twolevel_hints_command *twolevel_hints) {
         swap_load_command((struct load_command *)twolevel_hints);
 
         swap_uint32(&twolevel_hints->offset);
         swap_uint32(&twolevel_hints->nhints);
     }
 
-    void swap_prebind_cksum_command(struct prebind_cksum_command *prebind_cksum) {
+    void swap_prebind_cksum_command(prebind_cksum_command *prebind_cksum) {
         swap_load_command((struct load_command *)prebind_cksum);
         swap_uint32(&prebind_cksum->cksum);
     }
 
-    void swap_uuid_command(struct uuid_command *uuid) {
+    void swap_uuid_command(uuid_command *uuid) {
         swap_load_command((struct load_command *)uuid);
     }
 
-    void swap_rpath_command(struct rpath_command *rpath) {
+    void swap_rpath_command(rpath_command *rpath) {
         swap_load_command((struct load_command *)rpath);
         swap_lc_str(&rpath->path);
     }
 
-    void swap_linkedit_data_command(struct linkedit_data_command *linkedit_data) {
+    void swap_linkedit_data_command(linkedit_data_command *linkedit_data) {
         swap_load_command((struct load_command *)linkedit_data);
 
         swap_uint32(&linkedit_data->dataoff);
         swap_uint32(&linkedit_data->datasize);
     }
 
-    void swap_encryption_info_command(struct encryption_info_command *encryption_info) {
+    void swap_encryption_info_command(encryption_info_command *encryption_info) {
         swap_load_command((struct load_command *)encryption_info);
 
         swap_uint32(&encryption_info->cryptoff);
@@ -300,7 +270,7 @@ namespace macho {
         swap_uint32(&encryption_info->cryptid);
     }
 
-    void swap_encryption_info_command_64(struct encryption_info_command_64 *encryption_info) {
+    void swap_encryption_info_command_64(encryption_info_command_64 *encryption_info) {
         swap_load_command((struct load_command *)encryption_info);
 
         swap_uint32(&encryption_info->cryptoff);
@@ -309,12 +279,12 @@ namespace macho {
         swap_uint32(&encryption_info->pad);
     }
 
-    void swap_version_min_command(struct version_min_command *version_min) {
+    void swap_version_min_command(version_min_command *version_min) {
         swap_load_command((struct load_command *)version_min);
         swap_uint32(&version_min->version);
     }
 
-    void swap_dyld_info_command(struct dyld_info_command *dyld_info) {
+    void swap_dyld_info_command(dyld_info_command *dyld_info) {
         swap_load_command((struct load_command *)dyld_info);
 
         swap_uint32(&dyld_info->rebase_off);
@@ -333,30 +303,30 @@ namespace macho {
         swap_uint32(&dyld_info->export_size);
     }
 
-    void swap_linker_option_command(struct linker_option_command *linker_option) {
+    void swap_linker_option_command(linker_option_command *linker_option) {
         swap_load_command((struct load_command *)linker_option);
         swap_uint32(&linker_option->count);
     }
 
-    void swap_ident_command(struct ident_command *ident) {
+    void swap_ident_command(ident_command *ident) {
         swap_load_command((struct load_command *)ident);
     }
 
-    void swap_fvmfile_command(struct fvmfile_command *fvmfile) {
+    void swap_fvmfile_command(fvmfile_command *fvmfile) {
         swap_load_command((struct load_command *)fvmfile);
 
         swap_lc_str(&fvmfile->name);
         swap_uint32(&fvmfile->header_addr);
     }
 
-    void swap_entry_point_command(struct entry_point_command *entry_point) {
+    void swap_entry_point_command(entry_point_command *entry_point) {
         swap_load_command((struct load_command *)entry_point);
 
         swap_uint64(&entry_point->entryoff);
         swap_uint64(&entry_point->stacksize);
     }
 
-    void swap_source_version_command(struct source_version_command *source_version) {
+    void swap_source_version_command(source_version_command *source_version) {
         swap_load_command((struct load_command *)source_version);
         swap_uint64(&source_version->version);
     }

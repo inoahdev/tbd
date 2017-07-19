@@ -6,8 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include "header/symbol_table.h"
 #include "container.h"
-#include "swap.h"
 
 namespace macho {
     container::container(FILE *file, long base)
@@ -51,18 +51,18 @@ namespace macho {
         fseek(file, base, SEEK_SET);
         fread(&magic, sizeof(uint32_t), 1, file);
 
-        const auto is_regular_macho_file = magic == MH_MAGIC || magic == MH_CIGAM || magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
-        if (is_regular_macho_file) {
-            fread(&header.cputype, sizeof(struct mach_header) - sizeof(uint32_t), 1, file);
+        const auto macho_file_is_regular = magic_is_thin(magic);
+        if (macho_file_is_regular) {
+            fread(&header.cputype, sizeof(header) - sizeof(uint32_t), 1, file);
 
-            const auto magic_is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+            const auto magic_is_big_endian = macho::magic_is_big_endian(magic);
             if (magic_is_big_endian) {
                 should_swap = true;
                 swap_mach_header(&header);
             }
         } else {
-            const auto is_fat_macho_file = magic == FAT_MAGIC || magic == FAT_CIGAM || magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
-            if (is_fat_macho_file) {
+            const auto macho_file_is_fat = magic_is_fat(magic);
+            if (macho_file_is_fat) {
                 fprintf(stderr, "Architecture at location (0x%.8lX) cannot be a fat mach-o file itself\n", base);
                 exit(1);
             } else {
@@ -91,7 +91,7 @@ namespace macho {
             cached = new char[sizeofcmds];
             created_cache = true;
 
-            auto load_command_base = base + sizeof(struct mach_header);
+            auto load_command_base = base + sizeof(header);
             if (this->is_64_bit()) {
                 load_command_base += sizeof(uint32_t);
             }
@@ -158,7 +158,7 @@ namespace macho {
 
         struct symtab_command *symtab_command = nullptr;
         iterate_load_commands([&](const struct load_command *load_cmd) {
-            if (load_cmd->cmd != LC_SYMTAB) {
+            if (load_cmd->cmd != load_commands::symbol_table) {
                 return true;
             }
 

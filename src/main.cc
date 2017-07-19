@@ -150,7 +150,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
 
-                auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
+                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
                 }

@@ -7,6 +7,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
+
 #include <vector>
 #include "flags.h"
 

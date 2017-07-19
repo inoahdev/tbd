@@ -1,12 +1,13 @@
 //
-//  src/tbd/tbd.cc
+//  src/mach-o/architecture_info.h
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include "cputype.h"
+#pragma once
+#include "header/cputype.h"
 
 namespace macho {
     typedef struct architecture_info {

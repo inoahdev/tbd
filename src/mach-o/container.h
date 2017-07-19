@@ -6,6 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
+
 #include <functional>
 #include "swap.h"
 
@@ -30,15 +32,15 @@ namespace macho {
         }
 
         inline const FILE *file() const noexcept { return file_; }
-        inline const struct mach_header &header() const noexcept { return header_; }
+        inline const header &header() const noexcept { return header_; }
 
         inline const bool &should_swap() const noexcept { return should_swap_; }
 
         inline const long &base() const noexcept { return base_; }
         inline const size_t &size() const noexcept { return size_; }
 
-        inline const bool is_32_bit() const noexcept { return header_.magic == MH_MAGIC || header_.magic == MH_CIGAM; }
-        inline const bool is_64_bit() const noexcept { return header_.magic == MH_MAGIC_64 || header_.magic == MH_CIGAM_64; }
+        inline const bool is_32_bit() const noexcept { return magic_is_32_bit(header_.magic); }
+        inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header_.magic); }
 
     private:
         FILE *file_;
@@ -46,7 +48,7 @@ namespace macho {
         long base_ = 0;
         size_t size_ = 0;
 
-        struct mach_header header_;
+        struct header header_;
 
         char *cached_ = nullptr;
         char *string_table_ = nullptr;

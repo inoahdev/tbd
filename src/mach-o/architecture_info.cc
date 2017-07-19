@@ -43,7 +43,7 @@ namespace macho {
         { cputype::i386, subtype::pentIIm3, "pentIIm3" },
         { cputype::i386, subtype::pentIIm5, "pentIIm5" },
         { cputype::i386, subtype::pentium4, "pentium4" },
-        { cputype::i386, subtype::x86_64h, "x86_64h"   },
+        { cputype::i386, subtype::x86_64h,  "x86_64h"  },
 
         { cputype::i860, subtype::i860, "i860" },
 

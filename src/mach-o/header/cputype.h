@@ -1,11 +1,12 @@
 //
-//  src/mach-o/cputype.h
+//  src/mach-o/header/cputype.h
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
 #include <cstdint>
 
 namespace macho {
