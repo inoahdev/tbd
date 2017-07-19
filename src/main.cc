@@ -464,12 +464,11 @@ int main(int argc, const char *argv[]) {
                         auto path = std::string();
                         auto current_directory = retrieve_current_directory();
 
-                        auto argument_length = strlen(argument);
-                        auto current_directory_length = strlen(current_directory);
+                        const auto argument_length = strlen(argument);
+                        const auto current_directory_length = strlen(current_directory);
+                        const auto path_length = argument_length + current_directory_length;
 
-                        auto path_length = argument_length + current_directory_length;
                         path.reserve(path_length);
-
                         path.append(current_directory);
                         path.append(argument);
 
