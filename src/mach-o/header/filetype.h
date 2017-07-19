@@ -10,7 +10,7 @@
 
 namespace macho {
     enum class filetype {
-        object,
+        object = 1,
         executable,
         fvmlib,
         core,
