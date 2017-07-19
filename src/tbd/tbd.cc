@@ -303,7 +303,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         }
 
         const auto &macho_container_base = macho_container.base();
-        const auto macho_container_is_big_endian = macho_container.magic_is_big_endian();
+        const auto macho_container_is_big_endian = macho_container.is_big_endian();
 
         // Use local variables of current_version and compatibility_version and
         // and installation_name to make sure details are the same across containers

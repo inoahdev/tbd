@@ -45,7 +45,7 @@ namespace macho {
         auto &header = header_;
         auto &magic = header.magic;
 
-        const auto magic_is_big_endian = this->magic_is_big_endian();
+        const auto is_big_endian = this->is_big_endian();
         const auto position = ftell(file);
 
         fseek(file, base, SEEK_SET);
@@ -55,7 +55,7 @@ namespace macho {
         if (macho_file_is_regular) {
             fread(&header.cputype, sizeof(header) - sizeof(uint32_t), 1, file);
 
-            if (magic_is_big_endian) {
+            if (is_big_endian) {
                 swap_mach_header(&header);
             }
         } else {
@@ -77,7 +77,7 @@ namespace macho {
         const auto &file = file_;
 
         const auto &header = header_;
-        const auto magic_is_big_endian = this->magic_is_big_endian();
+        const auto is_big_endian = this->is_big_endian();
 
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
@@ -108,7 +108,7 @@ namespace macho {
         auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached[cached_index];
-            if (magic_is_big_endian && created_cache) {
+            if (is_big_endian && created_cache) {
                 swap_load_command(load_cmd);
             }
 
@@ -151,7 +151,7 @@ namespace macho {
         auto &base = base_;
         auto &file = file_;
 
-        const auto magic_is_big_endian = this->magic_is_big_endian();
+        const auto is_big_endian = this->is_big_endian();
         const auto position = ftell(file);
 
         struct symtab_command *symtab_command = nullptr;
@@ -161,7 +161,7 @@ namespace macho {
             }
 
             symtab_command = (struct symtab_command *)load_cmd;
-            if (magic_is_big_endian) {
+            if (is_big_endian) {
                 swap_symtab_command(symtab_command);
             }
 
@@ -227,7 +227,7 @@ namespace macho {
             const auto symbol_table = new struct nlist_64[symbol_table_count];
             fread(symbol_table, symbol_table_size, 1, file);
 
-            if (magic_is_big_endian) {
+            if (is_big_endian) {
                 swap_nlist_64(symbol_table, symbol_table_count);
             }
 
@@ -265,7 +265,7 @@ namespace macho {
             const auto symbol_table = new struct nlist[symbol_table_count];
             fread(symbol_table, symbol_table_size, 1, file);
 
-            if (magic_is_big_endian) {
+            if (is_big_endian) {
                 swap_nlist(symbol_table, symbol_table_count);
             }
 
