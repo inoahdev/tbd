@@ -109,22 +109,22 @@ namespace macho {
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached[cached_index];
             const auto &cmdsize = load_cmd->cmdsize;
-            
+
             if (created_cache) {
                 if (is_big_endian) {
                     swap_load_command(load_cmd);
                 }
-                
+
                 if (cmdsize < sizeof(struct load_command)) {
                     fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is too small to be valid\n", i, base);
                     exit(1);
                 }
-                
+
                 if (cmdsize >= sizeofcmds) {
                     fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is larger than/or equal to entire area allocated for load-commands\n", i, base);
                     exit(1);
                 }
-                
+
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
                     fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) goes past end of area allocated for load-commands\n", i, base);
@@ -237,7 +237,7 @@ namespace macho {
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = symbol_table[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
-                
+
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
                     fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table of mach-o container (at base 0x%.8lX)\n", i, base);
                     exit(1);
@@ -245,7 +245,7 @@ namespace macho {
 
                 const auto symbol_table_string_table_string = &string_table[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry, symbol_table_string_table_string);
-                
+
                 if (!result) {
                     break;
                 }
@@ -275,11 +275,11 @@ namespace macho {
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = symbol_table[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
-                
+
                 if (i == 10956) {
                     printf("");
                 }
-                
+
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
                     fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table of mach-o container (at base 0x%.8lX)\n", i, base);
                     exit(1);
