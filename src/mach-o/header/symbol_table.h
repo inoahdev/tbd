@@ -12,7 +12,9 @@
 namespace macho {
     struct nlist {
         union {
+#ifndef __LP64__
             char *n_name;
+#endif
             uint32_t n_strx;
         } n_un;
 
