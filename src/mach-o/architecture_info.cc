@@ -86,12 +86,11 @@ namespace macho {
     const architecture_info *architecture_info_from_name(const char *name) {
         auto architecture_info = architecture_info_table;
         while (architecture_info->name != nullptr) {
-            if (architecture_info->name != name && strcmp(architecture_info->name, name) != 0) {
-                architecture_info++;
-                continue;
+            if (architecture_info->name == name || strcmp(architecture_info->name, name) == 0) {
+                return architecture_info;
             }
 
-            return architecture_info;
+            architecture_info++;
         }
 
         return nullptr;
@@ -100,42 +99,13 @@ namespace macho {
     const architecture_info *architecture_info_from_cputype(cputype cputype, subtype subtype) {
         auto architecture_info = architecture_info_table;
         while (architecture_info->cputype != cputype::none) {
-            if (architecture_info->cputype != cputype || architecture_info->subtype != subtype) {
-                architecture_info++;
-                continue;
+            if (architecture_info->cputype == cputype || architecture_info->subtype == subtype) {
+                return architecture_info;
             }
 
-            return architecture_info;
+            architecture_info++;
         }
 
         return nullptr;
-    }
-
-    const char *name_from_architecture(cputype cputype, subtype subtype) {
-        auto architecture_info = architecture_info_table;
-        while (architecture_info->cputype != cputype::none) {
-            if (architecture_info->cputype != cputype || architecture_info->subtype != subtype) {
-                architecture_info++;
-                continue;
-            }
-
-            break;
-        }
-
-        return architecture_info->name;
-    }
-
-    bool is_valid_architecture_name(const char *architecture_name) {
-        auto architecture_info = architecture_info_table;
-        while (architecture_info->name != nullptr) {
-            if (architecture_info->name != architecture_name && strcmp(architecture_info->name, architecture_name) != 0) {
-                architecture_info++;
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
     }
 }
