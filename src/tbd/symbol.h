@@ -8,9 +8,7 @@
 
 #pragma once
 
-#include <mach-o/arch.h>
 #include <string>
-
 #include "flags.h"
 
 class symbol {
