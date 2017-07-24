@@ -276,10 +276,6 @@ namespace macho {
                 const auto &symbol_table_entry = symbol_table[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
-                if (i == 10956) {
-                    printf("");
-                }
-
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
                     fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string past end of string-table of mach-o container (at base 0x%.8lX)\n", i, base);
                     exit(1);
