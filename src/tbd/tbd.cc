@@ -57,42 +57,11 @@ enum tbd::version tbd::string_to_version(const char *version) noexcept {
 tbd::tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const enum tbd::platform &platform, const enum tbd::version &version, const std::vector<const macho::architecture_info *> &architecture_overrides)
 : macho_files_(macho_files), output_files_(output_files), platform_(platform), version_(version), architectures_(architecture_overrides) {}
 
-void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &symbols, symbols_type type) const noexcept {
+void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &symbols, enum symbol::type type) const noexcept {
     if (symbols.empty()) {
         return;
     }
-
-    const auto is_valid_symbol = [](const symbol &symbol, symbols_type type) {
-        const auto symbols_string = symbol.string();
-
-        switch (type) {
-            case symbols_type::reexports:
-                return true;
-
-            case symbols_type::symbols: {
-                const auto symbols_string_is_objc_class = strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, ".objc_class_name", 16) == 0;
-                const auto symbols_string_is_objc_metaclass = symbols_string_is_objc_class ? false : strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
-                const auto symbols_string_is_objc_ivar = symbols_string_is_objc_class || symbols_string_is_objc_metaclass ? false : strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
-
-                const auto symbol_is_weak = symbol.weak();
-
-                return !symbols_string_is_objc_class && !symbols_string_is_objc_metaclass && !symbols_string_is_objc_ivar && !symbol_is_weak;
-                break;
-            }
-
-            case symbols_type::weak_symbols:
-                return symbol.weak();
-
-            case symbols_type::objc_classes:
-                return strncmp(symbols_string, "_OBJC_CLASS_$", 13) == 0 || strncmp(symbols_string, ".objc_class_name", 16) == 0 || strncmp(symbols_string, "_OBJC_METACLASS_$", 17) == 0;
-
-            case symbols_type::objc_ivars:
-                return strncmp(symbols_string, "_OBJC_IVAR_$", 12) == 0;
-        }
-
-        return false;
-    };
-
+    
     // Find the first valid symbol (as determined by flags and symbol-type)
     // as printing a symbol-list requires a special format-string being print
     // for the first string, and a different one from the rest.
@@ -104,9 +73,7 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
 
     for (; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
-        const auto symbol_is_valid = is_valid_symbol(symbol, type);
-
-        if (!symbol_is_valid) {
+        if (symbol.type() != type) {
             continue;
         }
 
@@ -127,13 +94,13 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
         return;
     }
 
-    const auto parse_symbol_string = [](const char *symbol_string, symbols_type type) {
+    const auto parse_symbol_string = [](const char *symbol_string, enum symbol::type type) {
         switch (type) {
-            case symbols_type::reexports:
-            case symbols_type::symbols:
+            case symbol::type::reexports:
+            case symbol::type::symbols:
                 return symbol_string;
 
-            case symbols_type::objc_classes: {
+            case symbol::type::objc_classes: {
                 if (strncmp(symbol_string, "_OBJC_CLASS_$", 13) == 0) {
                     return &symbol_string[13];
                 }
@@ -149,7 +116,7 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
                 return symbol_string;
             }
 
-            case symbols_type::objc_ivars:
+            case symbol::type::objc_ivars:
                 return &symbol_string[12];
 
             default:
@@ -160,23 +127,23 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
     };
 
     switch (type) {
-        case symbols_type::reexports:
+        case symbol::type::reexports:
             fprintf(output, "%-4sre-exports:%7s", "", "");
             break;
 
-        case symbols_type::symbols:
+        case symbol::type::symbols:
             fprintf(output, "%-4ssymbols:%10s", "", "");
             break;
 
-        case symbols_type::weak_symbols:
+        case symbol::type::weak_symbols:
             fprintf(output, "%-4sweak-def-symbols: ", "");
             break;
 
-        case symbols_type::objc_classes:
+        case symbol::type::objc_classes:
             fprintf(output, "%-4sobjc-classes:%5s", "", "");
             break;
 
-        case symbols_type::objc_ivars:
+        case symbol::type::objc_ivars:
             fprintf(output, "%-4sobjc-ivars:%7s", "", "");
             break;
     }
@@ -185,15 +152,23 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
 
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
-
-    fprintf(output, "[ %s", parsed_symbols_begin_string);
-
+    
+    fputs("[ ", output);
+    
+    const auto symbol_string_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
+    if (symbol_string_needs_quotes) {
+        fputc('\'', output);
+    }
+    
+    fputs(parsed_symbols_begin_string, output);
+    if (symbol_string_needs_quotes) {
+        fputc('\'', output);
+    }
+    
     auto current_line_length = strlen(parsed_symbols_begin_string);
     for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
-        const auto symbol_is_valid = is_valid_symbol(symbol, type);
-
-        if (!symbol_is_valid) {
+        if (symbol.type() != type) {
             continue;
         }
 
@@ -368,7 +343,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     if (reexports_iter != reexports.end()) {
                         reexports_iter->add_architecture(macho_container_index);
                     } else {
-                        reexports.emplace_back(reexport_dylib_string, false, macho_file_containers_size);
+                        reexports.emplace_back(reexport_dylib_string, false, macho_file_containers_size, symbol::type::reexports);
                         reexports.back().add_architecture(macho_container_index);
                     }
 
@@ -444,18 +419,54 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             fprintf(stderr, "Macho-file with architecture (%s) does not have a uuid command\n", macho_container_architecture_info->name);
             exit(1);
         }
+        
+        const auto get_parsed_symbol_string = [](const char *string, bool is_weak, enum symbol::type *type) {
+            if (is_weak) {
+                *type = symbol::type::weak_symbols;
+                return string;
+            }
+            
+            if (strncmp(string, "_OBJC_CLASS_$", 13) == 0) {
+                *type = symbol::type::objc_classes;
+                return &string[13];
+            }
+            
+            if (strncmp(string, ".objc_class_name", 16) == 0) {
+                *type = symbol::type::objc_classes;
+                return &string[16];
+            }
+            
+            if (strncmp(string, "_OBJC_METACLASS_$", 17) == 0) {
+                *type = symbol::type::objc_classes;
+                return &string[17];
+            }
+            
+            if (strncmp(string, "_OBJC_IVAR_$", 12) == 0) {
+                *type = symbol::type::objc_classes;
+                return &string[12];
+            }
+            
+            *type = symbol::type::symbols;
+            return string;
+        };
 
         macho_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
             if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section || (symbol_table_entry_type & macho::symbol_table::flags::external) != macho::symbol_table::flags::external) {
                 return true;
             }
-
-            const auto symbols_iter = std::find(symbols.begin(), symbols.end(), symbol_string);
+            
+            enum symbol::type symbol_type;
+            
+            const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
+            const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
+            
+            const auto symbols_iter = std::find(symbols.begin(), symbols.end(), parsed_symbol_string);
+            
             if (symbols_iter != symbols.end()) {
                 symbols_iter->add_architecture(macho_container_index);
             } else {
-                symbols.emplace_back(symbol_string, symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition, macho_file_containers_size);
+                symbols.emplace_back(parsed_symbol_string, symbol_is_weak, macho_file_containers_size, symbol_type);
                 symbols.back().add_architecture(macho_container_index);
             }
 
@@ -498,7 +509,8 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         for (const auto &symbol : symbols) {
             const auto &symbol_flags = symbol.flags();
             const auto group_iter = std::find(groups.begin(), groups.end(), symbol_flags);
-
+                            
+            
             if (group_iter != groups.end()) {
                 group_iter->increment_symbol_count();
             } else {
@@ -545,7 +557,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
         const auto &architectures_end = architectures.end();
         const auto &architectures_back = architectures_end - 1;
-
+        
         for (auto architectures_begin = architectures.begin(); architectures_begin < architectures_end; architectures_begin++, uuids_begin++) {
             const auto &architecture_arch_info = *architectures_begin;
             const auto &uuid = *uuids_begin;
@@ -597,11 +609,11 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         const auto &group = groups.front();
         const auto &group_flags = group.flags();
 
-        print_symbols(output, group_flags, reexports, symbols_type::reexports);
-        print_symbols(output, group_flags, symbols, symbols_type::symbols);
-        print_symbols(output, group_flags, symbols, symbols_type::weak_symbols);
-        print_symbols(output, group_flags, symbols, symbols_type::objc_classes);
-        print_symbols(output, group_flags, symbols, symbols_type::objc_ivars);
+        print_symbols(output, group_flags, reexports, symbol::type::reexports);
+        print_symbols(output, group_flags, symbols, symbol::type::symbols);
+        print_symbols(output, group_flags, symbols, symbol::type::weak_symbols);
+        print_symbols(output, group_flags, symbols, symbol::type::objc_classes);
+        print_symbols(output, group_flags, symbols, symbol::type::objc_ivars);
 
     } else {
         for (auto &group : groups) {
@@ -629,11 +641,11 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
             fputs(" ]\n", output);
 
-            print_symbols(output, group_flags, reexports, symbols_type::reexports);
-            print_symbols(output, group_flags, symbols, symbols_type::symbols);
-            print_symbols(output, group_flags, symbols, symbols_type::weak_symbols);
-            print_symbols(output, group_flags, symbols, symbols_type::objc_classes);
-            print_symbols(output, group_flags, symbols, symbols_type::objc_ivars);
+            print_symbols(output, group_flags, reexports, symbol::type::reexports);
+            print_symbols(output, group_flags, symbols, symbol::type::symbols);
+            print_symbols(output, group_flags, symbols, symbol::type::weak_symbols);
+            print_symbols(output, group_flags, symbols, symbol::type::objc_classes);
+            print_symbols(output, group_flags, symbols, symbol::type::objc_ivars);
         }
     }
 

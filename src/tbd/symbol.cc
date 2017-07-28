@@ -9,8 +9,8 @@
 
 #include "symbol.h"
 
-symbol::symbol(const char *string, bool weak, int flags_length) noexcept
-: string_(string), weak_(weak), flags_(flags_length) {}
+symbol::symbol(const char *string, bool weak, int flags_length, enum type type) noexcept
+: string_(string), weak_(weak), flags_(flags_length), type_(type) {}
 
 void symbol::add_architecture(int number) noexcept {
     flags_.cast(number, true);
