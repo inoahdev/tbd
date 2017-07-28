@@ -1062,7 +1062,7 @@ int main(int argc, const char *argv[]) {
         // to mach-o library files where version was not set locally
 
         auto tbd_version = tbd.version();
-        if (tbd_version == (enum tbd::version)-1) {
+        if (tbd_version == (enum tbd::version)0) {
             tbd_version = version;
             tbd.set_version(version);
         }

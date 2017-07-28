@@ -61,7 +61,7 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
     if (symbols.empty()) {
         return;
     }
-    
+
     // Find the first valid symbol (as determined by flags and symbol-type)
     // as printing a symbol-list requires a special format-string being print
     // for the first string, and a different one from the rest.
@@ -152,19 +152,19 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
 
     auto symbols_begin_string = symbols_begin->string();
     auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
-    
+
     fputs("[ ", output);
-    
+
     const auto symbol_string_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
     if (symbol_string_needs_quotes) {
         fputc('\'', output);
     }
-    
+
     fputs(parsed_symbols_begin_string, output);
     if (symbol_string_needs_quotes) {
         fputc('\'', output);
     }
-    
+
     auto current_line_length = strlen(parsed_symbols_begin_string);
     for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
@@ -419,33 +419,33 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             fprintf(stderr, "Macho-file with architecture (%s) does not have a uuid command\n", macho_container_architecture_info->name);
             exit(1);
         }
-        
+
         const auto get_parsed_symbol_string = [](const char *string, bool is_weak, enum symbol::type *type) {
             if (is_weak) {
                 *type = symbol::type::weak_symbols;
                 return string;
             }
-            
+
             if (strncmp(string, "_OBJC_CLASS_$", 13) == 0) {
                 *type = symbol::type::objc_classes;
                 return &string[13];
             }
-            
+
             if (strncmp(string, ".objc_class_name", 16) == 0) {
                 *type = symbol::type::objc_classes;
                 return &string[16];
             }
-            
+
             if (strncmp(string, "_OBJC_METACLASS_$", 17) == 0) {
                 *type = symbol::type::objc_classes;
                 return &string[17];
             }
-            
+
             if (strncmp(string, "_OBJC_IVAR_$", 12) == 0) {
                 *type = symbol::type::objc_classes;
                 return &string[12];
             }
-            
+
             *type = symbol::type::symbols;
             return string;
         };
@@ -455,14 +455,14 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section || (symbol_table_entry_type & macho::symbol_table::flags::external) != macho::symbol_table::flags::external) {
                 return true;
             }
-            
+
             enum symbol::type symbol_type;
-            
+
             const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
             const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
-            
+
             const auto symbols_iter = std::find(symbols.begin(), symbols.end(), parsed_symbol_string);
-            
+
             if (symbols_iter != symbols.end()) {
                 symbols_iter->add_architecture(macho_container_index);
             } else {
@@ -509,8 +509,8 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         for (const auto &symbol : symbols) {
             const auto &symbol_flags = symbol.flags();
             const auto group_iter = std::find(groups.begin(), groups.end(), symbol_flags);
-                            
-            
+
+
             if (group_iter != groups.end()) {
                 group_iter->increment_symbol_count();
             } else {
@@ -557,7 +557,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
         const auto &architectures_end = architectures.end();
         const auto &architectures_back = architectures_end - 1;
-        
+
         for (auto architectures_begin = architectures.begin(); architectures_begin < architectures_end; architectures_begin++, uuids_begin++) {
             const auto &architecture_arch_info = *architectures_begin;
             const auto &uuid = *uuids_begin;

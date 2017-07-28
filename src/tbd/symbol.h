@@ -20,7 +20,7 @@ public:
         objc_classes,
         objc_ivars
     };
-    
+
     explicit symbol(const char *string, bool weak, int flags_length, enum type type) noexcept;
     void add_architecture(int number) noexcept;
 
@@ -29,7 +29,7 @@ public:
 
     inline const flags &flags() const noexcept { return flags_; }
     inline const enum type type() const noexcept { return type_; };
-    
+
     inline const bool operator==(const char *string) const noexcept { return strcmp(string_, string) == 0; }
     inline const bool operator==(const symbol &symbol) const noexcept { return strcmp(string_, symbol.string_) == 0; }
 
@@ -45,4 +45,3 @@ private:
 };
 
 inline bool operator==(const enum symbol::type &lhs, const enum symbol::type &rhs) { return (int)lhs == (int)rhs; }
-
