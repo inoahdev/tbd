@@ -94,38 +94,6 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
         return;
     }
 
-    const auto parse_symbol_string = [](const char *symbol_string, enum symbol::type type) {
-        switch (type) {
-            case symbol::type::reexports:
-            case symbol::type::symbols:
-                return symbol_string;
-
-            case symbol::type::objc_classes: {
-                if (strncmp(symbol_string, "_OBJC_CLASS_$", 13) == 0) {
-                    return &symbol_string[13];
-                }
-
-                if (strncmp(symbol_string, ".objc_class_name", 16) == 0) {
-                    return &symbol_string[16];
-                }
-
-                if (strncmp(symbol_string, "_OBJC_METACLASS_$", 17) == 0) {
-                    return &symbol_string[17];
-                }
-
-                return symbol_string;
-            }
-
-            case symbol::type::objc_ivars:
-                return &symbol_string[12];
-
-            default:
-                break;
-        }
-
-        return symbol_string;
-    };
-
     switch (type) {
         case symbol::type::reexports:
             fprintf(output, "%-4sre-exports:%7s", "", "");
@@ -149,9 +117,7 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
     }
 
     const auto line_length_max = 105;
-
     auto symbols_begin_string = symbols_begin->string();
-    auto parsed_symbols_begin_string = parse_symbol_string(symbols_begin_string, type);
 
     fputs("[ ", output);
 
@@ -160,12 +126,12 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
         fputc('\'', output);
     }
 
-    fputs(parsed_symbols_begin_string, output);
+    fputs(symbols_begin_string, output);
     if (symbol_string_needs_quotes) {
         fputc('\'', output);
     }
 
-    auto current_line_length = strlen(parsed_symbols_begin_string);
+    auto current_line_length = strlen(symbols_begin_string);
     for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
         const auto &symbol = *symbols_begin;
         if (symbol.type() != type) {
@@ -185,10 +151,9 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
         const auto symbol_string = symbol.string();
         const auto symbol_string_needs_quotes = strncmp(symbol_string, "$ld", 3) == 0;
 
-        auto symbol_string_to_print = parse_symbol_string(symbol_string, type);
-        const auto symbol_string_to_print_length = strlen(symbol_string_to_print);
+        const auto symbol_string_length = strlen(symbol_string);
 
-        auto new_line_length = symbol_string_to_print_length + 2;
+        auto new_line_length = symbol_string_length + 2;
         if (symbol_string_needs_quotes) {
             new_line_length += 2;
         }
@@ -212,7 +177,7 @@ void tbd::print_symbols(FILE *output, const flags &flags, std::vector<symbol> &s
             fputc('\'', output);
         }
 
-        fputs(symbol_string_to_print, output);
+        fputs(symbol_string, output);
 
         if (symbol_string_needs_quotes) {
             fputc('\'', output);
