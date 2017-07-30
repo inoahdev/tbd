@@ -6,6 +6,9 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "header/symbol_table.h"
 #include "container.h"
 
