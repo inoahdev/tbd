@@ -114,10 +114,10 @@ namespace macho {
         
         for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
-            auto load_command = *load_cmd;
-
-            const auto &cmdsize = load_command.cmdsize;
+            const auto &cmdsize = load_cmd->cmdsize;
+            
             if (created_load_commands_cache) {
+                auto load_command = *load_cmd;
                 if (is_big_endian) {
                     swap_load_command(&load_command);
                 }
@@ -141,10 +141,14 @@ namespace macho {
                     fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) takes up all of the remaining space allocated for load-commands\n", i, base);
                     exit(1);
                 }
-            }
-
-            if (should_callback) {
-                should_callback = callback(&load_command, load_cmd);
+                
+                if (should_callback) {
+                    should_callback = callback(&load_command, load_cmd);
+                }
+            } else {
+                if (should_callback) {
+                    should_callback = callback(load_cmd, load_cmd);
+                }
             }
 
             if (!should_callback) {
