@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
+
 #include "swap.h"
 
 namespace macho {
@@ -50,8 +52,11 @@ namespace macho {
 
         struct header header_;
 
-        char *cached_ = nullptr;
-        char *string_table_ = nullptr;
+        uint8_t *cached_load_commands_ = nullptr;
+        uint8_t *cached_symbol_table_ = nullptr;
+        
+        struct symtab_command *symbol_table_ = nullptr;
+        char *cached_string_table_ = nullptr;
 
         void validate();
     };
