@@ -19,7 +19,7 @@ namespace macho {
 
         ~container();
 
-        void iterate_load_commands(const std::function<bool(const struct load_command *load_cmd)> &callback);
+        void iterate_load_commands(const std::function<bool(const struct load_command *, const struct load_command *)> &callback);
         void iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback);
 
         inline uint32_t &swap_value(uint32_t &value) const noexcept {

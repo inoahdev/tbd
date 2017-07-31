@@ -256,7 +256,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
         auto added_uuid = false;
 
-        macho_container.iterate_load_commands([&](const macho::load_command *load_cmd) {
+        macho_container.iterate_load_commands([&](const macho::load_command *load_cmd, const macho::load_command *load_command) {
             switch (load_cmd->cmd) {
                 case macho::load_commands::identification_dylib: {
                     if (local_installation_name != nullptr) {
@@ -269,19 +269,19 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                         exit(1);
                     }
 
-                    auto id_dylib_command = (macho::dylib_command *)load_cmd;
+                    auto id_dylib_command = (macho::dylib_command *)load_command;
                     if (macho_container_is_big_endian) {
                         macho::swap_dylib_command(id_dylib_command);
                     }
 
                     const auto &id_dylib_installation_name_string_index = id_dylib_command->name.offset;
 
-                    if (id_dylib_installation_name_string_index >= load_cmd->cmdsize) {
+                    if (id_dylib_installation_name_string_index >= id_dylib_command->cmdsize) {
                         fputs("Library identification load-command has an invalid identification-string position\n", stderr);
                         exit(1);
                     }
 
-                    const auto &id_dylib_installation_name_string = &((char *)load_cmd)[id_dylib_installation_name_string_index];
+                    const auto &id_dylib_installation_name_string = &((char *)id_dylib_command)[id_dylib_installation_name_string_index];
 
                     local_installation_name = id_dylib_installation_name_string;
                     local_current_version = id_dylib_command->current_version;
@@ -291,18 +291,18 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                 }
 
                 case macho::load_commands::reexport_dylib: {
-                    auto reexport_dylib_command = (macho::dylib_command *)load_cmd;
+                    auto reexport_dylib_command = (macho::dylib_command *)load_command;
                     if (macho_container_is_big_endian) {
                         macho::swap_dylib_command(reexport_dylib_command);
                     }
 
                     const auto &reexport_dylib_string_index = reexport_dylib_command->name.offset;
-                    if (reexport_dylib_string_index >= load_cmd->cmdsize) {
+                    if (reexport_dylib_string_index >= reexport_dylib_command->cmdsize) {
                         fputs("Re-export dylib load-command has an invalid identification-string position\n", stderr);
                         exit(1);
                     }
 
-                    const auto &reexport_dylib_string = &((char *)load_cmd)[reexport_dylib_string_index];
+                    const auto &reexport_dylib_string = &((char *)reexport_dylib_command)[reexport_dylib_string_index];
                     const auto reexports_iter = std::find(reexports.begin(), reexports.end(), reexport_dylib_string);
 
                     if (reexports_iter != reexports.end()) {
@@ -330,7 +330,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                         exit(1);
                     }
 
-                    const auto &uuid = ((macho::uuid_command *)load_cmd)->uuid;
+                    const auto &uuid = ((macho::uuid_command *)load_command)->uuid;
                     const auto uuids_iter = std::find_if(uuids.begin(), uuids.end(), [&](uint8_t *rhs) {
                         return memcmp(&uuid, rhs, 16) == 0;
                     });

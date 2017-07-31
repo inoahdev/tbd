@@ -75,7 +75,7 @@ namespace macho {
         fseek(file, position, SEEK_SET);
     }
 
-    void container::iterate_load_commands(const std::function<bool (const struct load_command *)> &callback) {
+    void container::iterate_load_commands(const std::function<bool (const struct load_command *, const struct load_command *)> &callback) {
         const auto &base = base_;
         const auto &file = file_;
 
@@ -111,11 +111,12 @@ namespace macho {
         auto should_callback = true;
         for (auto i = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached[cached_index];
-            const auto &cmdsize = load_cmd->cmdsize;
+            auto load_command = *load_cmd;
 
+            const auto &cmdsize = load_command.cmdsize;
             if (created_cache) {
                 if (is_big_endian) {
-                    swap_load_command(load_cmd);
+                    swap_load_command(&load_command);
                 }
 
                 if (cmdsize < sizeof(struct load_command)) {
@@ -139,7 +140,7 @@ namespace macho {
             }
 
             if (should_callback) {
-                auto result = callback(load_cmd);
+                auto result = callback(&load_command, load_cmd);
                 if (!result) {
                     should_callback = false;
                 }
@@ -161,12 +162,12 @@ namespace macho {
         const auto position = ftell(file);
 
         struct symtab_command *symtab_command = nullptr;
-        iterate_load_commands([&](const struct load_command *load_cmd) {
+        iterate_load_commands([&](const struct load_command *load_cmd, const struct load_command *load_command) {
             if (load_cmd->cmd != load_commands::symbol_table) {
                 return true;
             }
 
-            symtab_command = (struct symtab_command *)load_cmd;
+            symtab_command = (struct symtab_command *)load_command;
             if (is_big_endian) {
                 swap_symtab_command(symtab_command);
             }
