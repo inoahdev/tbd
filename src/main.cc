@@ -27,19 +27,21 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
     auto directory_path_length = directory_path.length();
 
     while (directory_entry != nullptr) {
+        const auto directory_entry_name = directory_entry->d_name;
+        const auto directory_entry_name_length = strlen(directory_entry_name);
+
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory) {
             // Ignore the directory-entry for the directory itself, and that of its
             // superior in the directory hierarchy.
 
-            if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
-                strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
+            if (strcmp(directory_entry_name, ".") == 0 || strcmp(directory_entry_name, "..") == 0) {
                 directory_entry = readdir(directory);
                 continue;
             }
 
             auto sub_directory_path = std::string();
-            auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
+            auto sub_directory_path_length = directory_path_length + directory_entry_name_length + 1;
 
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
@@ -50,7 +52,7 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
             // needing to be done if a sub-directory is found and needs to be recursed.
 
             sub_directory_path.append(directory_path);
-            sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
+            sub_directory_path.append(directory_entry_name, directory_entry_name_length);
             sub_directory_path.append(1, '/');
 
             const auto sub_directory = opendir(sub_directory_path.data());
@@ -66,16 +68,13 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
-                // Only append the valid part of the directory_entry->d_name buffer,
-                // which is directory_entry->d_namlen long.
-
                 auto directory_entry_path = std::string();
-                auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
+                auto directory_entry_path_length = directory_path_length + directory_entry_name_length;
 
                 directory_entry_path.reserve(directory_entry_path_length);
 
                 directory_entry_path.append(directory_path);
-                directory_entry_path.append(directory_entry->d_name, directory_entry->d_namlen);
+                directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                 const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
                 if (directory_entry_path_is_valid_library) {
@@ -100,19 +99,21 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
 
     auto directory_entry = readdir(directory);
     while (directory_entry != nullptr) {
+        const auto directory_entry_name = directory_entry->d_name;
+        const auto directory_entry_name_length = strlen(directory_entry_name);
+
         const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
         if (directory_entry_is_directory && should_recurse_all_of_directory_entry) {
             // Ignore the directory-entry for the directory itself, and that of its
             // superior in the directory hierarchy.
 
-            if (strncmp(directory_entry->d_name, ".", directory_entry->d_namlen) == 0 ||
-                strncmp(directory_entry->d_name, "..", directory_entry->d_namlen) == 0) {
+            if (strcmp(directory_entry_name, ".") == 0 || strcmp(directory_entry_name, "..") == 0) {
                 directory_entry = readdir(directory);
                 continue;
             }
 
             auto sub_directory_path = std::string();
-            auto sub_directory_path_length = directory_path_length + directory_entry->d_namlen + 1;
+            auto sub_directory_path_length = directory_path_length + directory_entry_name_length + 1;
 
             // Avoid re-allocations by calculating new total-length, and reserving space
             // accordingly.
@@ -123,7 +124,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
             // needing to be done if a sub-directory is found and needs to be recursed.
 
             sub_directory_path.append(directory_path);
-            sub_directory_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
+            sub_directory_path.append(directory_entry_name, directory_entry_name_length);
             sub_directory_path.append(1, '/');
 
             const auto sub_directory = opendir(sub_directory_path.data());
@@ -139,16 +140,13 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
         } else {
             const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
             if (directory_entry_is_regular_file) {
-                // Only append the valid part of the directory_entry->d_name buffer,
-                // which is directory_entry->d_namlen long.
-
                 auto directory_entry_path = std::string();
-                auto directory_entry_path_length = directory_path_length + directory_entry->d_namlen;
+                auto directory_entry_path_length = directory_path_length + directory_entry_name_length;
 
                 directory_entry_path.reserve(directory_entry_path_length);
 
                 directory_entry_path.append(directory_path);
-                directory_entry_path.append(directory_entry->d_name, &directory_entry->d_name[directory_entry->d_namlen]);
+                directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                 const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
                 if (directory_entry_path_is_valid_library) {

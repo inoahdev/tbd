@@ -6,12 +6,12 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <stdint.h>
-
-#include <cstdio>
-#include <cstdlib>
-
 #include <cerrno>
+
+#include <cstdint>
+#include <cstdio>
+
+#include <cstdlib>
 #include <cstring>
 
 #include "flags.h"

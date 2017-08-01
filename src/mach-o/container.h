@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
+
 #include "swap.h"
 
 namespace macho {
@@ -19,7 +21,7 @@ namespace macho {
 
         ~container();
 
-        void iterate_load_commands(const std::function<bool(const struct load_command *load_cmd)> &callback);
+        void iterate_load_commands(const std::function<bool(const struct load_command *, const struct load_command *)> &callback);
         void iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback);
 
         inline uint32_t &swap_value(uint32_t &value) const noexcept {
@@ -50,8 +52,11 @@ namespace macho {
 
         struct header header_;
 
-        char *cached_ = nullptr;
-        char *string_table_ = nullptr;
+        uint8_t *cached_load_commands_ = nullptr;
+        uint8_t *cached_symbol_table_ = nullptr;
+        
+        struct symtab_command *symbol_table_ = nullptr;
+        char *cached_string_table_ = nullptr;
 
         void validate();
     };
