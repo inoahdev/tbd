@@ -475,7 +475,6 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             const auto &symbol_flags = symbol.flags();
             const auto group_iter = std::find(groups.begin(), groups.end(), symbol_flags);
 
-
             if (group_iter != groups.end()) {
                 group_iter->increment_symbol_count();
             } else {
