@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/symbol_table.h
+//  src/mach-o/headers/symbol_table.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.

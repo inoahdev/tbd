@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/load_commands.h
+//  src/mach-o/headers/load_commands.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.
@@ -61,9 +61,12 @@ namespace macho {
         linker_option,
         linker_optimization_hint,
         version_min_tvos,
-        version_min_watchos
+        version_min_watchos,
+        
+        note,
+        build_version,
     };
-
+        
     union lc_str {
         uint32_t offset;
     };
@@ -258,8 +261,6 @@ namespace macho {
     };
 
     struct linker_option_command {
-        uint32_t cmd;
-        uint32_t cmdsize;
         uint32_t count;
     };
 
@@ -276,15 +277,24 @@ namespace macho {
     };
 
     struct entry_point_command : load_command {
-        uint32_t cmd;
-        uint32_t cmdsize;
         uint64_t entryoff;
         uint64_t stacksize;
     };
 
     struct source_version_command : load_command {
-        uint32_t cmd;
-        uint32_t cmdsize;
         uint64_t version;
+    };
+    
+    struct note_command : load_command {
+        char data_owner[16];
+        uint64_t offset;
+        uint64_t size;
+    };
+    
+    struct build_version_command : load_command {
+        uint32_t platform;
+        uint32_t minos;
+        uint32_t sdk;
+        uint32_t ntools;
     };
 }

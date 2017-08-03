@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/architecture.h
+//  src/mach-o/headers/architecture.h
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.

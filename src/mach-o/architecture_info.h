@@ -7,7 +7,7 @@
 //
 
 #pragma once
-#include "header/cputype.h"
+#include "headers/cputype.h"
 
 namespace macho {
     typedef struct architecture_info {

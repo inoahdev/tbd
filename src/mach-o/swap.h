@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "header/architecture.h"
-#include "header/header.h"
-#include "header/load_commands.h"
-#include "header/symbol_table.h"
+#include "headers/architecture.h"
+#include "headers/header.h"
+#include "headers/load_commands.h"
+#include "headers/symbol_table.h"
 
 namespace macho {
     void swap_uint16(uint16_t *uint16);
