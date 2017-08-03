@@ -98,7 +98,7 @@ namespace macho {
     const architecture_info *architecture_info_from_cputype(cputype cputype, subtype subtype) {
         auto architecture_info = architecture_info_table;
         while (architecture_info->cputype != cputype::none) {
-            if (architecture_info->cputype == cputype || architecture_info->subtype == subtype) {
+            if (architecture_info->cputype == cputype && architecture_info->subtype == subtype) {
                 return architecture_info;
             }
 
