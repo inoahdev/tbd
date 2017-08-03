@@ -13,7 +13,7 @@ namespace macho {
     architecture_info architecture_info_table[] = {
         { cputype::any, subtype::any,    "any"    },
         { cputype::any, subtype::little, "little" },
-        { cputype::any, subtype::little, "big"    },
+        { cputype::any, subtype::big,    "big"    },
 
         { cputype::arm, subtype::arm,     "arm"    },
         { cputype::arm, subtype::armv4t,  "armv4t" },
