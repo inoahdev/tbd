@@ -23,7 +23,6 @@ namespace macho {
         { cputype::arm, subtype::armv7f,  "armv7f" },
         { cputype::arm, subtype::armv7s,  "armv7s" },
         { cputype::arm, subtype::armv7k,  "armv7k" },
-        { cputype::arm, subtype::armv7k,  "armv7k" },
         { cputype::arm, subtype::armv7m,  "arm7m"  },
         { cputype::arm, subtype::armv7em, "arm7em" },
         { cputype::arm, subtype::armv8,   "armv8"  },
@@ -51,7 +50,7 @@ namespace macho {
         { cputype::m680x0, subtype::m68030, "m68030" },
         { cputype::m680x0, subtype::m68040, "m68040" },
 
-        { cputype::m680x0, subtype::m88k,   "m88k" },
+        { cputype::m88000, subtype::m88k,   "m88k" },
 
         { cputype::powerpc, subtype::ppc,      "ppc"      },
         { cputype::powerpc, subtype::ppc601,   "ppc601"   },
