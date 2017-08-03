@@ -119,7 +119,7 @@ bool flags::operator==(const flags &flags) const noexcept {
     }
 
     if (length_ > bit_size()) {
-        return memcmp(flags_.ptr, flags_.ptr, length_);
+        return memcmp(flags_.ptr, flags.flags_.ptr, length_);
     } else {
         return flags_.flags == flags.flags_.flags;
     }
