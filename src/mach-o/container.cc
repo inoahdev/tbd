@@ -141,22 +141,17 @@ namespace macho {
                     fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) takes up all of the remaining space allocated for load-commands\n", i, base);
                     exit(1);
                 }
-                
+
                 if (should_callback) {
                     should_callback = callback(&load_command, load_cmd);
                 }
             } else {
-                if (should_callback) {
-                    should_callback = callback(load_cmd, load_cmd);
-                }
-            }
-
-            if (!should_callback) {
-                if (!created_load_commands_cache) {
+                should_callback = callback(load_cmd, load_cmd);
+                if (!should_callback) {
                     break;
                 }
             }
-
+            
             cached_load_commands_index += cmdsize;
         }
     }
