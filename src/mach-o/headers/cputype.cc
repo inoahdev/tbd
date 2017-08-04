@@ -201,7 +201,7 @@ namespace macho {
                         return subtype::ppc64;
 
                     case 100:
-                        return subtype::ppc970_64;
+                        return subtype::ppc970;
                 }
 
                 break;
@@ -335,7 +335,6 @@ namespace macho {
                 return 86;
 
             case subtype::ppc970:
-            case subtype::ppc970_64:
                 return 100;
 
             case subtype::i486SX:

@@ -64,8 +64,8 @@ namespace macho {
         { cputype::powerpc, subtype::ppc7450,  "ppc7450"  },
         { cputype::powerpc, subtype::ppc970,   "ppc970"   },
 
-        { cputype::powerpc64, subtype::ppc64,     "ppc64"     },
-        { cputype::powerpc64, subtype::ppc970_64, "ppc970-64" },
+        { cputype::powerpc64, subtype::ppc64,  "ppc64"     },
+        { cputype::powerpc64, subtype::ppc970, "ppc970-64" },
 
         { cputype::sparc, subtype::sparc, "sparc" },
 

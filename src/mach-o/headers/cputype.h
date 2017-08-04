@@ -95,7 +95,6 @@ namespace macho {
 
         //cputype::powerpc64
         ppc64,
-        ppc970_64,
 
         // cputype::sparc
         sparc,
