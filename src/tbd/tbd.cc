@@ -407,7 +407,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
             }
 
             if (strncmp(string, "_OBJC_IVAR_$", 12) == 0) {
-                *type = symbol::type::objc_classes;
+                *type = symbol::type::objc_ivars;
                 return &string[12];
             }
 
