@@ -97,7 +97,7 @@ namespace macho {
             cached_load_commands = new uint8_t[sizeofcmds];
 
             auto load_command_base = base + sizeof(header);
-            if (this->is_64_bit()) {
+            if (is_64_bit()) {
                 load_command_base += sizeof(uint32_t);
             }
 
@@ -145,14 +145,16 @@ namespace macho {
                 if (should_callback) {
                     should_callback = callback(&load_command, load_cmd);
                 }
+
+                cached_load_commands_index += cmdsize;
             } else {
                 should_callback = callback(load_cmd, load_cmd);
                 if (!should_callback) {
                     break;
                 }
+
+                cached_load_commands_index += cmdsize;
             }
-            
-            cached_load_commands_index += cmdsize;
         }
     }
 
