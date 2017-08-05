@@ -56,11 +56,13 @@ namespace macho {
             }
         }
 
-        const auto load_commands = new char[header.sizeofcmds];
-        read(descriptor, load_commands, header.sizeofcmds);
+        const auto load_commands_size = header.sizeofcmds;
+        const auto load_commands = new char[load_commands_size];
+
+        read(descriptor, load_commands, load_commands_size);
 
         auto index = 0;
-        auto size_left = header.sizeofcmds;
+        auto size_left = load_commands_size;
 
         const auto &ncmds = header.ncmds;
         for (auto i = 0; i < ncmds; i++) {

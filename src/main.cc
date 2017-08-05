@@ -210,7 +210,7 @@ void parse_architectures_list(std::vector<const macho::architecture_info *> &arc
 
         if (architecture_string_front == '-' || architecture_string_front == '/') {
             // If the architectures vector is empty, the user did not provide any architectures
-            // but did provided the architecture option, which requires at leasr one architecture
+            // but did provided the architecture option, which requires at least one architecture
             // being provided.
 
             if (architectures.empty()) {
@@ -229,7 +229,7 @@ void parse_architectures_list(std::vector<const macho::architecture_info *> &arc
             // following the architecture argument.
 
             // If the architectures vector is empty, the user did not provide any architectures
-            // but did provided the architecture option, which requires at leasr one architecture
+            // but did provide the architecture option, which requires at least one architecture
             // being provided.
 
             if (architectures.empty()) {

@@ -1,9 +1,8 @@
 **/.DS_Store
-.vs/
-
-build/
-
 **/xcuserdata/
+
+.vs/
+build/
 
 Makefile
 a.out
