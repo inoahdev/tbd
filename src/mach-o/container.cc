@@ -277,18 +277,6 @@ namespace macho {
         const auto container_is_64_bit = this->is_64_bit();
 
         if (container_is_64_bit) {
-            const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
-            if (symbol_table_size > size) {
-                fprintf(stderr, "Symbol-table (at location 0x%.8X) has a size (%ld) larger than its container (at base 0x%.8lX, with size %ld)\n", symbol_table->symoff, symbol_table_size, base, size);
-                exit(1);
-            }
-
-            const auto symbol_table_end = symbol_table->symoff + symbol_table_size;
-            if (symbol_table_end > size) {
-                fprintf(stderr, "Symbol-table (at location 0x%.8X, with size %ld) goes past the end of its container (at base 0x%.8lX, with size %ld)\n", symbol_table->symoff, symbol_table_size, base, size);
-                exit(1);
-            }
-
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto cached_symbol_table_index = sizeof(struct nlist_64) * i;
 
@@ -308,18 +296,6 @@ namespace macho {
                 }
             }
         } else {
-            const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
-            if (symbol_table_size > size) {
-                fprintf(stderr, "Symbol-table (at location 0x%.8X) has a size (%ld) larger than its container (at base 0x%.8lX, with size %ld)\n", symbol_table->symoff, symbol_table_size, base, size);
-                exit(1);
-            }
-
-            const auto symbol_table_end = symbol_table->symoff + symbol_table_size;
-            if (symbol_table_end > size) {
-                fprintf(stderr, "Symbol-table (at location 0x%.8X, with size %ld) goes past the end of its container (at base 0x%.8lX, with size %ld)\n", symbol_table->symoff, symbol_table_size, base, size);
-                exit(1);
-            }
-
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto cached_symbol_table_index = sizeof(struct nlist) * i;
 
