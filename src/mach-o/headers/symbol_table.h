@@ -64,13 +64,13 @@ namespace macho {
         inline bool operator==(int number, flags flags) noexcept { return flags == (int)number; }
 
         inline bool operator!=(flags flags, int number) noexcept { return (int)flags != number; }
-        inline bool operator!=(int number, flags flags) noexcept { return flags != (int)number; }
+        inline bool operator!=(int number, flags flags) noexcept { return number != (int)flags; }
 
         inline bool operator==(type type, int number) noexcept { return (int)type == number; }
         inline bool operator==(int number, type type) noexcept { return type == (int)number; }
 
         inline bool operator!=(type type, int number) noexcept { return (int)type != number; }
-        inline bool operator!=(int number, type type) noexcept { return type != (int)number; }
+        inline bool operator!=(int number, type type) noexcept { return number != (int)type; }
 
         inline int operator&(int number, flags flags) noexcept { return number & (int)flags; }
         inline int operator&(flags flags, int number) noexcept { return (int)flags & number; }
