@@ -38,7 +38,7 @@ namespace macho {
     namespace symbol_table {
         enum class flags : int {
             stab = 0xe0,
-            pext = 0x10,
+            private_external = 0x10,
             type = 0x0e,
             external = 0x01
         };
