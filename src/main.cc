@@ -185,7 +185,7 @@ const char *retrieve_current_directory() {
 
             auto new_current_directory_string = (char *)malloc(current_directory_length + 2);
 
-            strcpy(new_current_directory_string, current_directory_string);
+            strncpy(new_current_directory_string, current_directory_string, current_directory_length);
             free(current_directory_string);
 
             new_current_directory_string[current_directory_length] = '/';
