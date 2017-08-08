@@ -226,7 +226,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
         const auto macho_container_architecture_info = macho::architecture_info_from_cputype(macho_container_header_cputype, macho_container_header_cpusubtype);
         if (!macho_container_architecture_info) {
             if (macho_file_is_fat) {
-                fprintf(stderr, "Architecture (#%d) is not of a recognizable cputype", macho_container_index);
+                fprintf(stderr, "Architecture (at index #%d) is not of a recognizable cputype", macho_container_index);
             } else {
                 fputs("Mach-o file is not of a recognizable cputype\n", stderr);
             }
@@ -261,7 +261,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                 case macho::load_commands::identification_dylib: {
                     if (local_installation_name != nullptr) {
                         if (macho_file_is_fat) {
-                            fprintf(stderr, "Architecture (#%d) has multiple library-identification load-commands\n", macho_container_index);
+                            fprintf(stderr, "Architecture (at index #%d) has multiple library-identification load-commands\n", macho_container_index);
                         } else {
                             fputs("Mach-o file has multiple library-identification load-commands\n", stderr);
                         }
@@ -322,7 +322,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
                     if (added_uuid) {
                         if (macho_file_is_fat) {
-                            fprintf(stderr, "Architecture (#%d) has multiple uuid load-commands\n", macho_container_index);
+                            fprintf(stderr, "Architecture (at index #%d) has multiple uuid load-commands\n", macho_container_index);
                         } else {
                             fputs("Mach-o file has multiple uuid load-commands\n", stderr);
                         }
