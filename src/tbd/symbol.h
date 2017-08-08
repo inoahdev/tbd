@@ -44,4 +44,3 @@ private:
     enum type type_;
 };
 
-inline bool operator==(const enum symbol::type &lhs, const enum symbol::type &rhs) { return (int)lhs == (int)rhs; }
