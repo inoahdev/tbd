@@ -501,7 +501,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
     auto architectures_begin = architectures.begin();
     auto architectures_begin_arch_info = *architectures_begin;
 
-    fprintf(output, "%s", architectures_begin_arch_info->name);
+    fputs(architectures_begin_arch_info->name, output);
 
     const auto architectures_end = architectures.end();
     for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
