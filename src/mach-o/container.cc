@@ -175,10 +175,6 @@ namespace macho {
                 }
 
                 symbol_table = (struct symtab_command *)load_command;
-                if (is_big_endian) {
-                    swap_symtab_command(symbol_table);
-                }
-
                 return false;
             });
 
@@ -190,7 +186,11 @@ namespace macho {
 
         auto &cached_string_table = cached_string_table_;
         if (!cached_string_table) {
-            const auto &string_table_location = symbol_table->stroff;
+            auto string_table_location = symbol_table->stroff;
+            if (is_big_endian) {
+                macho::swap_uint32(&string_table_location);
+            }
+
             if (string_table_location > size) {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table outside of its container\n", base);
                 exit(1);
@@ -216,8 +216,13 @@ namespace macho {
 
         auto &cached_symbol_table = cached_symbol_table_;
         if (!cached_symbol_table) {
-            const auto &symbol_table_count = symbol_table->nsyms;
-            const auto &symbol_table_location = symbol_table->symoff;
+            auto symbol_table_count = symbol_table->nsyms;
+            auto symbol_table_location = symbol_table->symoff;
+
+            if (is_big_endian) {
+                macho::swap_uint32(&symbol_table_count);
+                macho::swap_uint32(&symbol_table_location);
+            }
 
             if (symbol_table_location > size) {
                 fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that is outside of its container\n", base);

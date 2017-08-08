@@ -270,13 +270,13 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     }
 
                     auto id_dylib_command = (macho::dylib_command *)load_command;
+                    auto id_dylib_installation_name_string_index = id_dylib_command->name.offset;
+
                     if (macho_container_is_big_endian) {
-                        macho::swap_dylib_command(id_dylib_command);
+                        macho::swap_uint32(&id_dylib_installation_name_string_index);
                     }
 
-                    const auto &id_dylib_installation_name_string_index = id_dylib_command->name.offset;
-
-                    if (id_dylib_installation_name_string_index >= id_dylib_command->cmdsize) {
+                    if (id_dylib_installation_name_string_index >= load_cmd->cmdsize) {
                         fputs("Library identification load-command has an invalid identification-string position\n", stderr);
                         exit(1);
                     }
@@ -287,6 +287,11 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                     local_current_version = id_dylib_command->current_version;
                     local_compatibility_version = id_dylib_command->compatibility_version;
 
+                    if (macho_container_is_big_endian) {
+                        macho::swap_uint32(&local_current_version);
+                        macho::swap_uint32(&local_compatibility_version);
+                    }
+
                     break;
                 }
 
@@ -296,8 +301,12 @@ void tbd::run(macho::file &macho_file, FILE *output) {
                         macho::swap_dylib_command(reexport_dylib_command);
                     }
 
-                    const auto &reexport_dylib_string_index = reexport_dylib_command->name.offset;
-                    if (reexport_dylib_string_index >= reexport_dylib_command->cmdsize) {
+                    auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
+                    if (macho_container_is_big_endian) {
+                        macho::swap_uint32(&reexport_dylib_string_index);
+                    }
+
+                    if (reexport_dylib_string_index >= load_cmd->cmdsize) {
                         fputs("Re-export dylib load-command has an invalid identification-string position\n", stderr);
                         exit(1);
                     }
