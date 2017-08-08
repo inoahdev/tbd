@@ -417,7 +417,7 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
         macho_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
-            if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section || (symbol_table_entry_type & macho::symbol_table::flags::external) != macho::symbol_table::flags::external) {
+            if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
                 return true;
             }
 
@@ -425,6 +425,17 @@ void tbd::run(macho::file &macho_file, FILE *output) {
 
             const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
             const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
+
+            const auto symbol_type_is_objc = symbol_type == symbol::type::objc_classes || symbol_type == symbol::type::objc_ivars;
+
+            const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
+            const auto symbol_type_is_private_external = symbol_table_entry_type & macho::symbol_table::flags::private_external ? true : false;
+
+            if (!symbol_type_is_objc) {
+                if (symbol_type_is_private_external || !symbol_type_is_external) {
+                    return true;
+                }
+            }
 
             const auto symbols_iter = std::find(symbols.begin(), symbols.end(), parsed_symbol_string);
 
