@@ -348,7 +348,7 @@ int main(int argc, const char *argv[]) {
     auto current_directory = std::string();
     auto output_paths_index = 0;
 
-    auto platform = (enum tbd::platform)-1;
+    auto platform = (enum tbd::platform)0;
     auto version = tbd::version::v2;
 
     // To parse the argument list, the for loop below parses
@@ -794,7 +794,7 @@ int main(int argc, const char *argv[]) {
 
             auto local_architectures = std::vector<const macho::architecture_info *>();
 
-            auto local_platform = (enum tbd::platform)-1;
+            auto local_platform = (enum tbd::platform)0;
             auto local_tbd_version = (enum tbd::version)0;
 
             auto recurse_type = recurse::none;
@@ -838,7 +838,7 @@ int main(int argc, const char *argv[]) {
                         const auto &platform_string = argv[i];
                         local_platform = tbd::string_to_platform(platform_string);
 
-                        if (local_platform == (enum tbd::platform)-1) {
+                        if (local_platform == (enum tbd::platform)0) {
                             fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                             return 1;
                         }
@@ -872,7 +872,7 @@ int main(int argc, const char *argv[]) {
                         const auto &version_string = argv[i];
 
                         local_tbd_version = tbd::string_to_version(version_string);
-                        if (local_tbd_version == (enum tbd::version)-1) {
+                        if (local_tbd_version == (enum tbd::version)0) {
                             fprintf(stderr, "(%s) is not a valid tbd-version\n", version_string);
                             return 1;
                         }
@@ -987,8 +987,8 @@ int main(int argc, const char *argv[]) {
                 // path was provided
 
                 local_architectures.clear();
-                local_platform = (enum tbd::platform)-1;
-                local_tbd_version = (enum tbd::version)-1;
+                local_platform = (enum tbd::platform)0;
+                local_tbd_version = (enum tbd::version)0;
 
                 recurse_type = recurse::none;
                 break;
@@ -998,7 +998,7 @@ int main(int argc, const char *argv[]) {
             // not provided a path to a mach-o library path or to a
             // directory where some could be found
 
-            if (local_architectures.size() != 0 || local_platform != (enum tbd::platform)-1 || local_tbd_version != (enum tbd::version)-1 || recurse_type != recurse::none) {
+            if (local_architectures.size() != 0 || local_platform != (enum tbd::platform)0 || local_tbd_version != (enum tbd::version)0 || recurse_type != recurse::none) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -1013,7 +1013,7 @@ int main(int argc, const char *argv[]) {
             const auto &platform_string = argv[i];
             platform = tbd::string_to_platform(platform_string);
 
-            if (platform == (enum tbd::platform)-1) {
+            if (platform == (enum tbd::platform)0) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
@@ -1099,8 +1099,8 @@ int main(int argc, const char *argv[]) {
         // path(s) to mach-o library files, it is expected to apply
         // to mach-o library files where version was not set locally
 
-        if (tbd_platform == (enum tbd::platform)-1) {
-            if (platform != (enum tbd::platform)-1) {
+        if (tbd_platform == (enum tbd::platform)0) {
+            if (platform != (enum tbd::platform)0) {
                 tbd_platform = platform;
             } else {
                 // If a global platform was not provided, it is then expected
@@ -1119,7 +1119,7 @@ int main(int argc, const char *argv[]) {
 
                     getline(std::cin, platform_string);
                     tbd_platform = tbd::string_to_platform(platform_string.data());
-                } while (tbd_platform == (enum tbd::platform)-1);
+                } while (tbd_platform == (enum tbd::platform)0);
             }
         }
 

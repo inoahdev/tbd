@@ -88,7 +88,7 @@ namespace tbd {
             return platform::tvos;
         }
 
-        return (enum platform)-1;
+        return (enum platform)0;
     }
 
     enum version string_to_version(const char *version) noexcept {
@@ -98,7 +98,7 @@ namespace tbd {
             return version::v2;
         }
 
-        return (enum version)-1;
+        return (enum version)0;
     }
 
     inline const char *get_parsed_symbol_string(const char *string, bool is_weak, enum symbol::type *type) {
