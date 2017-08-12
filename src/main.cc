@@ -327,10 +327,18 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    typedef struct tbd_recursive {
-        const std::string provided_path;
+    typedef struct tbd_file {
+        std::string provided_path;
 
-        tbd tbd;
+        std::vector<std::string> macho_files;
+        std::vector<std::string> output_files;
+        
+        std::vector<const macho::architecture_info *> architectures;
+        
+        enum tbd::platform platform;
+        enum tbd::version version;
+        
+        unsigned int options;
         recurse recurse;
     } tbd_recursive;
 
@@ -646,10 +654,9 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
 
-                auto &tbd_recursive = tbds.at(output_paths_index);
-                auto &tbd = tbd_recursive.tbd;
+                auto &tbd_file = tbds.at(output_paths_index);
 
-                auto &macho_files = tbd.macho_files();
+                auto &macho_files = tbd_file.macho_files;
                 auto macho_files_size = macho_files.size();
 
                 if (path_front != '/' && path != "stdout") {
@@ -663,8 +670,8 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
 
-                auto &tbd_recurse_type = tbd_recursive.recurse;
-                auto &output_files = tbd.output_files();
+                auto &tbd_recurse_type = tbd_file.recurse;
+                auto &output_files = tbd_file.output_files;
 
                 auto create_output_files_for_paths = [&](const std::vector<std::string> &paths, const std::string &provided_path) {
                     const auto provided_path_length = provided_path.length();
@@ -675,7 +682,7 @@ int main(int argc, const char *argv[]) {
                             // present in the provided path be created in the provided
                             // output-path's directory along with the tbd-file.
 
-                            path_iter = tbd_recursive.provided_path.length();
+                            path_iter = tbd_file.provided_path.length();
                         } else {
                             // Resulting tbd-files are stored with the name
                             // of the mach-o library file
@@ -894,10 +901,11 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
 
-                auto tbd = ::tbd();
-                auto &macho_files = tbd.macho_files();
-
+                struct tbd_file tbd = {};
+                
+                auto &macho_files = tbd.macho_files;
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
+                
                 if (path_is_directory) {
                     if (recurse_type == recurse::none) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
@@ -933,7 +941,7 @@ int main(int argc, const char *argv[]) {
                     }
                 }
 
-                const auto &tbd_macho_files = tbd.macho_files();
+                const auto &tbd_macho_files = tbd.macho_files;
                 const auto tbd_macho_files_is_empty = tbd_macho_files.empty();
 
                 if (tbd_macho_files_is_empty) {
@@ -965,15 +973,15 @@ int main(int argc, const char *argv[]) {
                 auto tbd_platform = local_platform;
                 auto tbd_version = local_tbd_version;
 
-                tbd.set_architectures(*tbd_architectures);
-                tbd.set_platform(tbd_platform);
-                tbd.set_version(tbd_version);
+                tbd.architectures = *tbd_architectures;
+                tbd.platform = tbd_platform;
+                tbd.provided_path = path;
+                tbd.version = tbd_version;
 
-                auto &output_files = tbd.output_files();
+                auto &output_files = tbd.output_files;
+                
                 output_files.reserve(macho_files.size());
-
-                auto tbd_recurse = tbd_recursive({ path, tbd, recurse_type });
-                tbds.emplace_back(tbd_recurse);
+                tbds.emplace_back(tbd);
 
                 // Clear the local option fields to signal that a
                 // path was provided
@@ -983,7 +991,6 @@ int main(int argc, const char *argv[]) {
                 local_tbd_version = (enum tbd::version)-1;
 
                 recurse_type = recurse::none;
-
                 break;
             }
 
@@ -1052,20 +1059,17 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    for (auto &tbd_recursive : tbds) {
-        auto &tbd = tbd_recursive.tbd;
-
+    for (auto &tbd : tbds) {
         // If a global tbd-version was provided after providing
         // path(s) to mach-o library files, it is expected to apply
         // to mach-o library files where version was not set locally
 
-        auto tbd_version = tbd.version();
+        auto &tbd_version = tbd.version;
         if (tbd_version == (enum tbd::version)0) {
             tbd_version = version;
-            tbd.set_version(version);
         }
 
-        const auto &tbd_architectures = tbd.architectures();
+        const auto &tbd_architectures = tbd.architectures;
 
         const auto architectures_size = architectures.size();
         const auto tbd_architectures_size = tbd_architectures.size();
@@ -1085,11 +1089,11 @@ int main(int argc, const char *argv[]) {
             // to mach-o library files where custom architectures were not
             // set locally, and where tbd-version is v1
 
-            tbd.set_architectures(architectures);
+            tbd.architectures = architectures;
         }
 
-        const auto &path = tbd_recursive.provided_path;
-        auto tbd_platform = tbd.platform();
+        const auto &path = tbd.provided_path;
+        auto &tbd_platform = tbd.platform;
 
         // If a global platform was provided after providing
         // path(s) to mach-o library files, it is expected to apply
@@ -1117,19 +1121,17 @@ int main(int argc, const char *argv[]) {
                     tbd_platform = tbd::string_to_platform(platform_string.data());
                 } while (tbd_platform == (enum tbd::platform)-1);
             }
-
-            tbd.set_platform(tbd_platform);
         }
 
-        auto &output_files = tbd.output_files();
+        auto &output_files = tbd.output_files;
         auto output_files_size = output_files.size();
 
         if (output_files_size != 0) {
             continue;
         }
 
-        const auto &macho_files = tbd.macho_files();
-        const auto tbd_recurse_type = tbd_recursive.recurse;
+        const auto &macho_files = tbd.macho_files;
+        const auto tbd_recurse_type = tbd.recurse;
 
         if (tbd_recurse_type != recurse::none) {
             // If no output-files were provided for multiple
@@ -1144,8 +1146,61 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-    for (auto &tbd_recursive : tbds) {
-        auto &tbd = tbd_recursive.tbd;
-        tbd.run();
+    for (auto &tbd : tbds) {
+        const auto &output_paths = tbd.output_files;
+        const auto output_paths_size = output_paths.size();
+        
+        auto output_paths_index = 0;
+        
+        for (const auto &macho_file_path : tbd.macho_files) {
+            auto file = macho::file(macho_file_path);
+            auto output_file = stdout;
+
+            if (output_paths_index < output_paths_size) {
+                auto output_path = output_paths.at(output_paths_index);
+                if (output_path != "stdout") {
+                    output_file = fopen(output_path.data(), "w");
+                    if (!output_file) {
+                        fprintf(stderr, "Failed to open file at path (%s) for writing. Failing with error (%s)\n", output_path.data(), strerror(errno));
+                        return 1;
+                    }
+                }
+            }
+            
+            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, tbd.architectures);
+            switch (result) {
+                case tbd::creation_result::ok:
+                    break;
+                    
+                case tbd::creation_result::invalid_subtype:
+                case tbd::creation_result::invalid_cputype:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unrecognized machine\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::invalid_load_command:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::contradictary_load_command_information:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has multiple load-commands of the same type with contradictory information\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::uuid_is_not_unique:
+                    fprintf(stderr, "One of mach-o file (at path %s)'s architectures has a uuid that is not unique from other architectures\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::not_a_library:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::has_no_uuid:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, does not have a uuid\n", macho_file_path.data());
+                    break;
+                    
+                case tbd::creation_result::contradictary_container_information:
+                    fprintf(stderr, "Mach-o file (at path %s) has information in architectures contradicting the same information in other architectures\n", macho_file_path.data());
+                    break;
+            }
+        }
     }
 }
