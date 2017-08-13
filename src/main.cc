@@ -314,6 +314,15 @@ void print_usage() {
     fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)\n", stdout);
 
     fputc('\n', stdout);
+    fputs("Symbol options: (Both path and global options)\n", stdout);
+    fputs("        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)\n", stdout);
+    fputs("        --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)\n", stdout);
+    fputs("        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)\n", stdout);
+    fputs("        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars\n", stdout);
+    fputs("        --allow-private-objc-classes,   Allow all non-external objc-classes\n", stdout);
+    fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
+
+    fputc('\n', stdout);
     fputs("List options:\n", stdout);
     fputs("        --list-architectures,   List all valid architectures for tbd-files\n", stdout);
     fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
@@ -349,6 +358,7 @@ int main(int argc, const char *argv[]) {
     auto current_directory = std::string();
     auto output_paths_index = 0;
 
+    auto options = 0;
     auto platform = tbd::platform::none;
     auto version = tbd::version::v2;
 
@@ -396,6 +406,18 @@ int main(int argc, const char *argv[]) {
 
             print_usage();
             return 0;
+        } else if (strcmp(option, "allow-all-private-symbols") == 0) {
+            options |= tbd::symbol_options::allow_all_private_symbols;
+        } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
+            options |= tbd::symbol_options::allow_private_normal_symbols;
+        } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
+            options |= tbd::symbol_options::allow_private_weak_symbols;
+        } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
+            options |= tbd::symbol_options::allow_private_objc_symbols;
+        } else if (strcmp(option, "allow-private-objc-classes") == 0) {
+            options |= tbd::symbol_options::allow_private_objc_classes;
+        } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
+            options |= tbd::symbol_options::allow_private_objc_ivars;
         } else if (strcmp(option, "list-architectures") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -812,6 +834,7 @@ int main(int argc, const char *argv[]) {
 
             auto local_architectures = std::vector<const macho::architecture_info *>();
 
+            auto local_options = 0;
             auto local_platform = tbd::platform::none;
             auto local_tbd_version = (enum tbd::version)0;
 
@@ -842,6 +865,18 @@ int main(int argc, const char *argv[]) {
 
                         i++;
                         parse_architectures_list(local_architectures, i, argc, argv);
+                    } else if (strcmp(option, "allow-all-private-symbols") == 0) {
+                        local_options |= tbd::symbol_options::allow_all_private_symbols;
+                    } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
+                        local_options |= tbd::symbol_options::allow_private_normal_symbols;
+                    } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
+                        local_options |= tbd::symbol_options::allow_private_weak_symbols;
+                    } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
+                        local_options |= tbd::symbol_options::allow_private_objc_symbols;
+                    } else if (strcmp(option, "allow-private-objc-classes") == 0) {
+                        local_options |= tbd::symbol_options::allow_private_objc_classes;
+                    } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
+                        local_options |= tbd::symbol_options::allow_private_objc_ivars;
                     } else if (strcmp(option, "p") == 0) {
                         fprintf(stderr, "Please provide a path for option (%s)\n", argument);
                         return 1;
@@ -991,7 +1026,32 @@ int main(int argc, const char *argv[]) {
                 auto tbd_platform = local_platform;
                 auto tbd_version = local_tbd_version;
 
+                if (options & tbd::symbol_options::allow_all_private_symbols) {
+                    local_options |= tbd::symbol_options::allow_all_private_symbols;
+                } else {
+                    if (options & tbd::symbol_options::allow_private_normal_symbols) {
+                        local_options |= tbd::symbol_options::allow_private_normal_symbols;
+                    }
+
+                    if (options & tbd::symbol_options::allow_private_weak_symbols) {
+                        local_options |= tbd::symbol_options::allow_private_weak_symbols;
+                    }
+
+                    if (options & tbd::symbol_options::allow_private_objc_symbols) {
+                        local_options |= tbd::symbol_options::allow_private_objc_symbols;
+                    } else {
+                        if (options & tbd::symbol_options::allow_private_objc_classes) {
+                            local_options |= tbd::symbol_options::allow_private_objc_classes;
+                        }
+
+                        if (options & tbd::symbol_options::allow_private_objc_ivars) {
+                            local_options |= tbd::symbol_options::allow_private_objc_ivars;
+                        }
+                    }
+                }
+
                 tbd.architectures = *tbd_architectures;
+                tbd.options = local_options;
                 tbd.platform = tbd_platform;
                 tbd.provided_path = path;
                 tbd.version = tbd_version;

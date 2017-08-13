@@ -726,12 +726,57 @@ namespace tbd {
                 const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
                 const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
-                const auto symbol_type_is_objc = symbol_type == symbol::type::objc_classes || symbol_type == symbol::type::objc_ivars;
                 const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
+                const auto symbol_type_is_private_external = symbol_table_entry_type & macho::symbol_table::flags::private_external ? true : false;
 
-                if (!symbol_type_is_objc) {
-                    if (!symbol_type_is_external) {
-                        return true;
+                if (!symbol_type_is_external && !symbol_type_is_private_external) {
+                    return true;
+                }
+
+                if (!(options & symbol_options::allow_all_private_symbols)) {
+                    switch (symbol_type) {
+                        case symbol::type::symbols:
+                            if (!(options & symbol_options::allow_private_normal_symbols)) {
+                                if (!symbol_type_is_external) {
+                                    return true;
+                                }
+                            }
+
+                            break;
+
+                        case symbol::type::weak_symbols:
+                            if (!(options & symbol_options::allow_private_weak_symbols)) {
+                                if (!symbol_type_is_external) {
+                                    return true;
+                                }
+                            }
+
+                            break;
+
+                        case symbol::type::objc_classes:
+                            if (!(options & symbol_options::allow_private_objc_symbols)) {
+                                if (!(options & symbol_options::allow_private_objc_classes)) {
+                                    if (!symbol_type_is_external) {
+                                        return true;
+                                    }
+                                }
+                            }
+
+                            break;
+
+                        case symbol::type::objc_ivars:
+                            if (!(options & symbol_options::allow_private_objc_symbols)) {
+                                if (!(options & symbol_options::allow_private_objc_ivars)) {
+                                    if (!symbol_type_is_external) {
+                                        return true;
+                                    }
+                                }
+                            }
+
+                            break;
+
+                        default:
+                            break;
                     }
                 }
 

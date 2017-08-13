@@ -56,6 +56,27 @@ namespace tbd {
 
     __attribute__((unused)) version string_to_version(const char *version) noexcept;
 
+    enum class symbol_options : unsigned int {
+        allow_all_private_symbols    = 1 << 0,
+        allow_private_normal_symbols = 1 << 1,
+        allow_private_weak_symbols   = 1 << 2,
+        allow_private_objc_symbols   = 1 << 3,
+        allow_private_objc_classes   = 1 << 4,
+        allow_private_objc_ivars     = 1 << 5,
+    };
+
+    inline int operator|(int lhs, const symbol_options &rhs) noexcept { return lhs | (int)rhs; }
+    inline unsigned int operator|(unsigned int lhs, const symbol_options &rhs) noexcept { return lhs | (unsigned int)rhs; }
+
+    inline void operator|=(int &lhs, const symbol_options &rhs) noexcept { lhs |= (int)rhs; }
+    inline void operator|=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs |= (unsigned int)rhs; }
+
+    inline int operator&(int lhs, const symbol_options &rhs) noexcept { return lhs & (int)rhs; }
+    inline unsigned int operator&(unsigned int lhs, const symbol_options &rhs) noexcept { return lhs & (unsigned int)rhs; }
+
+    inline void operator&=(int &lhs, const symbol_options &rhs) noexcept { lhs &= (int)rhs; }
+    inline void operator&=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs &= (unsigned int)rhs; }
+
     enum class creation_result {
         ok,
         invalid_subtype,

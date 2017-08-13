@@ -24,9 +24,18 @@ Global options:
         --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)
     -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)
 
+Symbol options: (Both path and global options)
+        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)
+        --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)
+        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)
+        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars
+        --allow-private-objc-classes,   Allow all non-external objc-classes
+        --allow-private-objc-ivars,     Allow all non-external objc-ivars
+
 List options:
         --list-architectures,   List all valid architectures for tbd-files
         --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))
+        --list-platform,        List all valid platforms
         --list-recurse,         List all valid recurse options for parsing directories
         --list-versions,        List all valid versions for tbd-files
 ```
