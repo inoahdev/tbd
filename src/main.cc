@@ -1137,6 +1137,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
+    auto output_to_stdout_count = 0;
     for (auto &tbd : tbds) {
         // If a global tbd-version was provided after providing
         // path(s) to mach-o library files, it is expected to apply
@@ -1190,19 +1191,27 @@ int main(int argc, const char *argv[]) {
         }
 
         const auto &macho_files = tbd.macho_files;
-        const auto tbd_recurse_type = tbd.recurse;
+        const auto &macho_files_size = macho_files.size();
 
+        const auto tbd_recurse_type = tbd.recurse;
         if (tbd_recurse_type != recurse::none) {
             // If no output-files were provided for multiple
             // mach-o files, it is expected the tbd-files are
             // outputted to the same directory with the same
             // file-name (with the file-extension .tbd)
 
-            output_files.reserve(macho_files.size());
+            output_files.reserve(macho_files_size);
             for (const auto &macho_file : macho_files) {
                 output_files.emplace_back(macho_file + ".tbd");
             }
+        } else if (output_files_size != macho_files_size) {
+            output_to_stdout_count++;
         }
+    }
+
+    if (output_to_stdout_count > 1) {
+        fputs("Can't output multiple files to stdout\n", stderr);
+        return 1;
     }
 
     for (auto &tbd : tbds) {
