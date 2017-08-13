@@ -903,9 +903,14 @@ namespace tbd {
 
         if (library_current_version_minor != 0) {
             fprintf(output, ".%u", library_current_version_minor);
-            if (library_current_version_revision != 0) {
-                fprintf(output, ".%u", library_current_version_revision);
+        }
+
+        if (library_current_version_revision != 0) {
+            if (library_current_version_minor == 0) {
+                fputs(".0", output);
             }
+
+            fprintf(output, ".%u", library_current_version_revision);
         }
 
         auto library_compatibility_version_major = library_compatibility_version >> 16;
@@ -916,9 +921,14 @@ namespace tbd {
 
         if (library_compatibility_version_minor != 0) {
             fprintf(output, ".%u", library_compatibility_version_minor);
-            if (library_compatibility_version_revision != 0) {
-                fprintf(output, ".%u", library_compatibility_version_revision);
+        }
+
+        if (library_compatibility_version_revision != 0) {
+            if (library_compatibility_version_minor == 0) {
+                fputs(".0", output);
             }
+
+            fprintf(output, ".%u", library_compatibility_version_revision);
         }
 
         if (version == version::v2) {
