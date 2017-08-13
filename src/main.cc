@@ -1157,12 +1157,7 @@ int main(int argc, const char *argv[]) {
         // tbd-version v1 as tbd-version v2 requires a uuid to be
         // associated with the architecture
 
-        if (tbd_version == tbd::version::v2) {
-            if (tbd_architectures_size != 0 || architectures_size != 0) {
-                fputs("Cannot have custom architectures on tbd-version v2, Please specify tbd-version v1\n", stderr);
-                return 1;
-            }
-        } else if (!tbd_architectures_size && architectures_size != 0) {
+        if (!tbd_architectures_size && architectures_size != 0) {
             // If global custom architectures was provided after providing
             // path(s) to mach-o library files, it is expected to apply
             // to mach-o library files where custom architectures were not

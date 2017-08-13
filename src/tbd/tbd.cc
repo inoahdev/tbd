@@ -707,11 +707,6 @@ namespace tbd {
                 library_compatibility_version = local_compatibility_version;
             }
 
-            const auto library_uuids_size = library_uuids.size();
-            if (version == version::v2 && library_containers_index != library_uuids_size - 1) {
-                return creation_result::has_no_uuid;
-            }
-
             library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
                 const auto &symbol_table_entry_type = symbol_table_entry.n_type;
                 if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
@@ -873,32 +868,28 @@ namespace tbd {
         fputs(" ]\n", output);
 
         if (version == version::v2) {
-            fprintf(output, "uuids:%-17s[ ", "");
+            const auto library_uuids_size = library_uuids.size();
+            if (library_uuids_size) {
+                fprintf(output, "uuids:%-17s[ ", "");
 
-            auto library_uuid_counter = 1;
-            auto library_uuids_begin = library_uuids.begin();
+                auto architectures_iter = architectures.begin();
+                for (auto library_uuids_index = 0; library_uuids_index < library_uuids_size; library_uuids_index++, architectures_iter++) {
+                    const auto &architecture_arch_info = *architectures_iter;
+                    const auto &library_uuid = library_uuids.at(library_uuids_index);
 
-            const auto &architectures_end = architectures.end();
-            const auto &architectures_back = architectures_end - 1;
+                    fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
-            for (auto architectures_begin = architectures.begin(); architectures_begin < architectures_end; architectures_begin++, library_uuids_begin++) {
-                const auto &architecture_arch_info = *architectures_begin;
-                const auto &library_uuid = *library_uuids_begin;
+                    if (library_uuids_index != library_uuids_size - 1) {
+                        fputs(", ", output);
 
-                fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
-
-                if (architectures_begin != architectures_back) {
-                    fputs(", ", output);
-
-                    if (library_uuid_counter & 1) {
-                        fprintf(output, "%-26s", "\n");
+                        if (library_uuids_index % 2 != 0) {
+                            fprintf(output, "%-26s", "\n");
+                        }
                     }
-
-                    library_uuid_counter++;
                 }
-            }
 
-            fputs(" ]\n", output);
+                fputs(" ]\n", output);
+            }
         }
 
         fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
