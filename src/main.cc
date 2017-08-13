@@ -1290,6 +1290,10 @@ int main(int argc, const char *argv[]) {
                     fprintf(stderr, "Mach-o file (at path %s) has information in architectures contradicting the same information in other architectures\n", macho_file_path.data());
                     break;
 
+                case tbd::creation_result::no_symbols_or_reexports:
+                    fprintf(stderr, "Mach-o file (at path %s) does not have any symbols or reexports to be outputted\n", macho_file_path.data());
+                    break;
+
                 default:
                     break;
             }

@@ -25,10 +25,7 @@ namespace tbd {
         unsigned int symbols_count = 0;
         unsigned int reexports_count = 0;
 
-        inline const bool operator==(const class flags &flags) const noexcept { return this->flags == flags; }
         inline const bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
-
-        inline const bool operator!=(const class flags &flags) const noexcept { return this->flags != flags; }
         inline const bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
     };
 
@@ -795,6 +792,10 @@ namespace tbd {
             library_containers_index++;
         }
 
+        if (library_reexports.empty() && library_symbols.empty()) {
+            return creation_result::no_symbols_or_reexports;
+        }
+
         std::sort(library_reexports.begin(), library_reexports.end(), [](const symbol &lhs, const symbol &rhs) {
             const auto lhs_string = lhs.string;
             const auto rhs_string = rhs.string;
@@ -815,7 +816,9 @@ namespace tbd {
         } else {
             for (const auto &library_reexport : library_reexports) {
                 const auto &library_reexport_flags = library_reexport.flags;
-                const auto group_iter = std::find(groups.begin(), groups.end(), library_reexport_flags);
+                const auto group_iter = std::find_if(groups.begin(), groups.end(), [&](const group &lhs) {
+                    return lhs.flags == library_reexport_flags;
+                });
 
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
@@ -827,7 +830,9 @@ namespace tbd {
 
             for (const auto &library_symbol : library_symbols) {
                 const auto &library_symbol_flags = library_symbol.flags;
-                const auto group_iter = std::find(groups.begin(), groups.end(), library_symbol_flags);
+                const auto group_iter = std::find_if(groups.begin(), groups.end(), [&](const group &lhs) {
+                    return lhs.flags == library_symbol_flags;
+                });
 
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
