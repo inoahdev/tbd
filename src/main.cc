@@ -317,6 +317,7 @@ void print_usage() {
     fputs("List options:\n", stdout);
     fputs("        --list-architectures,   List all valid architectures for tbd-files\n", stdout);
     fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
+    fputs("        --list-platform,        List all valid platforms\n", stdout);
     fputs("        --list-recurse,         List all valid recurse options for parsing directories\n", stdout);
     fputs("        --list-versions,        List all valid versions for tbd-files\n", stdout);
 }
@@ -332,12 +333,12 @@ int main(int argc, const char *argv[]) {
 
         std::vector<std::string> macho_files;
         std::vector<std::string> output_files;
-        
+
         std::vector<const macho::architecture_info *> architectures;
-        
+
         enum tbd::platform platform;
         enum tbd::version version;
-        
+
         unsigned int options;
         recurse recurse;
     } tbd_recursive;
@@ -348,7 +349,7 @@ int main(int argc, const char *argv[]) {
     auto current_directory = std::string();
     auto output_paths_index = 0;
 
-    auto platform = (enum tbd::platform)0;
+    auto platform = tbd::platform::none;
     auto version = tbd::version::v2;
 
     // To parse the argument list, the for loop below parses
@@ -586,6 +587,23 @@ int main(int argc, const char *argv[]) {
             }
 
             return 0;
+        } else if (strcmp(option, "list-platform") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            auto platform_number = 1;
+            auto platform = tbd::platform_to_string((enum tbd::platform)platform_number);
+
+            while (platform != nullptr) {
+                fprintf(stdout, "%s\n", platform);
+
+                platform_number++;
+                platform = tbd::platform_to_string((enum tbd::platform)platform_number);
+            }
+
+            return 0;
         } else if (strcmp(option, "list-recurse") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -794,7 +812,7 @@ int main(int argc, const char *argv[]) {
 
             auto local_architectures = std::vector<const macho::architecture_info *>();
 
-            auto local_platform = (enum tbd::platform)0;
+            auto local_platform = tbd::platform::none;
             auto local_tbd_version = (enum tbd::version)0;
 
             auto recurse_type = recurse::none;
@@ -829,7 +847,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
-                            fputs("Please provide a platform-string (ios, macosx, tvos, watchos)\n", stderr);
+                            fputs("Please provide a platform-string (Run --list-platform to see a list of platforms)\n", stderr);
                             return 1;
                         }
 
@@ -838,7 +856,7 @@ int main(int argc, const char *argv[]) {
                         const auto &platform_string = argv[i];
                         local_platform = tbd::string_to_platform(platform_string);
 
-                        if (local_platform == (enum tbd::platform)0) {
+                        if (local_platform == tbd::platform::none) {
                             fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                             return 1;
                         }
@@ -902,10 +920,10 @@ int main(int argc, const char *argv[]) {
                 }
 
                 struct tbd_file tbd = {};
-                
+
                 auto &macho_files = tbd.macho_files;
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                
+
                 if (path_is_directory) {
                     if (recurse_type == recurse::none) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
@@ -979,7 +997,7 @@ int main(int argc, const char *argv[]) {
                 tbd.version = tbd_version;
 
                 auto &output_files = tbd.output_files;
-                
+
                 output_files.reserve(macho_files.size());
                 tbds.emplace_back(tbd);
 
@@ -987,7 +1005,7 @@ int main(int argc, const char *argv[]) {
                 // path was provided
 
                 local_architectures.clear();
-                local_platform = (enum tbd::platform)0;
+                local_platform = tbd::platform::none;
                 local_tbd_version = (enum tbd::version)0;
 
                 recurse_type = recurse::none;
@@ -998,13 +1016,13 @@ int main(int argc, const char *argv[]) {
             // not provided a path to a mach-o library path or to a
             // directory where some could be found
 
-            if (local_architectures.size() != 0 || local_platform != (enum tbd::platform)0 || local_tbd_version != (enum tbd::version)0 || recurse_type != recurse::none) {
+            if (local_architectures.size() != 0 || local_platform != tbd::platform::none || local_tbd_version != (enum tbd::version)0 || recurse_type != recurse::none) {
                 fputs("Please provide a path to a directory to recurse through\n", stderr);
                 return 1;
             }
         } else if (strcmp(option, "platform") == 0) {
             if (is_last_argument) {
-                fputs("Please provide a platform-string (ios, macosx, tvos, watchos)\n", stderr);
+                fputs("Please provide a platform-string (Run --list-platform to see a list of platforms)\n", stderr);
                 return 1;
             }
 
@@ -1013,7 +1031,7 @@ int main(int argc, const char *argv[]) {
             const auto &platform_string = argv[i];
             platform = tbd::string_to_platform(platform_string);
 
-            if (platform == (enum tbd::platform)0) {
+            if (platform == tbd::platform::none) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
@@ -1092,34 +1110,15 @@ int main(int argc, const char *argv[]) {
             tbd.architectures = architectures;
         }
 
-        const auto &path = tbd.provided_path;
         auto &tbd_platform = tbd.platform;
 
         // If a global platform was provided after providing
         // path(s) to mach-o library files, it is expected to apply
         // to mach-o library files where version was not set locally
 
-        if (tbd_platform == (enum tbd::platform)0) {
-            if (platform != (enum tbd::platform)0) {
+        if (tbd_platform == tbd::platform::none) {
+            if (platform != tbd::platform::none) {
                 tbd_platform = platform;
-            } else {
-                // If a global platform was not provided, it is then expected
-                // to give a prompt to the user requiring them to specify their
-                // platform
-
-                const auto path_is_directory = path.back() == '/';
-                auto platform_string = std::string();
-
-                do {
-                    if (path_is_directory) {
-                        fprintf(stdout, "Please provide a platform for files in directory at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
-                    } else {
-                        fprintf(stdout, "Please provide a platform for file at path (%s) (ios, macosx, watchos, or tvos): ", path.data());
-                    }
-
-                    getline(std::cin, platform_string);
-                    tbd_platform = tbd::string_to_platform(platform_string.data());
-                } while (tbd_platform == (enum tbd::platform)0);
             }
         }
 
@@ -1149,9 +1148,9 @@ int main(int argc, const char *argv[]) {
     for (auto &tbd : tbds) {
         const auto &output_paths = tbd.output_files;
         const auto output_paths_size = output_paths.size();
-        
+
         auto output_paths_index = 0;
-        
+
         for (const auto &macho_file_path : tbd.macho_files) {
             auto file = macho::file(macho_file_path);
             auto output_file = stdout;
@@ -1166,39 +1165,72 @@ int main(int argc, const char *argv[]) {
                     }
                 }
             }
-            
+
             auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, tbd.architectures);
+            if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
+                switch (result) {
+                    case tbd::creation_result::platform_not_found:
+                        fprintf(stdout, "Failed to find platform in mach-o library (at path %s). ", macho_file_path.data());
+                        break;
+
+                    case tbd::creation_result::platform_not_supported:
+                        fprintf(stdout, "Platform in mach-o library (at path %s) is unsupported. ", macho_file_path.data());
+                        break;
+
+                    case tbd::creation_result::multiple_platforms:
+                        fprintf(stdout, "Multiple platforms found in mach-o library (at path %s). ", macho_file_path.data());
+                        break;
+
+                    default:
+                        break;
+                }
+
+                auto platform_string = std::string();
+
+                do {
+                    fputs("Please provide a replacement platform (Run --list-platform to see a list of platforms): ", stdout);
+                    getline(std::cin, platform_string);
+
+                    tbd.platform = tbd::string_to_platform(platform_string.data());
+                } while (tbd.platform == tbd::platform::none);
+
+                result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, tbd.architectures);
+            }
+
             switch (result) {
                 case tbd::creation_result::ok:
                     break;
-                    
+
                 case tbd::creation_result::invalid_subtype:
                 case tbd::creation_result::invalid_cputype:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unrecognized machine\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::invalid_load_command:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::contradictary_load_command_information:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has multiple load-commands of the same type with contradictory information\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::uuid_is_not_unique:
                     fprintf(stderr, "One of mach-o file (at path %s)'s architectures has a uuid that is not unique from other architectures\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::not_a_library:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::has_no_uuid:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, does not have a uuid\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::contradictary_container_information:
                     fprintf(stderr, "Mach-o file (at path %s) has information in architectures contradicting the same information in other architectures\n", macho_file_path.data());
+                    break;
+
+                default:
                     break;
             }
         }

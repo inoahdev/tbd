@@ -54,7 +54,7 @@ namespace macho {
 
         uint8_t *cached_load_commands_ = nullptr;
         uint8_t *cached_symbol_table_ = nullptr;
-        
+
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 

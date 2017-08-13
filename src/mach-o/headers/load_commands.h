@@ -62,11 +62,11 @@ namespace macho {
         linker_optimization_hint,
         version_min_tvos,
         version_min_watchos,
-        
+
         note,
         build_version,
     };
-        
+
     union lc_str {
         uint32_t offset;
     };
@@ -284,13 +284,13 @@ namespace macho {
     struct source_version_command : load_command {
         uint64_t version;
     };
-    
+
     struct note_command : load_command {
         char data_owner[16];
         uint64_t offset;
         uint64_t size;
     };
-    
+
     struct build_version_command : load_command {
         uint32_t platform;
         uint32_t minos;

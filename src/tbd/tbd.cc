@@ -8,7 +8,9 @@
 
 #include <cerrno>
 
+#include "../mach-o/headers/build.h"
 #include "../misc/flags.h"
+
 #include "tbd.h"
 
 namespace tbd {
@@ -19,17 +21,17 @@ namespace tbd {
         : flags(flags) {}
 
         class flags flags;
-        
+
         unsigned int symbols_count = 0;
         unsigned int reexports_count = 0;
-        
+
         inline const bool operator==(const class flags &flags) const noexcept { return this->flags == flags; }
         inline const bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
-        
+
         inline const bool operator!=(const class flags &flags) const noexcept { return this->flags != flags; }
         inline const bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
     };
-    
+
     class symbol {
     public:
         enum class type {
@@ -39,38 +41,119 @@ namespace tbd {
             objc_classes,
             objc_ivars
         };
-        
+
         explicit symbol(const char *string, bool weak, int flags_length, enum type type) noexcept
         : string(string), weak(weak), flags(flags_length), type(type) {}
-        
+
         inline void add_architecture(int number) noexcept { flags.cast(number, true); }
-        
+
         const char *string;
         bool weak;
-        
+
         class flags flags;
         enum type type;
-        
+
         inline const bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
         inline const bool operator==(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) == 0; }
-        
+
         inline const bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
         inline const bool operator!=(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) != 0; }
     };
-    
+
     const char *platform_to_string(const enum platform &platform) noexcept {
         switch (platform) {
-            case ios:
+            case platform::none:
+                return "none";
+
+            case platform::aix:
+                return "aix";
+
+            case platform::amdhsa:
+                return "amdhsa";
+
+            case platform::ananas:
+                return "ananas";
+
+            case platform::cloudabi:
+                return "cloudabi";
+
+            case platform::cnk:
+                return "cnk";
+
+            case platform::contiki:
+                return "contiki";
+
+            case platform::cuda:
+                return "cuda";
+
+            case platform::darwin:
+                return "darwin";
+
+            case platform::dragonfly:
+                return "dragonfly";
+
+            case platform::elfiamcu:
+                return "elfiamcu";
+
+            case platform::freebsd:
+                return "freebsd";
+
+            case platform::fuchsia:
+                return "fuchsia";
+
+            case platform::haiku:
+                return "haiku";
+
+            case platform::ios:
                 return "ios";
 
-            case macosx:
+            case platform::kfreebsd:
+                return "kfreebsd";
+
+            case platform::linux:
+                return "linux";
+
+            case platform::lv2:
+                return "lv2";
+
+            case platform::macosx:
                 return "macosx";
 
-            case watchos:
+            case platform::mesa3d:
+                return "mesa3d";
+
+            case platform::minix:
+                return "minix";
+
+            case platform::nacl:
+                return "nacl";
+
+            case platform::netbsd:
+                return "netbsd";
+
+            case platform::nvcl:
+                return "nvcl";
+
+            case platform::openbsd:
+                return "openbsd";
+
+            case platform::ps4:
+                return "ps4";
+
+            case platform::rtems:
+                return "rtems";
+
+            case platform::solaris:
+                return "solaris";
+
+            case platform::tvos:
+                return "tvos";
+
+            case platform::watchos:
                 return "watchos";
 
-            case tvos:
-                return "tvos";
+            case platform::windows:
+                return "windows";
 
             default:
                 return nullptr;
@@ -78,17 +161,71 @@ namespace tbd {
     }
 
     enum platform string_to_platform(const char *platform) noexcept {
-        if (strcmp(platform, "ios") == 0) {
+        if (strcmp(platform, "none") == 0) {
+            return platform::none;
+        } else if (strcmp(platform, "aix") == 0) {
+            return platform::aix;
+        } else if (strcmp(platform, "amdhsa") == 0) {
+            return platform::amdhsa;
+        } else if (strcmp(platform, "ananas") == 0) {
+            return platform::ananas;
+        } else if (strcmp(platform, "cloudabi") == 0) {
+            return platform::cloudabi;
+        } else if (strcmp(platform, "cnk") == 0) {
+            return platform::cnk;
+        } else if (strcmp(platform, "contiki") == 0) {
+            return platform::contiki;
+        } else if (strcmp(platform, "cuda") == 0) {
+            return platform::cuda;
+        } else if (strcmp(platform, "darwin") == 0) {
+            return platform::darwin;
+        } else if (strcmp(platform, "dragonfly") == 0) {
+            return platform::dragonfly;
+        } else if (strcmp(platform, "elfiamcu") == 0) {
+            return platform::elfiamcu;
+        } else if (strcmp(platform, "freebsd") == 0) {
+            return platform::freebsd;
+        } else if (strcmp(platform, "fuchsia") == 0) {
+            return platform::fuchsia;
+        } else if (strcmp(platform, "haiku") == 0) {
+            return platform::haiku;
+        } else if (strcmp(platform, "ios") == 0) {
             return platform::ios;
+        } else if (strcmp(platform, "kfreebsd") == 0) {
+            return platform::kfreebsd;
+        } else if (strcmp(platform, "linux") == 0) {
+            return platform::linux;
+        } else if (strcmp(platform, "lv2") == 0) {
+            return platform::lv2;
         } else if (strcmp(platform, "macosx") == 0) {
             return platform::macosx;
-        } else if (strcmp(platform, "watchos") == 0) {
-            return platform::watchos;
+        } else if (strcmp(platform, "mesa3d") == 0) {
+            return platform::mesa3d;
+        } else if (strcmp(platform, "minix") == 0) {
+            return platform::minix;
+        } else if (strcmp(platform, "nacl") == 0) {
+            return platform::nacl;
+        } else if (strcmp(platform, "netbsd") == 0) {
+            return platform::netbsd;
+        } else if (strcmp(platform, "nvcl") == 0) {
+            return platform::nvcl;
+        } else if (strcmp(platform, "openbsd") == 0) {
+            return platform::openbsd;
+        } else if (strcmp(platform, "ps4") == 0) {
+            return platform::ps4;
+        } else if (strcmp(platform, "rtems") == 0) {
+            return platform::rtems;
+        } else if (strcmp(platform, "solaris") == 0) {
+            return platform::solaris;
         } else if (strcmp(platform, "tvos") == 0) {
             return platform::tvos;
+        } else if (strcmp(platform, "watchos") == 0) {
+            return platform::watchos;
+        } else if (strcmp(platform, "windows") == 0) {
+            return platform::windows;
         }
 
-        return (enum platform)0;
+        return platform::none;
     }
 
     enum version string_to_version(const char *version) noexcept {
@@ -106,139 +243,139 @@ namespace tbd {
             *type = symbol::type::weak_symbols;
             return string;
         }
-        
+
         if (strncmp(string, "_OBJC_CLASS_$", 13) == 0) {
             *type = symbol::type::objc_classes;
             return &string[13];
         }
-        
+
         if (strncmp(string, ".objc_class_name", 16) == 0) {
             *type = symbol::type::objc_classes;
             return &string[16];
         }
-        
+
         if (strncmp(string, "_OBJC_METACLASS_$", 17) == 0) {
             *type = symbol::type::objc_classes;
             return &string[17];
         }
-        
+
         if (strncmp(string, "_OBJC_IVAR_$", 12) == 0) {
             *type = symbol::type::objc_ivars;
             return &string[12];
         }
-        
+
         *type = symbol::type::symbols;
         return string;
     }
-    
+
     void print_symbols_to_tbd_output(FILE *output, const flags &flags, std::vector<symbol> &symbols, enum symbol::type type) {
         if (symbols.empty()) {
             return;
         }
-        
+
         // Find the first valid symbol (as determined by flags and symbol-type)
         // as printing a symbol-list requires a special format-string being print
         // for the first string, and a different one from the rest.
-        
+
         auto symbols_begin = symbols.begin();
         auto symbols_end = symbols.end();
-        
+
         const auto should_check_flags = flags.was_created();
-        
+
         for (; symbols_begin < symbols_end; symbols_begin++) {
             const auto &symbol = *symbols_begin;
             if (symbol.type != type) {
                 continue;
             }
-            
+
             if (should_check_flags) {
                 const auto &symbol_flags = symbol.flags;
                 if (symbol_flags != flags) {
                     continue;
                 }
             }
-            
+
             break;
         }
-        
+
         // If no valid symbols were found, print_symbols should
         // return immedietly.
-        
+
         if (symbols_begin == symbols_end) {
             return;
         }
-        
+
         switch (type) {
             case symbol::type::reexports:
                 fprintf(output, "%-4sre-exports:%7s", "", "");
                 break;
-                
+
             case symbol::type::symbols:
                 fprintf(output, "%-4ssymbols:%10s", "", "");
                 break;
-                
+
             case symbol::type::weak_symbols:
                 fprintf(output, "%-4sweak-def-symbols: ", "");
                 break;
-                
+
             case symbol::type::objc_classes:
                 fprintf(output, "%-4sobjc-classes:%5s", "", "");
                 break;
-                
+
             case symbol::type::objc_ivars:
                 fprintf(output, "%-4sobjc-ivars:%7s", "", "");
                 break;
         }
-        
+
         const auto line_length_max = 135;
         auto symbols_begin_string = symbols_begin->string;
-        
+
         fputs("[ ", output);
-        
+
         const auto symbol_string_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
         if (symbol_string_needs_quotes) {
             fputc('\'', output);
         }
-        
+
         fputs(symbols_begin_string, output);
         if (symbol_string_needs_quotes) {
             fputc('\'', output);
         }
-        
+
         auto current_line_length = strlen(symbols_begin_string);
         for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
             const auto &symbol = *symbols_begin;
             if (symbol.type != type) {
                 continue;
             }
-            
+
             if (should_check_flags) {
                 const auto &symbol_flags = symbol.flags;
                 if (symbol_flags != flags) {
                     continue;
                 }
             }
-            
+
             // If a symbol-string has a dollar sign, quotes must be
             // added around the string.
-            
+
             const auto symbol_string = symbol.string;
             const auto symbol_string_needs_quotes = strncmp(symbol_string, "$ld", 3) == 0;
-            
+
             const auto symbol_string_length = strlen(symbol_string);
-            
+
             auto new_line_length = symbol_string_length + 2;
             if (symbol_string_needs_quotes) {
                 new_line_length += 2;
             }
-            
+
             auto new_current_line_length = current_line_length + new_line_length;
-            
+
             // A line that is printed is allowed to go upto a line_length_max. When
             // calculating additional line length for a symbol, in addition to the
             // symbol-length, 2 is added for the comma and the space behind it
             // exception is made only when one symbol is longer than line_length_max.
-            
+
             if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
                 fprintf(output, ",\n%-24s", "");
                 new_current_line_length = new_line_length;
@@ -246,24 +383,24 @@ namespace tbd {
                 fputs(", ", output);
                 new_current_line_length++;
             }
-            
+
             if (symbol_string_needs_quotes) {
                 fputc('\'', output);
             }
-            
+
             fputs(symbol_string, output);
-            
+
             if (symbol_string_needs_quotes) {
                 fputc('\'', output);
             }
-            
+
             current_line_length = new_current_line_length;
         }
-        
+
         fputs(" ]\n", output);
     }
-    
-    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, const platform &platform, const version &version, std::vector<const macho::architecture_info *> &architectures) {
+
+    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, std::vector<const macho::architecture_info *> &architectures) {
         const auto has_architecture_overrides = architectures.size() != 0;
 
         uint32_t library_current_version = -1;
@@ -311,9 +448,58 @@ namespace tbd {
             auto failure_result = creation_result::ok;
 
             const auto library_container_is_big_endian = library_container.is_big_endian();
-            
+            const auto should_find_library_platform = platform == platform::none;
+
             library_container.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
                 switch (swapped->cmd) {
+                    case macho::load_commands::build_version: {
+                        if (!should_find_library_platform) {
+                            break;
+                        }
+
+                        auto build_version_command = (macho::build_version_command *)load_command;
+                        auto build_version_platform = build_version_command->platform;
+
+                        if (library_container_is_big_endian) {
+                            macho::swap_uint32(&build_version_platform);
+                        }
+
+                        auto build_version_parsed_platform = platform::none;
+                        switch (macho::build_version::platform(build_version_platform)) {
+                            case macho::build_version::platform::macos:
+                                build_version_parsed_platform = platform::macosx;
+                                break;
+
+                            case macho::build_version::platform::ios:
+                                build_version_parsed_platform = platform::ios;
+                                break;
+
+                            case macho::build_version::platform::tvos:
+                                build_version_parsed_platform = platform::tvos;
+                                break;
+
+                            case macho::build_version::platform::watchos:
+                                build_version_parsed_platform = platform::watchos;
+                                break;
+
+                            default:
+                                failure_result = creation_result::platform_not_supported;
+                                return false;
+                        }
+
+                        if (platform != platform::none) {
+                            if (platform != build_version_parsed_platform) {
+                                failure_result = creation_result::multiple_platforms;
+                                return false;
+                            }
+
+                            break;
+                        }
+
+                        platform = build_version_parsed_platform;
+                        break;
+                    }
+
                     case macho::load_commands::identification_dylib: {
                         auto identification_dylib_command = (macho::dylib_command *)load_command;
                         auto identification_dylib_installation_name_string_index = identification_dylib_command->name.offset;
@@ -345,7 +531,7 @@ namespace tbd {
                             macho::swap_uint32(&local_current_version);
                             macho::swap_uint32(&local_compatibility_version);
                         }
-                        
+
                         if (local_current_version != -1 && identification_dylib_current_version != local_current_version) {
                             failure_result = creation_result::contradictary_load_command_information;
                             return false;
@@ -355,42 +541,42 @@ namespace tbd {
                             failure_result = creation_result::contradictary_load_command_information;
                             return false;
                         }
-                        
+
                         local_current_version = identification_dylib_current_version;
                         local_compatibility_version = identification_dylib_compatibility_version;
-                        
+
                         break;
                     }
-                        
+
                     case macho::load_commands::reexport_dylib: {
                         auto reexport_dylib_command = (macho::dylib_command *)load_command;
                         if (library_container_is_big_endian) {
                             macho::swap_dylib_command(reexport_dylib_command);
                         }
-                        
+
                         auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
                         if (library_container_is_big_endian) {
                             macho::swap_uint32(&reexport_dylib_string_index);
                         }
-                        
+
                         if (reexport_dylib_string_index >= swapped->cmdsize) {
                             failure_result = creation_result::invalid_load_command;
                             return false;
                         }
-                        
+
                         const auto &reexport_dylib_string = &((char *)reexport_dylib_command)[reexport_dylib_string_index];
                         const auto library_reexports_iter = std::find(library_reexports.begin(), library_reexports.end(), reexport_dylib_string);
-                        
+
                         if (library_reexports_iter != library_reexports.end()) {
                             library_reexports_iter->add_architecture(library_containers_index);
                         } else {
                             library_reexports.emplace_back(reexport_dylib_string, false, library_containers_size, symbol::type::reexports);
                             library_reexports.back().add_architecture(library_containers_index);
                         }
-                        
+
                         break;
                     }
-                        
+
                     case macho::load_commands::uuid: {
                         const auto &library_uuid = ((macho::uuid_command *)load_command)->uuid;
                         const auto library_uuids_size = library_uuids.size();
@@ -401,21 +587,89 @@ namespace tbd {
                                 failure_result = creation_result::contradictary_load_command_information;
                                 return false;
                             }
-                            
+
                             return true;
                         }
-                        
+
                         const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const uint8_t *rhs) {
                             return memcmp(&library_uuid, rhs, 16) == 0;
                         });
-                        
+
                         const auto &library_uuids_end = library_uuids.end();
                         if (library_uuids_iter != library_uuids_end) {
                             failure_result = creation_result::uuid_is_not_unique;
                             return false;
                         }
-                        
+
                         library_uuids.emplace_back((uint8_t *)&library_uuid);
+                        break;
+                    }
+
+                    case macho::load_commands::version_min_macosx: {
+                        if (!should_find_library_platform) {
+                            break;
+                        }
+
+                        if (platform != platform::none) {
+                            if (platform != platform::macosx) {
+                                failure_result = creation_result::multiple_platforms;
+                            }
+
+                            break;
+                        }
+
+                        platform = platform::macosx;
+                        break;
+                    }
+
+                    case macho::load_commands::version_min_iphoneos: {
+                        if (!should_find_library_platform) {
+                            break;
+                        }
+
+                        if (platform != platform::none) {
+                            if (platform != platform::ios) {
+                                failure_result = creation_result::multiple_platforms;
+                            }
+
+                            break;
+                        }
+
+                        platform = platform::ios;
+                        break;
+                    }
+
+                    case macho::load_commands::version_min_watchos: {
+                        if (!should_find_library_platform) {
+                            break;
+                        }
+
+                        if (platform != platform::none) {
+                            if (platform != platform::watchos) {
+                                failure_result = creation_result::multiple_platforms;
+                            }
+
+                            break;
+                        }
+
+                        platform = platform::watchos;
+                        break;
+                    }
+
+                    case macho::load_commands::version_min_tvos: {
+                        if (!should_find_library_platform) {
+                            break;
+                        }
+
+                        if (platform != platform::none) {
+                            if (platform != platform::tvos) {
+                                failure_result = creation_result::multiple_platforms;
+                            }
+
+                            break;
+                        }
+
+                        platform = platform::tvos;
                         break;
                     }
 
@@ -430,82 +684,86 @@ namespace tbd {
                 return failure_result;
             }
             
+            if (platform == platform::none) {
+                return creation_result::platform_not_found;
+            }
+
             if (local_current_version == -1 || local_compatibility_version == -1 || !local_installation_name) {
                 return creation_result::not_a_library;
             }
-            
+
             if (library_installation_name != nullptr && strcmp(library_installation_name, local_installation_name) != 0) {
                 return creation_result::contradictary_container_information;
             } else if (!library_installation_name) {
                 library_installation_name = local_installation_name;
             }
-            
+
             if (library_current_version != -1 && local_current_version != library_current_version) {
                 return creation_result::contradictary_container_information;
             } else if (library_current_version == -1) {
                 library_current_version = local_current_version;
             }
-            
+
             if (library_compatibility_version != -1 && local_compatibility_version != library_compatibility_version) {
                 return creation_result::contradictary_container_information;
             } else if (library_compatibility_version == -1) {
                 library_compatibility_version = local_compatibility_version;
             }
-            
+
             const auto library_uuids_size = library_uuids.size();
             if (version == version::v2 && library_containers_index != library_uuids_size - 1) {
                 return creation_result::has_no_uuid;
             }
-            
+
             library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
                 const auto &symbol_table_entry_type = symbol_table_entry.n_type;
                 if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
                     return true;
                 }
-                
+
                 enum symbol::type symbol_type;
-                
+
                 const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
                 const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
-                
+
                 const auto symbol_type_is_objc = symbol_type == symbol::type::objc_classes || symbol_type == symbol::type::objc_ivars;
                 const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
-                
+
                 if (!symbol_type_is_objc) {
                     if (!symbol_type_is_external) {
                         return true;
                     }
                 }
-                
+
                 const auto symbols_iter = std::find(library_symbols.begin(), library_symbols.end(), parsed_symbol_string);
-                
+
                 if (symbols_iter != library_symbols.end()) {
                     symbols_iter->add_architecture(library_containers_index);
                 } else {
                     library_symbols.emplace_back(parsed_symbol_string, symbol_is_weak, library_containers_size, symbol_type);
                     library_symbols.back().add_architecture(library_containers_index);
                 }
-                
+
                 return true;
             });
-            
+
             library_containers_index++;
         }
-        
+
         std::sort(library_reexports.begin(), library_reexports.end(), [](const symbol &lhs, const symbol &rhs) {
             const auto lhs_string = lhs.string;
             const auto rhs_string = rhs.string;
-            
+
             return strcmp(lhs_string, rhs_string) < 0;
         });
-        
+
         std::sort(library_symbols.begin(), library_symbols.end(), [](const symbol &lhs, const symbol &rhs) {
             const auto lhs_string = lhs.string;
             const auto rhs_string = rhs.string;
-            
+
             return strcmp(lhs_string, rhs_string) < 0;
         });
-        
+
         auto groups = std::vector<group>();
         if (has_architecture_overrides) {
             groups.emplace_back();
@@ -513,7 +771,7 @@ namespace tbd {
             for (const auto &library_reexport : library_reexports) {
                 const auto &library_reexport_flags = library_reexport.flags;
                 const auto group_iter = std::find(groups.begin(), groups.end(), library_reexport_flags);
-                
+
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
@@ -521,11 +779,11 @@ namespace tbd {
                     groups.back().reexports_count++;
                 }
             }
-            
+
             for (const auto &library_symbol : library_symbols) {
                 const auto &library_symbol_flags = library_symbol.flags;
                 const auto group_iter = std::find(groups.begin(), groups.end(), library_symbol_flags);
-                
+
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
@@ -533,119 +791,119 @@ namespace tbd {
                     groups.back().symbols_count++;
                 }
             }
-            
+
             std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
                 const auto lhs_symbols_count = lhs.symbols_count;
                 const auto rhs_symbols_count = rhs.symbols_count;
-                
+
                 return lhs_symbols_count < rhs_symbols_count;
             });
         }
-        
+
         fputs("---", output);
         if (version == version::v2) {
             fputs(" !tapi-tbd-v2", output);
         }
-        
+
         fprintf(output, "\narchs:%-17s[ ", "");
-        
+
         auto architectures_begin = architectures.begin();
         auto architectures_begin_arch_info = *architectures_begin;
-        
+
         fputs(architectures_begin_arch_info->name, output);
-        
+
         const auto architectures_end = architectures.end();
         for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
             auto architecture_arch_info = *architectures_begin;
             auto architecture_arch_info_name = architecture_arch_info->name;
-            
+
             fprintf(output, ", %s", architecture_arch_info_name);
         }
-        
+
         fputs(" ]\n", output);
-        
+
         if (version == version::v2) {
             fprintf(output, "uuids:%-17s[ ", "");
-            
+
             auto library_uuid_counter = 1;
             auto library_uuids_begin = library_uuids.begin();
-            
+
             const auto &architectures_end = architectures.end();
             const auto &architectures_back = architectures_end - 1;
-            
+
             for (auto architectures_begin = architectures.begin(); architectures_begin < architectures_end; architectures_begin++, library_uuids_begin++) {
                 const auto &architecture_arch_info = *architectures_begin;
                 const auto &library_uuid = *library_uuids_begin;
-                
+
                 fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
-                
+
                 if (architectures_begin != architectures_back) {
                     fputs(", ", output);
-                    
+
                     if (library_uuid_counter & 1) {
                         fprintf(output, "%-26s", "\n");
                     }
-                    
+
                     library_uuid_counter++;
                 }
             }
-            
+
             fputs(" ]\n", output);
         }
-        
+
         fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
         fprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
-        
+
         fprintf(output, "current-version:%-7s%u.%u.%u\n", "", library_current_version >> 16, (library_current_version >> 8) & 0xff, library_current_version & 0xff);
         fprintf(output, "compatibility-version: %u.%u.%u\n", library_compatibility_version >> 16, (library_compatibility_version >> 8) & 0xff, library_compatibility_version & 0xff);
-        
+
         if (version == version::v2) {
             fprintf(output, "objc-constraint:%-7snone\n", "");
         }
-        
+
         fputs("exports:\n", output);
-        
+
         if (has_architecture_overrides) {
             const auto architectures_begin = architectures.begin();
             const auto architectures_begin_arch_info = *architectures_begin;
-            
+
             fprintf(output, "  - archs:%-12s[ %s", "", architectures_begin_arch_info->name);
-            
+
             const auto architectures_end = architectures.end();
             for (auto architectures_iter = architectures_begin + 1; architectures_iter < architectures_end; architectures_iter++) {
                 auto architectures_iter_arch_info = *architectures_iter;
                 auto architectures_iter_arch_info_name = architectures_iter_arch_info->name;
-                
+
                 fprintf(output, ", %s", architectures_iter_arch_info_name);
             }
-            
+
             fputs(" ]\n", output);
-            
+
             const auto &group = groups.front();
             const auto &group_flags = group.flags;
-            
+
             print_symbols_to_tbd_output(output, group_flags, library_reexports, symbol::type::reexports);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::symbols);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::weak_symbols);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::objc_classes);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::objc_ivars);
-            
+
         } else {
             for (auto &group : groups) {
                 const auto &group_flags = group.flags;
                 const auto architectures_size = architectures.size();
-                
+
                 auto architectures_index = architectures_size - 1;
                 auto has_printed_first_architecture = false;
-                
+
                 for (; architectures_index < architectures_size; architectures_index--) {
                     const auto architecture = group_flags.at_index(architectures_index);
                     if (!architecture) {
                         continue;
                     }
-                    
+
                     const auto &architecture_info = architectures.at(architectures_index);
-                    
+
                     if (!has_printed_first_architecture) {
                         fprintf(output, "  - archs:%-12s[ %s", "", architecture_info->name);
                         has_printed_first_architecture = true;
@@ -653,9 +911,9 @@ namespace tbd {
                         fprintf(output, ", %s", architecture_info->name);
                     }
                 }
-                
+
                 fputs(" ]\n", output);
-                
+
                 print_symbols_to_tbd_output(output, group_flags, library_reexports, symbol::type::reexports);
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::symbols);
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::weak_symbols);
@@ -663,9 +921,9 @@ namespace tbd {
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::objc_ivars);
             }
         }
-        
+
         fputs("...\n", output);
-        
+
         if (!has_architecture_overrides) {
             architectures.clear();
         }
