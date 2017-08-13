@@ -683,7 +683,7 @@ namespace tbd {
             if (failure_result != creation_result::ok) {
                 return failure_result;
             }
-            
+
             if (platform == platform::none) {
                 return creation_result::platform_not_found;
             }
@@ -854,14 +854,37 @@ namespace tbd {
         fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
         fprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
 
-        fprintf(output, "current-version:%-7s%u.%u.%u\n", "", library_current_version >> 16, (library_current_version >> 8) & 0xff, library_current_version & 0xff);
-        fprintf(output, "compatibility-version: %u.%u.%u\n", library_compatibility_version >> 16, (library_compatibility_version >> 8) & 0xff, library_compatibility_version & 0xff);
+        auto library_current_version_major = library_current_version >> 16;
+        auto library_current_version_minor = (library_current_version >> 8) & 0xff;
+        auto library_current_version_revision = library_current_version & 0xff;
 
-        if (version == version::v2) {
-            fprintf(output, "objc-constraint:%-7snone\n", "");
+        fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+
+        if (library_current_version_minor != 0) {
+            fprintf(output, ".%u", library_current_version_minor);
+            if (library_current_version_revision != 0) {
+                fprintf(output, ".%u", library_current_version_revision);
+            }
         }
 
-        fputs("exports:\n", output);
+        auto library_compatibility_version_major = library_compatibility_version >> 16;
+        auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
+        auto library_compatibility_version_revision = library_compatibility_version & 0xff;
+
+        fprintf(output, "\ncompatibility-version: %u", library_compatibility_version_major);
+
+        if (library_compatibility_version_minor != 0) {
+            fprintf(output, ".%u", library_compatibility_version_minor);
+            if (library_compatibility_version_revision != 0) {
+                fprintf(output, ".%u", library_compatibility_version_revision);
+            }
+        }
+
+        if (version == version::v2) {
+            fprintf(output, "\nobjc-constraint:%-7snone", "");
+        }
+
+        fputs("\nexports:\n", output);
 
         if (has_architecture_overrides) {
             const auto architectures_begin = architectures.begin();
