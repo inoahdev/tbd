@@ -91,7 +91,7 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
     const auto directory = opendir(directory_path);
     if (!directory) {
         fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     const auto directory_path_length = strlen(directory_path);
@@ -172,7 +172,7 @@ const char *retrieve_current_directory() {
         const auto current_directory_string = getcwd(nullptr, 0);
         if (!current_directory_string) {
             fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         const auto current_directory_length = strlen(current_directory_string);
@@ -215,7 +215,7 @@ void parse_architectures_list(std::vector<const macho::architecture_info *> &arc
 
             if (architectures.empty()) {
                 fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
 
             break;
@@ -234,7 +234,7 @@ void parse_architectures_list(std::vector<const macho::architecture_info *> &arc
 
             if (architectures.empty()) {
                 fprintf(stderr, "Unrecognized architecture with name (%s)\n", architecture_string);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
 
             break;
@@ -268,7 +268,7 @@ void recursively_create_directories_from_file_path(char *path, bool create_last_
         if (access(path, F_OK) != 0) {
             if (mkdir(path, 0755) != 0) {
                 fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -280,7 +280,7 @@ void recursively_create_directories_from_file_path(char *path, bool create_last_
         if (access(path, F_OK) != 0) {
             if (mkdir(path, 0755) != 0) {
                 fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         }
     }
@@ -817,7 +817,7 @@ int main(int argc, const char *argv[]) {
 
             if (!provided_output_path) {
                 fputs("Please provide path(s) to output files\n", stderr);
-                exit(1);
+                return 1;
             }
 
             output_paths_index++;
