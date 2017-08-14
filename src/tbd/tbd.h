@@ -82,6 +82,7 @@ namespace tbd {
         invalid_subtype,
         invalid_cputype,
         invalid_load_command,
+        invalid_segment,
         contradictary_load_command_information,
         uuid_is_not_unique,
         platform_not_found,

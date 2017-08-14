@@ -13,19 +13,19 @@
 #include "container.h"
 
 namespace macho {
-    container::container(FILE *file, long base)
-    : file_(file), base_(base) {
-        const auto position = ftell(file);
-        fseek(file, 0, SEEK_END);
+    container::container(FILE *stream, long base)
+    : stream_(stream), base_(base) {
+        const auto position = ftell(stream);
+        fseek(stream, 0, SEEK_END);
 
-        this->size_ = ftell(file);
+        this->size_ = ftell(stream);
 
-        fseek(file, position, SEEK_SET);
+        fseek(stream, position, SEEK_SET);
         this->validate();
     }
 
-    container::container(FILE *file, long base, size_t size)
-    : file_(file), base_(base), size_(size) {
+    container::container(FILE *stream, long base, size_t size)
+    : stream_(stream), base_(base), size_(size) {
         this->validate();
     }
 
@@ -48,27 +48,27 @@ namespace macho {
 
     void container::validate() {
         auto &base = base_;
-        auto &file = file_;
+        auto &stream = stream_;
 
         auto &header = header_;
         auto &magic = header.magic;
 
         const auto is_big_endian = this->is_big_endian();
-        const auto position = ftell(file);
+        const auto stream_position = ftell(stream);
 
-        fseek(file, base, SEEK_SET);
-        fread(&magic, sizeof(uint32_t), 1, file);
+        fseek(stream, base, SEEK_SET);
+        fread(&magic, sizeof(uint32_t), 1, stream);
 
-        const auto macho_file_is_regular = magic_is_thin(magic);
-        if (macho_file_is_regular) {
-            fread(&header.cputype, sizeof(header) - sizeof(uint32_t), 1, file);
+        const auto macho_stream_is_regular = magic_is_thin(magic);
+        if (macho_stream_is_regular) {
+            fread(&header.cputype, sizeof(header) - sizeof(uint32_t), 1, stream);
 
             if (is_big_endian) {
                 swap_mach_header(&header);
             }
         } else {
-            const auto macho_file_is_fat = magic_is_fat(magic);
-            if (macho_file_is_fat) {
+            const auto macho_stream_is_fat = magic_is_fat(magic);
+            if (macho_stream_is_fat) {
                 fprintf(stderr, "Architecture at location (0x%.8lX) cannot be a fat mach-o file itself\n", base);
                 exit(1);
             } else {
@@ -77,12 +77,12 @@ namespace macho {
             }
         }
 
-        fseek(file, position, SEEK_SET);
+        fseek(stream, stream_position, SEEK_SET);
     }
 
     void container::iterate_load_commands(const std::function<bool (const struct load_command *, const struct load_command *)> &callback) {
         const auto &base = base_;
-        const auto &file = file_;
+        const auto &stream = stream_;
 
         const auto &header = header_;
         const auto is_big_endian = this->is_big_endian();
@@ -101,12 +101,12 @@ namespace macho {
                 load_command_base += sizeof(uint32_t);
             }
 
-            const auto position = ftell(file);
+            const auto position = ftell(stream);
 
-            fseek(file, load_command_base, SEEK_SET);
-            fread(cached_load_commands, sizeofcmds, 1, file);
+            fseek(stream, load_command_base, SEEK_SET);
+            fread(cached_load_commands, sizeofcmds, 1, stream);
 
-            fseek(file, position, SEEK_SET);
+            fseek(stream, position, SEEK_SET);
         }
 
         auto size_used = 0;
@@ -162,10 +162,10 @@ namespace macho {
         auto &base = base_;
         auto &size = size_;
 
-        auto &file = file_;
+        auto &stream = stream_;
 
         const auto is_big_endian = this->is_big_endian();
-        const auto position = ftell(file);
+        const auto position = ftell(stream);
 
         auto &symbol_table = symbol_table_;
         if (!symbol_table) {
@@ -210,8 +210,8 @@ namespace macho {
 
             cached_string_table = new char[string_table_size];
 
-            fseek(file, base + string_table_location, SEEK_SET);
-            fread(cached_string_table, string_table_size, 1, file);
+            fseek(stream, base + string_table_location, SEEK_SET);
+            fread(cached_string_table, string_table_size, 1, stream);
         }
 
         auto &cached_symbol_table = cached_symbol_table_;
@@ -229,7 +229,7 @@ namespace macho {
                 exit(1);
             }
 
-            fseek(file, base + symbol_table_location, SEEK_SET);
+            fseek(stream, base + symbol_table_location, SEEK_SET);
 
             const auto is_64_bit = this->is_64_bit();
             if (is_64_bit) {
@@ -246,7 +246,7 @@ namespace macho {
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
-                fread(cached_symbol_table, symbol_table_size, 1, file);
+                fread(cached_symbol_table, symbol_table_size, 1, stream);
 
                 if (is_big_endian) {
                     swap_nlist_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
@@ -265,14 +265,14 @@ namespace macho {
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
-                fread(cached_symbol_table, symbol_table_size, 1, file);
+                fread(cached_symbol_table, symbol_table_size, 1, stream);
 
                 if (is_big_endian) {
                     swap_nlist((struct nlist *)cached_symbol_table, symbol_table_count);
                 }
             }
 
-            fseek(file, position, SEEK_SET);
+            fseek(stream, position, SEEK_SET);
         }
 
         const auto &symbol_table_count = symbol_table->nsyms;

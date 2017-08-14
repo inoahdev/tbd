@@ -9,8 +9,9 @@
 #include <cerrno>
 
 #include "../mach-o/headers/build.h"
-#include "../misc/flags.h"
+#include "../mach-o/headers/segment.h"
 
+#include "../misc/flags.h"
 #include "tbd.h"
 
 namespace tbd {
@@ -324,7 +325,7 @@ namespace tbd {
                 break;
         }
 
-        const auto line_length_max = 135;
+        const auto line_length_max = 105;
         auto symbols_begin_string = symbols_begin->string;
 
         fputs("[ ", output);
@@ -402,6 +403,7 @@ namespace tbd {
 
         uint32_t library_current_version = -1;
         uint32_t library_compatibility_version = -1;
+        uint32_t library_swift_version = 0;
 
         const char *library_installation_name = nullptr;
 
@@ -440,12 +442,18 @@ namespace tbd {
 
             uint32_t local_current_version = -1;
             uint32_t local_compatibility_version = -1;
+            uint32_t local_swift_version = 0;
 
             const char *local_installation_name = nullptr;
             auto failure_result = creation_result::ok;
 
             const auto library_container_is_big_endian = library_container.is_big_endian();
             const auto should_find_library_platform = platform == platform::none;
+
+            const auto library_container_base = library_container.base();
+            const auto library_container_size = library_container.size();
+
+            auto library_container_stream = library_container.stream();
 
             library_container.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
                 switch (swapped->cmd) {
@@ -454,7 +462,7 @@ namespace tbd {
                             break;
                         }
 
-                        auto build_version_command = (macho::build_version_command *)load_command;
+                        const auto build_version_command = (macho::build_version_command *)load_command;
                         auto build_version_platform = build_version_command->platform;
 
                         if (library_container_is_big_endian) {
@@ -489,11 +497,10 @@ namespace tbd {
                                 failure_result = creation_result::multiple_platforms;
                                 return false;
                             }
-
-                            break;
+                        } else {
+                            platform = build_version_parsed_platform;
                         }
 
-                        platform = build_version_parsed_platform;
                         break;
                     }
 
@@ -529,14 +536,18 @@ namespace tbd {
                             macho::swap_uint32(&local_compatibility_version);
                         }
 
-                        if (local_current_version != -1 && identification_dylib_current_version != local_current_version) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (local_current_version != -1) {
+                            if (identification_dylib_current_version != local_current_version) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         }
 
-                        if (local_compatibility_version != -1 && identification_dylib_compatibility_version != local_compatibility_version) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (local_compatibility_version != -1) {
+                            if (identification_dylib_compatibility_version != local_compatibility_version) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         }
 
                         local_current_version = identification_dylib_current_version;
@@ -569,6 +580,174 @@ namespace tbd {
                         } else {
                             library_reexports.emplace_back(reexport_dylib_string, false, library_containers_size, symbol::type::reexports);
                             library_reexports.back().add_architecture(library_containers_index);
+                        }
+
+                        break;
+                    }
+
+                    case macho::load_commands::segment: {
+                        const auto segment_command = (macho::segment_command *)load_command;
+                        if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
+                            break;
+                        }
+
+                        const auto library_container_is_64_bit = library_container.is_64_bit();
+                        if (library_container_is_64_bit) {
+                            break;
+                        }
+
+                        auto segment_sections_count = segment_command->nsects;
+                        if (library_container_is_big_endian) {
+                            macho::swap_uint32(&segment_sections_count);
+                        }
+
+                        auto segment_section = (macho::segments::section *)((uintptr_t)segment_command + sizeof(macho::segment_command));
+                        uint32_t objc_image_info_flags = 0;
+
+                        while (segment_sections_count != 0) {
+                            if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
+                                segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section));
+                                segment_sections_count--;
+
+                                continue;
+                            }
+
+                            auto segment_section_data_offset = segment_section->offset;
+                            if (library_container_is_big_endian) {
+                                macho::swap_uint32(&segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_offset > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            auto segment_section_data_size = segment_section->size;
+                            if (library_container_is_big_endian) {
+                                macho::swap_uint32(&segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_size > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            if (segment_section_data_size != 8) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
+                            if (segment_section_data_end > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto library_container_stream_position = ftell(library_container_stream);
+
+                            fseek(library_container_stream, library_container_base + segment_section_data_offset + sizeof(uint32_t), SEEK_SET);
+                            fread(&objc_image_info_flags, sizeof(uint32_t), 1, library_container_stream);
+
+                            fseek(library_container_stream, library_container_stream_position, SEEK_SET);
+                            break;
+                        }
+
+                        if (!objc_image_info_flags) {
+                            break;
+                        }
+
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags & 0xff00) >> 8;
+                        if (local_swift_version != 0) {
+                            if (objc_image_info_flags_swift_version != local_swift_version) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
+                        } else {
+                            local_swift_version = objc_image_info_flags_swift_version;
+                        }
+
+                        break;
+                    }
+
+                    case macho::load_commands::segment_64: {
+                        const auto segment_command = (macho::segment_command_64 *)load_command;
+                        if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
+                            break;
+                        }
+
+                        const auto library_container_is_32_bit = library_container.is_32_bit();
+                        if (library_container_is_32_bit) {
+                            break;
+                        }
+
+                        auto segment_sections_count = segment_command->nsects;
+                        if (library_container_is_big_endian) {
+                            macho::swap_uint32(&segment_sections_count);
+                        }
+
+                        auto segment_section = (macho::segments::section_64 *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
+                        uint32_t objc_image_info_flags = 0;
+
+                        while (segment_sections_count != 0) {
+                            if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
+                                segment_section = (macho::segments::section_64 *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
+                                segment_sections_count--;
+
+                                continue;
+                            }
+
+                            auto segment_section_data_offset = segment_section->offset;
+                            if (library_container_is_big_endian) {
+                                macho::swap_uint32(&segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_offset > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            auto segment_section_data_size = segment_section->size;
+                            if (library_container_is_big_endian) {
+                                macho::swap_uint32(&segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_size > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            if (segment_section_data_size != 8) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
+                            if (segment_section_data_end > library_container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto library_container_stream_position = ftell(library_container_stream);
+
+                            fseek(library_container_stream, library_container_base + segment_section_data_offset + sizeof(uint32_t), SEEK_SET);
+                            fread(&objc_image_info_flags, sizeof(uint32_t), 1, library_container_stream);
+
+                            fseek(library_container_stream, library_container_stream_position, SEEK_SET);
+                            break;
+                        }
+
+                        if (!objc_image_info_flags) {
+                            break;
+                        }
+
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags & 0xff00) >> 8;
+                        if (local_swift_version != 0) {
+                            if (objc_image_info_flags_swift_version != local_swift_version) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
+                        } else {
+                            local_swift_version = objc_image_info_flags_swift_version;
                         }
 
                         break;
@@ -610,12 +789,12 @@ namespace tbd {
                         if (platform != platform::none) {
                             if (platform != platform::macosx) {
                                 failure_result = creation_result::multiple_platforms;
+                                return false;
                             }
-
-                            break;
+                        } else {
+                            platform = platform::macosx;
                         }
 
-                        platform = platform::macosx;
                         break;
                     }
 
@@ -627,12 +806,12 @@ namespace tbd {
                         if (platform != platform::none) {
                             if (platform != platform::ios) {
                                 failure_result = creation_result::multiple_platforms;
+                                return false;
                             }
-
-                            break;
+                        } else {
+                            platform = platform::macosx;
                         }
 
-                        platform = platform::ios;
                         break;
                     }
 
@@ -644,12 +823,12 @@ namespace tbd {
                         if (platform != platform::none) {
                             if (platform != platform::watchos) {
                                 failure_result = creation_result::multiple_platforms;
+                                return false;
                             }
-
-                            break;
+                        } else {
+                            platform = platform::watchos;
                         }
 
-                        platform = platform::watchos;
                         break;
                     }
 
@@ -661,12 +840,12 @@ namespace tbd {
                         if (platform != platform::none) {
                             if (platform != platform::tvos) {
                                 failure_result = creation_result::multiple_platforms;
+                                return false;
                             }
-
-                            break;
+                        } else {
+                            platform = platform::tvos;
                         }
 
-                        platform = platform::tvos;
                         break;
                     }
 
@@ -689,22 +868,36 @@ namespace tbd {
                 return creation_result::not_a_library;
             }
 
-            if (library_installation_name != nullptr && strcmp(library_installation_name, local_installation_name) != 0) {
-                return creation_result::contradictary_container_information;
-            } else if (!library_installation_name) {
+            if (library_installation_name != nullptr) {
+                if (strcmp(library_installation_name, local_installation_name) != 0) {
+                    return creation_result::contradictary_container_information;
+                }
+            } else {
                 library_installation_name = local_installation_name;
             }
 
-            if (library_current_version != -1 && local_current_version != library_current_version) {
-                return creation_result::contradictary_container_information;
-            } else if (library_current_version == -1) {
+            if (library_current_version != -1) {
+                if (local_current_version != library_current_version) {
+                    return creation_result::contradictary_container_information;
+                }
+            } else {
                 library_current_version = local_current_version;
             }
 
-            if (library_compatibility_version != -1 && local_compatibility_version != library_compatibility_version) {
-                return creation_result::contradictary_container_information;
-            } else if (library_compatibility_version == -1) {
+            if (library_compatibility_version != -1) {
+                if (local_compatibility_version != library_compatibility_version) {
+                    return creation_result::contradictary_container_information;
+                }
+            } else {
                 library_compatibility_version = local_compatibility_version;
+            }
+
+            if (library_swift_version != 0) {
+                if (local_swift_version != library_swift_version) {
+                    return creation_result::contradictary_container_information;
+                }
+            } else {
+                library_swift_version = local_swift_version;
             }
 
             library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
@@ -718,14 +911,9 @@ namespace tbd {
                 const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
                 const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
-                const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
-                const auto symbol_type_is_private_external = symbol_table_entry_type & macho::symbol_table::flags::private_external ? true : false;
-
-                if (!symbol_type_is_external && !symbol_type_is_private_external) {
-                    return true;
-                }
-
                 if (!(options & symbol_options::allow_all_private_symbols)) {
+                    const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
+
                     switch (symbol_type) {
                         case symbol::type::symbols:
                             if (!(options & symbol_options::allow_private_normal_symbols)) {
@@ -931,11 +1119,28 @@ namespace tbd {
             fprintf(output, ".%u", library_compatibility_version_revision);
         }
 
+        fputc('\n', output);
         if (version == version::v2) {
-            fprintf(output, "\nobjc-constraint:%-7snone", "");
+            fprintf(output, "objc-constraint:%-7snone\n", "");
         }
 
-        fputs("\nexports:\n", output);
+        if (library_swift_version != 0) {
+            switch (library_swift_version) {
+                case 1:
+                    fprintf(output, "swift-version:%-9s1\n", "");
+                    break;
+
+                case 2:
+                    fprintf(output, "swift-version:%-9s1.2\n", "");
+                    break;
+
+                default:
+                    fprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
+                    break;
+            }
+        }
+
+        fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
             const auto architectures_begin = architectures.begin();
