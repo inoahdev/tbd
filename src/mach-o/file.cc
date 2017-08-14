@@ -19,7 +19,7 @@ namespace macho {
         auto &stream = stream_;
         if (!stream) {
             fprintf(stderr, "Failed to open mach-o file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
-            _exit(1);
+            exit(1);
         }
 
         this->validate();
@@ -212,7 +212,7 @@ namespace macho {
 
             if (!nfat_arch) {
                 fprintf(stderr, "Mach-o file has 0 architectures");
-                _exit(1);
+                exit(1);
             }
 
             auto magic_is_big_endian = macho::magic_is_big_endian(magic);
@@ -262,7 +262,7 @@ namespace macho {
                 containers.emplace_back(stream, 0);
             } else {
                 fputs("Mach-o file is invalid, does not have a valid magic-number", stderr);
-                _exit(1);
+                exit(1);
             }
         }
     }
