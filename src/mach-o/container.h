@@ -16,8 +16,8 @@
 namespace macho {
     class container {
     public:
-        explicit container(FILE *file, long base);
-        explicit container(FILE *file, long base, size_t size);
+        explicit container(FILE *stream, long base);
+        explicit container(FILE *stream, long base, size_t size);
 
         ~container();
 
@@ -33,7 +33,7 @@ namespace macho {
             return value;
         }
 
-        inline const FILE *file() const noexcept { return file_; }
+        inline FILE *stream() const noexcept { return stream_; }
         inline const header &header() const noexcept { return header_; }
 
         inline const bool is_big_endian() const noexcept { return magic_is_big_endian(header_.magic); }
@@ -45,7 +45,7 @@ namespace macho {
         inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header_.magic); }
 
     private:
-        FILE *file_;
+        FILE *stream_;
 
         long base_ = 0;
         size_t size_ = 0;
@@ -54,7 +54,7 @@ namespace macho {
 
         uint8_t *cached_load_commands_ = nullptr;
         uint8_t *cached_symbol_table_ = nullptr;
-        
+
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 

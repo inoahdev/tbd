@@ -11,61 +11,88 @@
 #include "../mach-o/architecture_info.h"
 #include "../mach-o/file.h"
 
-#include "symbol.h"
-
-class tbd {
-public:
-    enum platform {
-        ios = 1,
+namespace tbd {
+    enum class platform {
+        none,
+        aix,
+        amdhsa,
+        ananas,
+        cloudabi,
+        cnk,
+        contiki,
+        cuda,
+        darwin,
+        dragonfly,
+        elfiamcu,
+        freebsd,
+        fuchsia,
+        haiku,
+        ios,
+        kfreebsd,
+        linux,
+        lv2,
         macosx,
+        mesa3d,
+        minix,
+        nacl,
+        netbsd,
+        nvcl,
+        openbsd,
+        ps4,
+        rtems,
+        solaris,
+        tvos,
         watchos,
-        tvos
+        windows,
     };
 
-    static const char *platform_to_string(const platform &platform) noexcept;
-    static platform string_to_platform(const char *platform) noexcept;
+    __attribute__((unused)) const char *platform_to_string(const platform &platform) noexcept;
+    __attribute__((unused)) platform string_to_platform(const char *platform) noexcept;
 
-    enum class version {
+    enum version {
         v1 = 1,
         v2
     };
 
-    static version string_to_version(const char *version) noexcept;
+    __attribute__((unused)) version string_to_version(const char *version) noexcept;
 
-    explicit tbd() = default;
-    explicit tbd(const std::vector<std::string> &macho_files, const std::vector<std::string> &output_files, const platform &platform, const version &version, const std::vector<const macho::architecture_info *> &architecture_overrides = std::vector<const macho::architecture_info *>());
+    enum class symbol_options : unsigned int {
+        allow_all_private_symbols    = 1 << 0,
+        allow_private_normal_symbols = 1 << 1,
+        allow_private_weak_symbols   = 1 << 2,
+        allow_private_objc_symbols   = 1 << 3,
+        allow_private_objc_classes   = 1 << 4,
+        allow_private_objc_ivars     = 1 << 5,
+    };
 
-    void run();
+    inline int operator|(int lhs, const symbol_options &rhs) noexcept { return lhs | (int)rhs; }
+    inline unsigned int operator|(unsigned int lhs, const symbol_options &rhs) noexcept { return lhs | (unsigned int)rhs; }
 
-    inline std::vector<std::string> &macho_files() noexcept { return macho_files_; }
-    inline std::vector<std::string> &output_files() noexcept { return output_files_; }
+    inline void operator|=(int &lhs, const symbol_options &rhs) noexcept { lhs |= (int)rhs; }
+    inline void operator|=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs |= (unsigned int)rhs; }
 
-    inline const std::vector<const macho::architecture_info *> architectures() const noexcept { return architectures_; }
+    inline int operator&(int lhs, const symbol_options &rhs) noexcept { return lhs & (int)rhs; }
+    inline unsigned int operator&(unsigned int lhs, const symbol_options &rhs) noexcept { return lhs & (unsigned int)rhs; }
 
-    inline void set_architectures(const std::vector<const macho::architecture_info *> &architectures) noexcept {
-        architectures_ = architectures;
-    }
+    inline void operator&=(int &lhs, const symbol_options &rhs) noexcept { lhs &= (int)rhs; }
+    inline void operator&=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs &= (unsigned int)rhs; }
 
-    inline void set_platform(const platform &platform) noexcept {
-        platform_ = platform;
-    }
+    enum class creation_result {
+        ok,
+        invalid_subtype,
+        invalid_cputype,
+        invalid_load_command,
+        invalid_segment,
+        contradictary_load_command_information,
+        uuid_is_not_unique,
+        platform_not_found,
+        platform_not_supported,
+        multiple_platforms,
+        not_a_library,
+        has_no_uuid,
+        contradictary_container_information,
+        no_symbols_or_reexports
+    };
 
-    inline void set_version(const version &version) noexcept {
-        version_ = version;
-    }
-
-    inline const platform &platform() const noexcept { return platform_; }
-    inline const version &version() const noexcept { return version_; }
-
-private:
-    std::vector<std::string> macho_files_;
-    std::vector<std::string> output_files_;
-
-    enum platform platform_;
-    enum version version_;
-
-    std::vector<const macho::architecture_info *> architectures_;
-
-    void print_symbols(FILE *output_file, const flags &flags, std::vector<symbol> &symbols, enum symbol::type type) const noexcept;
-    void run(macho::file &macho, FILE *output);
-};
+    __attribute__((unused)) creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, std::vector<const macho::architecture_info *> &architecture_overrides);
+}

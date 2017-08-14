@@ -1,5 +1,5 @@
 //
-//  flags.cc
+//  src/tbd/flags.cc
 //  tbd
 //
 //  Created by administrator on 7/10/17.
@@ -119,7 +119,7 @@ bool flags::operator==(const flags &flags) const noexcept {
     }
 
     if (length_ > bit_size()) {
-        return memcmp(flags_.ptr, flags_.ptr, length_);
+        return memcmp(flags_.ptr, flags.flags_.ptr, length_);
     } else {
         return flags_.flags == flags.flags_.flags;
     }

@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/cputype.h
+//  src/mach-o/headers/cputype.h
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.
@@ -95,7 +95,6 @@ namespace macho {
 
         //cputype::powerpc64
         ppc64,
-        ppc970_64,
 
         // cputype::sparc
         sparc,

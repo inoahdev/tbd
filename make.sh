@@ -15,7 +15,7 @@ type=$1
 
 rm -rf build >/dev/null 2>/dev/null
 if [ "$type" == "build" ]; then
-    build_flag="-O3"
+    build_flag="-Ofast"
     if [ $# -ge 1 ]; then
         if [[ $2 == "Debug" ]]; then
             build_flag="-O0 -g"
@@ -29,8 +29,8 @@ if [ "$type" == "build" ]; then
 
     mkdir -p build >/dev/null 2>/dev/null
     if [ $should_log = true ]; then
-        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/tbd/flags.cc src/tbd/symbol.cc src/tbd/group.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd
+        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd
     else
-        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/tbd/flags.cc src/tbd/symbol.cc src/tbd/group.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
+        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
     fi
 fi

@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/magic.h
+//  src/mach-o/headers/magic.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.

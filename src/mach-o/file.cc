@@ -15,9 +15,9 @@
 
 namespace macho {
     file::file(const std::string &path)
-    : file_(fopen(path.data(), "r")) {
-        auto &file = file_;
-        if (!file) {
+    : stream_(fopen(path.data(), "r")) {
+        auto &stream = stream_;
+        if (!stream) {
             fprintf(stderr, "Failed to open mach-o file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
             exit(1);
         }
@@ -26,7 +26,7 @@ namespace macho {
     }
 
     file::~file() {
-        fclose(file_);
+        fclose(stream_);
     }
 
     bool file::is_valid_file(const std::string &path) noexcept {
@@ -56,11 +56,13 @@ namespace macho {
             }
         }
 
-        const auto load_commands = new char[header.sizeofcmds];
-        read(descriptor, load_commands, header.sizeofcmds);
+        const auto load_commands_size = header.sizeofcmds;
+        const auto load_commands = new char[load_commands_size];
+
+        read(descriptor, load_commands, load_commands_size);
 
         auto index = 0;
-        auto size_left = header.sizeofcmds;
+        auto size_left = load_commands_size;
 
         const auto &ncmds = header.ncmds;
         for (auto i = 0; i < ncmds; i++) {
@@ -198,15 +200,15 @@ namespace macho {
 
     void file::validate() {
         auto &containers = containers_;
-        auto &file = file_;
+        auto &stream = stream_;
 
         auto &magic = magic_;
-        fread(&magic, sizeof(magic), 1, file);
+        fread(&magic, sizeof(magic), 1, stream);
 
         const auto magic_is_fat = macho::magic_is_fat(magic);
         if (magic_is_fat) {
             uint32_t nfat_arch;
-            fread(&nfat_arch, sizeof(uint32_t), 1, file);
+            fread(&nfat_arch, sizeof(uint32_t), 1, stream);
 
             if (!nfat_arch) {
                 fprintf(stderr, "Mach-o file has 0 architectures");
@@ -225,7 +227,7 @@ namespace macho {
                 const auto architectures = new architecture_64[nfat_arch];
                 const auto architectures_size = sizeof(architecture_64) * nfat_arch;
 
-                fread(architectures, architectures_size, 1, file);
+                fread(architectures, architectures_size, 1, stream);
 
                 if (magic_is_big_endian) {
                     swap_fat_arch_64(architectures, nfat_arch);
@@ -233,7 +235,7 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers.emplace_back(file, architecture.offset, architecture.size);
+                    containers.emplace_back(stream, architecture.offset, architecture.size);
                 }
 
                 delete[] architectures;
@@ -241,7 +243,7 @@ namespace macho {
                 const auto architectures = new architecture[nfat_arch];
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
 
-                fread(architectures, architectures_size, 1, file);
+                fread(architectures, architectures_size, 1, stream);
 
                 if (magic_is_big_endian) {
                     swap_fat_arch(architectures, nfat_arch);
@@ -249,7 +251,7 @@ namespace macho {
 
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
-                    containers.emplace_back(file, architecture.offset, architecture.size);
+                    containers.emplace_back(stream, architecture.offset, architecture.size);
                 }
 
                 delete[] architectures;
@@ -257,7 +259,7 @@ namespace macho {
         } else {
             const auto magic_is_thin = macho::magic_is_thin(magic);
             if (magic_is_thin) {
-                containers.emplace_back(file, 0);
+                containers.emplace_back(stream, 0);
             } else {
                 fputs("Mach-o file is invalid, does not have a valid magic-number", stderr);
                 exit(1);

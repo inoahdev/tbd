@@ -1,5 +1,5 @@
 //
-//  src/mach-o/header/filetype.h
+//  src/mach-o/headers/filetype.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.

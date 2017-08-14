@@ -13,7 +13,7 @@ namespace macho {
     architecture_info architecture_info_table[] = {
         { cputype::any, subtype::any,    "any"    },
         { cputype::any, subtype::little, "little" },
-        { cputype::any, subtype::little, "big"    },
+        { cputype::any, subtype::big,    "big"    },
 
         { cputype::arm, subtype::arm,     "arm"    },
         { cputype::arm, subtype::armv4t,  "armv4t" },
@@ -22,7 +22,6 @@ namespace macho {
         { cputype::arm, subtype::armv7,   "armv7"  },
         { cputype::arm, subtype::armv7f,  "armv7f" },
         { cputype::arm, subtype::armv7s,  "armv7s" },
-        { cputype::arm, subtype::armv7k,  "armv7k" },
         { cputype::arm, subtype::armv7k,  "armv7k" },
         { cputype::arm, subtype::armv7m,  "arm7m"  },
         { cputype::arm, subtype::armv7em, "arm7em" },
@@ -36,10 +35,10 @@ namespace macho {
         { cputype::i386, subtype::i386,     "i386"     },
         { cputype::i386, subtype::i486,     "i486"     },
         { cputype::i386, subtype::i486SX,   "i486SX"   },
-        { cputype::i386, subtype::pentium,  "i586"     },
-        { cputype::i386, subtype::pentpro,  "i686"     },
         { cputype::i386, subtype::pentium,  "pentium"  },
         { cputype::i386, subtype::pentpro,  "pentpro"  },
+        { cputype::i386, subtype::pentium,  "i586"     },
+        { cputype::i386, subtype::pentpro,  "i686"     },
         { cputype::i386, subtype::pentIIm3, "pentIIm3" },
         { cputype::i386, subtype::pentIIm5, "pentIIm5" },
         { cputype::i386, subtype::pentium4, "pentium4" },
@@ -51,7 +50,7 @@ namespace macho {
         { cputype::m680x0, subtype::m68030, "m68030" },
         { cputype::m680x0, subtype::m68040, "m68040" },
 
-        { cputype::m680x0, subtype::m88k,   "m88k" },
+        { cputype::m88000, subtype::m88k,   "m88k" },
 
         { cputype::powerpc, subtype::ppc,      "ppc"      },
         { cputype::powerpc, subtype::ppc601,   "ppc601"   },
@@ -65,8 +64,8 @@ namespace macho {
         { cputype::powerpc, subtype::ppc7450,  "ppc7450"  },
         { cputype::powerpc, subtype::ppc970,   "ppc970"   },
 
-        { cputype::powerpc64, subtype::ppc64,     "ppc64"     },
-        { cputype::powerpc64, subtype::ppc970_64, "ppc970-64" },
+        { cputype::powerpc64, subtype::ppc64,  "ppc64"     },
+        { cputype::powerpc64, subtype::ppc970, "ppc970-64" },
 
         { cputype::sparc, subtype::sparc, "sparc" },
 
@@ -99,7 +98,7 @@ namespace macho {
     const architecture_info *architecture_info_from_cputype(cputype cputype, subtype subtype) {
         auto architecture_info = architecture_info_table;
         while (architecture_info->cputype != cputype::none) {
-            if (architecture_info->cputype == cputype || architecture_info->subtype == subtype) {
+            if (architecture_info->cputype == cputype && architecture_info->subtype == subtype) {
                 return architecture_info;
             }
 
