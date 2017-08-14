@@ -809,7 +809,7 @@ namespace tbd {
                                 return false;
                             }
                         } else {
-                            platform = platform::macosx;
+                            platform = platform::ios;
                         }
 
                         break;
