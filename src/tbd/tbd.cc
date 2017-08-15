@@ -1128,10 +1128,7 @@ namespace tbd {
         }
 
         fputc('\n', output);
-        if (version == version::v2) {
-            fprintf(output, "objc-constraint:%-7snone\n", "");
-        }
-
+        
         if (library_swift_version != 0) {
             switch (library_swift_version) {
                 case 1:
