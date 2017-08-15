@@ -55,6 +55,7 @@
 		C3DB91351F10F23B00A7C2E7 /* tbd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tbd.cc; path = ../../src/tbd/tbd.cc; sourceTree = "<group>"; };
 		C3DB91361F10F23B00A7C2E7 /* tbd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = ../../src/tbd/tbd.h; sourceTree = "<group>"; };
 		C3E269E01F3FA959005ED144 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = ../../src/misc/flags.h; sourceTree = "<group>"; };
+		C3FB674B1F4339470025EB0A /* image_info.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = image_info.h; path = ../../src/objc/image_info.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +90,7 @@
 		C32A7AA91F10E600000BF14E /* src */ = {
 			isa = PBXGroup;
 			children = (
+				C3FB674A1F4338BC0025EB0A /* objc */,
 				C32A7AAC1F10E611000BF14E /* mach-o */,
 				C3E269DF1F3FA92F005ED144 /* misc */,
 				C32A7AB31F10E62E000BF14E /* tbd */,
@@ -145,6 +147,14 @@
 				C3B67BAF1F3FAA0800BDE7F8 /* flags.cc */,
 			);
 			name = misc;
+			sourceTree = "<group>";
+		};
+		C3FB674A1F4338BC0025EB0A /* objc */ = {
+			isa = PBXGroup;
+			children = (
+				C3FB674B1F4339470025EB0A /* image_info.h */,
+			);
+			name = objc;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

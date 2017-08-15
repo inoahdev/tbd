@@ -12,6 +12,8 @@
 #include "../mach-o/headers/segment.h"
 
 #include "../misc/flags.h"
+#include "../objc/image_info.h"
+
 #include "tbd.h"
 
 namespace tbd {
@@ -602,8 +604,10 @@ namespace tbd {
                         }
 
                         auto segment_section = (macho::segments::section *)((uintptr_t)segment_command + sizeof(macho::segment_command));
-                        uint32_t objc_image_info_flags = 0;
 
+                        auto objc_image_info = objc::image_info();
+                        auto found_objc_image_info = false;
+                        
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
                                 segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section));
@@ -645,18 +649,22 @@ namespace tbd {
 
                             const auto library_container_stream_position = ftell(library_container_stream);
 
-                            fseek(library_container_stream, library_container_base + segment_section_data_offset + sizeof(uint32_t), SEEK_SET);
-                            fread(&objc_image_info_flags, sizeof(uint32_t), 1, library_container_stream);
+                            fseek(library_container_stream, library_container_base + segment_section_data_offset, SEEK_SET);
+                            fread(&objc_image_info, sizeof(objc_image_info), 1, library_container_stream);
 
                             fseek(library_container_stream, library_container_stream_position, SEEK_SET);
+                            
+                            found_objc_image_info = true;
                             break;
                         }
 
-                        if (!objc_image_info_flags) {
+                        if (!found_objc_image_info) {
                             break;
                         }
 
-                        auto objc_image_info_flags_swift_version = (objc_image_info_flags & 0xff00) >> 8;
+                        const auto &objc_image_info_flags = objc_image_info.flags;
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
+                        
                         if (local_swift_version != 0) {
                             if (objc_image_info_flags_swift_version != local_swift_version) {
                                 failure_result = creation_result::contradictary_load_command_information;

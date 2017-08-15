@@ -1,5 +1,5 @@
 //
-//  src/macho/file.cc
+//  src/mach-o/file.cc
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.

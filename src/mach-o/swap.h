@@ -1,5 +1,5 @@
 //
-//  src/macho/swap.h
+//  src/mach-o/swap.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.

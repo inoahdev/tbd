@@ -2,7 +2,7 @@
 //  src/mach-o/headers/build.h
 //  tbd
 //
-//  Created by administrator on 8/3/17.
+//  Created by inoahdev on 8/3/17.
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 

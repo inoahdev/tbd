@@ -1,8 +1,8 @@
 //
-//  src/tbd/flags.h
+//  src/misc/flags.h
 //  tbd
 //
-//  Created by administrator on 7/10/17.
+//  Created by inoahdev on 7/10/17.
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 

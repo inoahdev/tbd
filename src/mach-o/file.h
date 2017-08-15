@@ -1,5 +1,5 @@
 //
-//  src/macho/file.h
+//  src/mach-o/file.h
 //  tbd
 //
 //  Created by inoahdev on 4/24/17.
