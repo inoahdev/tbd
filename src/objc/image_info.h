@@ -13,7 +13,7 @@ namespace objc {
     typedef struct image_info {
         uint32_t version;
         uint32_t flags;
-        
+
         enum flags : uint32_t {
             is_replacement       = 1 << 0,
             supports_gc          = 1 << 1,
@@ -22,7 +22,7 @@ namespace objc {
             corrected_synthesize = 1 << 4,
             is_simulated         = 1 << 5,
             has_category_class_properties  = 1 << 6,
-            
+
             swift_version_shift = 8,
             swift_version_mask = 0xff
         };

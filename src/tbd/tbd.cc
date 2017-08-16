@@ -607,7 +607,7 @@ namespace tbd {
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
-                        
+
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
                                 segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section));
@@ -621,7 +621,7 @@ namespace tbd {
                                 macho::swap_uint32(&segment_section_data_offset);
                             }
 
-                            if (segment_section_data_offset > library_container_size) {
+                            if (segment_section_data_offset >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -631,7 +631,7 @@ namespace tbd {
                                 macho::swap_uint32(&segment_section_data_offset);
                             }
 
-                            if (segment_section_data_size > library_container_size) {
+                            if (segment_section_data_size >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -642,7 +642,7 @@ namespace tbd {
                             }
 
                             const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
-                            if (segment_section_data_end > library_container_size) {
+                            if (segment_section_data_end >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -653,7 +653,7 @@ namespace tbd {
                             fread(&objc_image_info, sizeof(objc_image_info), 1, library_container_stream);
 
                             fseek(library_container_stream, library_container_stream_position, SEEK_SET);
-                            
+
                             found_objc_image_info = true;
                             break;
                         }
@@ -664,7 +664,7 @@ namespace tbd {
 
                         const auto &objc_image_info_flags = objc_image_info.flags;
                         auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
-                        
+
                         if (local_swift_version != 0) {
                             if (objc_image_info_flags_swift_version != local_swift_version) {
                                 failure_result = creation_result::contradictary_load_command_information;
@@ -693,12 +693,14 @@ namespace tbd {
                             macho::swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section_64 *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
-                        uint32_t objc_image_info_flags = 0;
+                        auto segment_section = (macho::segments::section *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
+
+                        auto objc_image_info = objc::image_info();
+                        auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section_64 *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
+                                segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
                                 segment_sections_count--;
 
                                 continue;
@@ -709,7 +711,7 @@ namespace tbd {
                                 macho::swap_uint32(&segment_section_data_offset);
                             }
 
-                            if (segment_section_data_offset > library_container_size) {
+                            if (segment_section_data_offset >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -719,7 +721,7 @@ namespace tbd {
                                 macho::swap_uint32(&segment_section_data_offset);
                             }
 
-                            if (segment_section_data_size > library_container_size) {
+                            if (segment_section_data_size >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -730,25 +732,29 @@ namespace tbd {
                             }
 
                             const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
-                            if (segment_section_data_end > library_container_size) {
+                            if (segment_section_data_end >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
 
                             const auto library_container_stream_position = ftell(library_container_stream);
 
-                            fseek(library_container_stream, library_container_base + segment_section_data_offset + sizeof(uint32_t), SEEK_SET);
-                            fread(&objc_image_info_flags, sizeof(uint32_t), 1, library_container_stream);
+                            fseek(library_container_stream, library_container_base + segment_section_data_offset, SEEK_SET);
+                            fread(&objc_image_info, sizeof(objc_image_info), 1, library_container_stream);
 
                             fseek(library_container_stream, library_container_stream_position, SEEK_SET);
+
+                            found_objc_image_info = true;
                             break;
                         }
 
-                        if (!objc_image_info_flags) {
+                        if (!found_objc_image_info) {
                             break;
                         }
 
-                        auto objc_image_info_flags_swift_version = (objc_image_info_flags & 0xff00) >> 8;
+                        const auto &objc_image_info_flags = objc_image_info.flags;
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
+
                         if (local_swift_version != 0) {
                             if (objc_image_info_flags_swift_version != local_swift_version) {
                                 failure_result = creation_result::contradictary_load_command_information;
@@ -1128,7 +1134,7 @@ namespace tbd {
         }
 
         fputc('\n', output);
-        
+
         if (library_swift_version != 0) {
             switch (library_swift_version) {
                 case 1:

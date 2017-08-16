@@ -138,7 +138,7 @@ namespace macho {
                 if (!has_library_command(descriptor, header)) {
                     delete[] architectures;
                     close(descriptor);
-                    
+
                     return false;
                 }
             }
