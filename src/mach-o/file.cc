@@ -136,7 +136,9 @@ namespace macho {
                 read(descriptor, &header, sizeof(struct header));
 
                 if (!has_library_command(descriptor, header)) {
+                    delete[] architectures;
                     close(descriptor);
+                    
                     return false;
                 }
             }
@@ -170,7 +172,9 @@ namespace macho {
                     read(descriptor, &header, sizeof(header));
 
                     if (!has_library_command(descriptor, header)) {
+                        delete[] architectures;
                         close(descriptor);
+
                         return false;
                     }
                 }
