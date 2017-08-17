@@ -1070,27 +1070,29 @@ namespace tbd {
         fputs(" ]\n", output);
 
         if (version == version::v2) {
-            const auto library_uuids_size = library_uuids.size();
-            if (library_uuids_size) {
-                fprintf(output, "uuids:%-17s[ ", "");
+            if (!has_architecture_overrides) {
+                const auto library_uuids_size = library_uuids.size();
+                if (library_uuids_size) {
+                    fprintf(output, "uuids:%-17s[ ", "");
 
-                auto architectures_iter = architectures.begin();
-                for (auto library_uuids_index = 0; library_uuids_index < library_uuids_size; library_uuids_index++, architectures_iter++) {
-                    const auto &architecture_arch_info = *architectures_iter;
-                    const auto &library_uuid = library_uuids.at(library_uuids_index);
+                    auto architectures_iter = architectures.begin();
+                    for (auto library_uuids_index = 0; library_uuids_index < library_uuids_size; library_uuids_index++, architectures_iter++) {
+                        const auto &architecture_arch_info = *architectures_iter;
+                        const auto &library_uuid = library_uuids.at(library_uuids_index);
 
-                    fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                        fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
-                    if (library_uuids_index != library_uuids_size - 1) {
-                        fputs(", ", output);
+                        if (library_uuids_index != library_uuids_size - 1) {
+                            fputs(", ", output);
 
-                        if (library_uuids_index % 2 != 0) {
-                            fprintf(output, "%-26s", "\n");
+                            if (library_uuids_index % 2 != 0) {
+                                fprintf(output, "%-26s", "\n");
+                            }
                         }
                     }
-                }
 
-                fputs(" ]\n", output);
+                    fputs(" ]\n", output);
+                }
             }
         }
 
