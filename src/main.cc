@@ -1148,24 +1148,6 @@ int main(int argc, const char *argv[]) {
             tbd_version = version;
         }
 
-        const auto &tbd_architectures = tbd.architectures;
-
-        const auto architectures_size = architectures.size();
-        const auto tbd_architectures_size = tbd_architectures.size();
-
-        // Support for multiple architectures is available to only
-        // tbd-version v1 as tbd-version v2 requires a uuid to be
-        // associated with the architecture
-
-        if (!tbd_architectures_size && architectures_size != 0) {
-            // If global custom architectures was provided after providing
-            // path(s) to mach-o library files, it is expected to apply
-            // to mach-o library files where custom architectures were not
-            // set locally, and where tbd-version is v1
-
-            tbd.architectures = architectures;
-        }
-
         auto &tbd_platform = tbd.platform;
 
         // If a global platform was provided after providing
@@ -1230,7 +1212,10 @@ int main(int argc, const char *argv[]) {
                 }
             }
 
-            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, tbd.architectures);
+            auto &tbd_architectures = tbd.architectures;
+            const auto tbd_architectures_size = tbd_architectures.size();
+
+            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
                 switch (result) {
                     case tbd::creation_result::platform_not_found:
@@ -1258,7 +1243,7 @@ int main(int argc, const char *argv[]) {
                     tbd.platform = tbd::string_to_platform(platform_string.data());
                 } while (tbd.platform == tbd::platform::none);
 
-                result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, tbd.architectures);
+                result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             }
 
             switch (result) {
