@@ -1258,6 +1258,10 @@ int main(int argc, const char *argv[]) {
                 case tbd::creation_result::invalid_load_command:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path.data());
                     break;
+                    
+                case tbd::creation_result::invalid_segment:
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path.data());
+                    break;
 
                 case tbd::creation_result::contradictary_load_command_information:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has multiple load-commands of the same type with contradictory information\n", macho_file_path.data());

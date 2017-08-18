@@ -32,10 +32,26 @@ namespace tbd {
         inline const bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
     };
 
+    class reexport {
+    public:
+        explicit reexport(const char *string, int flags_length) noexcept
+        : string(string), flags(flags_length) {}
+
+        inline void add_architecture(int number) noexcept { flags.cast(number, true); }
+
+        const char *string;
+        class flags flags;
+
+        inline const bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
+        inline const bool operator==(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) == 0; }
+
+        inline const bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
+        inline const bool operator!=(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) != 0; }
+    };
+
     class symbol {
     public:
         enum class type {
-            reexports,
             symbols,
             weak_symbols,
             objc_classes,
@@ -268,6 +284,60 @@ namespace tbd {
         return string;
     }
 
+    void print_reexports_to_tbd_output(FILE *output, const flags &flags, std::vector<reexport> &reexports) {
+        if (reexports.empty()) {
+            return;
+        }
+
+        fprintf(output, "%-4sre-exports:%7s", "", "");
+
+        auto reexports_begin = reexports.begin();
+        auto reexports_end = reexports.end();
+
+        auto reexports_begin_string = reexports_begin->string;
+
+        fprintf(output, "[ %s", reexports_begin_string);
+
+        const auto line_length_max = 105;
+        const auto should_check_flags = flags.was_created();
+
+        auto current_line_length = strlen(reexports_begin_string);
+
+        for (reexports_begin++; reexports_begin < reexports_end; reexports_begin++) {
+            const auto &reexport = *reexports_begin;
+            if (should_check_flags) {
+                const auto &reexport_flags = reexport.flags;
+                if (reexport_flags != flags) {
+                    continue;
+                }
+            }
+
+            const auto reexport_string = reexport.string;
+            const auto reexport_string_length = strlen(reexport_string);
+
+            auto new_line_length = reexport_string_length + 2;
+            auto new_current_line_length = current_line_length + new_line_length;
+
+            // A line that is printed is allowed to go upto a line_length_max. When
+            // calculating additional line length for a reexport-string, in addition to the
+            // reexport-string-length, 2 is added for the comma and the space behind it
+            // exception is made only when one reexport is longer than line_length_max.
+
+            if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
+                fprintf(output, ",\n%-24s", "");
+                new_current_line_length = new_line_length;
+            } else {
+                fputs(", ", output);
+                new_current_line_length++;
+            }
+
+            fputs(reexport_string, output);
+            current_line_length = new_current_line_length;
+        }
+
+        fputs(" ]\n", output);
+    }
+
     void print_symbols_to_tbd_output(FILE *output, const flags &flags, std::vector<symbol> &symbols, enum symbol::type type) {
         if (symbols.empty()) {
             return;
@@ -306,10 +376,6 @@ namespace tbd {
         }
 
         switch (type) {
-            case symbol::type::reexports:
-                fprintf(output, "%-4sre-exports:%7s", "", "");
-                break;
-
             case symbol::type::symbols:
                 fprintf(output, "%-4ssymbols:%10s", "", "");
                 break;
@@ -409,8 +475,8 @@ namespace tbd {
 
         const char *library_installation_name = nullptr;
 
+        auto library_reexports = std::vector<reexport>();
         auto library_symbols = std::vector<symbol>();
-        auto library_reexports = std::vector<symbol>();
 
         auto &library_containers = library.containers();
         auto library_containers_index = 0;
@@ -580,7 +646,7 @@ namespace tbd {
                         if (library_reexports_iter != library_reexports.end()) {
                             library_reexports_iter->add_architecture(library_containers_index);
                         } else {
-                            library_reexports.emplace_back(reexport_dylib_string, false, library_containers_size, symbol::type::reexports);
+                            library_reexports.emplace_back(reexport_dylib_string, library_containers_size);
                             library_reexports.back().add_architecture(library_containers_index);
                         }
 
@@ -632,11 +698,6 @@ namespace tbd {
                             }
 
                             if (segment_section_data_size >= library_container_size) {
-                                failure_result = creation_result::invalid_segment;
-                                return false;
-                            }
-
-                            if (segment_section_data_size != 8) {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
@@ -693,14 +754,14 @@ namespace tbd {
                             macho::swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
+                        auto segment_section = (macho::segments::section_64 *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
+                                segment_section = (macho::segments::section_64 *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
                                 segment_sections_count--;
 
                                 continue;
@@ -725,12 +786,7 @@ namespace tbd {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
-
-                            if (segment_section_data_size != 8) {
-                                failure_result = creation_result::invalid_segment;
-                                return false;
-                            }
-
+                            
                             const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
                             if (segment_section_data_end >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
@@ -993,7 +1049,7 @@ namespace tbd {
             return creation_result::no_symbols_or_reexports;
         }
 
-        std::sort(library_reexports.begin(), library_reexports.end(), [](const symbol &lhs, const symbol &rhs) {
+        std::sort(library_reexports.begin(), library_reexports.end(), [](const reexport &lhs, const reexport &rhs) {
             const auto lhs_string = lhs.string;
             const auto rhs_string = rhs.string;
 
@@ -1174,7 +1230,8 @@ namespace tbd {
             const auto &group = groups.front();
             const auto &group_flags = group.flags;
 
-            print_symbols_to_tbd_output(output, group_flags, library_reexports, symbol::type::reexports);
+            print_reexports_to_tbd_output(output, group_flags, library_reexports);
+
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::symbols);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::weak_symbols);
             print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::objc_classes);
@@ -1206,7 +1263,8 @@ namespace tbd {
 
                 fputs(" ]\n", output);
 
-                print_symbols_to_tbd_output(output, group_flags, library_reexports, symbol::type::reexports);
+                print_reexports_to_tbd_output(output, group_flags, library_reexports);
+
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::symbols);
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::weak_symbols);
                 print_symbols_to_tbd_output(output, group_flags, library_symbols, symbol::type::objc_classes);
