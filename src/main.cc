@@ -1194,7 +1194,7 @@ int main(int argc, const char *argv[]) {
             auto &tbd_architectures = tbd.architectures;
             const auto tbd_architectures_size = tbd_architectures.size();
 
-            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
+            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
                 switch (result) {
                     case tbd::creation_result::platform_not_found:
