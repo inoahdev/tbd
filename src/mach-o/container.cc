@@ -79,6 +79,23 @@ namespace macho {
         return container::creation_result::ok;
     }
 
+    container::~container() {
+        auto &cached_load_commands = cached_load_commands_;
+        if (cached_load_commands != nullptr) {
+            delete[] cached_load_commands;
+        }
+
+        auto &cached_symbol_table = cached_symbol_table_;
+        if (cached_symbol_table != nullptr) {
+            delete[] cached_symbol_table;
+        }
+
+        auto &cached_string_table = cached_string_table_;
+        if (cached_string_table != nullptr) {
+            delete[] cached_string_table;
+        }
+    }
+
     container::load_command_iteration_result container::iterate_load_commands(const std::function<bool (const struct load_command *, const struct load_command *)> &callback) noexcept {
         const auto is_big_endian = this->is_big_endian();
 

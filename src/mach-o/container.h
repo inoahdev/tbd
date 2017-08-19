@@ -17,6 +17,7 @@ namespace macho {
     class container {
     public:
         explicit container() = default;
+        ~container();
 
         FILE *stream = nullptr;
 
