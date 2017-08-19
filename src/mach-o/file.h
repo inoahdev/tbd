@@ -16,23 +16,38 @@
 namespace macho {
     class file {
     public:
-        explicit file(const std::string &path);
-        ~file();
+        FILE *stream = nullptr;
+        magic magic = magic::normal;
 
-        static bool is_valid_file(const std::string &path) noexcept;
-        static bool is_valid_library(const std::string &path) noexcept;
+        std::vector<container> containers = std::vector<container>();
 
-        inline const FILE *stream() const noexcept { return stream_; }
-        inline std::vector<container> &containers() noexcept { return containers_; }
+        enum class creation_result {
+            ok,
+            failed_to_open_stream,
 
-        inline const bool is_thin() const noexcept { return magic_is_thin(magic_); }
-        inline const bool is_fat() const noexcept { return magic_is_fat(magic_); }
+            stream_seek_error,
+            stream_read_error,
 
-    private:
-        FILE *stream_;
-        magic magic_;
+            zero_architectures,
+            not_a_macho,
+            invalid_container,
+        };
 
-        std::vector<container> containers_ = std::vector<container>();
+        static creation_result create(file *file, const std::string &path) noexcept;
+        ~file() noexcept;
+
+        enum check_error {
+            ok,
+
+            failed_to_open_descriptor,
+            failed_to_close_descriptor,
+
+            failed_to_seek_descriptor,
+            failed_to_read_descriptor
+        };
+
+        static bool is_valid_file(const std::string &path, check_error *error = nullptr) noexcept;
+        static bool is_valid_library(const std::string &path, check_error *error = nullptr) noexcept;
 
         inline static uint32_t &swap_value(uint32_t &value) noexcept {
             value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
@@ -41,7 +56,8 @@ namespace macho {
             return value;
         }
 
-        static bool has_library_command(int descriptor, const header &header) noexcept;
-        void validate();
+    private:
+        static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
+        file::creation_result validate() noexcept;
     };
 }

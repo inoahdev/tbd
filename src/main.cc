@@ -76,7 +76,13 @@ void loop_subdirectories_for_libraries(DIR *directory, const std::string &direct
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
-                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
+                auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
+                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
+
+                if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
+                    fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                }
+
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
                 }
@@ -148,7 +154,13 @@ void loop_directory_for_libraries(const char *directory_path, const recurse &rec
                 directory_entry_path.append(directory_path);
                 directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
-                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path);
+                auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
+                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
+
+                if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
+                    fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                }
+
                 if (directory_entry_path_is_valid_library) {
                     callback(directory_entry_path);
                 }
@@ -595,15 +607,21 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    const auto path_is_library = macho::file::is_valid_library(path);
-                    if (path_is_library) {
-                        fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
-                    } else {
-                        // As the user provided only one path to a specific mach-o library file,
-                        // --list-macho-libraries is expected to explicity print out whether or
-                        // not the provided mach-o library file is valid.
+                    auto path_is_library_check_error = macho::file::check_error::ok;
+                    const auto path_is_library = macho::file::is_valid_library(path, &path_is_library_check_error);
 
-                        fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path_data);
+                    if (path_is_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
+                        fprintf(stderr, "Failed to open file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                    } else {
+                        if (path_is_library) {
+                        fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
+                        } else {
+                            // As the user provided only one path to a specific mach-o library file,
+                            // --list-macho-libraries is expected to explicity print out whether or
+                            // not the provided mach-o library file is valid.
+
+                            fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path_data);
+                        }
                     }
                 }
             }
@@ -981,7 +999,14 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
+                        auto path_is_valid_library_check_error = macho::file::check_error::ok;
                         const auto path_is_valid_library = macho::file::is_valid_library(path);
+
+                        if (path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
+                            fprintf(stderr, "Failed to open file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                            return 1;
+                        }
+
                         if (!path_is_valid_library) {
                             fprintf(stderr, "File at path (%s) is not a valid mach-o library\n", path.data());
                             return 1;
@@ -1177,7 +1202,29 @@ int main(int argc, const char *argv[]) {
         auto output_paths_index = 0;
 
         for (const auto &macho_file_path : tbd.macho_files) {
-            auto file = macho::file(macho_file_path);
+            auto file = macho::file();
+            auto creation_result = macho::file::create(&file, macho_file_path);
+
+            switch (creation_result) {
+                case macho::file::creation_result::ok:
+                    break;
+
+                case macho::file::creation_result::failed_to_open_stream:
+                    fprintf(stderr, "Failed to open file at path (%s) for reading, failing with error (%s)\n", macho_file_path.data(), strerror(errno));
+                    return 1;
+
+                case macho::file::creation_result::stream_seek_error:
+                case macho::file::creation_result::stream_read_error:
+                case macho::file::creation_result::zero_architectures:
+                case macho::file::creation_result::not_a_macho:
+                    fprintf(stderr, "File at path (%s) is not a valid mach-o\n", macho_file_path.data());
+                    return 1;
+
+                case macho::file::creation_result::invalid_container:
+                    fprintf(stderr, "One of mach-o file (at path %s)'s architectures is not a valid mach-o\n", macho_file_path.data());
+                    return 1;
+            }
+
             auto output_file = stdout;
 
             if (output_paths_index < output_paths_size) {
@@ -1185,7 +1232,7 @@ int main(int argc, const char *argv[]) {
                 if (output_path != "stdout") {
                     output_file = fopen(output_path.data(), "w");
                     if (!output_file) {
-                        fprintf(stderr, "Failed to open file at path (%s) for writing. Failing with error (%s)\n", output_path.data(), strerror(errno));
+                        fprintf(stderr, "Failed to open file at path (%s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
                         return 1;
                     }
                 }
@@ -1240,6 +1287,14 @@ int main(int argc, const char *argv[]) {
 
                 case tbd::creation_result::invalid_segment:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path.data());
+                    break;
+
+                case tbd::creation_result::failed_to_iterate_load_commands:
+                    fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architectures's load-commands\n", macho_file_path.data());
+                    break;
+
+                case tbd::creation_result::failed_to_iterate_symbols:
+                    fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architectures's symbols\n", macho_file_path.data());
                     break;
 
                 case tbd::creation_result::contradictary_load_command_information:

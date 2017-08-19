@@ -16,13 +16,49 @@
 namespace macho {
     class container {
     public:
-        explicit container(FILE *stream, long base);
-        explicit container(FILE *stream, long base, size_t size);
+        explicit container() = default;
 
-        ~container();
+        FILE *stream = nullptr;
 
-        void iterate_load_commands(const std::function<bool(const struct load_command *, const struct load_command *)> &callback);
-        void iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback);
+        long base = 0;
+        size_t size = 0;
+
+        struct header header = {};
+
+        enum class creation_result {
+            ok,
+            stream_seek_error,
+            stream_read_error,
+            fat_container,
+            not_a_macho,
+        };
+
+        static creation_result create(container *container, FILE *stream, long base) noexcept;
+        static creation_result create(container *container, FILE *stream, long base, size_t size) noexcept;
+
+        enum class load_command_iteration_result {
+            ok,
+            stream_seek_error,
+            stream_read_error,
+            load_command_is_too_small,
+            load_command_is_too_large
+        };
+
+        load_command_iteration_result iterate_load_commands(const std::function<bool(const struct load_command *, const struct load_command *)> &callback) noexcept;
+
+        enum class symbols_iteration_result {
+            ok,
+
+            stream_seek_error,
+            stream_read_error,
+
+            no_symbol_table_load_command,
+            invalid_string_table,
+            invalid_symbol_table,
+            invalid_symbol_table_entry
+        };
+
+        symbols_iteration_result iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback) noexcept;
 
         inline uint32_t &swap_value(uint32_t &value) const noexcept {
             const auto is_big_endian = this->is_big_endian();
@@ -33,31 +69,18 @@ namespace macho {
             return value;
         }
 
-        inline FILE *stream() const noexcept { return stream_; }
-        inline const header &header() const noexcept { return header_; }
+        inline const bool is_big_endian() const noexcept { return magic_is_big_endian(header.magic); }
 
-        inline const bool is_big_endian() const noexcept { return magic_is_big_endian(header_.magic); }
-
-        inline const long &base() const noexcept { return base_; }
-        inline const size_t &size() const noexcept { return size_; }
-
-        inline const bool is_32_bit() const noexcept { return magic_is_32_bit(header_.magic); }
-        inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header_.magic); }
+        inline const bool is_32_bit() const noexcept { return magic_is_32_bit(header.magic); }
+        inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header.magic); }
 
     private:
-        FILE *stream_;
-
-        long base_ = 0;
-        size_t size_ = 0;
-
-        struct header header_;
-
         uint8_t *cached_load_commands_ = nullptr;
         uint8_t *cached_symbol_table_ = nullptr;
 
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
-        void validate();
+        creation_result validate() noexcept;
     };
 }

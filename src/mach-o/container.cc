@@ -13,55 +13,52 @@
 #include "container.h"
 
 namespace macho {
-    container::container(FILE *stream, long base)
-    : stream_(stream), base_(base) {
+    container::creation_result container::create(container *container, FILE *stream, long base) noexcept {
+        container->stream = stream;
+        container->base = base;
+
         const auto position = ftell(stream);
-        fseek(stream, 0, SEEK_END);
-
-        this->size_ = ftell(stream);
-
-        fseek(stream, position, SEEK_SET);
-        this->validate();
-    }
-
-    container::container(FILE *stream, long base, size_t size)
-    : stream_(stream), base_(base), size_(size) {
-        this->validate();
-    }
-
-    container::~container() {
-        auto &cached_load_commands = cached_load_commands_;
-        if (cached_load_commands) {
-            delete[] cached_load_commands;
+        if (fseek(stream, 0, SEEK_END) != 0) {
+            return container::creation_result::stream_seek_error;
         }
 
-        auto &cached_string_table = cached_string_table_;
-        if (cached_string_table) {
-            delete[] cached_string_table;
+        container->size = ftell(stream);
+
+        if (fseek(stream, position, SEEK_SET) != 0) {
+            return container::creation_result::stream_seek_error;
         }
 
-        auto &cached_symbol_table = cached_symbol_table_;
-        if (cached_symbol_table) {
-            delete[] cached_symbol_table;
-        }
+        return container->validate();
     }
 
-    void container::validate() {
-        auto &base = base_;
-        auto &stream = stream_;
+    container::creation_result container::create(container *container, FILE *stream, long base, size_t size) noexcept {
+        container->stream = stream;
 
-        auto &header = header_;
+        container->base = base;
+        container->size = size;
+
+        return container->validate();
+    }
+
+    container::creation_result container::validate() noexcept {
         auto &magic = header.magic;
 
         const auto is_big_endian = this->is_big_endian();
         const auto stream_position = ftell(stream);
 
-        fseek(stream, base, SEEK_SET);
-        fread(&magic, sizeof(uint32_t), 1, stream);
+        if (fseek(stream, base, SEEK_SET) != 0) {
+            return container::creation_result::stream_seek_error;
+        }
+
+        if (fread(&magic, sizeof(magic), 1, stream) != 1) {
+            return container::creation_result::stream_read_error;
+        }
 
         const auto macho_stream_is_regular = magic_is_thin(magic);
         if (macho_stream_is_regular) {
-            fread(&header.cputype, sizeof(header) - sizeof(uint32_t), 1, stream);
+            if (fread(&header.cputype, sizeof(header) - sizeof(header.magic), 1, stream) != 1) {
+                return container::creation_result::stream_read_error;
+            }
 
             if (is_big_endian) {
                 swap_mach_header(&header);
@@ -69,31 +66,29 @@ namespace macho {
         } else {
             const auto macho_stream_is_fat = magic_is_fat(magic);
             if (macho_stream_is_fat) {
-                fprintf(stderr, "Architecture at location (0x%.8lX) cannot be a fat mach-o file itself\n", base);
-                exit(EXIT_FAILURE);
+                return container::creation_result::fat_container;
             } else {
-                fprintf(stderr, "Architecture at location (0x%.8lX) is not a valid mach-o base\n", base);
-                exit(EXIT_FAILURE);
+                return container::creation_result::not_a_macho;
             }
         }
 
-        fseek(stream, stream_position, SEEK_SET);
+        if (fseek(stream, stream_position, SEEK_SET) != 0) {
+            return container::creation_result::stream_seek_error;
+        }
+
+        return container::creation_result::ok;
     }
 
-    void container::iterate_load_commands(const std::function<bool (const struct load_command *, const struct load_command *)> &callback) {
-        const auto &base = base_;
-        const auto &stream = stream_;
-
-        const auto &header = header_;
+    container::load_command_iteration_result container::iterate_load_commands(const std::function<bool (const struct load_command *, const struct load_command *)> &callback) noexcept {
         const auto is_big_endian = this->is_big_endian();
 
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
 
         auto &cached_load_commands = cached_load_commands_;
-        auto created_load_commands_cache = !cached_load_commands_;
+        auto created_load_commands_cache = cached_load_commands != nullptr;
 
-        if (created_load_commands_cache) {
+        if (!created_load_commands_cache) {
             cached_load_commands = new uint8_t[sizeofcmds];
 
             auto load_command_base = base + sizeof(header);
@@ -103,10 +98,17 @@ namespace macho {
 
             const auto position = ftell(stream);
 
-            fseek(stream, load_command_base, SEEK_SET);
-            fread(cached_load_commands, sizeofcmds, 1, stream);
+            if (fseek(stream, load_command_base, SEEK_SET) != 0) {
+                return container::load_command_iteration_result::stream_seek_error;
+            }
 
-            fseek(stream, position, SEEK_SET);
+            if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
+                return container::load_command_iteration_result::stream_read_error;
+            }
+
+            if (fseek(stream, position, SEEK_SET) != 0) {
+                return container::load_command_iteration_result::stream_seek_error;
+            }
         }
 
         auto size_used = 0;
@@ -124,22 +126,18 @@ namespace macho {
 
                 const auto &cmdsize = load_command.cmdsize;
                 if (cmdsize < sizeof(struct load_command)) {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is too small to be valid\n", i, base);
-                    exit(EXIT_FAILURE);
+                    return container::load_command_iteration_result::load_command_is_too_small;
                 }
 
                 if (cmdsize >= sizeofcmds) {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) is larger than/or equal to entire area allocated for load-commands\n", i, base);
-                    exit(EXIT_FAILURE);
+                    return container::load_command_iteration_result::load_command_is_too_large;
                 }
 
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) goes past end of area allocated for load-commands\n", i, base);
-                    exit(EXIT_FAILURE);
+                    return container::load_command_iteration_result::load_command_is_too_large;
                 } else if (size_used == sizeofcmds && i != ncmds - 1) {
-                    fprintf(stderr, "Load-command (at index %d) of mach-o container (at base 0x%.8lX) takes up all of the remaining space allocated for load-commands\n", i, base);
-                    exit(EXIT_FAILURE);
+                    return container::load_command_iteration_result::load_command_is_too_large;
                 }
 
                 if (should_callback) {
@@ -156,14 +154,11 @@ namespace macho {
                 cached_load_commands_index += cmdsize;
             }
         }
+
+        return container::load_command_iteration_result::ok;
     }
 
-    void container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) {
-        auto &base = base_;
-        auto &size = size_;
-
-        auto &stream = stream_;
-
+    container::symbols_iteration_result container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {
         const auto is_big_endian = this->is_big_endian();
         const auto position = ftell(stream);
 
@@ -179,8 +174,7 @@ namespace macho {
             });
 
             if (!symbol_table) {
-                fprintf(stderr, "Mach-o container (at base 0x%.8lX) does not have a symbol-table\n", base);
-                exit(EXIT_FAILURE);
+                return container::symbols_iteration_result::ok;
             }
         }
 
@@ -192,26 +186,28 @@ namespace macho {
             }
 
             if (string_table_location > size) {
-                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table outside of its container\n", base);
-                exit(EXIT_FAILURE);
+                return container::symbols_iteration_result::invalid_string_table;
             }
 
             const auto &string_table_size = symbol_table->strsize;
             if (string_table_size > size) {
-                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table with a size larger than that of itself\n", base);
-                exit(EXIT_FAILURE);
+                return container::symbols_iteration_result::invalid_string_table;
             }
 
             const auto string_table_end = string_table_location + string_table_size;
             if (string_table_end > size) {
-                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a string-table that goes outside of its container\n", base);
-                exit(EXIT_FAILURE);
+                return container::symbols_iteration_result::invalid_string_table;
             }
 
             cached_string_table = new char[string_table_size];
 
-            fseek(stream, base + string_table_location, SEEK_SET);
-            fread(cached_string_table, string_table_size, 1, stream);
+            if (fseek(stream, base + string_table_location, SEEK_SET) != 0) {
+                return container::symbols_iteration_result::stream_seek_error;
+            }
+
+            if (fread(cached_string_table, string_table_size, 1, stream) != 1) {
+                return container::symbols_iteration_result::stream_read_error;
+            }
         }
 
         auto &cached_symbol_table = cached_symbol_table_;
@@ -225,28 +221,30 @@ namespace macho {
             }
 
             if (symbol_table_location > size) {
-                fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that is outside of its container\n", base);
-                exit(EXIT_FAILURE);
+                return container::symbols_iteration_result::invalid_symbol_table;
             }
 
-            fseek(stream, base + symbol_table_location, SEEK_SET);
+            if (fseek(stream, base + symbol_table_location, SEEK_SET) != 0) {
+                return container::symbols_iteration_result::stream_seek_error;
+            }
 
             const auto is_64_bit = this->is_64_bit();
             if (is_64_bit) {
                 const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table;
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
-                fread(cached_symbol_table, symbol_table_size, 1, stream);
+
+                if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    return container::symbols_iteration_result::stream_read_error;
+                }
 
                 if (is_big_endian) {
                     swap_nlist_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
@@ -254,25 +252,28 @@ namespace macho {
             } else {
                 const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table with a size larger than itself\n", base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    fprintf(stderr, "Mach-o container (at base 0x%.8lX) has a symbol-table that goes outside of its boundaries\n", base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table;
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
-                fread(cached_symbol_table, symbol_table_size, 1, stream);
+
+                if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    return container::symbols_iteration_result::stream_read_error;
+                }
 
                 if (is_big_endian) {
                     swap_nlist((struct nlist *)cached_symbol_table, symbol_table_count);
                 }
             }
 
-            fseek(stream, position, SEEK_SET);
+            if (fseek(stream, position, SEEK_SET) != 0) {
+                return container::symbols_iteration_result::stream_seek_error;
+            }
         }
 
         const auto &symbol_table_count = symbol_table->nsyms;
@@ -289,8 +290,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string (at index %u) past end of string-table (of size %u) of mach-o container (at base 0x%.8lX)\n", i, symbol_table_entry_string_table_index, string_table_size, base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table_entry;
                 }
 
                 const auto symbol_table_string_table_string = &cached_string_table[symbol_table_entry_string_table_index];
@@ -308,8 +308,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    fprintf(stderr, "Symbol-table entry (at index %d) has symbol-string (at index %u) past end of string-table (of size %u) of mach-o container (at base 0x%.8lX)\n", i, symbol_table_entry_string_table_index, string_table_size, base);
-                    exit(EXIT_FAILURE);
+                    return container::symbols_iteration_result::invalid_symbol_table_entry;
                 }
 
                 const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry->n_un.n_strx }, symbol_table_entry->n_type, symbol_table_entry->n_sect, (uint16_t)symbol_table_entry->n_desc, symbol_table_entry->n_value };
@@ -322,5 +321,7 @@ namespace macho {
                 }
             }
         }
+
+        return container::symbols_iteration_result::ok;
     }
 }

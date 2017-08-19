@@ -478,7 +478,7 @@ namespace tbd {
         auto library_reexports = std::vector<reexport>();
         auto library_symbols = std::vector<symbol>();
 
-        auto &library_containers = library.containers();
+        auto &library_containers = library.containers;
         auto library_containers_index = 0;
 
         auto library_uuids = std::vector<const uint8_t *>();
@@ -492,7 +492,7 @@ namespace tbd {
         }
 
         for (auto &library_container : library_containers) {
-            const auto &library_container_header = library_container.header();
+            const auto &library_container_header = library_container.header;
 
             const auto library_container_header_cputype = macho::cputype(library_container_header.cputype);
             const auto library_container_header_subtype = macho::subtype_from_cputype(library_container_header_cputype, library_container_header.cpusubtype);
@@ -523,12 +523,11 @@ namespace tbd {
             const auto library_container_is_big_endian = library_container.is_big_endian();
             const auto should_find_library_platform = platform == platform::none;
 
-            const auto library_container_base = library_container.base();
-            const auto library_container_size = library_container.size();
+            const auto library_container_base = library_container.base;
+            const auto library_container_size = library_container.size;
 
-            auto library_container_stream = library_container.stream();
-
-            library_container.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
+            auto library_container_stream = library_container.stream;
+            auto library_container_load_command_iteration_result = library_container.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
                 switch (swapped->cmd) {
                     case macho::load_commands::build_version: {
                         if (!should_find_library_platform) {
@@ -931,6 +930,17 @@ namespace tbd {
                 return true;
             });
 
+            switch (library_container_load_command_iteration_result) {
+                case macho::container::load_command_iteration_result::ok:
+                    break;
+
+                case macho::container::load_command_iteration_result::stream_seek_error:
+                case macho::container::load_command_iteration_result::stream_read_error:
+                case macho::container::load_command_iteration_result::load_command_is_too_small:
+                case macho::container::load_command_iteration_result::load_command_is_too_large:
+                    return tbd::creation_result::failed_to_iterate_load_commands;
+            }
+
             if (failure_result != creation_result::ok) {
                 return failure_result;
             }
@@ -975,7 +985,7 @@ namespace tbd {
                 library_swift_version = local_swift_version;
             }
 
-            library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
+            auto library_container_symbols_iteration_result = library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
                 const auto &symbol_table_entry_type = symbol_table_entry.n_type;
                 if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
                     return true;
@@ -1046,6 +1056,19 @@ namespace tbd {
 
                 return true;
             });
+
+            switch (library_container_symbols_iteration_result) {
+                case macho::container::symbols_iteration_result::ok:
+                    break;
+
+                case macho::container::symbols_iteration_result::stream_seek_error:
+                case macho::container::symbols_iteration_result::stream_read_error:
+                case macho::container::symbols_iteration_result::no_symbol_table_load_command:
+                case macho::container::symbols_iteration_result::invalid_string_table:
+                case macho::container::symbols_iteration_result::invalid_symbol_table:
+                case macho::container::symbols_iteration_result::invalid_symbol_table_entry:
+                    return tbd::creation_result::failed_to_iterate_symbols;
+            }
 
             library_containers_index++;
         }
