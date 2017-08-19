@@ -1139,27 +1139,6 @@ int main(int argc, const char *argv[]) {
 
     auto output_to_stdout_count = 0;
     for (auto &tbd : tbds) {
-        // If a global tbd-version was provided after providing
-        // path(s) to mach-o library files, it is expected to apply
-        // to mach-o library files where version was not set locally
-
-        auto &tbd_version = tbd.version;
-        if (tbd_version == (enum tbd::version)0) {
-            tbd_version = version;
-        }
-
-        auto &tbd_platform = tbd.platform;
-
-        // If a global platform was provided after providing
-        // path(s) to mach-o library files, it is expected to apply
-        // to mach-o library files where version was not set locally
-
-        if (tbd_platform == tbd::platform::none) {
-            if (platform != tbd::platform::none) {
-                tbd_platform = platform;
-            }
-        }
-
         auto &output_files = tbd.output_files;
         auto output_files_size = output_files.size();
 
@@ -1172,8 +1151,8 @@ int main(int argc, const char *argv[]) {
 
         const auto tbd_recurse_type = tbd.recurse;
         if (tbd_recurse_type != recurse::none) {
-            // If no output-files were provided for multiple
-            // mach-o files, it is expected the tbd-files are
+            // If no output-files were provided for mach-o files
+            // found by recursing, it is expected the tbd-files are
             // outputted to the same directory with the same
             // file-name (with the file-extension .tbd)
 
@@ -1215,7 +1194,7 @@ int main(int argc, const char *argv[]) {
             auto &tbd_architectures = tbd.architectures;
             const auto tbd_architectures_size = tbd_architectures.size();
 
-            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
+            auto result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
                 switch (result) {
                     case tbd::creation_result::platform_not_found:
@@ -1243,7 +1222,7 @@ int main(int argc, const char *argv[]) {
                     tbd.platform = tbd::string_to_platform(platform_string.data());
                 } while (tbd.platform == tbd::platform::none);
 
-                result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
+                result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             }
 
             switch (result) {
@@ -1258,7 +1237,7 @@ int main(int argc, const char *argv[]) {
                 case tbd::creation_result::invalid_load_command:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path.data());
                     break;
-                    
+
                 case tbd::creation_result::invalid_segment:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path.data());
                     break;
