@@ -298,6 +298,26 @@ void recursively_create_directories_from_file_path(char *path, bool create_last_
     }
 }
 
+void print_platforms() {
+    auto platform_number = 1;
+    auto platform = tbd::platform_to_string((enum tbd::platform)platform_number);
+
+    fputs(platform, stdout);
+
+    while (true) {
+        platform_number++;
+        platform = tbd::platform_to_string((enum tbd::platform)platform_number);
+
+        if (!platform) {
+            break;
+        }
+
+        fprintf(stdout, ", %s", platform);
+    }
+
+    fputc('\n', stdout);
+}
+
 void print_usage() {
     fputs("Usage: tbd [-p file-paths] [-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
@@ -633,16 +653,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto platform_number = 1;
-            auto platform = tbd::platform_to_string((enum tbd::platform)platform_number);
-
-            while (platform != nullptr) {
-                fprintf(stdout, "%s\n", platform);
-
-                platform_number++;
-                platform = tbd::platform_to_string((enum tbd::platform)platform_number);
-            }
-
+            print_platforms();
             return 0;
         } else if (strcmp(option, "list-recurse") == 0) {
             if (!is_first_argument || !is_last_argument) {
@@ -1263,11 +1274,18 @@ int main(int argc, const char *argv[]) {
                 auto platform_string = std::string();
 
                 do {
-                    fputs("Please provide a replacement platform (Run --list-platform to see a list of platforms): ", stdout);
+                    fputs("Please provide a replacement platform (Input --list-platform to see a list of platforms): ", stdout);
                     getline(std::cin, platform_string);
 
-                    tbd.platform = tbd::string_to_platform(platform_string.data());
-                } while (tbd.platform == tbd::platform::none);
+                    if (platform_string == "--list-platform") {
+                        print_platforms();
+                    } else {
+                        tbd.platform = tbd::string_to_platform(platform_string.data());
+                        if (tbd.platform != tbd::platform::none) {
+                            break;
+                        }
+                    }
+                } while (true);
 
                 result = tbd::create_from_macho_library(file, output_file, tbd.options, tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures);
             }
