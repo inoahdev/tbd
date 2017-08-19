@@ -1250,6 +1250,11 @@ int main(int argc, const char *argv[]) {
                     fprintf(stderr, "One of mach-o file (at path %s)'s architectures has a uuid that is not unique from other architectures\n", macho_file_path.data());
                     break;
 
+                case tbd::creation_result::platform_not_found:
+                case tbd::creation_result::platform_not_supported:
+                case tbd::creation_result::multiple_platforms:
+                    break;
+
                 case tbd::creation_result::not_a_library:
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path.data());
                     break;
@@ -1264,9 +1269,6 @@ int main(int argc, const char *argv[]) {
 
                 case tbd::creation_result::no_symbols_or_reexports:
                     fprintf(stderr, "Mach-o file (at path %s) does not have any symbols or reexports to be outputted\n", macho_file_path.data());
-                    break;
-
-                default:
                     break;
             }
         }
