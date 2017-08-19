@@ -57,8 +57,8 @@ void flags::cast(long index, bool result) noexcept {
         // is smaller than bit_size (bit-count of unsigned int).
 
         while (index > bits_length) {
-            index -= 8;
-            ptr = (unsigned int *)((uintptr_t)ptr + 1);
+            index -= sizeof(unsigned int);
+            ptr = (unsigned int *)((uintptr_t)ptr + sizeof(unsigned int));
         }
 
         if (result) {
