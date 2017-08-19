@@ -16,7 +16,7 @@ public:
     ~flags();
 
     void cast(long index, bool result) noexcept;
-    bool at_index(long index) const noexcept;
+    bool at(long index) const noexcept;
 
     bool was_created() const noexcept { return length_ != 0; }
 

@@ -94,5 +94,5 @@ namespace tbd {
         no_symbols_or_reexports
     };
 
-    __attribute__((unused)) creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, std::vector<const macho::architecture_info *> &architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, const std::vector<const macho::architecture_info *> &architecture_overrides);
 }

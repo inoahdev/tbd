@@ -466,7 +466,7 @@ namespace tbd {
         fputs(" ]\n", output);
     }
 
-    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, std::vector<const macho::architecture_info *> &architectures) {
+    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, const std::vector<const macho::architecture_info *> &architectures) {
         const auto has_architecture_overrides = architectures.size() != 0;
 
         uint32_t library_current_version = -1;
@@ -485,6 +485,11 @@ namespace tbd {
         const auto library_containers_size = library_containers.size();
 
         library_uuids.reserve(library_containers_size);
+
+        auto library_container_architectures = std::vector<const macho::architecture_info *>();
+        if (!has_architecture_overrides) {
+            library_container_architectures.reserve(library_containers_size);
+        }
 
         for (auto &library_container : library_containers) {
             const auto &library_container_header = library_container.header();
@@ -505,7 +510,7 @@ namespace tbd {
             // to store architecture-information of all containers
 
             if (!has_architecture_overrides) {
-                architectures.emplace_back(library_container_architecture_information);
+                library_container_architectures.emplace_back(library_container_architecture_information);
             }
 
             uint32_t local_current_version = -1;
@@ -786,7 +791,7 @@ namespace tbd {
                                 failure_result = creation_result::invalid_segment;
                                 return false;
                             }
-                            
+
                             const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
                             if (segment_section_data_end >= library_container_size) {
                                 failure_result = creation_result::invalid_segment;
@@ -1110,20 +1115,37 @@ namespace tbd {
 
         fprintf(output, "\narchs:%-17s[ ", "");
 
-        auto architectures_begin = architectures.begin();
-        auto architectures_begin_arch_info = *architectures_begin;
+        if (has_architecture_overrides) {
+            auto architectures_begin = architectures.begin();
+            auto architectures_begin_arch_info = *architectures_begin;
 
-        fputs(architectures_begin_arch_info->name, output);
+            fputs(architectures_begin_arch_info->name, output);
 
-        const auto architectures_end = architectures.end();
-        for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
-            auto architecture_arch_info = *architectures_begin;
-            auto architecture_arch_info_name = architecture_arch_info->name;
+            const auto architectures_end = architectures.end();
+            for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
+                auto architecture_arch_info = *architectures_begin;
+                auto architecture_arch_info_name = architecture_arch_info->name;
 
-            fprintf(output, ", %s", architecture_arch_info_name);
+                fprintf(output, ", %s", architecture_arch_info_name);
+            }
+
+            fputs(" ]\n", output);
+        } else {
+            const auto library_container_architectures_begin = library_container_architectures.begin();
+            const auto library_container_architectures_begin_arch_info = *library_container_architectures_begin;
+
+            fputs(library_container_architectures_begin_arch_info->name, output);
+
+            const auto library_container_architectures_end = library_container_architectures.end();
+            for (auto library_container_architectures_iter = library_container_architectures_begin + 1; library_container_architectures_iter != library_container_architectures_end; library_container_architectures_iter++) {
+                const auto library_container_architecture_arch_info = *library_container_architectures_iter;
+                const auto library_container_architecture_arch_info_name = library_container_architecture_arch_info->name;
+
+                fprintf(output, ", %s", library_container_architecture_arch_info_name);
+            }
+
+            fputs(" ]\n", output);
         }
-
-        fputs(" ]\n", output);
 
         if (version == version::v2) {
             if (!has_architecture_overrides) {
@@ -1131,12 +1153,12 @@ namespace tbd {
                 if (library_uuids_size) {
                     fprintf(output, "uuids:%-17s[ ", "");
 
-                    auto architectures_iter = architectures.begin();
-                    for (auto library_uuids_index = 0; library_uuids_index < library_uuids_size; library_uuids_index++, architectures_iter++) {
-                        const auto &architecture_arch_info = *architectures_iter;
+                    auto library_container_architectures_iter = library_container_architectures.begin();
+                    for (auto library_uuids_index = 0; library_uuids_index < library_uuids_size; library_uuids_index++, library_container_architectures_iter++) {
+                        const auto &library_container_architecture_arch_info = *library_container_architectures_iter;
                         const auto &library_uuid = library_uuids.at(library_uuids_index);
 
-                        fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                        fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info->name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
                         if (library_uuids_index != library_uuids_size - 1) {
                             fputs(", ", output);
@@ -1240,28 +1262,39 @@ namespace tbd {
         } else {
             for (auto &group : groups) {
                 const auto &group_flags = group.flags;
-                const auto architectures_size = architectures.size();
 
-                auto architectures_index = architectures_size - 1;
-                auto has_printed_first_architecture = false;
+                auto library_container_architectures_index = 0;
+                const auto library_container_architectures_size = library_container_architectures.size();
 
-                for (; architectures_index < architectures_size; architectures_index--) {
-                    const auto architecture = group_flags.at_index(architectures_index);
+                for (; library_container_architectures_index < library_container_architectures_size; library_container_architectures_index++) {
+                    const auto architecture = group_flags.at(library_container_architectures_index);
                     if (!architecture) {
                         continue;
                     }
 
-                    const auto &architecture_info = architectures.at(architectures_index);
-
-                    if (!has_printed_first_architecture) {
-                        fprintf(output, "  - archs:%-12s[ %s", "", architecture_info->name);
-                        has_printed_first_architecture = true;
-                    } else {
-                        fprintf(output, ", %s", architecture_info->name);
-                    }
+                    break;
                 }
 
-                fputs(" ]\n", output);
+                if (library_container_architectures_index != library_container_architectures_size) {
+                    const auto &library_container_architecture_info = library_container_architectures.at(library_container_architectures_index);
+                    const auto &library_container_architecture_info_name = library_container_architecture_info->name;
+
+                    fprintf(output, "  - archs:%-12s[ %s", "", library_container_architecture_info_name);
+
+                    for (library_container_architectures_index++; library_container_architectures_index < library_container_architectures_size; library_container_architectures_index++) {
+                        const auto architecture = group_flags.at(library_container_architectures_index);
+                        if (!architecture) {
+                            continue;
+                        }
+
+                        const auto &library_container_architecture_info = library_container_architectures.at(library_container_architectures_index);
+                        const auto &library_container_architecture_info_name = library_container_architecture_info->name;
+
+                        fprintf(output, ", %s", library_container_architecture_info_name);
+                    }
+
+                    fputs(" ]\n", output);
+                }
 
                 print_reexports_to_tbd_output(output, group_flags, library_reexports);
 
@@ -1273,11 +1306,6 @@ namespace tbd {
         }
 
         fputs("...\n", output);
-
-        if (!has_architecture_overrides) {
-            architectures.clear();
-        }
-
         return creation_result::ok;
     }
 }

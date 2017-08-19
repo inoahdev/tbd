@@ -80,7 +80,7 @@ void flags::cast(long index, bool result) noexcept {
     }
 }
 
-bool flags::at_index(long index) const noexcept {
+bool flags::at(long index) const noexcept {
     if (length_ > bit_size()) {
         auto ptr = (unsigned int *)flags_.ptr;
 
