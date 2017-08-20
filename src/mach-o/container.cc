@@ -103,9 +103,9 @@ namespace macho {
         const auto &sizeofcmds = header.sizeofcmds;
 
         auto &cached_load_commands = cached_load_commands_;
-        auto created_load_commands_cache = cached_load_commands != nullptr;
 
-        if (!created_load_commands_cache) {
+        auto size_used = 0;
+        if (!cached_load_commands) {
             cached_load_commands = new uint8_t[sizeofcmds];
 
             auto load_command_base = base + sizeof(header);
@@ -126,22 +126,17 @@ namespace macho {
             if (fseek(stream, position, SEEK_SET) != 0) {
                 return container::load_command_iteration_result::stream_seek_error;
             }
-        }
 
-        auto size_used = 0;
-        auto should_callback = true;
+            auto should_callback = true;
+            for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+                auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+                auto swapped_load_command = *load_cmd;
 
-        for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
-            auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
-            const auto &cmdsize = load_cmd->cmdsize;
-
-            if (created_load_commands_cache) {
-                auto load_command = *load_cmd;
                 if (is_big_endian) {
-                    swap_load_command(&load_command);
+                    swap_load_command(&swapped_load_command);
                 }
 
-                const auto &cmdsize = load_command.cmdsize;
+                const auto &cmdsize = swapped_load_command.cmdsize;
                 if (cmdsize < sizeof(struct load_command)) {
                     return container::load_command_iteration_result::load_command_is_too_small;
                 }
@@ -158,17 +153,20 @@ namespace macho {
                 }
 
                 if (should_callback) {
-                    should_callback = callback(&load_command, load_cmd);
+                    should_callback = callback(&swapped_load_command, load_cmd);
                 }
 
                 cached_load_commands_index += cmdsize;
-            } else {
-                should_callback = callback(load_cmd, load_cmd);
-                if (!should_callback) {
+            }
+        } else {
+            for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+                auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+
+                if (!callback(load_cmd, load_cmd)) {
                     break;
                 }
 
-                cached_load_commands_index += cmdsize;
+                cached_load_commands_index += load_cmd->cmdsize;
             }
         }
 
