@@ -577,9 +577,16 @@ int main(int argc, const char *argv[]) {
             }
 
             auto architecture_info = macho::get_architecture_info_table();
-            while (architecture_info->name != nullptr) {
-                fprintf(stdout, "%s\n", architecture_info->name);
+            fputs(architecture_info->name, stdout);
+
+            while (true) {
                 architecture_info++;
+
+                if (!architecture_info->name) {
+                    break;
+                }
+
+                fprintf(stdout, ", %s", architecture_info->name);
             }
 
             return 0;
