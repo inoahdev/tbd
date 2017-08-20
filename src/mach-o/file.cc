@@ -227,17 +227,17 @@ namespace macho {
 
             const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
             if (cmdsize_is_too_small) {
-                goto fail;
+                return false;
             }
 
             const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
             if (cmdsize_is_larger_than_load_command_space) {
-                goto fail;
+                return false;
             }
 
             const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
             if (cmdsize_takes_up_rest_of_load_command_space) {
-                goto fail;
+                return false;
             }
 
             if (load_cmd->cmd == load_commands::identification_dylib) {
@@ -247,7 +247,6 @@ namespace macho {
             index += cmdsize;
         }
 
-    fail:
         return false;
     }
 
