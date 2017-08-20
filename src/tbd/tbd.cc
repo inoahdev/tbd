@@ -19,7 +19,7 @@
 namespace tbd {
     class group {
     public:
-        explicit group() = default;
+        explicit group() : flags(0) {}
         explicit group(const flags &flags) noexcept
         : flags(flags) {}
 
@@ -28,8 +28,8 @@ namespace tbd {
         unsigned int symbols_count = 0;
         unsigned int reexports_count = 0;
 
-        inline const bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
-        inline const bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
+        inline bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
+        inline bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
     };
 
     class reexport {
@@ -37,16 +37,16 @@ namespace tbd {
         explicit reexport(const char *string, int flags_length) noexcept
         : string(string), flags(flags_length) {}
 
-        inline void add_architecture(int number) noexcept { flags.cast(number, true); }
+        inline void add_architecture(flags_integer_t number) noexcept { flags.cast(number, true); }
 
         const char *string;
         class flags flags;
 
-        inline const bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
-        inline const bool operator==(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) == 0; }
+        inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
+        inline bool operator==(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) == 0; }
 
-        inline const bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
-        inline const bool operator!=(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) != 0; }
+        inline bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
+        inline bool operator!=(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) != 0; }
     };
 
     class symbol {
@@ -61,19 +61,19 @@ namespace tbd {
         explicit symbol(const char *string, bool weak, int flags_length, enum type type) noexcept
         : string(string), weak(weak), flags(flags_length), type(type) {}
 
-        inline void add_architecture(int number) noexcept { flags.cast(number, true); }
-
         const char *string;
         bool weak;
 
         class flags flags;
         enum type type;
 
-        inline const bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
-        inline const bool operator==(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) == 0; }
+        inline void add_architecture(int index) noexcept { flags.cast(index, true); }
 
-        inline const bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
-        inline const bool operator!=(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) != 0; }
+        inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
+        inline bool operator==(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) == 0; }
+
+        inline bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
+        inline bool operator!=(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) != 0; }
     };
 
     const char *platform_to_string(const enum platform &platform) noexcept {
@@ -398,13 +398,13 @@ namespace tbd {
 
         fputs("[ ", output);
 
-        const auto symbol_string_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
-        if (symbol_string_needs_quotes) {
+        const auto symbol_string_begin_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
+        if (symbol_string_begin_needs_quotes) {
             fputc('\'', output);
         }
 
         fputs(symbols_begin_string, output);
-        if (symbol_string_needs_quotes) {
+        if (symbol_string_begin_needs_quotes) {
             fputc('\'', output);
         }
 

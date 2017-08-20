@@ -7,16 +7,21 @@
 //
 
 #pragma once
+#include <cstdint>
+
+#ifdef __LP64__
+typedef uint64_t flags_integer_t;
+#else
+typedef uint32_t flags_integer_t;
+#endif
 
 class flags {
 public:
-    explicit flags() = default;
-    explicit flags(long length);
-
+    explicit flags(flags_integer_t length);
     ~flags();
 
-    void cast(long index, bool result) noexcept;
-    bool at(long index) const noexcept;
+    void cast(flags_integer_t index, bool flag) noexcept;
+    bool at(flags_integer_t index) const noexcept;
 
     bool was_created() const noexcept { return length_ != 0; }
 
@@ -25,10 +30,10 @@ public:
 
 private:
     union {
-        unsigned int flags = 0;
-        void *ptr;
+        flags_integer_t flags = 0;
+        flags_integer_t *ptr;
     } flags_;
 
-    long length_ = 0;
-    inline constexpr unsigned long bit_size() const noexcept { return sizeof(unsigned int) * 8; }
+    flags_integer_t length_ = 0;
+    inline constexpr flags_integer_t bit_size() const noexcept { return sizeof(flags_integer_t) * 8; }
 };
