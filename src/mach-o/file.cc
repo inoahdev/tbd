@@ -14,10 +14,10 @@
 #include "file.h"
 
 namespace macho {
-    file::creation_result file::create(file *file, const std::string &path) noexcept {
+    file::open_result file::open(file *file, const std::string &path) noexcept {
         file->stream = fopen(path.data(), "r");
         if (!file->stream) {
-            return file::creation_result::failed_to_open_stream;
+            return open_result::failed_to_open_stream;
         }
 
         return file->validate();
@@ -29,20 +29,20 @@ namespace macho {
         }
     }
 
-    file::creation_result file::validate() noexcept {
+    file::open_result file::validate() noexcept {
         if (fread(&magic, sizeof(magic), 1, stream) != 1) {
-            return file::creation_result::stream_read_error;
+            return open_result::stream_read_error;
         }
 
         const auto magic_is_fat = macho::magic_is_fat(magic);
         if (magic_is_fat) {
             auto nfat_arch = uint32_t();
             if (fread(&nfat_arch, sizeof(nfat_arch), 1, stream) != 1) {
-                return file::creation_result::stream_read_error;
+                return open_result::stream_read_error;
             }
 
             if (!nfat_arch) {
-                return file::creation_result::zero_architectures;
+                return open_result::zero_architectures;
             }
 
             auto magic_is_big_endian = macho::magic_is_big_endian(magic);
@@ -58,7 +58,7 @@ namespace macho {
                 const auto architectures_size = sizeof(architecture_64) * nfat_arch;
 
                 if (fread(architectures.get(), architectures_size, 1, stream) != 1) {
-                    return file::creation_result::stream_read_error;
+                    return open_result::stream_read_error;
                 }
 
                 if (magic_is_big_endian) {
@@ -69,21 +69,21 @@ namespace macho {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_creation_result = container::create(&container, stream, architecture.offset, architecture.size);
+                    auto container_open_result = container::open(&container, stream, architecture.offset, architecture.size);
 
-                    switch (container_creation_result) {
-                        case container::creation_result::ok:
+                    switch (container_open_result) {
+                        case container::open_result::ok:
                             break;
 
-                        case container::creation_result::stream_seek_error:
-                            return file::creation_result::stream_seek_error;
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
 
-                        case container::creation_result::stream_read_error:
-                            return file::creation_result::stream_read_error;
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
 
-                        case container::creation_result::fat_container:
-                        case container::creation_result::not_a_macho:
-                            return file::creation_result::invalid_container;
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                            return open_result::invalid_container;
                     }
 
                     containers.push_back(std::move(container));
@@ -93,7 +93,7 @@ namespace macho {
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
 
                 if (fread(architectures.get(), architectures_size, 1, stream) != 1) {
-                    return file::creation_result::stream_read_error;
+                    return open_result::stream_read_error;
                 }
 
                 if (magic_is_big_endian) {
@@ -104,21 +104,21 @@ namespace macho {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_creation_result = container::create(&container, stream, architecture.offset, architecture.size);
+                    auto container_open_result = container::open(&container, stream, architecture.offset, architecture.size);
 
-                    switch (container_creation_result) {
-                        case container::creation_result::ok:
+                    switch (container_open_result) {
+                        case container::open_result::ok:
                             break;
 
-                        case container::creation_result::stream_seek_error:
-                            return file::creation_result::stream_seek_error;
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
 
-                        case container::creation_result::stream_read_error:
-                            return file::creation_result::stream_read_error;
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
 
-                        case container::creation_result::fat_container:
-                        case container::creation_result::not_a_macho:
-                            return file::creation_result::invalid_container;
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                            return open_result::invalid_container;
                     }
 
                     containers.push_back(std::move(container));
@@ -128,34 +128,34 @@ namespace macho {
             const auto magic_is_thin = macho::magic_is_thin(magic);
             if (magic_is_thin) {
                 auto container = macho::container();
-                auto container_creation_result = container::create(&container, stream, 0);
+                auto container_open_result = container::open(&container, stream, 0);
 
-                switch (container_creation_result) {
-                    case container::creation_result::ok:
+                switch (container_open_result) {
+                    case container::open_result::ok:
                         break;
 
-                    case container::creation_result::stream_seek_error:
-                        return file::creation_result::stream_seek_error;
+                    case container::open_result::stream_seek_error:
+                        return open_result::stream_seek_error;
 
-                    case container::creation_result::stream_read_error:
-                        return file::creation_result::stream_read_error;
+                    case container::open_result::stream_read_error:
+                        return open_result::stream_read_error;
 
-                    case container::creation_result::fat_container:
-                    case container::creation_result::not_a_macho:
-                        return file::creation_result::not_a_macho;
+                    case container::open_result::fat_container:
+                    case container::open_result::not_a_macho:
+                        return open_result::not_a_macho;
                 }
 
                 containers.push_back(std::move(container));
             } else {
-                return creation_result::not_a_macho;
+                return open_result::not_a_macho;
             }
         }
 
-        return file::creation_result::ok;
+        return open_result::ok;
     }
 
     bool file::is_valid_file(const std::string &path, check_error *error) noexcept {
-        const auto descriptor = open(path.data(), O_RDONLY);
+        const auto descriptor = ::open(path.data(), O_RDONLY);
         if (descriptor == -1) {
             if (error != nullptr) {
                 *error = check_error::failed_to_open_descriptor;
@@ -252,7 +252,7 @@ namespace macho {
     }
 
     bool file::is_valid_library(const std::string &path, check_error *error) noexcept {
-        const auto descriptor = open(path.data(), O_RDONLY);
+        const auto descriptor = ::open(path.data(), O_RDONLY);
         if (descriptor == -1) {
             if (error != nullptr) {
                 *error = check_error::failed_to_open_descriptor;

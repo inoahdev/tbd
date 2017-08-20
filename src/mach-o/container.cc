@@ -13,25 +13,25 @@
 #include "container.h"
 
 namespace macho {
-    container::creation_result container::create(container *container, FILE *stream, long base) noexcept {
+    container::open_result container::open(container *container, FILE *stream, long base) noexcept {
         container->stream = stream;
         container->base = base;
 
         const auto position = ftell(stream);
         if (fseek(stream, 0, SEEK_END) != 0) {
-            return container::creation_result::stream_seek_error;
+            return open_result::stream_seek_error;
         }
 
         container->size = ftell(stream);
 
         if (fseek(stream, position, SEEK_SET) != 0) {
-            return container::creation_result::stream_seek_error;
+            return open_result::stream_seek_error;
         }
 
         return container->validate();
     }
 
-    container::creation_result container::create(container *container, FILE *stream, long base, size_t size) noexcept {
+    container::open_result container::open(container *container, FILE *stream, long base, size_t size) noexcept {
         container->stream = stream;
 
         container->base = base;
@@ -40,24 +40,24 @@ namespace macho {
         return container->validate();
     }
 
-    container::creation_result container::validate() noexcept {
+    container::open_result container::validate() noexcept {
         auto &magic = header.magic;
 
         const auto is_big_endian = this->is_big_endian();
         const auto stream_position = ftell(stream);
 
         if (fseek(stream, base, SEEK_SET) != 0) {
-            return container::creation_result::stream_seek_error;
+            return open_result::stream_seek_error;
         }
 
         if (fread(&magic, sizeof(magic), 1, stream) != 1) {
-            return container::creation_result::stream_read_error;
+            return open_result::stream_read_error;
         }
 
         const auto macho_stream_is_regular = magic_is_thin(magic);
         if (macho_stream_is_regular) {
             if (fread(&header.cputype, sizeof(header) - sizeof(header.magic), 1, stream) != 1) {
-                return container::creation_result::stream_read_error;
+                return open_result::stream_read_error;
             }
 
             if (is_big_endian) {
@@ -66,17 +66,17 @@ namespace macho {
         } else {
             const auto macho_stream_is_fat = magic_is_fat(magic);
             if (macho_stream_is_fat) {
-                return container::creation_result::fat_container;
+                return open_result::fat_container;
             } else {
-                return container::creation_result::not_a_macho;
+                return open_result::not_a_macho;
             }
         }
 
         if (fseek(stream, stream_position, SEEK_SET) != 0) {
-            return container::creation_result::stream_seek_error;
+            return open_result::stream_seek_error;
         }
 
-        return container::creation_result::ok;
+        return open_result::ok;
     }
 
     container::~container() {

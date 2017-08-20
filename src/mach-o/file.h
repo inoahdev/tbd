@@ -21,7 +21,7 @@ namespace macho {
 
         std::vector<container> containers = std::vector<container>();
 
-        enum class creation_result {
+        enum class open_result {
             ok,
             failed_to_open_stream,
 
@@ -33,7 +33,7 @@ namespace macho {
             invalid_container,
         };
 
-        static creation_result create(file *file, const std::string &path) noexcept;
+        static open_result open(file *file, const std::string &path) noexcept;
         ~file() noexcept;
 
         enum check_error {
@@ -58,6 +58,6 @@ namespace macho {
 
     private:
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
-        file::creation_result validate() noexcept;
+        open_result validate() noexcept;
     };
 }

@@ -26,7 +26,7 @@ namespace macho {
 
         struct header header = {};
 
-        enum class creation_result {
+        enum class open_result {
             ok,
             stream_seek_error,
             stream_read_error,
@@ -34,8 +34,8 @@ namespace macho {
             not_a_macho,
         };
 
-        static creation_result create(container *container, FILE *stream, long base) noexcept;
-        static creation_result create(container *container, FILE *stream, long base, size_t size) noexcept;
+        static open_result open(container *container, FILE *stream, long base) noexcept;
+        static open_result open(container *container, FILE *stream, long base, size_t size) noexcept;
 
         enum class load_command_iteration_result {
             ok,
@@ -82,6 +82,6 @@ namespace macho {
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
-        creation_result validate() noexcept;
+        open_result validate() noexcept;
     };
 }
