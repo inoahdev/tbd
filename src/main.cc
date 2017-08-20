@@ -719,7 +719,6 @@ int main(int argc, const char *argv[]) {
                     }
                 } else {
                     // Provided a recurse type of none requires only a file be provided.
-
                     if (path_is_directory) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                         return 1;
@@ -957,7 +956,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
-                            fputs("Please provide a platform-string (Run --list-platform to see a list of platforms)\n", stderr);
+                            fputs("Please provide a platform-string. Run --list-platform to see a list of platforms\n", stderr);
                             return 1;
                         }
 
@@ -1083,31 +1082,8 @@ int main(int argc, const char *argv[]) {
                 auto tbd_platform = local_platform;
                 auto tbd_version = local_tbd_version;
 
-                if (options & tbd::symbol_options::allow_all_private_symbols) {
-                    local_options |= tbd::symbol_options::allow_all_private_symbols;
-                } else {
-                    if (options & tbd::symbol_options::allow_private_normal_symbols) {
-                        local_options |= tbd::symbol_options::allow_private_normal_symbols;
-                    }
-
-                    if (options & tbd::symbol_options::allow_private_weak_symbols) {
-                        local_options |= tbd::symbol_options::allow_private_weak_symbols;
-                    }
-
-                    if (options & tbd::symbol_options::allow_private_objc_symbols) {
-                        local_options |= tbd::symbol_options::allow_private_objc_symbols;
-                    } else {
-                        if (options & tbd::symbol_options::allow_private_objc_classes) {
-                            local_options |= tbd::symbol_options::allow_private_objc_classes;
-                        }
-
-                        if (options & tbd::symbol_options::allow_private_objc_ivars) {
-                            local_options |= tbd::symbol_options::allow_private_objc_ivars;
-                        }
-                    }
-                }
-
                 tbd.architectures = *tbd_architectures;
+
                 tbd.options = local_options;
                 tbd.platform = tbd_platform;
                 tbd.version = tbd_version;
@@ -1136,7 +1112,7 @@ int main(int argc, const char *argv[]) {
             }
         } else if (strcmp(option, "platform") == 0) {
             if (is_last_argument) {
-                fputs("Please provide a platform-string (Run --list-platform to see a list of platforms)\n", stderr);
+                fputs("Please provide a platform-string. Run --list-platform to see a list of platforms\n", stderr);
                 return 1;
             }
 
@@ -1199,6 +1175,30 @@ int main(int argc, const char *argv[]) {
 
         const auto &tbd_architectures = tbd.architectures;
         const auto tbd_architectures_size = tbd_architectures.size();
+
+        if (options & tbd::symbol_options::allow_all_private_symbols) {
+            tbd_options |= tbd::symbol_options::allow_all_private_symbols;
+        } else {
+            if (options & tbd::symbol_options::allow_private_normal_symbols) {
+                tbd_options |= tbd::symbol_options::allow_private_normal_symbols;
+            }
+
+            if (options & tbd::symbol_options::allow_private_weak_symbols) {
+                tbd_options |= tbd::symbol_options::allow_private_weak_symbols;
+            }
+
+            if (options & tbd::symbol_options::allow_private_objc_symbols) {
+                tbd_options |= tbd::symbol_options::allow_private_objc_symbols;
+            } else {
+                if (options & tbd::symbol_options::allow_private_objc_classes) {
+                    tbd_options |= tbd::symbol_options::allow_private_objc_classes;
+                }
+
+                if (options & tbd::symbol_options::allow_private_objc_ivars) {
+                    tbd_options |= tbd::symbol_options::allow_private_objc_ivars;
+                }
+            }
+        }
 
         if ((tbd_options & recurse_directories) || (tbd_options & recurse_subdirectories)) {
             if (tbd_output_path.empty()) {
