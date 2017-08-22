@@ -1059,6 +1059,7 @@ namespace tbd {
 
             switch (library_container_symbols_iteration_result) {
                 case macho::container::symbols_iteration_result::ok:
+                case macho::container::symbols_iteration_result::no_symbols:
                     break;
 
                 case macho::container::symbols_iteration_result::stream_seek_error:

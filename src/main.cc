@@ -170,6 +170,8 @@ void loop_directory_for_libraries(const char *directory_path, bool recurse_subdi
 
         directory_entry = readdir(directory);
     }
+    
+    closedir(directory);
 }
 
 const char *retrieve_current_directory() {

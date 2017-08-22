@@ -203,7 +203,7 @@ namespace macho {
         }
 
         const auto load_commands_size = header->sizeofcmds;
-        const auto load_commands = std::make_unique<char[]>(load_commands_size);
+        const auto load_commands = std::make_unique<uint8_t[]>(load_commands_size);
 
         if (read(descriptor, load_commands.get(), load_commands_size) == -1) {
             if (error != nullptr) {

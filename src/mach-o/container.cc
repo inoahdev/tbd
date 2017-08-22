@@ -103,7 +103,8 @@ namespace macho {
         const auto &sizeofcmds = header.sizeofcmds;
 
         auto &cached_load_commands = cached_load_commands_;
-
+        const auto created_cached_load_commands = !cached_load_commands;
+        
         auto size_used = 0;
         if (!cached_load_commands) {
             cached_load_commands = new uint8_t[sizeofcmds];
@@ -126,48 +127,44 @@ namespace macho {
             if (fseek(stream, position, SEEK_SET) != 0) {
                 return container::load_command_iteration_result::stream_seek_error;
             }
-
-            auto should_callback = true;
-            for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
-                auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
-                auto swapped_load_command = *load_cmd;
-
-                if (is_big_endian) {
-                    swap_load_command(&swapped_load_command);
-                }
-
-                const auto &cmdsize = swapped_load_command.cmdsize;
+        }
+        
+        auto should_callback = true;
+        for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+            auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+            auto swapped_load_command = *load_cmd;
+            
+            if (is_big_endian) {
+                swap_load_command(&swapped_load_command);
+            }
+            
+            const auto &cmdsize = swapped_load_command.cmdsize;
+            if (created_cached_load_commands) {
                 if (cmdsize < sizeof(struct load_command)) {
                     return container::load_command_iteration_result::load_command_is_too_small;
                 }
-
+                
                 if (cmdsize >= sizeofcmds) {
                     return container::load_command_iteration_result::load_command_is_too_large;
                 }
-
+                
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
                     return container::load_command_iteration_result::load_command_is_too_large;
                 } else if (size_used == sizeofcmds && i != ncmds - 1) {
                     return container::load_command_iteration_result::load_command_is_too_large;
                 }
-
-                if (should_callback) {
-                    should_callback = callback(&swapped_load_command, load_cmd);
-                }
-
-                cached_load_commands_index += cmdsize;
             }
-        } else {
-            for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
-                auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
-
-                if (!callback(load_cmd, load_cmd)) {
-                    break;
-                }
-
-                cached_load_commands_index += load_cmd->cmdsize;
+            
+            if (should_callback) {
+                should_callback = callback(&swapped_load_command, load_cmd);
             }
+            
+            if (!should_callback && !created_cached_load_commands) {
+                break;
+            }
+            
+            cached_load_commands_index += cmdsize;
         }
 
         return container::load_command_iteration_result::ok;
@@ -234,6 +231,10 @@ namespace macho {
                 macho::swap_uint32(&symbol_table_count);
                 macho::swap_uint32(&symbol_table_location);
             }
+            
+            if (!symbol_table_count) {
+                return symbols_iteration_result::no_symbols;
+            }
 
             if (symbol_table_location > size) {
                 return container::symbols_iteration_result::invalid_symbol_table;
@@ -254,7 +255,7 @@ namespace macho {
                 if (symbol_table_end > size) {
                     return container::symbols_iteration_result::invalid_symbol_table;
                 }
-
+                
                 cached_symbol_table = new uint8_t[symbol_table_size];
 
                 if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
