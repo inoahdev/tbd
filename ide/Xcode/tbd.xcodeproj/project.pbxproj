@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C31620AE1F50F575005A67A7 /* recurse.cc in Sources */ = {isa = PBXBuildFile; fileRef = C31620AC1F50F575005A67A7 /* recurse.cc */; };
 		C33131401F23D0680031B4BD /* swap.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331313F1F23D0680031B4BD /* swap.cc */; };
 		C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331314D1F23D0AD0031B4BD /* architecture_info.cc */; };
 		C33CE0C11F33423000E738EA /* cputype.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33CE0BA1F33423000E738EA /* cputype.cc */; };
@@ -30,6 +31,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C31620AC1F50F575005A67A7 /* recurse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recurse.cc; path = ../../src/misc/recurse.cc; sourceTree = "<group>"; };
+		C31620AD1F50F575005A67A7 /* recurse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recurse.h; path = ../../src/misc/recurse.h; sourceTree = "<group>"; };
 		C32A7A9F1F10E5DA000BF14E /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C331313E1F23D0680031B4BD /* swap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swap.h; path = "../../src/mach-o/swap.h"; sourceTree = "<group>"; };
 		C331313F1F23D0680031B4BD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = "../../src/mach-o/swap.cc"; sourceTree = "<group>"; };
@@ -145,6 +148,8 @@
 			children = (
 				C3E269E01F3FA959005ED144 /* flags.h */,
 				C3B67BAF1F3FAA0800BDE7F8 /* flags.cc */,
+				C31620AD1F50F575005A67A7 /* recurse.h */,
+				C31620AC1F50F575005A67A7 /* recurse.cc */,
 			);
 			name = misc;
 			sourceTree = "<group>";
@@ -221,6 +226,7 @@
 				C3BA3CA81F131AC30049C652 /* main.cc in Sources */,
 				C33131401F23D0680031B4BD /* swap.cc in Sources */,
 				C33CE0C11F33423000E738EA /* cputype.cc in Sources */,
+				C31620AE1F50F575005A67A7 /* recurse.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

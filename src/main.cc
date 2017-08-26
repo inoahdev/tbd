@@ -14,165 +14,14 @@
 #include <dirent.h>
 #include <unistd.h>
 
+#include "misc/recurse.h"
 #include "tbd/tbd.h"
 
-enum class recurse {
+enum class recurse_option {
     none,
     once,
     all
 };
-
-void loop_subdirectories_for_libraries(DIR *directory, const std::string &directory_path, const std::function<void(const std::string &)> &callback) {
-    auto directory_entry = readdir(directory);
-    auto directory_path_length = directory_path.length();
-
-    while (directory_entry != nullptr) {
-        const auto directory_entry_name = directory_entry->d_name;
-        const auto directory_entry_name_length = strlen(directory_entry_name);
-
-        const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
-        if (directory_entry_is_directory) {
-            // Ignore the directory-entry for the directory itself, and that of its
-            // superior in the directory hierarchy.
-
-            if (strcmp(directory_entry_name, ".") == 0 || strcmp(directory_entry_name, "..") == 0) {
-                directory_entry = readdir(directory);
-                continue;
-            }
-
-            auto sub_directory_path = std::string();
-            auto sub_directory_path_length = directory_path_length + directory_entry_name_length + 1;
-
-            // Avoid re-allocations by calculating new total-length, and reserving space
-            // accordingly.
-
-            sub_directory_path.reserve(sub_directory_path_length);
-
-            // Add a final forward slash to the path as it is a directory, and reduces work
-            // needing to be done if a sub-directory is found and needs to be recursed.
-
-            sub_directory_path.append(directory_path);
-            sub_directory_path.append(directory_entry_name, directory_entry_name_length);
-            sub_directory_path.append(1, '/');
-
-            const auto sub_directory = opendir(sub_directory_path.data());
-            if (sub_directory) {
-                loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
-                closedir(sub_directory);
-            } else {
-                // In the context of recursing through files and directories, Erroring out here would
-                // be a mistake. Warning the user that opening the directory failed is good enough.
-
-                fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
-            }
-        } else {
-            const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
-            if (directory_entry_is_regular_file) {
-                auto directory_entry_path = std::string();
-                auto directory_entry_path_length = directory_path_length + directory_entry_name_length;
-
-                directory_entry_path.reserve(directory_entry_path_length);
-
-                directory_entry_path.append(directory_path);
-                directory_entry_path.append(directory_entry_name, directory_entry_name_length);
-
-                auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
-                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
-
-                if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                    fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
-                }
-
-                if (directory_entry_path_is_valid_library) {
-                    callback(directory_entry_path);
-                }
-            }
-        }
-
-        directory_entry = readdir(directory);
-    }
-}
-
-void loop_directory_for_libraries(const char *directory_path, bool recurse_subdirectories, const std::function<void(const std::string &)> &callback) {
-    const auto directory = opendir(directory_path);
-    if (!directory) {
-        fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));
-        exit(1);
-    }
-
-    const auto directory_path_length = strlen(directory_path);
-
-    auto directory_entry = readdir(directory);
-    while (directory_entry != nullptr) {
-        const auto directory_entry_name = directory_entry->d_name;
-        const auto directory_entry_name_length = strlen(directory_entry_name);
-
-        const auto directory_entry_is_directory = directory_entry->d_type == DT_DIR;
-        if (directory_entry_is_directory) {
-            if (recurse_subdirectories) {
-                // Ignore the directory-entry for the directory itself, and that of its
-                // superior in the directory hierarchy.
-
-                if (strcmp(directory_entry_name, ".") == 0 || strcmp(directory_entry_name, "..") == 0) {
-                    directory_entry = readdir(directory);
-                    continue;
-                }
-
-                auto sub_directory_path = std::string();
-                auto sub_directory_path_length = directory_path_length + directory_entry_name_length + 1;
-
-                // Avoid re-allocations by calculating new total-length, and reserving space
-                // accordingly.
-
-                sub_directory_path.reserve(sub_directory_path_length);
-
-                // Add a final forward slash to the path as it is a directory, and reduces work
-                // needing to be done if a sub-directory is found and needs to be recursed.
-
-                sub_directory_path.append(directory_path);
-                sub_directory_path.append(directory_entry_name, directory_entry_name_length);
-                sub_directory_path.append(1, '/');
-
-                const auto sub_directory = opendir(sub_directory_path.data());
-                if (sub_directory) {
-                    loop_subdirectories_for_libraries(sub_directory, sub_directory_path, callback);
-                    closedir(sub_directory);
-                } else {
-                    // In the context of recursing through files and directories, Erroring out here would
-                    // be a mistake. Warning the user that opening the directory failed is good enough.
-
-                    fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
-                }
-            }
-        } else {
-            const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
-            if (directory_entry_is_regular_file) {
-                auto directory_entry_path = std::string();
-                auto directory_entry_path_length = directory_path_length + directory_entry_name_length;
-
-                directory_entry_path.reserve(directory_entry_path_length);
-
-                directory_entry_path.append(directory_path);
-                directory_entry_path.append(directory_entry_name, directory_entry_name_length);
-
-                auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
-                const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
-
-                if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                    fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
-                }
-
-                if (directory_entry_path_is_valid_library) {
-                    callback(directory_entry_path);
-                }
-            }
-        }
-
-        directory_entry = readdir(directory);
-    }
-
-    closedir(directory);
-}
 
 const char *retrieve_current_directory() {
     // Store current-directory as a static variable to avoid
@@ -321,45 +170,7 @@ void print_platforms() {
     fputc('\n', stdout);
 }
 
-void create_tbd_file(const std::string &macho_file_path, FILE *tbd_file, unsigned int options, const tbd::platform &platform, const tbd::version &version, const std::vector<const macho::architecture_info *> &architectures, bool print_paths) {
-    auto file = macho::file();
-    auto creation_result = macho::file::open(&file, macho_file_path);
-
-    switch (creation_result) {
-        case macho::file::open_result::ok:
-            break;
-
-        case macho::file::open_result::failed_to_open_stream:
-            if (print_paths) {
-                fprintf(stderr, "Failed to open file at path (%s) for reading, failing with error (%s)\n", macho_file_path.data(), strerror(errno));
-            } else {
-                fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
-            }
-
-            return;
-
-        case macho::file::open_result::stream_seek_error:
-        case macho::file::open_result::stream_read_error:
-        case macho::file::open_result::zero_architectures:
-        case macho::file::open_result::not_a_macho:
-            if (print_paths) {
-                fprintf(stderr, "File at path (%s) is not a valid mach-o\n", macho_file_path.data());
-            } else {
-                fputs("File at provided path is not a valid mach-o\n", stderr);
-            }
-
-            return;
-
-        case macho::file::open_result::invalid_container:
-            if (print_paths) {
-                fprintf(stderr, "One of mach-o file (at path %s)'s architectures is not a valid mach-o\n", macho_file_path.data());
-            } else {
-                fputs("One of provided mach-o file's architectures is not a valid mach-o\n", stderr);
-            }
-
-            return;
-    }
-
+void create_tbd_file(const std::string &macho_file_path, macho::file &file, FILE *tbd_file, unsigned int options, const tbd::platform &platform, const tbd::version &version, const std::vector<const macho::architecture_info *> &architectures, bool print_paths) {
     auto result = tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures);
     if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
         switch (result) {
@@ -683,14 +494,14 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto paths = std::vector<std::pair<std::string, recurse>>();
+            auto paths = std::vector<std::pair<std::string, recurse_option>>();
             if (is_last_argument) {
                 // If a path was not provided, --list-macho-libraries is
                 // expected to instead recurse the current-directory.
 
-                paths.emplace_back(retrieve_current_directory(), recurse::all);
+                paths.emplace_back(retrieve_current_directory(), recurse_option::all);
             } else {
-                auto recurse_type = recurse::none;
+                auto recurse_type = recurse_option::none;
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
                     const auto &argument_front = argument[0];
@@ -709,7 +520,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                            recurse_type = recurse::all;
+                            recurse_type = recurse_option::all;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                             const auto recurse_type_string = strchr(option, '=') + 1;
                             const auto &recurse_type_string_front = recurse_type_string[0];
@@ -720,9 +531,9 @@ int main(int argc, const char *argv[]) {
                             }
 
                             if (strcmp(recurse_type_string, "once") == 0) {
-                                recurse_type = recurse::once;
+                                recurse_type = recurse_option::once;
                             } else if (strcmp(recurse_type_string, "all") == 0) {
-                                recurse_type = recurse::all;
+                                recurse_type = recurse_option::all;
                             } else {
                                 fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                                 return 1;
@@ -752,7 +563,7 @@ int main(int argc, const char *argv[]) {
                         paths.emplace_back(argument, recurse_type);
                     }
 
-                    recurse_type = recurse::none;
+                    recurse_type = recurse_option::none;
                 }
 
                 if (paths.empty()) {
@@ -777,28 +588,28 @@ int main(int argc, const char *argv[]) {
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                 const auto &recurse_type = pair.second;
 
-                if (recurse_type != recurse::none) {
+                if (recurse_type != recurse_option::none) {
                     if (!path_is_directory) {
                         fprintf(stderr, "Cannot recurse file at path (%s)\n", path_data);
                         return 1;
                     }
 
                     auto found_libraries = false;
-                    loop_directory_for_libraries(path_data, recurse_type == recurse::all, [&](const std::string &library_path) {
+                    recurse::macho_library_paths(path_data, recurse_type == recurse_option::all, [&](std::string &library_path) {
                         found_libraries = true;
                         fprintf(stdout, "%s\n", library_path.data());
                     });
 
                     if (!found_libraries) {
                         switch (recurse_type) {
-                            case recurse::none:
+                            case recurse_option::none:
                                 break;
 
-                            case recurse::once:
+                            case recurse_option::once:
                                 fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
                                 break;
 
-                            case recurse::all:
+                            case recurse_option::all:
                                 fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path_data);
                                 break;
                         }
@@ -1300,7 +1111,9 @@ int main(int argc, const char *argv[]) {
             const auto tbd_path_length = tbd_path.length();
             const auto tbd_output_path_length = tbd_output_path.length();
 
-            loop_directory_for_libraries(tbd_path.data(), tbd_options & recurse_subdirectories, [&](const std::string &library_path) {
+            auto outputted_any_macho_libraries = false;
+
+            recurse::macho_libraries(tbd_path.data(), tbd_options & recurse_subdirectories, [&](std::string &library_path, macho::file &file) {
                 auto output_path_front = std::string::npos;
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;
@@ -1324,13 +1137,19 @@ int main(int argc, const char *argv[]) {
                 if (!output_file) {
                     fprintf(stderr, "Failed to open file at path (%s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
                 } else {
-                    create_tbd_file(library_path, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures, should_print_paths);
+                    create_tbd_file(library_path, file, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures, should_print_paths);
                     fclose(output_file);
+
+                    outputted_any_macho_libraries = true;
                 }
             });
+
+            if (!outputted_any_macho_libraries) {
+                fprintf(stderr, "No mach-o files were outputted while recursing through directory (at path %s)\n", tbd_path.data());
+            }
         } else {
             auto output_file = stdout;
-            if (tbd_output_path.size() != 0) {
+            if (!tbd_output_path.empty()) {
                 recursively_create_directories_from_file_path((char *)tbd_output_path.data(), false);
 
                 output_file = fopen(tbd_output_path.data(), "w");
@@ -1345,7 +1164,20 @@ int main(int argc, const char *argv[]) {
                 }
             }
 
-            create_tbd_file(tbd_path, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures, should_print_paths);
+            auto library_file = macho::file();
+            auto library_file_open_result = macho::file::open_from_library(&library_file, tbd_path.data());
+
+            if (library_file_open_result == macho::file::open_result::failed_to_open_stream) {
+                if (should_print_paths) {
+                    fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                } else {
+                    fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
+                }
+
+                continue;
+            }
+
+            create_tbd_file(tbd_path, library_file, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd_architectures_size ? architectures : tbd.architectures, should_print_paths);
 
             if (output_file != stdout) {
                 fclose(output_file);
