@@ -7,9 +7,10 @@
 //
 
 #pragma once
+#include <cstdint>
 
 namespace macho {
-    enum class filetype {
+    enum class filetype : uint32_t {
         object = 1,
         executable,
         fvmlib,

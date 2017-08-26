@@ -650,8 +650,8 @@ namespace tbd {
                         if (library_reexports_iter != library_reexports.end()) {
                             library_reexports_iter->add_architecture(library_containers_index);
                         } else {
-                            library_reexports.emplace_back(reexport_dylib_string, library_containers_size);
-                            library_reexports.back().add_architecture(library_containers_index);
+                            auto &library_reexport = library_reexports.emplace_back(reexport_dylib_string, library_containers_size);
+                            library_reexport.add_architecture(library_containers_index);
                         }
 
                         break;
@@ -1050,8 +1050,8 @@ namespace tbd {
                 if (symbols_iter != library_symbols.end()) {
                     symbols_iter->add_architecture(library_containers_index);
                 } else {
-                    library_symbols.emplace_back(parsed_symbol_string, symbol_is_weak, library_containers_size, symbol_type);
-                    library_symbols.back().add_architecture(library_containers_index);
+                    auto &library_symbol = library_symbols.emplace_back(parsed_symbol_string, symbol_is_weak, library_containers_size, symbol_type);
+                    library_symbol.add_architecture(library_containers_index);
                 }
 
                 return true;
@@ -1105,8 +1105,8 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    groups.emplace_back(library_reexport_flags);
-                    groups.back().reexports_count++;
+                    auto &group = groups.emplace_back(library_reexport_flags);
+                    group.reexports_count++;
                 }
             }
 
@@ -1119,8 +1119,8 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    groups.emplace_back(library_symbol_flags);
-                    groups.back().symbols_count++;
+                    auto &group = groups.emplace_back(library_symbol_flags);
+                    group.symbols_count++;
                 }
             }
 
@@ -1221,7 +1221,7 @@ namespace tbd {
 
         auto library_compatibility_version_major = library_compatibility_version >> 16;
         auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
-        auto library_compatibility_version_revision = library_compatibility_version & 0xff;
+        auto library_compatibility_versio=n_revision = library_compatibility_version & 0xff;
 
         fprintf(output, "\ncompatibility-version: %u", library_compatibility_version_major);
 

@@ -66,10 +66,6 @@ namespace recurse {
                     directory_entry_path.append(directory_path);
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
-                    if (strncmp(directory_entry_name, "uws_darwin_46.node", directory_entry_name_length) == 0) {
-                        printf("");
-                    }
-
                     auto directory_entry_library_file = macho::file();
                     auto directory_entry_library_file_open_result = macho::file::open_from_library(&directory_entry_library_file, directory_entry_path.data());
 
