@@ -13,9 +13,8 @@
 #include "container.h"
 
 namespace macho {
-    container::open_result container::open(container *container, FILE *stream, long base) noexcept {
+    container::open_result container::open(container *container, FILE *stream) noexcept {
         container->stream = stream;
-        container->base = base;
 
         const auto position = ftell(stream);
         if (fseek(stream, 0, SEEK_END) != 0) {
@@ -28,7 +27,25 @@ namespace macho {
             return open_result::stream_seek_error;
         }
 
-        return container->validate();
+        return container->validate(false);
+    }
+
+    container::open_result container::open(container *container, FILE *stream, long base) noexcept {
+        container->stream = stream;
+        container->base = base;
+
+        const auto position = ftell(stream);
+        if (fseek(stream, 0, SEEK_END) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        container->size = ftell(stream) - base;
+
+        if (fseek(stream, position, SEEK_SET) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        return container->validate(false);
     }
 
     container::open_result container::open(container *container, FILE *stream, long base, size_t size) noexcept {
@@ -37,10 +54,54 @@ namespace macho {
         container->base = base;
         container->size = size;
 
-        return container->validate();
+        return container->validate(false);
     }
 
-    container::open_result container::validate() noexcept {
+    container::open_result container::open_from_library(container *container, FILE *stream) noexcept {
+        container->stream = stream;
+
+        const auto position = ftell(stream);
+        if (fseek(stream, 0, SEEK_END) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        container->size = ftell(stream);
+
+        if (fseek(stream, position, SEEK_SET) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        return container->validate(true);
+    }
+
+    container::open_result container::open_from_library(container *container, FILE *stream, long base) noexcept {
+        container->stream = stream;
+        container->base = base;
+
+        const auto position = ftell(stream);
+        if (fseek(stream, 0, SEEK_END) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        container->size = ftell(stream) - base;
+
+        if (fseek(stream, position, SEEK_SET) != 0) {
+            return open_result::stream_seek_error;
+        }
+
+        return container->validate(true);
+    }
+
+    container::open_result container::open_from_library(container *container, FILE *stream, long base, size_t size) noexcept {
+        container->stream = stream;
+
+        container->base = base;
+        container->size = size;
+
+        return container->validate(true);
+    }
+
+    container::open_result container::validate(bool validate_as_library) noexcept {
         auto &magic = header.magic;
 
         const auto is_big_endian = this->is_big_endian();
@@ -76,7 +137,75 @@ namespace macho {
             return open_result::stream_seek_error;
         }
 
+        if (validate_as_library) {
+            auto is_library = false;
+            auto iteration_result = iterate_load_commands([&](const struct load_command *swapped, const struct load_command *load_cmd) {
+                if (swapped->cmd != load_commands::identification_dylib) {
+                    return true;
+                }
+
+                is_library = true;
+                return false;
+            });
+
+            switch (iteration_result) {
+                case load_command_iteration_result::ok:
+                    break;
+
+                case load_command_iteration_result::stream_seek_error:
+                    return open_result::stream_seek_error;
+
+                case load_command_iteration_result::stream_read_error:
+                    return open_result::stream_read_error;
+
+                case load_command_iteration_result::load_command_is_too_small:
+                case load_command_iteration_result::load_command_is_too_large:
+                    return open_result::invalid_macho;
+            }
+
+            if (!is_library) {
+                return open_result::not_a_library;
+            }
+        }
+
         return open_result::ok;
+    }
+
+    container::container(container &&container) noexcept :
+    stream(container.stream), base(container.base), size(container.size), header(container.header), cached_load_commands_(container.cached_load_commands_),
+    cached_symbol_table_(container.cached_symbol_table_), cached_string_table_(container.cached_string_table_) {
+        container.base = 0;
+        container.size = 0;
+
+        container.header = {};
+        container.cached_load_commands_ = nullptr;
+
+        container.cached_string_table_ = nullptr;
+        container.cached_symbol_table_ = nullptr;
+    }
+
+    container& container::operator=(container &&container) noexcept {
+        stream = container.stream;
+        base = container.base;
+        size = container.size;
+
+        header = container.header;
+        cached_load_commands_ = container.cached_load_commands_;
+
+        cached_string_table_ = container.cached_string_table_;
+        cached_symbol_table_ = container.cached_symbol_table_;
+
+        container.stream = nullptr;
+        container.base = 0;
+        container.size = 0;
+
+        container.header = {};
+        container.cached_load_commands_ = nullptr;
+
+        container.cached_string_table_ = nullptr;
+        container.cached_symbol_table_ = nullptr;
+
+        return *this;
     }
 
     container::~container() {
@@ -117,15 +246,15 @@ namespace macho {
             const auto position = ftell(stream);
 
             if (fseek(stream, load_command_base, SEEK_SET) != 0) {
-                return container::load_command_iteration_result::stream_seek_error;
+                return load_command_iteration_result::stream_seek_error;
             }
 
             if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
-                return container::load_command_iteration_result::stream_read_error;
+                return load_command_iteration_result::stream_read_error;
             }
 
             if (fseek(stream, position, SEEK_SET) != 0) {
-                return container::load_command_iteration_result::stream_seek_error;
+                return load_command_iteration_result::stream_seek_error;
             }
         }
 
@@ -141,18 +270,18 @@ namespace macho {
             const auto &cmdsize = swapped_load_command.cmdsize;
             if (created_cached_load_commands) {
                 if (cmdsize < sizeof(struct load_command)) {
-                    return container::load_command_iteration_result::load_command_is_too_small;
+                    return load_command_iteration_result::load_command_is_too_small;
                 }
 
                 if (cmdsize >= sizeofcmds) {
-                    return container::load_command_iteration_result::load_command_is_too_large;
+                    return load_command_iteration_result::load_command_is_too_large;
                 }
 
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
-                    return container::load_command_iteration_result::load_command_is_too_large;
+                    return load_command_iteration_result::load_command_is_too_large;
                 } else if (size_used == sizeofcmds && i != ncmds - 1) {
-                    return container::load_command_iteration_result::load_command_is_too_large;
+                    return load_command_iteration_result::load_command_is_too_large;
                 }
             }
 
@@ -167,7 +296,7 @@ namespace macho {
             cached_load_commands_index += cmdsize;
         }
 
-        return container::load_command_iteration_result::ok;
+        return load_command_iteration_result::ok;
     }
 
     container::symbols_iteration_result container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {

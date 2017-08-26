@@ -16,7 +16,14 @@
 namespace macho {
     class container {
     public:
-        explicit container() = default;
+        container() = default;
+
+        container(const container &) = delete;
+        container& operator=(const container &) = delete;
+
+        container(container &&) noexcept;
+        container& operator=(container &&) noexcept;
+
         ~container();
 
         FILE *stream = nullptr;
@@ -28,14 +35,25 @@ namespace macho {
 
         enum class open_result {
             ok,
+
             stream_seek_error,
             stream_read_error,
+
             fat_container,
+
             not_a_macho,
+            invalid_macho,
+
+            not_a_library
         };
 
+        static open_result open(container *container, FILE *stream) noexcept;
         static open_result open(container *container, FILE *stream, long base) noexcept;
         static open_result open(container *container, FILE *stream, long base, size_t size) noexcept;
+
+        static open_result open_from_library(container *container, FILE *stream) noexcept;
+        static open_result open_from_library(container *container, FILE *stream, long base) noexcept;
+        static open_result open_from_library(container *container, FILE *stream, long base, size_t size) noexcept;
 
         enum class load_command_iteration_result {
             ok,
@@ -85,6 +103,6 @@ namespace macho {
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
-        open_result validate() noexcept;
+        open_result validate(bool validate_as_library) noexcept;
     };
 }

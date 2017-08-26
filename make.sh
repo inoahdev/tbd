@@ -1,13 +1,13 @@
 #!/bin/bash
 
-function help {
-    echo "Help:"
+function Usage {
+    echo "Usage:"
     echo "$0 build - build tbd"
     echo "$0 clean - clean project"
 }
 
 if [ $# -eq 0 ]; then
-    help
+    Usage
     exit 0
 fi
 
@@ -29,8 +29,8 @@ if [ "$type" == "build" ]; then
 
     mkdir -p build >/dev/null 2>/dev/null
     if [ $should_log = true ]; then
-        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd
+        clang++ -std=c++1z -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/misc/recurse.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd
     else
-        clang++ -std=c++14 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
+        clang++ -std=c++1z -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/misc/recurse.cc src/tbd/tbd.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
     fi
 fi

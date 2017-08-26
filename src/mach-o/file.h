@@ -29,11 +29,22 @@ namespace macho {
             stream_read_error,
 
             zero_architectures,
-            not_a_macho,
             invalid_container,
+
+            not_a_macho,
+            not_a_library,
         };
 
-        static open_result open(file *file, const std::string &path) noexcept;
+        static open_result open(file *file, const char *path) noexcept;
+        static open_result open(file *file, const std::string &path) noexcept {
+            return open(file, path.data());
+        }
+
+        static open_result open_from_library(file *file, const char *path) noexcept;
+        static open_result open_from_library(file *file, const std::string &path) noexcept {
+            return open(file, path.data());
+        }
+
         ~file() noexcept;
 
         enum check_error {
@@ -46,8 +57,15 @@ namespace macho {
             failed_to_read_descriptor
         };
 
-        static bool is_valid_file(const std::string &path, check_error *error = nullptr) noexcept;
-        static bool is_valid_library(const std::string &path, check_error *error = nullptr) noexcept;
+        static bool is_valid_file(const char *path, check_error *error = nullptr) noexcept;
+        static bool is_valid_file(const std::string &path, check_error *error = nullptr) noexcept {
+            return is_valid_file(path.data());
+        }
+
+        static bool is_valid_library(const char *path, check_error *error = nullptr) noexcept;
+        static bool is_valid_library(const std::string &path, check_error *error = nullptr) noexcept {
+            return is_valid_library(path.data());
+        }
 
         inline static uint32_t &swap_value(uint32_t &value) noexcept {
             value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
@@ -58,6 +76,8 @@ namespace macho {
 
     private:
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
-        open_result validate() noexcept;
+        static int get_library_file_descriptor(const char *path, check_error *error);
+
+        open_result validate(bool validate_as_library) noexcept;
     };
 }
