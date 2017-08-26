@@ -1298,11 +1298,12 @@ int main(int argc, const char *argv[]) {
             }
 
             const auto tbd_path_length = tbd_path.length();
+            const auto tbd_output_path_length = tbd_output_path.length();
 
             loop_directory_for_libraries(tbd_path.data(), tbd_options & recurse_subdirectories, [&](const std::string &library_path) {
                 auto output_path_front = std::string::npos;
                 if (tbd_options & maintain_directories) {
-                    output_path_front = tbd_path.length();
+                    output_path_front = tbd_path_length;
                 } else {
                     output_path_front = library_path.find_last_of('/');
                 }
@@ -1310,11 +1311,11 @@ int main(int argc, const char *argv[]) {
                 auto output_path = library_path.substr(output_path_front);
 
                 auto output_path_length = output_path.length();
-                auto output_path_new_length = output_path_length + tbd_path_length + 4;
+                auto output_path_new_length = output_path_length + tbd_output_path_length + 4;
 
                 output_path.reserve(output_path_new_length);
 
-                output_path.insert(0, tbd_path);
+                output_path.insert(0, tbd_output_path);
                 output_path.append(".tbd");
 
                 recursively_create_directories_from_file_path((char *)output_path.data(), false);
