@@ -105,6 +105,7 @@ namespace macho {
 
         // cputype::x86_64
         x86_64,
+        x86_64_all,
     };
 
     subtype subtype_from_cputype(cputype cputype, int32_t subtype);

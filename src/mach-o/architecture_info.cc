@@ -72,8 +72,9 @@ namespace macho {
         { cputype::veo, subtype::veo1, "veo1" },
         { cputype::veo, subtype::veo2, "veo2" },
 
-        { cputype::x86_64, subtype::x86_64,  "x86_64"  },
-        { cputype::x86_64, subtype::x86_64h, "x86_64h" },
+        { cputype::x86_64, subtype::x86_64,      "x86_64"  },
+        { cputype::x86_64, subtype::x86_64h,     "x86_64h" },
+        { cputype::x86_64, subtype::x86_64_all,  "x86_64"  },
 
         { cputype::none, subtype::none, nullptr },
     };

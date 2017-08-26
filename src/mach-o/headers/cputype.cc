@@ -235,6 +235,9 @@ namespace macho {
 
                     case 8:
                         return subtype::x86_64h;
+
+                    case (int32_t)0x80000003:
+                        return subtype::x86_64_all;
                 }
             }
         }
@@ -339,6 +342,9 @@ namespace macho {
 
             case subtype::i486SX:
                 return 132;
+
+            case subtype::x86_64_all:
+                return 2147483645;
         }
 
         return -1;
