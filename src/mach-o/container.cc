@@ -104,7 +104,7 @@ namespace macho {
 
         auto &cached_load_commands = cached_load_commands_;
         const auto created_cached_load_commands = !cached_load_commands;
-        
+
         auto size_used = 0;
         if (!cached_load_commands) {
             cached_load_commands = new uint8_t[sizeofcmds];
@@ -128,26 +128,26 @@ namespace macho {
                 return container::load_command_iteration_result::stream_seek_error;
             }
         }
-        
+
         auto should_callback = true;
         for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
             auto swapped_load_command = *load_cmd;
-            
+
             if (is_big_endian) {
                 swap_load_command(&swapped_load_command);
             }
-            
+
             const auto &cmdsize = swapped_load_command.cmdsize;
             if (created_cached_load_commands) {
                 if (cmdsize < sizeof(struct load_command)) {
                     return container::load_command_iteration_result::load_command_is_too_small;
                 }
-                
+
                 if (cmdsize >= sizeofcmds) {
                     return container::load_command_iteration_result::load_command_is_too_large;
                 }
-                
+
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
                     return container::load_command_iteration_result::load_command_is_too_large;
@@ -155,15 +155,15 @@ namespace macho {
                     return container::load_command_iteration_result::load_command_is_too_large;
                 }
             }
-            
+
             if (should_callback) {
                 should_callback = callback(&swapped_load_command, load_cmd);
             }
-            
+
             if (!should_callback && !created_cached_load_commands) {
                 break;
             }
-            
+
             cached_load_commands_index += cmdsize;
         }
 
@@ -186,7 +186,7 @@ namespace macho {
             });
 
             if (!symbol_table) {
-                return container::symbols_iteration_result::ok;
+                return symbols_iteration_result::ok;
             }
         }
 
@@ -197,28 +197,36 @@ namespace macho {
                 macho::swap_uint32(&string_table_location);
             }
 
+            if (!string_table_location) {
+                return symbols_iteration_result::invalid_string_table;
+            }
+
             if (string_table_location > size) {
-                return container::symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_string_table;
             }
 
             const auto &string_table_size = symbol_table->strsize;
+            if (!string_table_size) {
+                return symbols_iteration_result::invalid_string_table;
+            }
+
             if (string_table_size > size) {
-                return container::symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_string_table;
             }
 
             const auto string_table_end = string_table_location + string_table_size;
             if (string_table_end > size) {
-                return container::symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_string_table;
             }
 
             cached_string_table = new char[string_table_size];
 
             if (fseek(stream, base + string_table_location, SEEK_SET) != 0) {
-                return container::symbols_iteration_result::stream_seek_error;
+                return symbols_iteration_result::stream_seek_error;
             }
 
             if (fread(cached_string_table, string_table_size, 1, stream) != 1) {
-                return container::symbols_iteration_result::stream_read_error;
+                return symbols_iteration_result::stream_read_error;
             }
         }
 
@@ -231,35 +239,39 @@ namespace macho {
                 macho::swap_uint32(&symbol_table_count);
                 macho::swap_uint32(&symbol_table_location);
             }
-            
+
             if (!symbol_table_count) {
                 return symbols_iteration_result::no_symbols;
             }
 
+            if (!symbol_table_location) {
+                return symbols_iteration_result::invalid_symbol_table;
+            }
+
             if (symbol_table_location > size) {
-                return container::symbols_iteration_result::invalid_symbol_table;
+                return symbols_iteration_result::invalid_symbol_table;
             }
 
             if (fseek(stream, base + symbol_table_location, SEEK_SET) != 0) {
-                return container::symbols_iteration_result::stream_seek_error;
+                return symbols_iteration_result::stream_seek_error;
             }
 
             const auto is_64_bit = this->is_64_bit();
             if (is_64_bit) {
                 const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    return container::symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    return container::symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table;
                 }
-                
+
                 cached_symbol_table = new uint8_t[symbol_table_size];
 
                 if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
-                    return container::symbols_iteration_result::stream_read_error;
+                    return symbols_iteration_result::stream_read_error;
                 }
 
                 if (is_big_endian) {
@@ -268,18 +280,18 @@ namespace macho {
             } else {
                 const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    return container::symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    return container::symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table;
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
 
                 if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
-                    return container::symbols_iteration_result::stream_read_error;
+                    return symbols_iteration_result::stream_read_error;
                 }
 
                 if (is_big_endian) {
@@ -288,7 +300,7 @@ namespace macho {
             }
 
             if (fseek(stream, position, SEEK_SET) != 0) {
-                return container::symbols_iteration_result::stream_seek_error;
+                return symbols_iteration_result::stream_seek_error;
             }
         }
 
@@ -306,7 +318,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    return container::symbols_iteration_result::invalid_symbol_table_entry;
+                    return symbols_iteration_result::invalid_symbol_table_entry;
                 }
 
                 const auto symbol_table_string_table_string = &cached_string_table[symbol_table_entry_string_table_index];
@@ -324,7 +336,7 @@ namespace macho {
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
-                    return container::symbols_iteration_result::invalid_symbol_table_entry;
+                    return symbols_iteration_result::invalid_symbol_table_entry;
                 }
 
                 const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry->n_un.n_strx }, symbol_table_entry->n_type, symbol_table_entry->n_sect, (uint16_t)symbol_table_entry->n_desc, symbol_table_entry->n_value };
@@ -338,6 +350,6 @@ namespace macho {
             }
         }
 
-        return container::symbols_iteration_result::ok;
+        return symbols_iteration_result::ok;
     }
 }

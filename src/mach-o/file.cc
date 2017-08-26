@@ -171,6 +171,7 @@ namespace macho {
                 *error = check_error::failed_to_read_descriptor;
             }
 
+            close(descriptor);
             return false;
         }
 
