@@ -25,7 +25,7 @@ flags::flags(flags_integer_t length)
 
         if (!flags_.ptr) {
             fprintf(stderr, "Failed to allocate data of size (%ld), failing with error (%s)\n", size, strerror(errno));
-            exit(EXIT_FAILURE);
+            exit(1);
         }
     }
 }

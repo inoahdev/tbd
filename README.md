@@ -10,7 +10,8 @@ Main options:
 
 Path options:
 Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
-    -a, --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)
+    -a, --arch,     Specify architecture(s) to output as tbd (where default architectures were not already provided)
+        --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)
         --platform, Specify platform for all mach-o library files provided
     -r, --recurse,  Specify directory to recurse and find mach-o library files in
     -v, --version,  Specify version of tbd to convert to (default is v2)
@@ -20,7 +21,8 @@ Usage: tbd -o [--maintain-directories] /path/to/output/file
         --maintain-directories, Maintain directories where mach-o library files were found in (subtracting the path provided)
 
 Global options:
-    -a, --archs,    Specify architecture(s) to use, replacing default architectures (where default architectures were not already provided)
+    -a, --arch,     Specify architecture(s) to output to tbd (where architectures were not already specified)\n", stdout);
+        --archs,    Specify architecture(s) to use, replacing default architectures (where default architectures were not already provided)
         --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)
     -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)
 

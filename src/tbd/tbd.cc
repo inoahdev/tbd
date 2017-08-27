@@ -466,8 +466,9 @@ namespace tbd {
         fputs(" ]\n", output);
     }
 
-    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, const std::vector<const macho::architecture_info *> &architectures) {
-        const auto has_architecture_overrides = architectures.size() != 0;
+    creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+        const auto has_provided_architecture = architectures != 0;
+        const auto has_architecture_overrides = architecture_overrides != 0;
 
         uint32_t library_current_version = -1;
         uint32_t library_compatibility_version = -1;
@@ -491,6 +492,8 @@ namespace tbd {
             library_container_architectures.reserve(library_containers_size);
         }
 
+        auto has_found_architectures_provided = false;
+
         for (auto &library_container : library_containers) {
             const auto &library_container_header = library_container.header;
 
@@ -501,16 +504,24 @@ namespace tbd {
                 return creation_result::invalid_subtype;
             }
 
-            const auto library_container_architecture_information = macho::architecture_info_from_cputype(library_container_header_cputype, library_container_header_subtype);
-            if (!library_container_architecture_information) {
+            const auto library_container_architecture_info = macho::architecture_info_from_cputype(library_container_header_cputype, library_container_header_subtype);
+            if (!library_container_architecture_info) {
                 return creation_result::invalid_cputype;
             }
 
-            // Fill the architecture-overrides vector provided by the caller
-            // to store architecture-information of all containers
+            if (architectures != 0) {
+                const auto architecture_info_table = macho::get_architecture_info_table();
+                const auto architecture_info_table_index = (library_container_architecture_info - architecture_info_table) / sizeof(macho::architecture_info);
+
+                if (!(architectures & (1 << architecture_info_table_index))) {
+                    continue;
+                }
+
+                has_found_architectures_provided = true;
+            }
 
             if (!has_architecture_overrides) {
-                library_container_architectures.emplace_back(library_container_architecture_information);
+                library_container_architectures.emplace_back(library_container_architecture_info);
             }
 
             uint32_t local_current_version = -1;
@@ -1074,6 +1085,12 @@ namespace tbd {
             library_containers_index++;
         }
 
+        if (has_provided_architecture) {
+            if (!has_found_architectures_provided) {
+                return creation_result::no_provided_architectures;
+            }
+        }
+
         if (library_reexports.empty() && library_symbols.empty()) {
             return creation_result::no_symbols_or_reexports;
         }
@@ -1140,17 +1157,50 @@ namespace tbd {
         fprintf(output, "\narchs:%-17s[ ", "");
 
         if (has_architecture_overrides) {
-            auto architectures_begin = architectures.begin();
-            auto architectures_begin_arch_info = *architectures_begin;
+            const auto architecture_info_table = macho::get_architecture_info_table();
+            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
 
-            fputs(architectures_begin_arch_info->name, output);
+            auto index = uint64_t();
+            auto shift = uint64_t(1);
 
-            const auto architectures_end = architectures.end();
-            for (architectures_begin++; architectures_begin != architectures_end; architectures_begin++) {
-                auto architecture_arch_info = *architectures_begin;
-                auto architecture_arch_info_name = architecture_arch_info->name;
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architecture_overrides & (shift << index))) {
+                    continue;
+                }
 
-                fprintf(output, ", %s", architecture_arch_info_name);
+                fputs(architecture_info_table[index].name, output);
+            }
+
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architecture_overrides & (shift << index))) {
+                    continue;
+                }
+
+                fprintf(output, ", %s", architecture_info_table[index].name);
+            }
+
+            fputs(" ]\n", output);
+        } else if (has_provided_architecture) {
+            const auto architecture_info_table = macho::get_architecture_info_table();
+            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+
+            auto index = uint64_t();
+            auto shift = uint64_t(1);
+
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architectures & (shift << index))) {
+                    continue;
+                }
+
+                fputs(architecture_info_table[index].name, output);
+            }
+
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architectures & (shift << index))) {
+                    continue;
+                }
+
+                fprintf(output, ", %s", architecture_info_table[index].name);
             }
 
             fputs(" ]\n", output);
@@ -1221,7 +1271,7 @@ namespace tbd {
 
         auto library_compatibility_version_major = library_compatibility_version >> 16;
         auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
-        auto library_compatibility_versio=n_revision = library_compatibility_version & 0xff;
+        auto library_compatibility_version_revision = library_compatibility_version & 0xff;
 
         fprintf(output, "\ncompatibility-version: %u", library_compatibility_version_major);
 
@@ -1258,17 +1308,26 @@ namespace tbd {
         fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
-            const auto architectures_begin = architectures.begin();
-            const auto architectures_begin_arch_info = *architectures_begin;
+            const auto architecture_info_table = macho::get_architecture_info_table();
+            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
 
-            fprintf(output, "  - archs:%-12s[ %s", "", architectures_begin_arch_info->name);
+            auto index = uint64_t();
+            auto shift = uint64_t(1);
 
-            const auto architectures_end = architectures.end();
-            for (auto architectures_iter = architectures_begin + 1; architectures_iter < architectures_end; architectures_iter++) {
-                auto architectures_iter_arch_info = *architectures_iter;
-                auto architectures_iter_arch_info_name = architectures_iter_arch_info->name;
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architecture_overrides & (shift << index))) {
+                    continue;
+                }
 
-                fprintf(output, ", %s", architectures_iter_arch_info_name);
+                fprintf(output, "  - archs:%-12s[ %s", "", architecture_info_table[index].name);
+            }
+
+            for (; index < architecture_info_table_size; index++) {
+                if (!(architecture_overrides & (shift << index))) {
+                    continue;
+                }
+
+                fprintf(output, ", %s", architecture_info_table[index].name);
             }
 
             fputs(" ]\n", output);

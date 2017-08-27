@@ -7,6 +7,8 @@
 //
 
 #pragma once
+
+#include <cstddef>
 #include "headers/cputype.h"
 
 namespace macho {
@@ -19,6 +21,8 @@ namespace macho {
 
     const architecture_info *get_architecture_info_table();
     const char *name_from_cputype(cputype cputype, subtype subtype);
+
+    const size_t get_architecture_info_table_size();
 
     const architecture_info *architecture_info_from_name(const char *name);
     const architecture_info *architecture_info_from_cputype(cputype cputype, subtype subtype);

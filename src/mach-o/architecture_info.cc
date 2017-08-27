@@ -83,6 +83,10 @@ namespace macho {
         return architecture_info_table;
     }
 
+    const size_t get_architecture_info_table_size() {
+        return sizeof(architecture_info_table) / sizeof(architecture_info);
+    }
+
     const architecture_info *architecture_info_from_name(const char *name) {
         auto architecture_info = architecture_info_table;
         while (architecture_info->name != nullptr) {
