@@ -879,7 +879,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (path == "stdout") {
-                    if ((tbd_options & recurse_directories) || (tbd_options & recurse_subdirectories)) {
+                    if (tbd_options & recurse_directories) {
                         fprintf(stderr, "Can't output mach-o files found while recursing to stdout\n");
                         return 1;
                     }
@@ -889,7 +889,7 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.data(), &sbuf) == 0) {
                     const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                     if (path_is_directory) {
-                        if (!(tbd_options & recurse_directories) && !(tbd_options & recurse_subdirectories)) {
+                        if (!(tbd_options & recurse_directories)) {
                             fprintf(stderr, "Cannot output tbd-file to directory at path (%s), please provide a path to a file to output to\n", path.data());
                             return 1;
                         }
@@ -901,14 +901,14 @@ int main(int argc, const char *argv[]) {
                     } else {
                         const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                         if (path_is_regular_file) {
-                            if ((tbd_options & recurse_directories) || (tbd_options & recurse_subdirectories)) {
+                            if (tbd_options & recurse_directories) {
                                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file at path (%s). Please provide a directory to output tbd-files to\n", tbd.path.data(), path.data());
                                 return 1;
                             }
                         }
                     }
                 } else {
-                    if ((tbd_options & recurse_directories) || (tbd_options & recurse_subdirectories)) {
+                    if (tbd_options & recurse_directories) {
                         const auto &path_back = path.back();
                         if (path_back != '/') {
                             path.append(1, '/');
@@ -1031,11 +1031,11 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        if (strcmp(recurse_type_string, "once") == 0) {
-                            local_options |= recurse_directories;
-                        } else if (strcmp(recurse_type_string, "all") == 0) {
+                        local_options |= recurse_directories;
+
+                        if (strcmp(recurse_type_string, "all") == 0) {
                             local_options |= recurse_subdirectories;
-                        } else {
+                        } else if (strcmp(recurse_type_string, "once") != 0) {
                             fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                             return 1;
                         }
@@ -1083,7 +1083,7 @@ int main(int argc, const char *argv[]) {
 
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                 if (path_is_directory) {
-                    if (!(local_options & recurse_directories) && !(local_options & recurse_subdirectories)) {
+                    if (!(local_options & recurse_directories)) {
                         fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
                         return 1;
                     }
@@ -1095,7 +1095,7 @@ int main(int argc, const char *argv[]) {
                 } else {
                     const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                     if (path_is_regular_file) {
-                        if ((local_options & recurse_directories) || (local_options & recurse_subdirectories)) {
+                        if (local_options & recurse_directories) {
                             fprintf(stderr, "Cannot recurse file at path (%s)\n", path.data());
                             return 1;
                         }
@@ -1203,7 +1203,7 @@ int main(int argc, const char *argv[]) {
         const auto &tbd = tbds.front();
         const auto &tbd_options = tbd.options;
 
-        if (!(tbd_options & recurse_directories) && !(tbd_options & recurse_subdirectories)) {
+        if (!(tbd_options & recurse_directories)) {
             should_print_paths = false;
         }
     }
@@ -1238,7 +1238,7 @@ int main(int argc, const char *argv[]) {
             }
         }
 
-        if ((tbd_options & recurse_directories) || (tbd_options & recurse_subdirectories)) {
+        if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory at path (%s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
                 exit(1);
