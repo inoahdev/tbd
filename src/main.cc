@@ -570,7 +570,7 @@ int main(int argc, const char *argv[]) {
             }
 
             i++;
-            parse_architectures_list(architecture_overrides, i, argc, argv);
+            parse_architectures_list(architectures, i, argc, argv);
         } else if (strcmp(option, "archs") == 0) {
             if (is_last_argument) {
                 fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
@@ -578,7 +578,7 @@ int main(int argc, const char *argv[]) {
             }
 
             i++;
-            parse_architectures_list(architectures, i, argc, argv);
+            parse_architectures_list(architecture_overrides, i, argc, argv);
         } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -969,7 +969,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
-                        parse_architectures_list(local_architecture_overrides, i, argc, argv);
+                        parse_architectures_list(local_architectures, i, argc, argv);
                     } else if (strcmp(option, "archs") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
@@ -977,7 +977,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         i++;
-                        parse_architectures_list(local_architectures, i, argc, argv);
+                        parse_architectures_list(local_architecture_overrides, i, argc, argv);
                     } else if (strcmp(option, "allow-all-private-symbols") == 0) {
                         local_options |= tbd::symbol_options::allow_all_private_symbols;
                     } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
@@ -1282,16 +1282,13 @@ int main(int argc, const char *argv[]) {
                 }
             }
         } else {
-            auto did_create_output_file = false;
             auto output_file = stdout;
 
             auto output_file_path = (const char *)nullptr;
-            auto recursive_directory_creation_index = 0;
+            auto recursive_directory_creation_index = (size_t)0;
 
             if (!tbd_output_path.empty()) {
                 recursive_directory_creation_index = recursively_create_directories_from_file_path(tbd_output_path.data(), false);
-
-                did_create_output_file = access(tbd_output_path.data(), F_OK) != 0;
 
                 output_file_path = tbd_output_path.data();
                 output_file = fopen(tbd_output_path.data(), "w");

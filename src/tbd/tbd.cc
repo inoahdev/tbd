@@ -511,9 +511,9 @@ namespace tbd {
 
             if (architectures != 0) {
                 const auto architecture_info_table = macho::get_architecture_info_table();
-                const auto architecture_info_table_index = (library_container_architecture_info - architecture_info_table) / sizeof(macho::architecture_info);
+                const auto architecture_info_table_index = ((uintptr_t)library_container_architecture_info - (uintptr_t)architecture_info_table) / sizeof(macho::architecture_info);
 
-                if (!(architectures & (1 << architecture_info_table_index))) {
+                if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
                     continue;
                 }
 
@@ -1161,10 +1161,8 @@ namespace tbd {
             const auto architecture_info_table_size = macho::get_architecture_info_table_size();
 
             auto index = uint64_t();
-            auto shift = uint64_t(1);
-
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & (shift << index))) {
+                if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
 
@@ -1172,7 +1170,7 @@ namespace tbd {
             }
 
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & (shift << index))) {
+                if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
 
@@ -1185,10 +1183,8 @@ namespace tbd {
             const auto architecture_info_table_size = macho::get_architecture_info_table_size();
 
             auto index = uint64_t();
-            auto shift = uint64_t(1);
-
             for (; index < architecture_info_table_size; index++) {
-                if (!(architectures & (shift << index))) {
+                if (!(architectures & ((uint64_t)1 << index))) {
                     continue;
                 }
 
@@ -1196,7 +1192,7 @@ namespace tbd {
             }
 
             for (; index < architecture_info_table_size; index++) {
-                if (!(architectures & (shift << index))) {
+                if (!(architectures & ((uint64_t)1 << index))) {
                     continue;
                 }
 
@@ -1312,10 +1308,8 @@ namespace tbd {
             const auto architecture_info_table_size = macho::get_architecture_info_table_size();
 
             auto index = uint64_t();
-            auto shift = uint64_t(1);
-
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & (shift << index))) {
+                if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
 
@@ -1323,7 +1317,7 @@ namespace tbd {
             }
 
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & (shift << index))) {
+                if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
 
