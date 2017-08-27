@@ -17,12 +17,6 @@
 #include "misc/recurse.h"
 #include "tbd/tbd.h"
 
-enum class recurse_option {
-    none,
-    once,
-    all
-};
-
 const char *retrieve_current_directory() {
     // Store current-directory as a static variable to avoid
     // calling getcwd more times than necessary.
@@ -631,14 +625,14 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto paths = std::vector<std::pair<std::string, recurse_option>>();
+            auto paths = std::vector<std::pair<std::string, unsigned int>>();
             if (is_last_argument) {
                 // If a path was not provided, --list-macho-libraries is
                 // expected to instead recurse the current-directory.
 
-                paths.emplace_back(retrieve_current_directory(), recurse_option::all);
+                paths.emplace_back(retrieve_current_directory(), recurse_directories | recurse_subdirectories);
             } else {
-                auto recurse_type = recurse_option::none;
+                auto options = 0;
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
                     const auto &argument_front = argument[0];
@@ -657,7 +651,8 @@ int main(int argc, const char *argv[]) {
                         }
 
                         if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                            recurse_type = recurse_option::all;
+                            options |= recurse_directories;
+                            options |= recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                             const auto recurse_type_string = strchr(option, '=') + 1;
                             const auto &recurse_type_string_front = recurse_type_string[0];
@@ -667,11 +662,11 @@ int main(int argc, const char *argv[]) {
                                 return 1;
                             }
 
-                            if (strcmp(recurse_type_string, "once") == 0) {
-                                recurse_type = recurse_option::once;
-                            } else if (strcmp(recurse_type_string, "all") == 0) {
-                                recurse_type = recurse_option::all;
-                            } else {
+                            options |= recurse_directories;
+
+                            if (strcmp(recurse_type_string, "all") == 0) {
+                                options |= recurse_subdirectories;
+                            } else if (strcmp(recurse_type_string, "once") != 0) {
                                 fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                                 return 1;
                             }
@@ -695,19 +690,19 @@ int main(int argc, const char *argv[]) {
                         path.append(current_directory);
                         path.append(argument);
 
-                        paths.emplace_back(std::move(path), recurse_type);
+                        paths.emplace_back(std::move(path), options);
                     } else {
-                        paths.emplace_back(argument, recurse_type);
+                        paths.emplace_back(argument, options);
                     }
 
-                    recurse_type = recurse_option::none;
+                    options = 0;
                 }
 
                 if (paths.empty()) {
                     // If no path was provided, --list-macho-libraries is expected
                     // to instead recurse the current-directory.
 
-                    paths.emplace_back(retrieve_current_directory(), recurse_type);
+                    paths.emplace_back(retrieve_current_directory(), options);
                 }
             }
 
@@ -723,32 +718,25 @@ int main(int argc, const char *argv[]) {
                 }
 
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                const auto &recurse_type = pair.second;
+                const auto &options = pair.second;
 
-                if (recurse_type != recurse_option::none) {
+                if (options & recurse_directories) {
                     if (!path_is_directory) {
                         fprintf(stderr, "Cannot recurse file at path (%s)\n", path_data);
                         return 1;
                     }
 
                     auto found_libraries = false;
-                    recurse::macho_library_paths(path_data, recurse_type == recurse_option::all, [&](std::string &library_path) {
+                    recurse::macho_library_paths(path_data, options & recurse_subdirectories, [&](std::string &library_path) {
                         found_libraries = true;
                         fprintf(stdout, "%s\n", library_path.data());
                     });
 
                     if (!found_libraries) {
-                        switch (recurse_type) {
-                            case recurse_option::none:
-                                break;
-
-                            case recurse_option::once:
-                                fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
-                                break;
-
-                            case recurse_option::all:
-                                fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path_data);
-                                break;
+                        if (options & recurse_subdirectories) {
+                            fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path_data);
+                        } else {
+                            fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
                         }
                     }
 
@@ -1021,6 +1009,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
                     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
+                        local_options |= recurse_directories;
                         local_options |= recurse_subdirectories;
                     } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                         const auto recurse_type_string = strchr(option, '=') + 1;
@@ -1286,7 +1275,11 @@ int main(int argc, const char *argv[]) {
             });
 
             if (!outputted_any_macho_libraries) {
-                fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
+                if (tbd_options & recurse_subdirectories) {
+                    fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
+                } else {
+                    fprintf(stderr, "No mach-o files were found for outputting while recursing once through directory (at path %s)\n", tbd_path.data());
+                }
             }
         } else {
             auto did_create_output_file = false;
