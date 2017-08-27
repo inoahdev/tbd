@@ -77,7 +77,5 @@ namespace macho {
     private:
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);
-
-        open_result validate(bool validate_as_library) noexcept;
     };
 }

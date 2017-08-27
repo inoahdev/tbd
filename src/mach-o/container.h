@@ -35,6 +35,7 @@ namespace macho {
 
         enum class open_result {
             ok,
+            invalid_range,
 
             stream_seek_error,
             stream_read_error,
@@ -47,13 +48,8 @@ namespace macho {
             not_a_library
         };
 
-        static open_result open(container *container, FILE *stream) noexcept;
-        static open_result open(container *container, FILE *stream, long base) noexcept;
-        static open_result open(container *container, FILE *stream, long base, size_t size) noexcept;
-
-        static open_result open_from_library(container *container, FILE *stream) noexcept;
-        static open_result open_from_library(container *container, FILE *stream, long base) noexcept;
-        static open_result open_from_library(container *container, FILE *stream, long base, size_t size) noexcept;
+        static open_result open(container *container, FILE *stream, long base = 0, size_t size = 0) noexcept;
+        static open_result open_from_library(container *container, FILE *stream, long base = 0, size_t size = 0) noexcept;
 
         enum class load_command_iteration_result {
             ok,
@@ -103,6 +99,7 @@ namespace macho {
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
-        open_result validate(bool validate_as_library) noexcept;
+        open_result calculate_size(size_t &size) noexcept;
+        open_result validate() noexcept;
     };
 }
