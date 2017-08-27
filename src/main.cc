@@ -214,7 +214,7 @@ void recursively_remove_directories_from_file_path(char *path, size_t start_inde
 
     if (access(path, F_OK) == 0) {
         if (remove(path) != 0) {
-            fprintf(stderr, "Failed to unlink object (at path %s), failing with error (%s)\n", path, strerror(errno));
+            fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
             return;
         }
     } else {
@@ -231,13 +231,8 @@ void recursively_remove_directories_from_file_path(char *path, size_t start_inde
 
         slash[0] = '\0';
 
-        if (access(path, F_OK) == 0) {
-            if (remove(path) != 0) {
-                fprintf(stderr, "Failed to unlink object (at path %s), failing with error (%s)\n", path, strerror(errno));
-                return;
-            }
-        } else {
-            slash[0] = '/';
+        if (remove(path) != 0) {
+            fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
             return;
         }
 
