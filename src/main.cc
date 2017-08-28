@@ -21,7 +21,7 @@ const char *retrieve_current_directory() {
     // Store current-directory as a static variable to avoid
     // calling getcwd more times than necessary.
 
-    static const char *current_directory = nullptr;
+    static auto current_directory = (const char *)nullptr;
     if (!current_directory) {
         // getcwd(nullptr, 0) will return a dynamically
         // allocated buffer just large enough to store
@@ -59,7 +59,6 @@ const char *retrieve_current_directory() {
 }
 
 void parse_architectures_list(uint64_t &architectures, int &index, int argc, const char *argv[]) {
-    auto shift = uint64_t(1);
     while (index < argc) {
         const auto &architecture_string = argv[index];
         const auto &architecture_string_front = architecture_string[0];
@@ -102,7 +101,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
         const auto architecture_info_table = macho::get_architecture_info_table();
         const auto architecture_info_table_index = ((uintptr_t)architecture_info - (uintptr_t)architecture_info_table) / sizeof(macho::architecture_info);
 
-        architectures |= (shift << architecture_info_table_index);
+        architectures |= ((uint64_t)1 << architecture_info_table_index);
         index++;
     }
 
@@ -456,7 +455,7 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("Path options:\n", stdout);
-    fputs("Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
+    fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
     fputs("    -a, --arch,     Specify architecture(s) to output to tbd\n", stdout);
     fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
     fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);

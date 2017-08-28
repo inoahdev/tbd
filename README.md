@@ -9,7 +9,7 @@ Main options:
     -u, --usage,    Print this message
 
 Path options:
-Usage: tbd -p [-a/--archs architectures] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
+Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform platform] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library
     -a, --arch,     Specify architecture(s) to output as tbd
         --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)
         --platform, Specify platform for all mach-o library files provided

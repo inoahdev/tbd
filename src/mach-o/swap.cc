@@ -10,7 +10,7 @@
 
 namespace macho {
     void swap_uint16(uint16_t *uint16) {
-        *uint16 = ((*uint16 >>  8) & 0x00ff) | ((*uint16 <<  8) & 0xff00);
+        *uint16 = ((*uint16 >> 8) & 0x00ff) | ((*uint16 << 8) & 0xff00);
     }
 
     void swap_uint32(uint32_t *uint32) {
