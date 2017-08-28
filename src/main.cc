@@ -123,7 +123,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, siz
         slash[0] = '\0';
 
         if (mkdir(path, 0755) != 0) {
-            fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+            fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
             exit(1);
         }
 
@@ -133,7 +133,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, siz
 
     if (create_last_as_directory) {
         if (mkdir(path, 0755) != 0) {
-            fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+            fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
             exit(1);
         }
     }
@@ -175,7 +175,7 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
         if (create_last_as_directory) {
             if (access(path, F_OK) != 0) {
                 if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory at path (%s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
                     exit(1);
                 }
             }
@@ -708,7 +708,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path_data, &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path_data, strerror(errno));
+                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path_data, strerror(errno));
                     return 1;
                 }
 
@@ -717,7 +717,7 @@ int main(int argc, const char *argv[]) {
 
                 if (options & recurse_directories) {
                     if (!path_is_directory) {
-                        fprintf(stderr, "Cannot recurse file at path (%s)\n", path_data);
+                        fprintf(stderr, "Cannot recurse file (at path %s)\n", path_data);
                         return 1;
                     }
 
@@ -745,7 +745,7 @@ int main(int argc, const char *argv[]) {
                 } else {
                     // Provided a recurse type of none requires only a file be provided.
                     if (path_is_directory) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
+                        fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                         return 1;
                     }
 
@@ -753,16 +753,16 @@ int main(int argc, const char *argv[]) {
                     const auto path_is_library = macho::file::is_valid_library(path, &path_is_library_check_error);
 
                     if (path_is_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                        fprintf(stderr, "Failed to open file at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                        fprintf(stderr, "Failed to open file (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
                     } else {
                         if (path_is_library) {
-                            fprintf(stdout, "Mach-o file at path (%s) is a library\n", path_data);
+                            fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
                         } else {
                             // As the user provided only one path to a specific mach-o library file,
                             // --list-macho-libraries is expected to explicity print out whether or
                             // not the provided mach-o library file is valid.
 
-                            fprintf(stdout, "Mach-o file at path (%s) is not a library\n", path_data);
+                            fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
                         }
                     }
                 }
@@ -873,7 +873,7 @@ int main(int argc, const char *argv[]) {
                     const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                     if (path_is_directory) {
                         if (!(tbd_options & recurse_directories)) {
-                            fprintf(stderr, "Cannot output tbd-file to directory at path (%s), please provide a path to a file to output to\n", path.data());
+                            fprintf(stderr, "Cannot output tbd-file to directory (at path %s), please provide a path to a file to output to\n", path.data());
                             return 1;
                         }
 
@@ -885,7 +885,7 @@ int main(int argc, const char *argv[]) {
                         const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                         if (path_is_regular_file) {
                             if (tbd_options & recurse_directories) {
-                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file at path (%s). Please provide a directory to output tbd-files to\n", tbd.path.data(), path.data());
+                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output tbd-files to\n", tbd.path.data(), path.data());
                                 return 1;
                             }
                         }
@@ -1058,7 +1058,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error (%s)\n", path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
                     return 1;
                 }
 
@@ -1067,7 +1067,7 @@ int main(int argc, const char *argv[]) {
                 const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                 if (path_is_directory) {
                     if (!(local_options & recurse_directories)) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a macho-file, use -r to recurse the directory\n", path.data());
+                        fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r to recurse the directory\n", path.data());
                         return 1;
                     }
 
@@ -1079,13 +1079,13 @@ int main(int argc, const char *argv[]) {
                     const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                     if (path_is_regular_file) {
                         if (local_options & recurse_directories) {
-                            fprintf(stderr, "Cannot recurse file at path (%s)\n", path.data());
+                            fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
                             return 1;
                         }
 
                         tbd.path = path;
                     } else {
-                        fprintf(stderr, "Object at path (%s) is not a regular file\n", path.data());
+                        fprintf(stderr, "Object (at path %s) is not a regular file\n", path.data());
                         return 1;
                     }
                 }
@@ -1223,7 +1223,7 @@ int main(int argc, const char *argv[]) {
 
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
-                fprintf(stderr, "Cannot output mach-o files found while recursing directory at path (%s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
+                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
                 exit(1);
             }
 
@@ -1254,7 +1254,7 @@ int main(int argc, const char *argv[]) {
                 auto output_file = fopen(output_path.data(), "w");
 
                 if (!output_file) {
-                    fprintf(stderr, "Failed to open file at path (%s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
                     return;
                 }
 
@@ -1289,7 +1289,7 @@ int main(int argc, const char *argv[]) {
 
                 if (!output_file) {
                     if (should_print_paths) {
-                        fprintf(stderr, "Failed to open file at path (%s) for writing, failing with error (%s)\n", tbd_output_path.data(), strerror(errno));
+                        fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", tbd_output_path.data(), strerror(errno));
                     } else {
                         fprintf(stderr, "Failed to open file at provided output-path for writing, failing with error (%s)\n", strerror(errno));
                     }
