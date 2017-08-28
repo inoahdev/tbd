@@ -647,8 +647,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                            options |= recurse_directories;
-                            options |= recurse_subdirectories;
+                            options |= recurse_directories | recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                             const auto recurse_type_string = strchr(option, '=') + 1;
                             const auto &recurse_type_string_front = recurse_type_string[0];
@@ -1005,8 +1004,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
                     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-                        local_options |= recurse_directories;
-                        local_options |= recurse_subdirectories;
+                        local_options |= recurse_directories | recurse_subdirectories;
                     } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                         const auto recurse_type_string = strchr(option, '=') + 1;
                         const auto &recurse_type_string_front = recurse_type_string[0];
