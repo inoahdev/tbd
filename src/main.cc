@@ -268,7 +268,7 @@ enum creation_handling {
     creation_handling_ignore_no_provided_architectures = 1 << 1,
 };
 
-bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, unsigned int options, const tbd::platform &platform, const tbd::version &version, uint64_t architectures, uint64_t architecture_overrides, unsigned int creation_handling_options) {
+bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, unsigned int options, tbd::platform platform, tbd::version version, uint64_t architectures, uint64_t architecture_overrides, unsigned int creation_handling_options) {
     auto result = tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
     if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
         switch (result) {
