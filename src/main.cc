@@ -613,6 +613,7 @@ int main(int argc, const char *argv[]) {
                 fprintf(stdout, ", %s", architecture_info->name);
             }
 
+            fputc('\n', stdout);
             return 0;
         } else if (strcmp(option, "list-macho-libraries") == 0) {
             if (!is_first_argument) {
