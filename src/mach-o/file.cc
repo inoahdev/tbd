@@ -22,10 +22,12 @@ namespace macho {
 
         auto magic = macho::magic();
         if (read(descriptor, &magic, sizeof(magic)) != 1) {
+            close(descriptor);
             return open_result::stream_read_error;
         }
 
         if (!magic_is_valid(magic)) {
+            close(descriptor);
             return open_result::not_a_macho;
         }
 
