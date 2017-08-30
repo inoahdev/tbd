@@ -141,6 +141,7 @@ namespace macho {
 
     container& container::operator=(container &&container) noexcept {
         stream = container.stream;
+
         base = container.base;
         size = container.size;
 

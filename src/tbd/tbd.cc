@@ -37,7 +37,7 @@ namespace tbd {
         explicit reexport(const char *string, int flags_length) noexcept
         : string(string), flags(flags_length) {}
 
-        inline void add_architecture(flags_integer_t number) noexcept { flags.cast(number, true); }
+        inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
 
         const char *string;
         class flags flags;
@@ -67,7 +67,7 @@ namespace tbd {
         class flags flags;
         enum type type;
 
-        inline void add_architecture(int index) noexcept { flags.cast(index, true); }
+        inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
 
         inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
         inline bool operator==(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) == 0; }
@@ -511,7 +511,7 @@ namespace tbd {
 
             if (architectures != 0) {
                 const auto architecture_info_table = macho::get_architecture_info_table();
-                const auto architecture_info_table_index = ((uintptr_t)library_container_architecture_info - (uintptr_t)architecture_info_table) / sizeof(macho::architecture_info);
+                const auto architecture_info_table_index = ((uint64_t)library_container_architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
 
                 if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
                     continue;
@@ -684,14 +684,14 @@ namespace tbd {
                             macho::swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section *)((uintptr_t)segment_command + sizeof(macho::segment_command));
+                        auto segment_section = (macho::segments::section *)((uint64_t)segment_command + sizeof(macho::segment_command));
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section *)((uintptr_t)segment_section + sizeof(macho::segments::section));
+                                segment_section = (macho::segments::section *)((uint64_t)segment_section + sizeof(macho::segments::section));
                                 segment_sections_count--;
 
                                 continue;
@@ -769,14 +769,14 @@ namespace tbd {
                             macho::swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section_64 *)((uintptr_t)segment_command + sizeof(macho::segment_command_64));
+                        auto segment_section = (macho::segments::section_64 *)((uint64_t)segment_command + sizeof(macho::segment_command_64));
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section_64 *)((uintptr_t)segment_section + sizeof(macho::segments::section_64));
+                                segment_section = (macho::segments::section_64 *)((uint64_t)segment_section + sizeof(macho::segments::section_64));
                                 segment_sections_count--;
 
                                 continue;

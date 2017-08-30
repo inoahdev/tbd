@@ -99,7 +99,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
         }
 
         const auto architecture_info_table = macho::get_architecture_info_table();
-        const auto architecture_info_table_index = ((uintptr_t)architecture_info - (uintptr_t)architecture_info_table) / sizeof(macho::architecture_info);
+        const auto architecture_info_table_index = ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
 
         architectures |= ((uint64_t)1 << architecture_info_table_index);
         index++;
@@ -156,11 +156,11 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
 
         if (access(path, F_OK) != 0) {
             if (!return_value) {
-                return_value = (uintptr_t)slash - (uintptr_t)path;
+                return_value = (uint64_t)slash - (uint64_t)path;
             }
 
             slash[0] = '/';
-            recursively_create_directories_from_file_path_without_check(path, (uintptr_t)slash - (uintptr_t)path, create_last_as_directory);
+            recursively_create_directories_from_file_path_without_check(path, (uint64_t)slash - (uint64_t)path, create_last_as_directory);
         } else {
             slash[0] = '/';
         }
@@ -223,7 +223,7 @@ void recursively_remove_directories_from_file_path(char *path, size_t start_inde
 
     end[0] = old_end_begin;
 
-    while ((uintptr_t)slash >= (uintptr_t)start) {
+    while ((uint64_t)slash >= (uint64_t)start) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
@@ -1259,7 +1259,7 @@ int main(int argc, const char *argv[]) {
 
                 auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd.architectures ? architectures : tbd.architectures, !tbd.architecture_overrides ? architecture_overrides : tbd.architecture_overrides, creation_handling_print_paths);
                 if (!result) {
-                    auto output_path_directory_end_index = (uintptr_t)strrchr(output_path.data(), '/') - (uintptr_t)output_path.data();
+                    auto output_path_directory_end_index = (uint64_t)strrchr(output_path.data(), '/') - (uint64_t)output_path.data();
                     recursively_remove_directories_from_file_path(output_path.data(), creation_start_location, output_path_directory_end_index);
                 }
 
@@ -1313,7 +1313,7 @@ int main(int argc, const char *argv[]) {
             const auto result = create_tbd_file(tbd_path.data(), library_file, output_file_path, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd.architectures ? architectures : tbd.architectures, !tbd.architecture_overrides ? architecture_overrides : tbd.architecture_overrides, creation_handling_print_paths);
             if (!result) {
                 if (!tbd_output_path.empty()) {
-                    auto output_path_directory_end_index = (uintptr_t)strrchr(tbd_output_path.data(), '/') - (uintptr_t)tbd_output_path.data();
+                    auto output_path_directory_end_index = (uint64_t)strrchr(tbd_output_path.data(), '/') - (uint64_t)tbd_output_path.data();
                     recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_index, output_path_directory_end_index);
                 }
             }
