@@ -20,20 +20,20 @@ public:
     explicit flags(flags_integer_t length);
     ~flags();
 
+    union {
+        flags_integer_t integer = 0;
+        flags_integer_t *pointer;
+    } bits;
+
     void cast(flags_integer_t index, bool flag) noexcept;
     bool at(flags_integer_t index) const noexcept;
 
-    bool was_created() const noexcept { return length_ != 0; }
+    bool was_created() const noexcept { return length != 0; }
 
     bool operator==(const flags &flags) const noexcept;
     inline bool operator!=(const flags &flags) const noexcept { return !(*this == flags); }
 
 private:
-    union {
-        flags_integer_t flags = 0;
-        flags_integer_t *ptr;
-    } flags_;
-
-    flags_integer_t length_ = 0;
-    inline constexpr flags_integer_t bit_size() const noexcept { return sizeof(flags_integer_t) * 8; }
+    flags_integer_t length = 0;
+    inline constexpr const flags_integer_t bit_size() const noexcept { return sizeof(flags_integer_t) * 8; }
 };

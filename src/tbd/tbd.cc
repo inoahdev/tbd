@@ -34,7 +34,7 @@ namespace tbd {
 
     class reexport {
     public:
-        explicit reexport(const char *string, int flags_length) noexcept
+        explicit reexport(const char *string, flags_integer_t flags_length) noexcept
         : string(string), flags(flags_length) {}
 
         inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
@@ -58,7 +58,7 @@ namespace tbd {
             objc_ivars
         };
 
-        explicit symbol(const char *string, bool weak, int flags_length, enum type type) noexcept
+        explicit symbol(const char *string, bool weak, flags_integer_t flags_length, enum type type) noexcept
         : string(string), weak(weak), flags(flags_length), type(type) {}
 
         const char *string;
