@@ -1273,14 +1273,16 @@ int main(int argc, const char *argv[]) {
                 auto output_file = fopen(output_path.data(), "w");
 
                 if (!output_file) {
-                    fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
+                    // should_print_paths is always true for recursing,
+                    // so a check here is unnecessary
+
+                    fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
                     return;
                 }
 
-                auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd.architectures ? architectures : tbd.architectures, !tbd.architecture_overrides ? architecture_overrides : tbd.architecture_overrides, creation_handling_print_paths);
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
                 if (!result) {
-                    auto output_path_directory_end_index = (uint64_t)strrchr(output_path.data(), '/') - (uint64_t)output_path.data();
-                    recursively_remove_directories_from_file_path(output_path.data(), creation_start_location, output_path_directory_end_index);
+                    recursively_remove_directories_from_file_path(output_path.data(), creation_start_location);
                 }
 
                 fclose(output_file);
@@ -1330,11 +1332,10 @@ int main(int argc, const char *argv[]) {
                 continue;
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, output_file_path, output_file, tbd.options, platform != tbd::platform::none ? platform : tbd.platform, version != (enum tbd::version)0 ? version : tbd.version, !tbd.architectures ? architectures : tbd.architectures, !tbd.architecture_overrides ? architecture_overrides : tbd.architecture_overrides, creation_handling_print_paths);
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
             if (!result) {
                 if (!tbd_output_path.empty()) {
-                    auto output_path_directory_end_index = (uint64_t)strrchr(tbd_output_path.data(), '/') - (uint64_t)tbd_output_path.data();
-                    recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_index, output_path_directory_end_index);
+                    recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_index);
                 }
             }
 
