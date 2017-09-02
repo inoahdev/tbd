@@ -112,9 +112,8 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
     index--;
 }
 
-void recursively_create_directories_from_file_path_without_check(char *path, size_t index, bool create_last_as_directory) {
-    auto slash = strchr(&path[index], '/');
-    while (slash != nullptr) {
+void recursively_create_directories_from_file_path_without_check(char *path, char *slash, bool create_last_as_directory) {
+    do {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
@@ -128,7 +127,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, siz
 
         slash[0] = '/';
         slash = strchr(&slash[1], '/');
-    }
+    } while (slash != nullptr);
 
     if (create_last_as_directory) {
         if (mkdir(path, 0755) != 0) {
@@ -160,7 +159,12 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
             }
 
             slash[0] = '/';
-            recursively_create_directories_from_file_path_without_check(path, (uint64_t)slash - (uint64_t)path, create_last_as_directory);
+
+            // If a directory doesn't exist, it's assumed the sub-directories
+            // won't exist either, so avoid additional calls to access()
+            // by directly calling mkdir
+
+            recursively_create_directories_from_file_path_without_check(path, slash, create_last_as_directory);
         } else {
             slash[0] = '/';
         }
@@ -185,13 +189,12 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
 }
 
 void recursively_remove_directories_from_file_path(char *path, size_t start_index = 0, size_t end_index = 0) {
-    // If the path starts off with a forward slash, it will
-    // result in the while loop running on a path that is
-    // empty. To avoid this, start the search at the first
-    // index.
-
     if (!end_index) {
         end_index = strlen(path);
+    }
+
+    if (start_index >= end_index) {
+        return;
     }
 
     auto slash = strrchr(&path[start_index], '/');
