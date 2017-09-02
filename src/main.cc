@@ -623,14 +623,10 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto paths = std::vector<std::pair<std::string, unsigned int>>();
-            if (is_last_argument) {
-                // If a path was not provided, --list-macho-libraries is
-                // expected to instead recurse the current-directory.
-
-                paths.emplace_back(retrieve_current_directory(), recurse_directories | recurse_subdirectories);
-            } else {
+            if (!is_last_argument) {
+                auto paths = std::vector<std::pair<std::string, unsigned int>>();
                 auto options = 0;
+
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
                     const auto &argument_front = argument[0];
@@ -696,77 +692,98 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (paths.empty()) {
-                    // If no path was provided, --list-macho-libraries is expected
-                    // to instead recurse the current-directory.
-
-                    paths.emplace_back(retrieve_current_directory(), options);
-                }
-            }
-
-            const auto &paths_back = paths.back();
-            for (const auto &pair : paths) {
-                const auto &path = pair.first;
-                const auto path_data = path.data();
-
-                struct stat sbuf;
-                if (stat(path_data, &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path_data, strerror(errno));
+                    fprintf(stderr, "Please provide a path for option (%s)\n", argument);
                     return 1;
                 }
 
-                const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                const auto &options = pair.second;
+                const auto &paths_back = paths.back();
+                for (const auto &pair : paths) {
+                    const auto &path = pair.first;
+                    const auto path_data = path.data();
 
-                if (options & recurse_directories) {
-                    if (!path_is_directory) {
-                        fprintf(stderr, "Cannot recurse file (at path %s)\n", path_data);
+                    struct stat sbuf;
+                    if (stat(path_data, &sbuf) != 0) {
+                        fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path_data, strerror(errno));
                         return 1;
                     }
 
-                    auto found_libraries = false;
-                    recurse::macho_library_paths(path_data, options & recurse_subdirectories, [&](std::string &library_path) {
-                        found_libraries = true;
-                        fprintf(stdout, "%s\n", library_path.data());
-                    });
+                    const auto path_is_directory = S_ISDIR(sbuf.st_mode);
+                    const auto &options = pair.second;
 
-                    if (!found_libraries) {
-                        if (options & recurse_subdirectories) {
-                            fprintf(stdout, "No mach-o library files were found while recursing through path (%s)\n", path_data);
-                        } else {
-                            fprintf(stdout, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
+                    if (options & recurse_directories) {
+                        if (!path_is_directory) {
+                            fprintf(stderr, "Cannot recurse file (at path %s)\n", path_data);
+                            return 1;
                         }
-                    }
 
-                    // Print a newline between each pair for readibility
-                    // purposes, But an extra new-line is not needed for the
-                    // last pair
+                        auto found_libraries = false;
+                        recurse::macho_library_paths(path_data, options & recurse_subdirectories, [&](std::string &library_path) {
+                            found_libraries = true;
+                            fprintf(stdout, "%s\n", library_path.data());
+                        });
 
-                    if (pair != paths_back) {
-                        fputc('\n', stdout);
-                    }
-                } else {
-                    // Provided a recurse type of none requires only a file be provided.
-                    if (path_is_directory) {
-                        fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
-                        return 1;
-                    }
+                        if (!found_libraries) {
+                            if (options & recurse_subdirectories) {
+                                fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path_data);
+                            } else {
+                                fprintf(stderr, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
+                            }
+                        }
 
-                    auto path_is_library_check_error = macho::file::check_error::ok;
-                    const auto path_is_library = macho::file::is_valid_library(path, &path_is_library_check_error);
+                        // Print a newline between each pair for readibility
+                        // purposes, But an extra new-line is not needed for the
+                        // last pair
 
-                    if (path_is_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                        fprintf(stderr, "Failed to open file (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
+                        if (pair != paths_back) {
+                            fputc('\n', stdout);
+                        }
                     } else {
-                        if (path_is_library) {
-                            fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
+                        if (path_is_directory) {
+                            fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
+                            return 1;
+                        }
+
+                        auto path_is_library_check_error = macho::file::check_error::ok;
+                        const auto path_is_library = macho::file::is_valid_library(path, &path_is_library_check_error);
+
+                        if (path_is_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
+                            // Instead of ignoring this failure, it is better to inform the user of the open
+                            // failure to so they are aware of why a file may not have been parsed
+
+                            fprintf(stderr, "Failed to open file (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
                         } else {
                             // As the user provided only one path to a specific mach-o library file,
                             // --list-macho-libraries is expected to explicity print out whether or
                             // not the provided mach-o library file is valid.
 
-                            fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
+                            if (path_is_library) {
+                                fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
+                            } else {
+                                fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
+                            }
                         }
                     }
+                }
+            } else {
+                // If a path was not provided, --list-macho-libraries is
+                // expected to instead recurse the current-directory.
+
+                const auto path = retrieve_current_directory();
+
+                struct stat sbuf;
+                if (stat(path, &sbuf) != 0) {
+                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path, strerror(errno));
+                    return 1;
+                }
+
+                auto found_libraries = false;
+                recurse::macho_library_paths(path, true, [&](std::string &library_path) {
+                    found_libraries = true;
+                    fprintf(stdout, "%s\n", library_path.data());
+                });
+
+                if (!found_libraries) {
+                    fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path);
                 }
             }
 
