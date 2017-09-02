@@ -877,6 +877,11 @@ int main(int argc, const char *argv[]) {
                 auto &tbd_options = tbd.options;
 
                 if (should_maintain_directories) {
+                    if (!(tbd_options & recurse_directories)) {
+                        fprintf(stderr, "Option (--maintain-directories) for file (at path %s) can only be provided when recursing a directory\n", tbd.path.data());
+                        return 1;
+                    }
+
                     tbd_options |= maintain_directories;
                 }
 
