@@ -1243,7 +1243,7 @@ int main(int argc, const char *argv[]) {
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
-                exit(1);
+                return 1;
             }
 
             const auto tbd_path_length = tbd_path.length();
