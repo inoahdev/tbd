@@ -1337,7 +1337,7 @@ int main(int argc, const char *argv[]) {
                 continue;
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
             if (!result) {
                 if (!tbd_output_path.empty()) {
                     recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_index);
