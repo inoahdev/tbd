@@ -518,12 +518,12 @@ int main(int argc, const char *argv[]) {
         enum tbd::version version;
 
         unsigned int options;
-    } tbd_recursive;
+    } tbd_file;
 
     auto architectures = uint64_t();
     auto architecture_overrides = uint64_t();
 
-    auto tbds = std::vector<tbd_recursive>();
+    auto tbds = std::vector<tbd_file>();
 
     auto current_directory = std::string();
     auto output_paths_index = 0;
