@@ -1173,9 +1173,10 @@ namespace tbd {
                 }
 
                 fputs(architecture_info_table[index].name, output);
+                break;
             }
 
-            for (; index < architecture_info_table_size; index++) {
+            for (index++; index < architecture_info_table_size; index++) {
                 if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
@@ -1195,9 +1196,10 @@ namespace tbd {
                 }
 
                 fputs(architecture_info_table[index].name, output);
+                break;
             }
 
-            for (; index < architecture_info_table_size; index++) {
+            for (index++; index < architecture_info_table_size; index++) {
                 if (!(architectures & ((uint64_t)1 << index))) {
                     continue;
                 }
@@ -1320,9 +1322,10 @@ namespace tbd {
                 }
 
                 fprintf(output, "  - archs:%-12s[ %s", "", architecture_info_table[index].name);
+                break;
             }
 
-            for (; index < architecture_info_table_size; index++) {
+            for (index++; index < architecture_info_table_size; index++) {
                 if (!(architecture_overrides & ((uint64_t)1 << index))) {
                     continue;
                 }
