@@ -845,6 +845,9 @@ namespace tbd {
                         const auto &library_uuid = ((macho::uuid_command *)load_command)->uuid;
                         const auto library_uuids_size = library_uuids.size();
 
+                        // Check if multiple uuid load-commands were
+                        // found in the same container
+
                         if (library_containers_index != library_uuids_size) {
                             const auto &library_uuids_back = library_uuids.back();
                             if (memcmp(library_uuids_back, library_uuid, 16) != 0) {
