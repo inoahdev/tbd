@@ -1077,11 +1077,11 @@ namespace tbd {
             switch (library_container_symbols_iteration_result) {
                 case macho::container::symbols_iteration_result::ok:
                 case macho::container::symbols_iteration_result::no_symbols:
+                case macho::container::symbols_iteration_result::no_symbol_table_load_command:
                     break;
 
                 case macho::container::symbols_iteration_result::stream_seek_error:
                 case macho::container::symbols_iteration_result::stream_read_error:
-                case macho::container::symbols_iteration_result::no_symbol_table_load_command:
                 case macho::container::symbols_iteration_result::invalid_string_table:
                 case macho::container::symbols_iteration_result::invalid_symbol_table:
                 case macho::container::symbols_iteration_result::invalid_symbol_table_entry:
