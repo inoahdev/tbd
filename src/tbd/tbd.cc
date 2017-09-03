@@ -509,12 +509,15 @@ namespace tbd {
                 return creation_result::invalid_cputype;
             }
 
-            if (architectures != 0) {
-                const auto architecture_info_table = macho::get_architecture_info_table();
-                const auto architecture_info_table_index = ((uint64_t)library_container_architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
+            if (has_provided_architecture) {
+                //  any  is the first architecture info and if set is stored in the LSB
+                if (!(architectures & 1)) {
+                    const auto architecture_info_table = macho::get_architecture_info_table();
+                    const auto architecture_info_table_index = ((uint64_t)library_container_architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
 
-                if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
-                    continue;
+                    if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
+                        continue;
+                    }
                 }
 
                 has_found_architectures_provided = true;
