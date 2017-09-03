@@ -820,12 +820,12 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto should_maintain_directories = false;
+            auto output_options = 0;
             auto provided_output_path = false;
 
             // To parse options for the output command in the middle of an
             // argument list, while also keeping a similar argument and option
-            // stype, the output option handles custom output options in between
+            // type, the output option handles custom output options in between
             // the output option argument and the output path argument.
 
             for (i++; i < argc; i++) {
@@ -846,7 +846,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     if (strcmp(option, "maintain-directories") == 0) {
-                        should_maintain_directories = true;
+                        output_options |= maintain_directories;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", argument);
                         return 1;
@@ -876,7 +876,7 @@ int main(int argc, const char *argv[]) {
                 auto &tbd = tbds.at(output_paths_index);
                 auto &tbd_options = tbd.options;
 
-                if (should_maintain_directories) {
+                if (output_options & maintain_directories) {
                     if (!(tbd_options & recurse_directories)) {
                         fprintf(stderr, "Option (--maintain-directories) for file (at path %s) can only be provided when recursing a directory\n", tbd.path.data());
                         return 1;
