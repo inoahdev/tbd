@@ -458,7 +458,7 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("Path options:\n", stdout);
-    fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform ios/macosx/watchos/tvos] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
+    fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform platform] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
     fputs("    -a, --arch,     Specify architecture(s) to output to tbd\n", stdout);
     fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
     fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
