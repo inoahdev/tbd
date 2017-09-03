@@ -25,8 +25,8 @@ namespace tbd {
 
         class flags flags;
 
-        unsigned int symbols_count = 0;
         unsigned int reexports_count = 0;
+        unsigned int symbols_count = 0;
 
         inline bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
         inline bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
@@ -35,18 +35,18 @@ namespace tbd {
     class reexport {
     public:
         explicit reexport(const char *string, flags_integer_t flags_length) noexcept
-        : string(string), flags(flags_length) {}
+        : flags(flags_length), string(string) {}
 
         inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
 
-        const char *string;
         class flags flags;
+        const char *string;
 
         inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
-        inline bool operator==(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) == 0; }
+        inline bool operator==(const reexport &reexport) const noexcept { return strcmp(string, reexport.string) == 0; }
 
         inline bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
-        inline bool operator!=(const reexport &reexport) const noexcept { return strcmp(this->string, reexport.string) != 0; }
+        inline bool operator!=(const reexport &reexport) const noexcept { return strcmp(string, reexport.string) != 0; }
     };
 
     class symbol {
@@ -59,21 +59,21 @@ namespace tbd {
         };
 
         explicit symbol(const char *string, bool weak, flags_integer_t flags_length, enum type type) noexcept
-        : string(string), weak(weak), flags(flags_length), type(type) {}
-
-        const char *string;
-        bool weak;
+        : flags(flags_length), string(string), type(type), weak(weak) {}
 
         class flags flags;
+        const char *string;
+
         enum type type;
+        bool weak;
 
         inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
 
         inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
-        inline bool operator==(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) == 0; }
+        inline bool operator==(const symbol &symbol) const noexcept { return strcmp(string, symbol.string) == 0; }
 
         inline bool operator!=(const char *string) const noexcept { return strcmp(this->string, string) != 0; }
-        inline bool operator!=(const symbol &symbol) const noexcept { return strcmp(this->string, symbol.string) != 0; }
+        inline bool operator!=(const symbol &symbol) const noexcept { return strcmp(string, symbol.string) != 0; }
     };
 
     const char *platform_to_string(const enum platform &platform) noexcept {
@@ -955,7 +955,7 @@ namespace tbd {
                 case macho::container::load_command_iteration_result::stream_read_error:
                 case macho::container::load_command_iteration_result::load_command_is_too_small:
                 case macho::container::load_command_iteration_result::load_command_is_too_large:
-                    return tbd::creation_result::failed_to_iterate_load_commands;
+                    return creation_result::failed_to_iterate_load_commands;
             }
 
             if (failure_result != creation_result::ok) {
@@ -1085,7 +1085,7 @@ namespace tbd {
                 case macho::container::symbols_iteration_result::invalid_string_table:
                 case macho::container::symbols_iteration_result::invalid_symbol_table:
                 case macho::container::symbols_iteration_result::invalid_symbol_table_entry:
-                    return tbd::creation_result::failed_to_iterate_symbols;
+                    return creation_result::failed_to_iterate_symbols;
             }
 
             library_containers_index++;

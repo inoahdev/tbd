@@ -18,6 +18,8 @@ typedef uint32_t flags_integer_t;
 class flags {
 public:
     explicit flags(flags_integer_t length);
+    explicit flags(const flags &);
+
     ~flags();
 
     union {
