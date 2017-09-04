@@ -1358,7 +1358,7 @@ int main(int argc, const char *argv[]) {
             }
 
             auto library_file = macho::file();
-            auto library_file_open_result = macho::file::open_from_library(&library_file, tbd_path.data());
+            auto library_file_open_result = macho::file::open_from_library(library_file, tbd_path.data());
 
             if (library_file_open_result == macho::file::open_result::failed_to_open_stream) {
                 if (should_print_paths) {

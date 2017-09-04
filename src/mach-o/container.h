@@ -20,7 +20,7 @@ namespace macho {
 
         explicit container(const container &) = delete;
         explicit container(container &&) noexcept;
-        
+
         container& operator=(const container &) = delete;
         container& operator=(container &&) noexcept;
 
@@ -48,8 +48,8 @@ namespace macho {
             not_a_library
         };
 
-        static open_result open(container *container, FILE *stream, long base = 0, size_t size = 0) noexcept;
-        static open_result open_from_library(container *container, FILE *stream, long base = 0, size_t size = 0) noexcept;
+        static open_result open(container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
+        static open_result open_from_library(container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
 
         enum class load_command_iteration_result {
             ok,

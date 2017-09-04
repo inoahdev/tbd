@@ -13,50 +13,50 @@
 #include "container.h"
 
 namespace macho {
-    container::open_result container::open(container *container, FILE *stream, long base, size_t size) noexcept {
-        container->stream = stream;
+    container::open_result container::open(container &container, FILE *stream, long base, size_t size) noexcept {
+        container.stream = stream;
 
-        container->base = base;
-        container->size = size;
+        container.base = base;
+        container.size = size;
 
         auto calculated_size = (size_t)0;
-        const auto calculated_size_result = container->calculate_size(&calculated_size);
+        const auto calculated_size_result = container.calculate_size(&calculated_size);
 
         if (calculated_size_result != open_result::ok) {
             return calculated_size_result;
         }
 
         if (!size) {
-            container->size = calculated_size;
+            container.size = calculated_size;
         }
 
-        return container->validate();
+        return container.validate();
     }
 
-    container::open_result container::open_from_library(container *container, FILE *stream, long base, size_t size) noexcept {
-        container->stream = stream;
+    container::open_result container::open_from_library(container &container, FILE *stream, long base, size_t size) noexcept {
+        container.stream = stream;
 
-        container->base = base;
-        container->size = size;
+        container.base = base;
+        container.size = size;
 
         auto calculated_size = (size_t)0;
-        const auto calculated_size_result = container->calculate_size(&calculated_size);
+        const auto calculated_size_result = container.calculate_size(&calculated_size);
 
         if (calculated_size_result != open_result::ok) {
             return calculated_size_result;
         }
 
         if (!size) {
-            container->size = calculated_size;
+            container.size = calculated_size;
         }
 
-        const auto result = container->validate();
+        const auto result = container.validate();
         if (result != open_result::ok) {
             return result;
         }
 
         auto is_library = false;
-        auto iteration_result = container->iterate_load_commands([&](const struct load_command *swapped, const struct load_command *load_cmd) {
+        auto iteration_result = container.iterate_load_commands([&](const struct load_command *swapped, const struct load_command *load_cmd) {
             if (swapped->cmd != load_commands::identification_dylib) {
                 return true;
             }
