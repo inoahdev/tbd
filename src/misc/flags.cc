@@ -32,7 +32,8 @@ flags::flags(flags_integer_t length)
     }
 }
 
-flags::flags(const flags &flags) {
+flags::flags(const flags &flags) :
+length(flags.length) {
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
         auto size = (size_t)((double)length / (double)bit_size) + 1;
