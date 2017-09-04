@@ -44,7 +44,7 @@ flags::flags(const flags &flags) {
             exit(1);
         }
 
-        memcpy(flags.bits.pointer, flags.bits.pointer, allocation_size);
+        memcpy(bits.pointer, flags.bits.pointer, allocation_size);
     } else {
         bits.integer = flags.bits.integer;
     }
@@ -64,16 +64,6 @@ void flags::cast(flags_integer_t index, bool flag) noexcept {
 
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
-        // As length can be of any size, it is not possible to
-        // simply cast bits.pointer to flags_integer_t *, instead, the
-        // pointer must be (temporarily) advanced to allow casting
-        // as flags_integer_t *.
-
-        // As length is larger than sizeof(flags_integer_t)
-        // It is often necessary to advance the flags-pointer
-        // to the next integers in the buffers to access the bit at the index the
-        // caller provided.
-
         auto location = (flags_integer_t)((double)(index + 1) / (double)bit_size);
         auto pointer = (flags_integer_t *)((flags_integer_t)bits.pointer + (sizeof(flags_integer_t) * location));
 
@@ -85,14 +75,11 @@ void flags::cast(flags_integer_t index, bool flag) noexcept {
             *pointer &= ~((flags_integer_t)1 << index);
         }
     } else {
-        auto flags = bits.integer;
         if (flag) {
-            flags |= (flags_integer_t)1 << index;
+            bits.integer |= (flags_integer_t)1 << index;
         } else {
-            flags &= ~((flags_integer_t)1 << index);
+            bits.integer &= ~((flags_integer_t)1 << index);
         }
-
-        bits.integer = flags;
     }
 }
 
@@ -103,23 +90,9 @@ bool flags::at(flags_integer_t index) const noexcept {
     }
 
     auto flags = bits.integer;
-
     const auto bit_size = this->bit_size();
+
     if (length > bit_size) {
-        // As length can be of any size, it is not possible to
-        // simply cast bits.pointer to flags_integer_t *, instead, the
-        // pointer must be (temporarily) advanced to allow casting
-        // as flags_integer_t *.
-
-        // As length is larger than sizeof(flags_integer_t)
-        // It is often necessary to advance the flags-pointer
-        // to the next byte to access the bit at the index the
-        // caller provided.
-
-        // To advance the flags-pointer to the right byte(s), the
-        // flags-pointer is advanced by one byte until index_from_back
-        // is smaller than bit_size (bit-count of flags_integer_t).
-
         auto location = (flags_integer_t)((double)(index + 1) / (double)bit_size);
         auto pointer = (flags_integer_t *)((flags_integer_t)bits.pointer + (sizeof(flags_integer_t) * location));
 
@@ -127,7 +100,7 @@ bool flags::at(flags_integer_t index) const noexcept {
         flags = *pointer;
     }
 
-    return (flags & ((flags_integer_t)1 << index)) ? true : false;
+    return flags & ((flags_integer_t)1 << index);
 }
 
 bool flags::operator==(const flags &flags) const noexcept {
