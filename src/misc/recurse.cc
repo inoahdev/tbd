@@ -53,7 +53,7 @@ namespace recurse {
                     // In the context of recursing through files and directories, Erroring out here would
                     // be a mistake. Warning the user that opening the directory failed is good enough.
 
-                    fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                    fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
                 }
             } else {
                 const auto directory_entry_is_regular_file = directory_entry->d_type == DT_REG;
@@ -74,7 +74,7 @@ namespace recurse {
                             callback(directory_entry_path, directory_entry_library_file);
                             break;
                         case macho::file::open_result::failed_to_open_stream:
-                            fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
                             break;
 
                         case macho::file::open_result::invalid_container:
@@ -94,7 +94,7 @@ namespace recurse {
     void macho_libraries(const char *directory_path, bool recurse_subdirectories, const std::function<void (std::string &, macho::file &)> &callback) {
         const auto directory = opendir(directory_path);
         if (!directory) {
-            fprintf(stderr, "Failed to open directory at path (%s), failing with error (%s)\n", directory_path, strerror(errno));
+            fprintf(stderr, "Failed to open directory (at path %s), failing with error (%s)\n", directory_path, strerror(errno));
             exit(1);
         }
 
@@ -139,7 +139,7 @@ namespace recurse {
                         // In the context of recursing through files and directories, Erroring out here would
                         // be a mistake. Warning the user that opening the directory failed is good enough.
 
-                        fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
                     }
                 }
             } else {
@@ -161,7 +161,7 @@ namespace recurse {
                             callback(directory_entry_path, directory_entry_library_file);
                             break;
                         case macho::file::open_result::failed_to_open_stream:
-                            fprintf(stderr, "Warning: Failed to open file at path (%s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
                             break;
 
                         case macho::file::open_result::invalid_container:
