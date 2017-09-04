@@ -29,7 +29,7 @@ const char *retrieve_current_directory() {
 
         const auto current_directory_string = getcwd(nullptr, 0);
         if (!current_directory_string) {
-            fprintf(stderr, "Failed to get current-working-directory, failing with error (%s)\n", strerror(errno));
+            fprintf(stderr, "Failed to get current working-directory, failing with error (%s)\n", strerror(errno));
             exit(1);
         }
 
@@ -528,7 +528,7 @@ int main(int argc, const char *argv[]) {
     auto current_directory = std::string();
     auto output_paths_index = 0;
 
-    auto options = 0;
+    auto options = unsigned();
     auto platform = tbd::platform::none;
     auto version = tbd::version::v2;
 
@@ -625,7 +625,7 @@ int main(int argc, const char *argv[]) {
 
             if (!is_last_argument) {
                 auto paths = std::vector<std::pair<std::string, unsigned int>>();
-                auto options = 0;
+                auto options = unsigned();
 
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
@@ -717,17 +717,33 @@ int main(int argc, const char *argv[]) {
                         }
 
                         auto found_libraries = false;
-                        recurse::macho_library_paths(path_data, options & recurse_subdirectories, [&](std::string &library_path) {
+                        auto recurse_options = recurse::options::print_warnings;
+
+                        if (options & recurse_subdirectories) {
+                            recurse_options |= recurse::options::recurse_subdirectories;
+                        }
+
+                        auto recursion_result = recurse::macho_library_paths(path_data, recurse_options, [&](std::string &library_path) {
                             found_libraries = true;
                             fprintf(stdout, "%s\n", library_path.data());
                         });
 
-                        if (!found_libraries) {
-                            if (options & recurse_subdirectories) {
-                                fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path_data);
-                            } else {
-                                fprintf(stderr, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
+                        switch (recursion_result) {
+                            case recurse::operation_result::ok: {
+                                if (!found_libraries) {
+                                    if (options & recurse_subdirectories) {
+                                        fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path_data);
+                                    } else {
+                                        fprintf(stderr, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
+                                    }
+                                }
+
+                                break;
                             }
+
+                            case recurse::operation_result::failed_to_open_directory:
+                                fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path_data, strerror(errno));
+                                return 1;
                         }
 
                         // Print a newline between each pair for readibility
@@ -777,13 +793,23 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto found_libraries = false;
-                recurse::macho_library_paths(path, true, [&](std::string &library_path) {
+                auto recursion_result = recurse::macho_library_paths(path, true, [&](std::string &library_path) {
                     found_libraries = true;
                     fprintf(stdout, "%s\n", library_path.data());
                 });
 
-                if (!found_libraries) {
-                    fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path);
+                switch (recursion_result) {
+                    case recurse::operation_result::ok: {
+                        if (!found_libraries) {
+                            fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path);
+                        }
+
+                        break;
+                    }
+
+                    case recurse::operation_result::failed_to_open_directory:
+                        fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path, strerror(errno));
+                        break;
                 }
             }
 
@@ -959,7 +985,7 @@ int main(int argc, const char *argv[]) {
             auto local_architectures = uint64_t();
             auto local_architecture_overrides = uint64_t();
 
-            auto local_options = 0;
+            auto local_options = unsigned();
             auto local_platform = tbd::platform::none;
             auto local_tbd_version = (enum tbd::version)0;
 
@@ -1255,8 +1281,7 @@ int main(int argc, const char *argv[]) {
             const auto tbd_output_path_length = tbd_output_path.length();
 
             auto outputted_any_macho_libraries = false;
-
-            recurse::macho_libraries(tbd_path.data(), tbd_options & recurse_subdirectories, [&](std::string &library_path, macho::file &file) {
+            auto recursion_result = recurse::macho_libraries(tbd_path.data(), tbd_options & recurse_subdirectories, [&](std::string &library_path, macho::file &file) {
                 auto output_path_front = std::string::npos;
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;
@@ -1294,12 +1319,20 @@ int main(int argc, const char *argv[]) {
                 outputted_any_macho_libraries = true;
             });
 
-            if (!outputted_any_macho_libraries) {
-                if (tbd_options & recurse_subdirectories) {
-                    fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
-                } else {
-                    fprintf(stderr, "No mach-o files were found for outputting while recursing once through directory (at path %s)\n", tbd_path.data());
-                }
+            switch (recursion_result) {
+                case recurse::operation_result::ok:
+                    if (!outputted_any_macho_libraries) {
+                        if (tbd_options & recurse_subdirectories) {
+                            fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
+                        } else {
+                            fprintf(stderr, "No mach-o files were found for outputting while recursing once through directory (at path %s)\n", tbd_path.data());
+                        }
+                    }
+                    break;
+
+                case recurse::operation_result::failed_to_open_directory:
+                    fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                    break;
             }
         } else {
             auto output_file = stdout;
