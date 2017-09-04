@@ -16,12 +16,12 @@
 namespace macho {
     class container {
     public:
-        container() = default;
+        explicit container() = default;
 
-        container(const container &) = delete;
+        explicit container(const container &) = delete;
+        explicit container(container &&) noexcept;
+        
         container& operator=(const container &) = delete;
-
-        container(container &&) noexcept;
         container& operator=(container &&) noexcept;
 
         ~container();
