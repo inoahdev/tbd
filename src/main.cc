@@ -1338,6 +1338,70 @@ int main(int argc, const char *argv[]) {
                     break;
             }
         } else {
+            auto library_file = macho::file();
+            auto library_file_open_result = macho::file::open_from_library(library_file, tbd_path.data());
+
+            switch (library_file_open_result) {
+                case macho::file::open_result::failed_to_open_stream:
+                    if (should_print_paths) {
+                        fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                    } else {
+                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
+                    }
+
+
+                case macho::file::open_result::stream_seek_error:
+                case macho::file::open_result::stream_read_error:
+                    break;
+
+                case macho::file::open_result::zero_architectures: {
+                    if (should_print_paths) {
+                        fprintf(stderr, "Fat mach-o file (at path %s) does not have any architectures\n", tbd_path.data());
+                    } else {
+                        fputs("Fat mach-o file at provided path does not have any architectures\n", stderr);
+                    }
+
+                    break;
+                }
+
+                case macho::file::open_result::invalid_container: {
+                    if (should_print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) is invalid\n", tbd_path.data());
+                    } else {
+                        fputs("Mach-o file at provided path is invalid\n", stderr);
+                    }
+
+                    break;
+                }
+
+                case macho::file::open_result::not_a_macho: {
+                    if (should_print_paths) {
+                        fprintf(stderr, "File (at path %s) is not a valid mach-o\n", tbd_path.data());
+                    } else {
+                        fputs("File at provided path is not a valid mach-o\n", stderr);
+                    }
+
+                    break;
+                }
+
+                case macho::file::open_result::not_a_library: {
+                    if (should_print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) is not a mach-o library\n", tbd_path.data());
+                    } else {
+                        fputs("Mach-o file at provided path is not a valid mach-o library\n", stderr);
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
+            }
+
+            if (library_file_open_result != macho::file::open_result::ok) {
+                continue;
+            }
+
             auto output_file = stdout;
 
             auto output_file_path = (const char *)nullptr;
@@ -1358,19 +1422,6 @@ int main(int argc, const char *argv[]) {
 
                     continue;
                 }
-            }
-
-            auto library_file = macho::file();
-            auto library_file_open_result = macho::file::open_from_library(library_file, tbd_path.data());
-
-            if (library_file_open_result == macho::file::open_result::failed_to_open_stream) {
-                if (should_print_paths) {
-                    fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
-                } else {
-                    fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
-                }
-
-                continue;
             }
 
             const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
