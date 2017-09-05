@@ -143,7 +143,9 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
     // empty. To avoid this, start the search at the first
     // index.
 
+    auto last_slash = (char *)nullptr;
     auto slash = strchr(&path[1], '/');
+
     auto return_value = (size_t)0;
 
     while (slash != nullptr) {
@@ -169,11 +171,12 @@ size_t recursively_create_directories_from_file_path(char *path, bool create_las
             slash[0] = '/';
         }
 
+        last_slash = slash;
         slash = strchr(&slash[1], '/');
     }
 
     if (!return_value) {
-        return_value = strlen(path);
+        return_value = (uint64_t)last_slash - (uint64_t)path;
 
         if (create_last_as_directory) {
             if (access(path, F_OK) != 0) {
@@ -197,7 +200,7 @@ void recursively_remove_directories_from_file_path(char *path, size_t start_inde
         return;
     }
 
-    auto slash = strrchr(&path[start_index], '/');
+    auto slash = strrchr(&path[start_index + 1], '/');
 
     const auto start = &path[start_index];
     const auto end = &path[end_index];
@@ -1382,4 +1385,6 @@ int main(int argc, const char *argv[]) {
             }
         }
     }
+
+
 }
