@@ -19,7 +19,7 @@
 namespace tbd {
     class group {
     public:
-        explicit group() : flags(0) {}
+        explicit group() = default;
         explicit group(const flags &flags) noexcept
         : flags(flags) {}
 
