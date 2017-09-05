@@ -19,8 +19,8 @@ namespace macho {
         container.base = base;
         container.size = size;
 
-        auto calculated_size = (size_t)0;
-        const auto calculated_size_result = container.calculate_size(&calculated_size);
+        auto calculated_size_result = open_result::ok;
+        const auto calculated_size = container.calculate_size(calculated_size_result);
 
         if (calculated_size_result != open_result::ok) {
             return calculated_size_result;
@@ -39,8 +39,8 @@ namespace macho {
         container.base = base;
         container.size = size;
 
-        auto calculated_size = (size_t)0;
-        const auto calculated_size_result = container.calculate_size(&calculated_size);
+        auto calculated_size_result = open_result::ok;
+        const auto calculated_size = container.calculate_size(calculated_size_result);
 
         if (calculated_size_result != open_result::ok) {
             return calculated_size_result;
@@ -164,24 +164,28 @@ namespace macho {
         return *this;
     }
 
-    container::open_result container::calculate_size(size_t *size) noexcept {
+    size_t container::calculate_size(container::open_result &result) noexcept {
         const auto position = ftell(stream);
         if (fseek(stream, 0, SEEK_END) != 0) {
-            return open_result::stream_seek_error;
+            result = open_result::stream_seek_error;
+            return 0;
         }
 
-        *size = ftell(stream);
-        if (*size < base) {
-            return open_result::invalid_range;
+        auto size = (size_t)ftell(stream);
+        if (size < base) {
+            result = open_result::invalid_range;
+            return size;
         }
 
-        *size -= base;
+        size -= base;
 
         if (fseek(stream, position, SEEK_SET) != 0) {
-            return open_result::stream_seek_error;
+            result = open_result::stream_seek_error;
+            return size;
         }
 
-        return open_result::ok;
+        result = open_result::ok;
+        return size;
     }
 
     container::~container() {
