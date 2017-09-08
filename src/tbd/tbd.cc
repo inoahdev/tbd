@@ -28,8 +28,8 @@ namespace tbd {
         unsigned int reexports_count = 0;
         unsigned int symbols_count = 0;
 
-        inline bool operator==(const group &group) const noexcept { return this->flags == group.flags; }
-        inline bool operator!=(const group &group) const noexcept { return this->flags != group.flags; }
+        inline bool operator==(const group &group) const noexcept { return flags == group.flags; }
+        inline bool operator!=(const group &group) const noexcept { return flags != group.flags; }
     };
 
     class reexport {
