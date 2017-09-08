@@ -48,8 +48,8 @@ namespace macho {
             not_a_library
         };
 
-        static open_result open(container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
-        static open_result open_from_library(container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
+        open_result open(FILE *stream, long base = 0, size_t size = 0) noexcept;
+        open_result open_from_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
 
         enum class load_command_iteration_result {
             ok,

@@ -66,7 +66,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_library_file = macho::file();
-                    auto directory_entry_library_file_open_result = macho::file::open_from_library(directory_entry_library_file, directory_entry_path.data());
+                    auto directory_entry_library_file_open_result = directory_entry_library_file.open_from_library(directory_entry_path.data());
 
                     switch (directory_entry_library_file_open_result) {
                         case macho::file::open_result::ok:
@@ -157,7 +157,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_library_file = macho::file();
-                    auto directory_entry_library_file_open_result = macho::file::open_from_library(directory_entry_library_file, directory_entry_path.data());
+                    auto directory_entry_library_file_open_result = directory_entry_library_file.open_from_library(directory_entry_path.data());
 
                     switch (directory_entry_library_file_open_result) {
                         case macho::file::open_result::ok:
