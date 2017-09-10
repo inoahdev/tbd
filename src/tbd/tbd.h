@@ -103,5 +103,6 @@ namespace tbd {
         no_symbols_or_reexports
     };
 
-    __attribute__((unused)) creation_result create_from_macho_library(macho::file &library, FILE *output, unsigned int options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(macho::file &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(macho::container &container, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
 }
