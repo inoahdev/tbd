@@ -14,7 +14,9 @@
 #include <dirent.h>
 #include <unistd.h>
 
+#include "misc/path_utilities.h"
 #include "misc/recurse.h"
+
 #include "tbd/tbd.h"
 
 const char *retrieve_current_directory() {
@@ -112,30 +114,6 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
     index--;
 }
 
-// To avoid double-slashes and other conditions that might
-// break this function, create our own `strchr` wrapper
-// function to circumvent this
-
-char *find_next_slash(char *string) {
-    while (string[0] != '/') {
-        if (string[0] == '\0') {
-            return nullptr;
-        }
-
-        string++;
-    }
-
-    while (string[1] == '/') {
-        if (string[0] == '\0') {
-            return nullptr;
-        }
-
-        string++;
-    }
-
-    return string;
-}
-
 void recursively_create_directories_from_file_path_without_check(char *path, char *slash, bool create_last_as_directory) {
     auto last_slash = (const char *)nullptr;
     do {
@@ -166,7 +144,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         slash[0] = '/';
 
         last_slash = slash;
-        slash = find_next_slash(&slash[1]);
+        slash = (char *)path::find_next_slash(&slash[1]);
     } while (slash != nullptr);
 
     if (last_slash[1] != '\0') {
@@ -195,7 +173,7 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     // index.
 
     auto last_slash = (char *)nullptr;
-    auto slash = find_next_slash(&path[1]);
+    auto slash = path::find_next_slash(&path[1]);
 
     auto return_value = (char *)nullptr;
 
@@ -224,7 +202,7 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
         slash[0] = '/';
 
         last_slash = slash;
-        slash = find_next_slash(&slash[1]);
+        slash = path::find_next_slash(&slash[1]);
     }
 
     if (!return_value) {
@@ -241,31 +219,6 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     }
 
     return return_value;
-}
-
-char *find_last_slash(char *start, char *end) {
-    auto iter = end;
-    while (iter >= start) {
-        if (*iter == '/') {
-            break;
-        }
-
-        --iter;
-    }
-
-    while (iter >= start) {
-        if (iter[-1] != '/') {
-            break;
-        }
-
-        --iter;
-    }
-
-    if (iter < start || iter == end) {
-        return nullptr;
-    }
-
-    return iter;
 }
 
 void recursively_remove_directories_from_file_path(char *path, char *start, char *end = nullptr) {
@@ -297,12 +250,15 @@ void recursively_remove_directories_from_file_path(char *path, char *start, char
 
     end[0] = end_char;
 
-    auto slash = find_last_slash(start, end);
-    while (slash != nullptr) {
+    auto last_slash = (char *)nullptr;
+    auto slash = path::find_last_slash(start, end);
+
+    while (slash != last_slash) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
 
+        last_slash = slash;
         slash[0] = '\0';
 
         if (access(path, F_OK) == 0) {
@@ -313,7 +269,7 @@ void recursively_remove_directories_from_file_path(char *path, char *start, char
         }
 
         slash[0] = '/';
-        slash = find_last_slash(start, slash);
+        slash = path::find_last_slash(start, slash);
     }
 }
 
@@ -573,10 +529,10 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    enum tool_options : uint32_t {
-        recurse_directories = 1 << 6, // start at 1 << 6 to support tbd-symbol options
-        recurse_subdirectories = 1 << 7,
-        maintain_directories = 1 << 8,
+    enum misc_options : uint32_t {
+        recurse_directories = 1 << 8, // Use second-byte to support tbd-symbol options
+        recurse_subdirectories = 1 << 9,
+        maintain_directories = 1 << 10,
     };
 
     typedef struct tbd_file {
@@ -1211,7 +1167,7 @@ int main(int argc, const char *argv[]) {
                     }
                 }
 
-                tbd.path = path;
+                tbd.path = std::move(path);
 
                 auto tbd_platform = local_platform;
                 auto tbd_version = local_tbd_version;
@@ -1387,7 +1343,7 @@ int main(int argc, const char *argv[]) {
                     return;
                 }
 
-                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
                 if (!result) {
                     // Start at recursive_directory_creation_ptr + 1
                     // to skip the slash at the recursive_directory_creation_ptr
@@ -1503,7 +1459,7 @@ int main(int argc, const char *argv[]) {
                 }
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd.options, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
             if (!result) {
                 if (!tbd_output_path.empty()) {
                     // Start at recursive_directory_creation_ptr + 1

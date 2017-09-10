@@ -73,9 +73,7 @@ namespace macho {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
-                    container_open_result = container.open(stream, architecture.offset, architecture.size);
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -115,9 +113,7 @@ namespace macho {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
-                    container_open_result = container.open(stream, architecture.offset, architecture.size);
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -249,7 +245,7 @@ namespace macho {
                 auto container = macho::container();
                 auto container_open_result = container::open_result::ok;
 
-                // avoid rechecking by not calling container::open_from_library
+                // Avoid rechecking by not calling container::open_from_library.
                 container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                 switch (container_open_result) {
@@ -335,7 +331,7 @@ namespace macho {
                     auto container = macho::container();
                     auto container_open_result = container::open_result::ok;
 
-                    // avoid rechecking by not calling container::open_from_library
+                    // Avoid rechecking by not calling container::open_from_library.
                     container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                     switch (container_open_result) {
@@ -382,7 +378,7 @@ namespace macho {
                     auto container = macho::container();
                     auto container_open_result = container::open_result::ok;
 
-                    // avoid rechecking by not calling container::open_from_library
+                    // Avoid rechecking by not calling container::open_from_library.
                     container_open_result = container.open(stream);
 
                     switch (container_open_result) {
