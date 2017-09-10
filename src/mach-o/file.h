@@ -35,14 +35,14 @@ namespace macho {
             not_a_library,
         };
 
-        open_result open(const char *path) noexcept;
-        open_result open(const std::string &path) noexcept {
-            return open(path.data());
+        open_result open(const char *path, const char *mode = "r") noexcept;
+        open_result open(const std::string &path, const char *mode = "r") noexcept {
+            return open(path.data(), mode);
         }
 
-        open_result open_from_library(const char *path) noexcept;
-        open_result open_from_library(const std::string &path) noexcept {
-            return open_from_library(path.data());
+        open_result open_from_library(const char *path, const char *mode = "r") noexcept;
+        open_result open_from_library(const std::string &path, const char *mode = "r") noexcept {
+            return open_from_library(path.data(), mode);
         }
 
         ~file() noexcept;

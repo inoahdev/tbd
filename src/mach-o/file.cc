@@ -14,7 +14,7 @@
 #include "file.h"
 
 namespace macho {
-    file::open_result file::open(const char *path) noexcept {
+    file::open_result file::open(const char *path, const char *mode) noexcept {
         auto descriptor = ::open(path, O_RDONLY);
         if (descriptor == -1) {
             return open_result::failed_to_open_stream;
@@ -31,8 +31,10 @@ namespace macho {
             return open_result::not_a_macho;
         }
 
+        close(descriptor);
+
         this->magic = magic;
-        this->stream = fdopen(descriptor, "r");
+        this->stream = fopen(path, mode);
 
         if (!stream) {
             return open_result::failed_to_open_stream;
@@ -173,7 +175,7 @@ namespace macho {
         return open_result::ok;
     }
 
-    file::open_result file::open_from_library(const char *path) noexcept {
+    file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
         auto descriptor = ::open(path, O_RDONLY);
         if (descriptor == -1) {
             return open_result::failed_to_open_stream;
@@ -230,8 +232,10 @@ namespace macho {
                 }
             }
 
+            close(descriptor);
+
             this->magic = magic;
-            this->stream = fdopen(descriptor, "r");
+            this->stream = fopen(path, mode);
 
             if (!stream) {
                 return open_result::failed_to_open_stream;
@@ -316,8 +320,10 @@ namespace macho {
                     }
                 }
 
+                close(descriptor);
+
                 this->magic = magic;
-                this->stream = fdopen(descriptor, "r");
+                this->stream = fopen(path, mode);
 
                 if (!stream) {
                     return open_result::failed_to_open_stream;
@@ -372,8 +378,10 @@ namespace macho {
                         return open_result::not_a_library;
                     }
 
+                    close(descriptor);
+
                     this->magic = magic;
-                    this->stream = fdopen(descriptor, "r");
+                    this->stream = fopen(path, mode);
 
                     auto container = macho::container();
                     auto container_open_result = container::open_result::ok;
