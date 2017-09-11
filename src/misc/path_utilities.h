@@ -24,7 +24,16 @@ namespace path {
     }
 
     inline char *find_next_slash(char *string) {
-        return find_next_slash(string, &string[strlen(string)]);
+        auto iter = string;
+        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
+            iter++;
+        }
+
+        while (*iter != '\0' && (iter[1] == '/' || iter[1] == '\\')) {
+            iter++;
+        }
+
+        return iter;
     }
 
     template <typename T>
@@ -42,7 +51,20 @@ namespace path {
     }
 
     inline char *find_last_slash(char *string) {
-        return find_last_slash(string, &string[strlen(string)]);
+        auto iter = string;
+        while (true) {
+            if (*iter == '\0') {
+                return nullptr;
+            }
+
+            if (*iter == '/' || *iter == '\\') {
+                break;
+            }
+
+            ++iter;
+        }
+
+        return iter;
     }
 
     template <typename T>
@@ -67,8 +89,15 @@ namespace path {
         return iter;
     }
 
-    char *find_last_slash_in_front_of_pattern(char *string) {
-        return find_last_slash_in_front_of_pattern(string, &string[strlen(string)]);
+    inline char *find_last_slash_in_front_of_pattern(char *string) {
+        auto end = &string[strlen(string)];
+        auto result = find_last_slash_in_front_of_pattern(string, end);
+
+        if (result == end) {
+            return nullptr;
+        }
+
+        return result;
     }
 
     template <typename T>
