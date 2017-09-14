@@ -1771,7 +1771,7 @@ namespace tbd {
 
                         return true;
                     } else {
-                        uuid = library_uuid);
+                        uuid = &library_uuid;
                     }
 
                     break;
