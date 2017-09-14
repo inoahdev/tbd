@@ -14,7 +14,7 @@
 #include "file.h"
 
 namespace macho {
-    file::open_result file::open(const char *path, const char *mode) noexcept {
+    file::open_result file::open(const char *path) noexcept {
         auto descriptor = ::open(path, O_RDONLY);
         if (descriptor == -1) {
             return open_result::failed_to_open_stream;
@@ -31,10 +31,8 @@ namespace macho {
             return open_result::not_a_macho;
         }
 
-        close(descriptor);
-
         this->magic = magic;
-        this->stream = fopen(path, mode);
+        this->stream = fdopen(descriptor, "r");
 
         if (!stream) {
             return open_result::failed_to_open_stream;
@@ -175,7 +173,173 @@ namespace macho {
         return open_result::ok;
     }
 
-    file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
+    file::open_result file::open(const char *path, const char *mode) noexcept {
+        auto descriptor = ::open(path, O_RDONLY);
+        if (descriptor == -1) {
+            return open_result::failed_to_open_stream;
+        }
+
+        auto magic = macho::magic();
+        if (read(descriptor, &magic, sizeof(magic)) != 1) {
+            close(descriptor);
+            return open_result::stream_read_error;
+        }
+
+        if (!magic_is_valid(magic)) {
+            close(descriptor);
+            return open_result::not_a_macho;
+        }
+
+        if (strcmp(mode, "r") == 0) {
+            this->magic = magic;
+            this->stream = fdopen(descriptor, mode);
+        } else {
+            close(descriptor);
+
+            this->magic = magic;
+            this->stream = fopen(path, mode);
+        }
+
+        if (!stream) {
+            return open_result::failed_to_open_stream;
+        }
+
+        const auto magic_is_fat = macho::magic_is_fat(magic);
+        if (magic_is_fat) {
+            auto nfat_arch = uint32_t();
+            if (fread(&nfat_arch, sizeof(nfat_arch), 1, stream) != 1) {
+                return open_result::stream_read_error;
+            }
+
+            if (!nfat_arch) {
+                return open_result::zero_architectures;
+            }
+
+            auto magic_is_big_endian = macho::magic_is_big_endian(magic);
+            if (magic_is_big_endian) {
+                swap_value(nfat_arch);
+            }
+
+            containers.reserve(nfat_arch);
+
+            const auto magic_is_fat_64 = macho::magic_is_fat_64(magic);
+            if (magic_is_fat_64) {
+                const auto architectures = std::make_unique<architecture_64[]>(nfat_arch);
+                const auto architectures_size = sizeof(architecture_64) * nfat_arch;
+
+                if (fread(architectures.get(), architectures_size, 1, stream) != 1) {
+                    return open_result::stream_read_error;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch_64(architectures.get(), nfat_arch);
+                }
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                    switch (container_open_result) {
+                        case container::open_result::ok:
+                            break;
+
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
+
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
+
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                        case container::open_result::invalid_macho:
+                        case container::open_result::invalid_range:
+                            return open_result::invalid_container;
+
+                        case container::open_result::not_a_library:
+                            break;
+                    }
+
+                    containers.emplace_back(std::move(container));
+                }
+            } else {
+                const auto architectures = std::make_unique<architecture[]>(nfat_arch);
+                const auto architectures_size = sizeof(architecture) * nfat_arch;
+
+                if (fread(architectures.get(), architectures_size, 1, stream) != 1) {
+                    return open_result::stream_read_error;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch(architectures.get(), nfat_arch);
+                }
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                    switch (container_open_result) {
+                        case container::open_result::ok:
+                            break;
+
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
+
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
+
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                        case container::open_result::invalid_macho:
+                        case container::open_result::invalid_range:
+                            return open_result::invalid_container;
+
+                        case container::open_result::not_a_library:
+                            break;
+                    }
+
+                    containers.emplace_back(std::move(container));
+                }
+            }
+        } else {
+            const auto magic_is_thin = macho::magic_is_thin(magic);
+            if (magic_is_thin) {
+                auto container = macho::container();
+                auto container_open_result = container::open_result::ok;
+
+                container_open_result = container.open(stream);
+
+                switch (container_open_result) {
+                    case container::open_result::ok:
+                        break;
+
+                    case container::open_result::stream_seek_error:
+                        return open_result::stream_seek_error;
+
+                    case container::open_result::stream_read_error:
+                        return open_result::stream_read_error;
+
+                    case container::open_result::fat_container:
+                    case container::open_result::not_a_macho:
+                    case container::open_result::invalid_macho:
+                    case container::open_result::invalid_range:
+                        return open_result::not_a_macho;
+
+                    case container::open_result::not_a_library:
+                        break;
+                }
+
+                containers.emplace_back(std::move(container));
+            }
+        }
+
+        return open_result::ok;
+    }
+
+    file::open_result file::open_from_library(const char *path) noexcept {
         auto descriptor = ::open(path, O_RDONLY);
         if (descriptor == -1) {
             return open_result::failed_to_open_stream;
@@ -232,10 +396,8 @@ namespace macho {
                 }
             }
 
-            close(descriptor);
-
             this->magic = magic;
-            this->stream = fopen(path, mode);
+            this->stream = fdopen(descriptor, "r");
 
             if (!stream) {
                 return open_result::failed_to_open_stream;
@@ -320,10 +482,8 @@ namespace macho {
                     }
                 }
 
-                close(descriptor);
-
                 this->magic = magic;
-                this->stream = fopen(path, mode);
+                this->stream = fdopen(descriptor, "r");
 
                 if (!stream) {
                     return open_result::failed_to_open_stream;
@@ -378,10 +538,268 @@ namespace macho {
                         return open_result::not_a_library;
                     }
 
+                    this->magic = magic;
+                    this->stream = fdopen(descriptor, "r");
+
+                    auto container = macho::container();
+                    auto container_open_result = container::open_result::ok;
+
+                    // Avoid rechecking by not calling container::open_from_library.
+                    container_open_result = container.open(stream);
+
+                    switch (container_open_result) {
+                        case container::open_result::ok:
+                            break;
+
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
+
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
+
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                        case container::open_result::invalid_macho:
+                        case container::open_result::invalid_range:
+                            return open_result::invalid_container;
+
+                        case container::open_result::not_a_library:
+                            break;
+                    }
+
+                    containers.emplace_back(std::move(container));
+                } else {
+                    close(descriptor);
+                    return open_result::not_a_macho;
+                }
+            }
+        }
+
+        return open_result::ok;
+    }
+
+    file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
+        auto descriptor = ::open(path, O_RDONLY);
+        if (descriptor == -1) {
+            return open_result::failed_to_open_stream;
+        }
+
+        auto magic = macho::magic();
+        if (read(descriptor, &magic, sizeof(magic)) == -1) {
+            close(descriptor);
+            return open_result::stream_read_error;
+        }
+
+        const auto magic_is_fat_64 = macho::magic_is_fat_64(magic);
+        if (magic_is_fat_64) {
+            auto nfat_arch = uint32_t();
+            if (read(descriptor, &nfat_arch, sizeof(nfat_arch)) == -1) {
+                close(descriptor);
+                return open_result::stream_read_error;
+            }
+
+            const auto magic_is_big_endian = magic == magic::fat_64_big_endian;
+            if (magic_is_big_endian) {
+                swap_value(nfat_arch);
+            }
+
+            const auto architectures = std::make_unique<architecture_64[]>(nfat_arch);
+            const auto architectures_size = sizeof(architecture_64) * nfat_arch;
+
+            if (read(descriptor, architectures.get(), architectures_size) == -1) {
+                close(descriptor);
+                return open_result::stream_read_error;
+            }
+
+            if (magic_is_big_endian) {
+                swap_fat_arch_64(architectures.get(), nfat_arch);
+            }
+
+            for (auto i = 0; i < nfat_arch; i++) {
+                const auto &architecture = architectures[i];
+                header header;
+
+                if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
+                    close(descriptor);
+                    return open_result::stream_seek_error;
+                }
+
+                if (read(descriptor, &header, sizeof(header)) == -1) {
+                    close(descriptor);
+                    return open_result::stream_read_error;
+                }
+
+                if (!has_library_command(descriptor, &header, nullptr)) {
+                    close(descriptor);
+                    return open_result::not_a_library;
+                }
+            }
+
+            if (strcmp(mode, "r") == 0) {
+                this->magic = magic;
+                this->stream = fdopen(descriptor, mode);
+            } else {
+                close(descriptor);
+
+                this->magic = magic;
+                this->stream = fopen(path, mode);
+            }
+
+            if (!stream) {
+                return open_result::failed_to_open_stream;
+            }
+
+            containers.reserve(nfat_arch);
+
+            for (auto i = 0; i < nfat_arch; i++) {
+                const auto &architecture = architectures[i];
+
+                auto container = macho::container();
+                auto container_open_result = container::open_result::ok;
+
+                // Avoid rechecking by not calling container::open_from_library.
+                container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                switch (container_open_result) {
+                    case container::open_result::ok:
+                        break;
+
+                    case container::open_result::stream_seek_error:
+                        return open_result::stream_seek_error;
+
+                    case container::open_result::stream_read_error:
+                        return open_result::stream_read_error;
+
+                    case container::open_result::fat_container:
+                    case container::open_result::not_a_macho:
+                    case container::open_result::invalid_macho:
+                    case container::open_result::invalid_range:
+                        return open_result::invalid_container;
+
+                    case container::open_result::not_a_library:
+                        break;
+                }
+
+                containers.emplace_back(std::move(container));
+            }
+        } else {
+            const auto magic_is_fat_32 = macho::magic_is_fat_32(magic);
+            if (magic_is_fat_32) {
+                auto nfat_arch = uint32_t();
+                if (read(descriptor, &nfat_arch, sizeof(nfat_arch)) == -1) {
+                    close(descriptor);
+                    return open_result::stream_read_error;
+                }
+
+                const auto magic_is_big_endian = magic == magic::fat_big_endian;
+                if (magic_is_big_endian) {
+                    swap_value(nfat_arch);
+                }
+
+                const auto architectures = std::make_unique<architecture[]>(nfat_arch);
+                const auto architectures_size = sizeof(architecture) * nfat_arch;
+
+                if (read(descriptor, architectures.get(), architectures_size) == -1) {
+                    close(descriptor);
+                    return open_result::stream_read_error;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch(architectures.get(), nfat_arch);
+                }
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+                    header header;
+
+                    if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
+                        close(descriptor);
+                        return open_result::stream_read_error;
+                    }
+
+                    if (read(descriptor, &header, sizeof(header)) == -1) {
+                        close(descriptor);
+                        return open_result::stream_read_error;
+                    }
+
+                    if (!has_library_command(descriptor, &header, nullptr)) {
+                        close(descriptor);
+                        return open_result::not_a_library;
+                    }
+                }
+
+                if (strcmp(mode, "r") == 0) {
+                    this->magic = magic;
+                    this->stream = fdopen(descriptor, mode);
+                } else {
                     close(descriptor);
 
                     this->magic = magic;
                     this->stream = fopen(path, mode);
+                }
+
+                if (!stream) {
+                    return open_result::failed_to_open_stream;
+                }
+
+                containers.reserve(nfat_arch);
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+
+                    auto container = macho::container();
+                    auto container_open_result = container::open_result::ok;
+
+                    // Avoid rechecking by not calling container::open_from_library.
+                    container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                    switch (container_open_result) {
+                        case container::open_result::ok:
+                            break;
+
+                        case container::open_result::stream_seek_error:
+                            return open_result::stream_seek_error;
+
+                        case container::open_result::stream_read_error:
+                            return open_result::stream_read_error;
+
+                        case container::open_result::fat_container:
+                        case container::open_result::not_a_macho:
+                        case container::open_result::invalid_macho:
+                        case container::open_result::invalid_range:
+                            return open_result::invalid_container;
+
+                        case container::open_result::not_a_library:
+                            break;
+                    }
+
+                    containers.emplace_back(std::move(container));
+                }
+            } else {
+                const auto magic_is_thin = macho::magic_is_thin(magic);
+                if (magic_is_thin) {
+                    header header;
+                    header.magic = magic;
+
+                    if (read(descriptor, &header.cputype, sizeof(header) - sizeof(header.magic)) == -1) {
+                        close(descriptor);
+                        return open_result::stream_read_error;
+                    }
+
+                    if (!has_library_command(descriptor, &header, nullptr)) {
+                        close(descriptor);
+                        return open_result::not_a_library;
+                    }
+
+                    if (strcmp(mode, "r") == 0) {
+                        this->magic = magic;
+                        this->stream = fdopen(descriptor, mode);
+                    } else {
+                        close(descriptor);
+
+                        this->magic = magic;
+                        this->stream = fopen(path, mode);
+                    }
 
                     auto container = macho::container();
                     auto container_open_result = container::open_result::ok;
