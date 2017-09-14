@@ -144,7 +144,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         slash[0] = '/';
 
         last_slash = slash;
-        slash = (char *)path::find_next_slash(&slash[1]);
+        slash = path::find_next_slash(&slash[1]);
     } while (slash != nullptr);
 
     if (last_slash[1] != '\0') {
@@ -298,7 +298,7 @@ enum creation_handling {
     creation_handling_ignore_no_provided_architectures = 1 << 1
 };
 
-bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, unsigned int options, tbd::platform platform, tbd::version version, uint64_t architectures, uint64_t architecture_overrides, unsigned int creation_handling_options) {
+bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, tbd::platform platform, tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
     auto result = tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
     if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
         switch (result) {
@@ -529,7 +529,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    enum misc_options : uint32_t {
+    enum misc_options : uint64_t {
         recurse_directories = 1 << 8, // Use second-byte to support tbd-symbol options
         recurse_subdirectories = 1 << 9,
         maintain_directories = 1 << 10,
@@ -545,7 +545,7 @@ int main(int argc, const char *argv[]) {
         enum tbd::platform platform;
         enum tbd::version version;
 
-        unsigned int options;
+        uint64_t options;
     } tbd_file;
 
     auto architectures = uint64_t();
@@ -556,7 +556,7 @@ int main(int argc, const char *argv[]) {
     auto current_directory = std::string();
     auto output_paths_index = 0;
 
-    auto options = unsigned();
+    auto options = uint64_t();
     auto platform = tbd::platform::none;
     auto version = tbd::version::v2;
 
@@ -652,8 +652,8 @@ int main(int argc, const char *argv[]) {
             }
 
             if (!is_last_argument) {
-                auto paths = std::vector<std::pair<std::string, unsigned int>>();
-                auto options = unsigned();
+                auto paths = std::vector<std::pair<std::string, uint64_t>>();
+                auto options = uint64_t();
 
                 for (i++; i < argc; i++) {
                     const auto &argument = argv[i];
@@ -873,7 +873,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto output_options = 0;
+            auto output_options = uint64_t();
             auto provided_output_path = false;
 
             // To parse options for the output command in the middle of an
@@ -1012,7 +1012,7 @@ int main(int argc, const char *argv[]) {
             auto local_architectures = uint64_t();
             auto local_architecture_overrides = uint64_t();
 
-            auto local_options = unsigned();
+            auto local_options = uint64_t();
             auto local_platform = tbd::platform::none;
             auto local_tbd_version = (enum tbd::version)0;
 

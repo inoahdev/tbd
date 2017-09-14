@@ -25,8 +25,8 @@ namespace tbd {
 
         class flags flags;
 
-        unsigned int reexports_count = 0;
-        unsigned int symbols_count = 0;
+        uint64_t reexports_count = 0;
+        uint64_t symbols_count = 0;
 
         inline bool operator==(const group &group) const noexcept { return flags == group.flags; }
         inline bool operator!=(const group &group) const noexcept { return flags != group.flags; }

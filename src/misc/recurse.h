@@ -16,41 +16,41 @@
 #include "../mach-o/file.h"
 
 namespace recurse {
-    enum class options : unsigned int {
+    enum class options : uint64_t {
         recurse_subdirectories = 1 << 0,
         print_warnings = 1 << 1
     };
 
-    inline unsigned int operator|(const unsigned int &lhs, const options &rhs) noexcept { return lhs | (unsigned int)rhs; }
-    inline void operator|=(unsigned int &lhs, const options &rhs) noexcept { lhs |= (unsigned int)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | (uint64_t)rhs; }
+    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= (uint64_t)rhs; }
 
-    inline options operator|(const options &lhs, const unsigned int &rhs) noexcept { return (options)((unsigned int)lhs | rhs); }
-    inline void operator|=(options &lhs, const unsigned int &rhs) noexcept { lhs = (options)((unsigned int)lhs | rhs); }
+    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs | rhs); }
+    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs | rhs); }
 
-    inline options operator|(const options &lhs, const options &rhs) noexcept { return (options)((unsigned int)lhs | (unsigned int)rhs); }
-    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)((unsigned int)lhs | (unsigned int)rhs); }
+    inline options operator|(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs | (uint64_t)rhs); }
 
-    inline unsigned int operator&(const unsigned int &lhs, const options &rhs) noexcept { return lhs & (unsigned int)rhs; }
-    inline void operator&=(unsigned int &lhs, const options &rhs) noexcept { lhs &= (unsigned int)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & (uint64_t)rhs; }
+    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= (uint64_t)rhs; }
 
-    inline options operator&(const options &lhs, const unsigned int &rhs) noexcept { return (options)((unsigned int)lhs & rhs); }
-    inline void operator&=(options &lhs, const unsigned int &rhs) noexcept { lhs = (options)((unsigned int)lhs & rhs); }
+    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs & rhs); }
+    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs & rhs); }
 
-    inline options operator&(const options &lhs, const options &rhs) noexcept { return (options)((unsigned int)lhs & (unsigned int)rhs); }
-    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = (options)((unsigned int)lhs & (unsigned int)rhs); }
+    inline options operator&(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs & (uint64_t)rhs); }
 
     enum class operation_result {
         ok,
         failed_to_open_directory
     };
 
-    operation_result macho_libraries(const char *directory_path, unsigned int options, const std::function<void(std::string &, macho::file &)> &callback);
+    operation_result macho_libraries(const char *directory_path, uint64_t options, const std::function<void(std::string &, macho::file &)> &callback);
     inline operation_result macho_libraries(const char *directory_path, options options, const std::function<void(std::string &, macho::file &)> &callback) {
-        return macho_libraries(directory_path, (unsigned int)options, callback);
+        return macho_libraries(directory_path, (uint64_t)options, callback);
     }
 
-    operation_result macho_library_paths(const char *directory_path, unsigned int options, const std::function<void(std::string &)> &callback);
+    operation_result macho_library_paths(const char *directory_path, uint64_t options, const std::function<void(std::string &)> &callback);
     inline operation_result macho_library_paths(const char *directory_path, options options, const std::function<void(std::string &)> &callback) {
-        return macho_library_paths(directory_path, (unsigned int)options, callback);
+        return macho_library_paths(directory_path, (uint64_t)options, callback);
     }
 }

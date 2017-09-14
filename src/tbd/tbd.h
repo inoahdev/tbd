@@ -56,7 +56,7 @@ namespace tbd {
 
     __attribute__((unused)) version string_to_version(const char *version) noexcept;
 
-    enum class symbol_options : unsigned int {
+    enum class symbol_options : uint64_t {
         allow_all_private_symbols    = 1 << 0,
         allow_private_normal_symbols = 1 << 1,
         allow_private_weak_symbols   = 1 << 2,
@@ -65,23 +65,23 @@ namespace tbd {
         allow_private_objc_ivars     = 1 << 5,
     };
 
-    inline unsigned int operator|(const unsigned int &lhs, const symbol_options &rhs) noexcept { return lhs | (unsigned int)rhs; }
-    inline void operator|=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs |= (unsigned int)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const symbol_options &rhs) noexcept { return lhs | (uint64_t)rhs; }
+    inline void operator|=(uint64_t &lhs, const symbol_options &rhs) noexcept { lhs |= (uint64_t)rhs; }
 
-    inline symbol_options operator|(const symbol_options &lhs, const unsigned int &rhs) noexcept { return (symbol_options)((unsigned int)lhs | rhs); }
-    inline void operator|=(symbol_options &lhs, const unsigned int &rhs) noexcept { lhs = (symbol_options)((unsigned int)lhs | rhs); }
+    inline symbol_options operator|(const symbol_options &lhs, const uint64_t &rhs) noexcept { return (symbol_options)((uint64_t)lhs | rhs); }
+    inline void operator|=(symbol_options &lhs, const uint64_t &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs | rhs); }
 
-    inline symbol_options operator|(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((unsigned int)lhs | (unsigned int)rhs); }
-    inline void operator|=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((unsigned int)lhs | (unsigned int)rhs); }
+    inline symbol_options operator|(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline void operator|=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs | (uint64_t)rhs); }
 
-    inline unsigned int operator&(const unsigned int &lhs, const symbol_options &rhs) noexcept { return lhs & (unsigned int)rhs; }
-    inline void operator&=(unsigned int &lhs, const symbol_options &rhs) noexcept { lhs &= (unsigned int)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const symbol_options &rhs) noexcept { return lhs & (uint64_t)rhs; }
+    inline void operator&=(uint64_t &lhs, const symbol_options &rhs) noexcept { lhs &= (uint64_t)rhs; }
 
-    inline symbol_options operator&(const symbol_options &lhs, const unsigned int &rhs) noexcept { return (symbol_options)((unsigned int)lhs & rhs); }
-    inline void operator&=(symbol_options &lhs, const unsigned int &rhs) noexcept { lhs = (symbol_options)((unsigned int)lhs & rhs); }
+    inline symbol_options operator&(const symbol_options &lhs, const uint64_t &rhs) noexcept { return (symbol_options)((uint64_t)lhs & rhs); }
+    inline void operator&=(symbol_options &lhs, const uint64_t &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs & rhs); }
 
-    inline symbol_options operator&(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((unsigned int)lhs & (unsigned int)rhs); }
-    inline void operator&=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((unsigned int)lhs & (unsigned int)rhs); }
+    inline symbol_options operator&(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline void operator&=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
 
     enum class creation_result {
         ok,
