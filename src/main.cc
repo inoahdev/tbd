@@ -1198,7 +1198,7 @@ int main(int argc, const char *argv[]) {
             // directory where some could be found
 
             if (local_architectures != 0 || local_architecture_overrides != 0 || local_platform != tbd::platform::none || local_options != 0 || local_tbd_version != (enum tbd::version)0) {
-                fputs("Please provide a path to a directory to recurse through\n", stderr);
+                fputs("Please provide a path to a mach-o library file or to a directory to recurse through\n", stderr);
                 return 1;
             }
         } else if (strcmp(option, "platform") == 0) {
