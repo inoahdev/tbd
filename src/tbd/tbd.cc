@@ -1929,7 +1929,7 @@ namespace tbd {
 
                         return true;
                     } else {
-                        uuid = &library_uuid;
+                        uuid = (uint8_t *)&library_uuid;
                     }
 
                     break;
