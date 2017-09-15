@@ -72,16 +72,10 @@ namespace recurse {
                         case macho::file::open_result::ok:
                             callback(directory_entry_path, directory_entry_library_file);
                             break;
+
                         case macho::file::open_result::failed_to_open_stream:
                             if (options & options::print_warnings) {
                                 fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
-                            }
-
-                            break;
-
-                        case macho::file::open_result::invalid_container:
-                            if (options & options::print_warnings) {
-                                fprintf(stderr, "Warning: Mach-o file (at path %s) is invalid\n", directory_entry_path.data());
                             }
 
                             break;
@@ -163,20 +157,13 @@ namespace recurse {
                         case macho::file::open_result::ok:
                             callback(directory_entry_path, directory_entry_library_file);
                             break;
+
                         case macho::file::open_result::failed_to_open_stream:
                             if (options & options::print_warnings) {
                                 fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
                             }
 
                             break;
-
-                        case macho::file::open_result::invalid_container:
-                            if (options & options::print_warnings) {
-                                fprintf(stderr, "Warning: Mach-o file (at path %s) is invalid\n", directory_entry_path.data());
-                            }
-
-                            break;
-
                         default:
                             break;
                     }
