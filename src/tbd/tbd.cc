@@ -284,6 +284,52 @@ namespace tbd {
         return string;
     }
 
+    void print_reexports_to_tbd_output(FILE *output, std::vector<reexport> &reexports) {
+        if (reexports.empty()) {
+            return;
+        }
+
+        fprintf(output, "%-4sre-exports:%7s", "", "");
+
+        auto reexports_begin = reexports.begin();
+        auto reexports_end = reexports.end();
+
+        auto reexports_begin_string = reexports_begin->string;
+
+        fprintf(output, "[ %s", reexports_begin_string);
+
+        const auto line_length_max = 105;
+        auto current_line_length = strlen(reexports_begin_string);
+
+        for (reexports_begin++; reexports_begin < reexports_end; reexports_begin++) {
+            const auto &reexport = *reexports_begin;
+
+            const auto reexport_string = reexport.string;
+            const auto reexport_string_length = strlen(reexport_string);
+
+            auto new_line_length = reexport_string_length + 2;
+            auto new_current_line_length = current_line_length + new_line_length;
+
+            // A line that is printed is allowed to go upto a line_length_max. An exception
+            // is made when one reexport-string is longer than line_length_max. When calculating
+            // additional line length for a reexport-string, in addition to the reexport-string-length,
+            // 2 is added for the comma and the space behind it.
+
+            if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
+                fprintf(output, ",\n%-24s", "");
+                new_current_line_length = new_line_length;
+            } else {
+                fputs(", ", output);
+                new_current_line_length++;
+            }
+
+            fputs(reexport_string, output);
+            current_line_length = new_current_line_length;
+        }
+
+        fputs(" ]\n", output);
+    }
+
     void print_reexports_to_tbd_output(FILE *output, const flags &flags, std::vector<reexport> &reexports) {
         if (reexports.empty()) {
             return;
@@ -332,6 +378,118 @@ namespace tbd {
             }
 
             fputs(reexport_string, output);
+            current_line_length = new_current_line_length;
+        }
+
+        fputs(" ]\n", output);
+    }
+
+    void print_symbols_to_tbd_output(FILE *output, std::vector<symbol> &symbols, enum symbol::type type) {
+        if (symbols.empty()) {
+            return;
+        }
+
+        // Find the first valid symbol (as determined by flags and symbol-type)
+        // as printing a symbol-list requires a special format-string being print
+        // for the first string, and a different one from the rest.
+
+        auto symbols_begin = symbols.begin();
+        auto symbols_end = symbols.end();
+
+        for (; symbols_begin < symbols_end; symbols_begin++) {
+            const auto &symbol = *symbols_begin;
+            if (symbol.type != type) {
+                continue;
+            }
+
+            break;
+        }
+
+        // If no valid symbols were found, print_symbols should
+        // return immedietly.
+
+        if (symbols_begin == symbols_end) {
+            return;
+        }
+
+        switch (type) {
+            case symbol::type::symbols:
+                fprintf(output, "%-4ssymbols:%10s", "", "");
+                break;
+
+            case symbol::type::weak_symbols:
+                fprintf(output, "%-4sweak-def-symbols: ", "");
+                break;
+
+            case symbol::type::objc_classes:
+                fprintf(output, "%-4sobjc-classes:%5s", "", "");
+                break;
+
+            case symbol::type::objc_ivars:
+                fprintf(output, "%-4sobjc-ivars:%7s", "", "");
+                break;
+        }
+
+        const auto line_length_max = 105;
+        auto symbols_begin_string = symbols_begin->string;
+
+        fputs("[ ", output);
+
+        const auto symbol_string_begin_needs_quotes = strncmp(symbols_begin_string, "$ld", 3) == 0;
+        if (symbol_string_begin_needs_quotes) {
+            fputc('\'', output);
+        }
+
+        fputs(symbols_begin_string, output);
+        if (symbol_string_begin_needs_quotes) {
+            fputc('\'', output);
+        }
+
+        auto current_line_length = strlen(symbols_begin_string);
+        for (symbols_begin++; symbols_begin < symbols_end; symbols_begin++) {
+            const auto &symbol = *symbols_begin;
+            if (symbol.type != type) {
+                continue;
+            }
+
+            // If a symbol-string has a dollar sign, quotes must be
+            // added around the string.
+
+            const auto symbol_string = symbol.string;
+            const auto symbol_string_needs_quotes = strncmp(symbol_string, "$ld", 3) == 0;
+
+            const auto symbol_string_length = strlen(symbol_string);
+
+            auto new_line_length = symbol_string_length + 2;
+            if (symbol_string_needs_quotes) {
+                new_line_length += 2;
+            }
+
+            auto new_current_line_length = current_line_length + new_line_length;
+
+            // A line that is printed is allowed to go upto a line_length_max. When
+            // calculating additional line length for a symbol, in addition to the
+            // symbol-length, 2 is added for the comma and the space behind it
+            // exception is made only when one symbol is longer than line_length_max.
+
+            if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
+                fprintf(output, ",\n%-24s", "");
+                new_current_line_length = new_line_length;
+            } else {
+                fputs(", ", output);
+                new_current_line_length++;
+            }
+
+            if (symbol_string_needs_quotes) {
+                fputc('\'', output);
+            }
+
+            fputs(symbol_string, output);
+
+            if (symbol_string_needs_quotes) {
+                fputc('\'', output);
+            }
+
             current_line_length = new_current_line_length;
         }
 
@@ -2104,29 +2262,16 @@ namespace tbd {
             }
 
             fputs(" ]\n", output);
-
-            const auto &group = groups.front();
-            const auto &group_flags = group.flags;
-
-            print_reexports_to_tbd_output(output, group_flags, reexports);
-
-            print_symbols_to_tbd_output(output, group_flags, symbols, symbol::type::symbols);
-            print_symbols_to_tbd_output(output, group_flags, symbols, symbol::type::weak_symbols);
-            print_symbols_to_tbd_output(output, group_flags, symbols, symbol::type::objc_classes);
-            print_symbols_to_tbd_output(output, group_flags, symbols, symbol::type::objc_ivars);
-
         } else {
             fprintf(output, "  - archs:%-12s[ %s ]\n", "", architecture_info->name);
-
-            const auto flags = ::flags(0);
-
-            print_reexports_to_tbd_output(output, flags, reexports);
-
-            print_symbols_to_tbd_output(output, flags, symbols, symbol::type::symbols);
-            print_symbols_to_tbd_output(output, flags, symbols, symbol::type::weak_symbols);
-            print_symbols_to_tbd_output(output, flags, symbols, symbol::type::objc_classes);
-            print_symbols_to_tbd_output(output, flags, symbols, symbol::type::objc_ivars);
         }
+
+        print_reexports_to_tbd_output(output, reexports);
+
+        print_symbols_to_tbd_output(output, symbols, symbol::type::symbols);
+        print_symbols_to_tbd_output(output, symbols, symbol::type::weak_symbols);
+        print_symbols_to_tbd_output(output, symbols, symbol::type::objc_classes);
+        print_symbols_to_tbd_output(output, symbols, symbol::type::objc_ivars);
 
         fputs("...\n", output);
         return creation_result::ok;
