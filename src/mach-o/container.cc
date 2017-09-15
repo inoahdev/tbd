@@ -421,9 +421,7 @@ namespace macho {
 
         if (container_is_64_bit) {
             for (auto i = 0; i < symbol_table_count; i++) {
-                const auto cached_symbol_table_index = sizeof(struct nlist_64) * i;
-
-                const auto &symbol_table_entry = (struct nlist_64 *)&cached_symbol_table[cached_symbol_table_index];
+                const auto &symbol_table_entry = &((struct nlist_64 *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
@@ -439,9 +437,7 @@ namespace macho {
             }
         } else {
             for (auto i = 0; i < symbol_table_count; i++) {
-                const auto cached_symbol_table_index = sizeof(struct nlist) * i;
-
-                const auto &symbol_table_entry = (struct nlist *)&cached_symbol_table[cached_symbol_table_index];
+                const auto &symbol_table_entry = &((struct nlist *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
                 if (symbol_table_entry_string_table_index > string_table_max_index) {
