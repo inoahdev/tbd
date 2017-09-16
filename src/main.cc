@@ -116,18 +116,20 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
 
 void recursively_create_directories_from_file_path_without_check(char *path, char *slash, bool create_last_as_directory) {
     auto last_slash = (const char *)nullptr;
+    auto ends_with_slash = path::ends_with_slash(slash);
+
     do {
-        // In order to avoid unnecessary (and expensive) allocations,
-        // terminate the string at the location of the forward slash
-        // and revert back after use.
-
-        slash[0] = '\0';
-
-        // If a directory ends with a '/', then we are operating on
+        // If the current-slash is the last slash in the path_string, then we are operating on
         // the last path-element which may be requested by the user to
         // not be created by the user
 
-        if (!slash[1]) {
+        slash[0] = '\0';
+
+        // Make sure if next_slash is null (and if the path ends with a forwrd-slash)
+        // then we are on the last path component, and should check `create_last_as_directory`
+
+        auto next_slash = path::find_next_slash(&slash[1]);
+        if (!next_slash && ends_with_slash) {
             if (create_last_as_directory) {
                 if (mkdir(path, 0755) != 0) {
                     fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
@@ -144,7 +146,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         slash[0] = '/';
 
         last_slash = slash;
-        slash = path::find_next_slash(&slash[1]);
+        slash = next_slash;
     } while (slash != nullptr);
 
     if (last_slash[1] != '\0') {
@@ -158,8 +160,8 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
 }
 
 char *recursively_create_directories_from_file_path(char *path, bool create_last_as_directory) {
-    // If the path starts off with multiple forward-slashes,
-    // increment the path to start at the last slash.
+    // If the path begings off with multiple forward-slashes,
+    // increment the path to begin at the last slash.
 
     if (path[1] == '/') {
         do {
@@ -167,9 +169,9 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
         } while (path[1] == '/');
     }
 
-    // If the path starts off with a forward slash, it will
+    // If the path begins off with a forward slash, it will
     // result in the while loop running on a path that is
-    // empty. To avoid this, start the search at the first
+    // empty. To avoid this, begin the search at the first
     // index.
 
     auto last_slash = (char *)nullptr;
@@ -185,7 +187,12 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
         slash[0] = '\0';
 
         if (access(path, F_OK) != 0) {
-            return_value = last_slash;
+            // Set return-value to the first character
+            // of the path-component that is being created
+            // so other functions know which component is
+            // being used
+
+            return_value = &last_slash[1];
 
             // If a directory doesn't exist, it's assumed the sub-directories
             // won't exist either, so avoid additional calls to access()
@@ -194,19 +201,17 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
             recursively_create_directories_from_file_path_without_check(path, slash, create_last_as_directory);
 
             last_slash = slash;
-            slash[0] = '/';
-
             break;
+        } else {
+            slash[0] = '/';
         }
-
-        slash[0] = '/';
 
         last_slash = slash;
         slash = path::find_next_slash(&slash[1]);
     }
 
     if (!return_value) {
-        return_value = last_slash;
+        return_value = &last_slash[1];
 
         if (create_last_as_directory) {
             if (access(path, F_OK) != 0) {
@@ -221,18 +226,18 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     return return_value;
 }
 
-void recursively_remove_directories_from_file_path(char *path, char *start, char *end = nullptr) {
+void recursively_remove_directories_from_file_path(char *path, char *begin, char *end = nullptr) {
     // Set end-index to the null-terminator
     // (if unprovided).
 
     if (!end) {
-        end = start;
+        end = begin;
         while (*end != '\0') {
             end++;
         }
     }
 
-    if ((uint64_t)start >= (uint64_t)end) {
+    if ((uint64_t)begin >= (uint64_t)end) {
         return;
     }
 
@@ -246,14 +251,16 @@ void recursively_remove_directories_from_file_path(char *path, char *start, char
             fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
             return;
         }
+    } else {
+        return;
     }
 
     end[0] = end_char;
 
     auto last_slash = (char *)nullptr;
-    auto slash = path::find_last_slash(start, end);
+    auto slash = path::find_last_slash(begin, end);
 
-    while (slash != last_slash) {
+    while (*slash == '/') {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
@@ -261,15 +268,13 @@ void recursively_remove_directories_from_file_path(char *path, char *start, char
         last_slash = slash;
         slash[0] = '\0';
 
-        if (access(path, F_OK) == 0) {
-            if (remove(path) != 0) {
-                fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
-                return;
-            }
+        if (remove(path) != 0) {
+            fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
+            return;
         }
 
         slash[0] = '/';
-        slash = path::find_last_slash(start, slash);
+        slash = path::find_last_slash(begin, slash);
     }
 }
 
@@ -974,12 +979,15 @@ int main(int argc, const char *argv[]) {
                             path.append(1, '/');
                         }
 
-                        if (access(path.data(), F_OK) != 0) {
-                            // If an output-directory does not exist, it is expected
-                            // to be created.
+                        // If an output-directory does not exist, it is expected
+                        // to be created.
 
-                            recursively_create_directories_from_file_path(path.data(), true);
-                        }
+                        // Do not call access here as access() is already called multiple
+                        // times within `recursively_create_directories_from_file_path`, and
+                        // `recursively_create_directories_from_file_path` only creates directories
+                        // if they don't exist
+
+                        recursively_create_directories_from_file_path(path.data(), true);
                     }
                 }
 
@@ -1339,18 +1347,13 @@ int main(int argc, const char *argv[]) {
                     // should_print_paths is always true for recursing,
                     // so a check here is unnecessary
 
-                    fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
                     return;
                 }
 
                 const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: tbd.architectures, tbd.architecture_overrides ?: tbd.architecture_overrides, creation_handling_print_paths);
                 if (!result) {
-                    // Start at recursive_directory_creation_ptr + 1
-                    // to skip the slash at the recursive_directory_creation_ptr
-                    // so `recursively_remove_directories_from_file_path` deosn't
-                    // remove parent directories
-
-                    recursively_remove_directories_from_file_path(output_path.data(), &recursive_directory_creation_ptr[1]);
+                    recursively_remove_directories_from_file_path(output_path.data(), recursive_directory_creation_ptr);
                 }
 
                 fclose(output_file);
@@ -1462,12 +1465,7 @@ int main(int argc, const char *argv[]) {
             const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
             if (!result) {
                 if (!tbd_output_path.empty()) {
-                    // Start at recursive_directory_creation_ptr + 1
-                    // to skip the slash at the recursive_directory_creation_ptr
-                    // so `recursively_remove_directories_from_file_path` deosn't
-                    // remove parent directories
-
-                    recursively_remove_directories_from_file_path(tbd_output_path.data(), &recursive_directory_creation_ptr[1]);
+                    recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_ptr);
                 }
             }
 

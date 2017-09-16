@@ -6,6 +6,7 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include <string.h>
 #include <utility>
 
 namespace path {
@@ -23,23 +24,12 @@ namespace path {
         return iter;
     }
 
-    inline char *find_next_slash(char *string) {
-        auto iter = string;
-        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
-            iter++;
-        }
-
-        while (*iter != '\0' && (iter[1] == '/' || iter[1] == '\\')) {
-            iter++;
-        }
-
-        return iter;
-    }
+    char *find_next_slash(char *string);
 
     template <typename T>
-    T find_last_slash(const T &start, const T &end) {
+    T find_last_slash(const T &begin, const T &end) {
         auto iter = end - 1;
-        while (iter >= start) {
+        while (iter != begin) {
             if (*iter == '/' || *iter == '\\') {
                 break;
             }
@@ -50,27 +40,12 @@ namespace path {
         return iter;
     }
 
-    inline char *find_last_slash(char *string) {
-        auto iter = string;
-        while (true) {
-            if (*iter == '\0') {
-                return nullptr;
-            }
-
-            if (*iter == '/' || *iter == '\\') {
-                break;
-            }
-
-            ++iter;
-        }
-
-        return iter;
-    }
+    char *find_last_slash(char *string);
 
     template <typename T>
-    T find_last_slash_in_front_of_pattern(const T &start, const T &end) {
+    T find_last_slash_in_front_of_pattern(const T &begin, const T &end) {
         auto iter = end - 1;
-        while (iter >= start) {
+        while (iter >= begin) {
             if (*iter == '/' || *iter == '\\') {
                 break;
             }
@@ -78,7 +53,7 @@ namespace path {
             --iter;
         }
 
-        while (iter >= start) {
+        while (iter >= begin) {
             if (iter[-1] != '/' && iter[-1] != '\\') {
                 break;
             }
@@ -175,4 +150,11 @@ namespace path {
     inline std::pair<char *, char *> find_last_component(char *string) {
         return find_last_component(string, &string[strlen(string)]);
     }
+
+    template <typename T>
+    inline bool ends_with_slash(const T &begin, const T &end) {
+        return *(end - 1) == '/';
+    }
+
+    bool ends_with_slash(char *string);
 }
