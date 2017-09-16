@@ -160,7 +160,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
 }
 
 char *recursively_create_directories_from_file_path(char *path, bool create_last_as_directory) {
-    // If the path begings off with multiple forward-slashes,
+    // If the path begins off with multiple forward-slashes,
     // increment the path to begin at the last slash.
 
     if (path[1] == '/') {
@@ -1167,8 +1167,6 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
                             return 1;
                         }
-
-                        tbd.path = path;
                     } else {
                         fprintf(stderr, "Object (at path %s) is not a regular file\n", path.data());
                         return 1;
@@ -1193,6 +1191,7 @@ int main(int argc, const char *argv[]) {
                 // path was provided
 
                 local_architectures = 0;
+                local_architecture_overrides = 0;
 
                 local_options = 0;
                 local_platform = tbd::platform::none;
