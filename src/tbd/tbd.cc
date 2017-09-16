@@ -1164,10 +1164,6 @@ namespace tbd {
                 library_swift_version = local_swift_version;
             }
 
-            if (version == version::v2 && !(library_uuids.size() != library_container_size)) {
-                return creation_result::has_no_uuid;
-            }
-
             auto library_container_symbols_iteration_result = library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
                 const auto &symbol_table_entry_type = symbol_table_entry.n_type;
                 if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
@@ -2049,12 +2045,10 @@ namespace tbd {
             const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
             if (!(options & symbol_options::allow_all_private_symbols)) {
-                const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
-
                 switch (symbol_type) {
                     case symbol::type::symbols:
                         if (!(options & symbol_options::allow_private_normal_symbols)) {
-                            if (!symbol_type_is_external) {
+                            if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                 return true;
                             }
                         }
@@ -2063,7 +2057,7 @@ namespace tbd {
 
                     case symbol::type::weak_symbols:
                         if (!(options & symbol_options::allow_private_weak_symbols)) {
-                            if (!symbol_type_is_external) {
+                            if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                 return true;
                             }
                         }
@@ -2073,7 +2067,7 @@ namespace tbd {
                     case symbol::type::objc_classes:
                         if (!(options & symbol_options::allow_private_objc_symbols)) {
                             if (!(options & symbol_options::allow_private_objc_classes)) {
-                                if (!symbol_type_is_external) {
+                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -2084,7 +2078,7 @@ namespace tbd {
                     case symbol::type::objc_ivars:
                         if (!(options & symbol_options::allow_private_objc_symbols)) {
                             if (!(options & symbol_options::allow_private_objc_ivars)) {
-                                if (!symbol_type_is_external) {
+                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -2136,9 +2130,6 @@ namespace tbd {
 
             return strcmp(lhs_string, rhs_string) < 0;
         });
-
-        auto groups = std::vector<group>();
-        groups.emplace_back();
 
         fputs("---", output);
         if (version == version::v2) {
