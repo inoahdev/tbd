@@ -991,7 +991,7 @@ int main(int argc, const char *argv[]) {
                     }
                 }
 
-                tbd.output_path = path;
+                tbd.output_path = std::move(path);
                 provided_output_path = true;
 
                 break;
@@ -1385,7 +1385,6 @@ int main(int argc, const char *argv[]) {
                     } else {
                         fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
                     }
-
 
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
