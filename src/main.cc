@@ -461,14 +461,12 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             break;
 
         case tbd::creation_result::no_provided_architectures:
-            if (creation_handling_options & creation_handling_ignore_no_provided_architectures) {
-                return true;
-            }
-
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s) does not have architectures provided to output tbd from\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file does not have architectures provided to output tbd from\n", stderr);
+            if (!(creation_handling_options & creation_handling_ignore_no_provided_architectures)) {
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s) does not have architectures provided to output tbd from\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file does not have architectures provided to output tbd from\n", stderr);
+                }
             }
 
             break;
