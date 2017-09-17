@@ -14,6 +14,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <utility>
+
 #include "flags.h"
 
 flags::flags(flags_integer_t length)
@@ -32,7 +34,7 @@ flags::flags(flags_integer_t length)
     }
 }
 
-flags::flags(const flags &flags) :
+flags::flags(const flags &flags) noexcept :
 length(flags.length) {
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
@@ -51,8 +53,8 @@ length(flags.length) {
     }
 }
 
-flags::flags(flags &&flags) {
-    bits.integer = flags.bits.integer;
+flags::flags(flags &&flags) noexcept
+: bits(flags.bits) {
     flags.bits.integer = 0;
 }
 
@@ -119,4 +121,36 @@ bool flags::operator==(const flags &flags) const noexcept {
     } else {
         return bits.integer == flags.bits.integer;
     }
+}
+
+flags &flags::operator=(const flags &flags) noexcept {
+    length = flags.length;
+
+    const auto bit_size = this->bit_size();
+    if (length > bit_size) {
+        auto size = (size_t)((double)length / (double)bit_size) + 1;
+        auto allocation_size = sizeof(flags_integer_t) * size;
+
+        bits.pointer = (flags_integer_t *)malloc(allocation_size);
+        if (!bits.pointer) {
+            fprintf(stderr, "Failed to allocate data of size (%ld), failing with error (%s)\n", size, strerror(errno));
+            exit(1);
+        }
+
+        memcpy(bits.pointer, flags.bits.pointer, allocation_size);
+    } else {
+        bits.integer = flags.bits.integer;
+    }
+
+    return *this;
+}
+
+flags &flags::operator=(flags &&flags) noexcept {
+    length = flags.length;
+    bits.integer = flags.bits.integer;
+
+    flags.length = 0;
+    flags.bits.integer = 0;
+
+    return *this;
 }

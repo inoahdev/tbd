@@ -20,8 +20,8 @@ public:
     explicit flags() = default;
     explicit flags(flags_integer_t length);
 
-    explicit flags(const flags &);
-    explicit flags(flags &&);
+    explicit flags(const flags &) noexcept;
+    explicit flags(flags &&) noexcept;
 
     ~flags();
 
@@ -37,6 +37,9 @@ public:
 
     bool operator==(const flags &flags) const noexcept;
     inline bool operator!=(const flags &flags) const noexcept { return !(*this == flags); }
+
+    flags &operator=(const flags &) noexcept;
+    flags &operator=(flags &&) noexcept;
 
 private:
     flags_integer_t length = 0;
