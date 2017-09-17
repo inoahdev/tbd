@@ -19,7 +19,9 @@ class flags {
 public:
     explicit flags() = default;
     explicit flags(flags_integer_t length);
+
     explicit flags(const flags &);
+    explicit flags(flags &&);
 
     ~flags();
 

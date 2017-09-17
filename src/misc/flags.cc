@@ -51,6 +51,11 @@ length(flags.length) {
     }
 }
 
+flags::flags(flags &&flags) {
+    bits.integer = flags.bits.integer;
+    flags.bits.integer = 0;
+}
+
 flags::~flags() {
     if (length > bit_size()) {
         free(bits.pointer);
