@@ -295,7 +295,7 @@ namespace macho {
             });
 
             if (!symbol_table) {
-                return symbols_iteration_result::ok;
+                return symbols_iteration_result::no_symbol_table_load_command;
             }
         }
 
