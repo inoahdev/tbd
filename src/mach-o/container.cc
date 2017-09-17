@@ -216,8 +216,6 @@ namespace macho {
 
         auto size_used = 0;
         if (!cached_load_commands) {
-            cached_load_commands = new uint8_t[sizeofcmds];
-
             auto load_command_base = base + sizeof(header);
             if (is_64_bit()) {
                 load_command_base += sizeof(uint32_t);
@@ -229,7 +227,12 @@ namespace macho {
                 return load_command_iteration_result::stream_seek_error;
             }
 
+            cached_load_commands = new uint8_t[sizeofcmds];
+
             if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
+                delete[] cached_load_commands;
+                cached_load_commands = nullptr;
+
                 return load_command_iteration_result::stream_read_error;
             }
 
@@ -285,8 +288,8 @@ namespace macho {
 
         auto &symbol_table = symbol_table_;
         if (!symbol_table) {
-            iterate_load_commands([&](const struct load_command *load_cmd, const struct load_command *load_command) {
-                if (load_cmd->cmd != load_commands::symbol_table) {
+            iterate_load_commands([&](const struct load_command *swapped, const struct load_command *load_command) {
+                if (swapped->cmd != load_commands::symbol_table) {
                     return true;
                 }
 
@@ -328,13 +331,16 @@ namespace macho {
                 return symbols_iteration_result::invalid_string_table;
             }
 
-            cached_string_table = new char[string_table_size];
-
             if (fseek(stream, base + string_table_location, SEEK_SET) != 0) {
                 return symbols_iteration_result::stream_seek_error;
             }
 
+            cached_string_table = new char[string_table_size];
+
             if (fread(cached_string_table, string_table_size, 1, stream) != 1) {
+                delete[] cached_string_table;
+                cached_string_table = nullptr;
+
                 return symbols_iteration_result::stream_read_error;
             }
         }
@@ -380,6 +386,9 @@ namespace macho {
                 cached_symbol_table = new uint8_t[symbol_table_size];
 
                 if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    delete[] cached_symbol_table;
+                    cached_symbol_table = nullptr;
+
                     return symbols_iteration_result::stream_read_error;
                 }
 
@@ -400,6 +409,9 @@ namespace macho {
                 cached_symbol_table = new uint8_t[symbol_table_size];
 
                 if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    delete[] cached_symbol_table;
+                    cached_symbol_table = nullptr;
+
                     return symbols_iteration_result::stream_read_error;
                 }
 
