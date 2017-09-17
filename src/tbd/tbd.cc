@@ -1176,12 +1176,10 @@ namespace tbd {
                 const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
                 if (!(options & symbol_options::allow_all_private_symbols)) {
-                    const auto symbol_type_is_external = symbol_table_entry_type & macho::symbol_table::flags::external ? true : false;
-
                     switch (symbol_type) {
                         case symbol::type::symbols:
                             if (!(options & symbol_options::allow_private_normal_symbols)) {
-                                if (!symbol_type_is_external) {
+                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -1190,7 +1188,7 @@ namespace tbd {
 
                         case symbol::type::weak_symbols:
                             if (!(options & symbol_options::allow_private_weak_symbols)) {
-                                if (!symbol_type_is_external) {
+                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -1200,7 +1198,7 @@ namespace tbd {
                         case symbol::type::objc_classes:
                             if (!(options & symbol_options::allow_private_objc_symbols)) {
                                 if (!(options & symbol_options::allow_private_objc_classes)) {
-                                    if (!symbol_type_is_external) {
+                                    if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                         return true;
                                     }
                                 }
@@ -1211,7 +1209,7 @@ namespace tbd {
                         case symbol::type::objc_ivars:
                             if (!(options & symbol_options::allow_private_objc_symbols)) {
                                 if (!(options & symbol_options::allow_private_objc_ivars)) {
-                                    if (!symbol_type_is_external) {
+                                    if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
                                         return true;
                                     }
                                 }
