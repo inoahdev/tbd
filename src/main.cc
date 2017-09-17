@@ -38,7 +38,7 @@ const char *retrieve_current_directory() {
         const auto current_directory_length = strlen(current_directory_string);
         const auto &current_directory_back = current_directory_string[current_directory_length - 1];
 
-        if (current_directory_back != '/') {
+        if (current_directory_back != '/' && current_directory_back != '\\') {
             // As current_directory is a path to a directory,
             // the caller of this function expects to have a
             // path ending with a forward slash.
@@ -68,7 +68,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
         // Quickly filter out an option or path instead of a (relatively)
         // expensive call to macho::architecture_info_from_name().
 
-        if (architecture_string_front == '-' || architecture_string_front == '/') {
+        if (architecture_string_front == '-' || architecture_string_front == '/' || architecture_string_front == '\\') {
             // If the architectures vector is empty, the user did not provide any architectures
             // but did provided the architecture option, which requires at least one architecture
             // being provided.
@@ -123,6 +123,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         // the last path-element which may be requested by the user to
         // not be created by the user
 
+        auto slash_char = slash[0];
         slash[0] = '\0';
 
         // Make sure if next_slash is null (and if the path ends with a forwrd-slash)
@@ -143,7 +144,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
             }
         }
 
-        slash[0] = '/';
+        slash[0] = slash_char;
 
         last_slash = slash;
         slash = next_slash;
@@ -163,10 +164,10 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     // If the path begins off with multiple forward-slashes,
     // increment the path to begin at the last slash.
 
-    if (path[1] == '/') {
+    if (path[1] == '/' || path[1] == '\\') {
         do {
             path++;
-        } while (path[1] == '/');
+        } while (path[1] == '/' || path[1] == '\\');
     }
 
     // If the path begins off with a forward slash, it will
@@ -184,6 +185,7 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
         // terminate the string at the location of the forward slash
         // and revert back after use.
 
+        auto slash_char = slash[0];
         slash[0] = '\0';
 
         if (access(path, F_OK) != 0) {
@@ -198,12 +200,13 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
             // won't exist either, so avoid additional calls to access()
             // by directly calling mkdir.
 
+            slash[0] = slash_char;
             recursively_create_directories_from_file_path_without_check(path, slash, create_last_as_directory);
 
             last_slash = slash;
             break;
         } else {
-            slash[0] = '/';
+            slash[0] = slash_char;
         }
 
         last_slash = slash;
@@ -260,12 +263,14 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
     auto last_slash = (char *)nullptr;
     auto slash = path::find_last_slash(begin, end);
 
-    while (*slash == '/') {
+    while (*slash == '/' || *slash == '\\') {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
 
         last_slash = slash;
+
+        auto slash_char = slash[0];
         slash[0] = '\0';
 
         if (remove(path) != 0) {
@@ -273,7 +278,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
             return;
         }
 
-        slash[0] = '/';
+        slash[0] = slash_char;
         slash = path::find_last_slash(begin, slash);
     }
 }
@@ -704,7 +709,7 @@ int main(int argc, const char *argv[]) {
                         continue;
                     }
 
-                    if (argument_front != '/') {
+                    if (argument_front != '/' && argument_front != '\\') {
                         auto path = std::string();
                         auto current_directory = retrieve_current_directory();
 
@@ -916,7 +921,7 @@ int main(int argc, const char *argv[]) {
                 auto path = std::string(argument);
                 if (path != "stdout") {
                     const auto &path_front = path.front();
-                    if (path_front != '/') {
+                    if (path_front != '/' && path_front != '\\') {
                         // If the user-provided path-string does not begin with
                         // a forward slash, it is assumed that the path exists
                         // in the current-directory.
@@ -960,7 +965,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         const auto &path_back = path.back();
-                        if (path_back != '/') {
+                        if (path_back != '/' && path_back != '\\') {
                             path.append(1, '/');
                         }
                     } else {
@@ -975,7 +980,7 @@ int main(int argc, const char *argv[]) {
                 } else {
                     if (tbd_options & recurse_directories) {
                         const auto &path_back = path.back();
-                        if (path_back != '/') {
+                        if (path_back != '/' && path_back != '\\') {
                             path.append(1, '/');
                         }
 
@@ -1137,7 +1142,7 @@ int main(int argc, const char *argv[]) {
                 // a forward slash, it is assumed that the path exists
                 // in the current-directory
 
-                if (path_front != '/') {
+                if (path_front != '/' && path_front != '\\') {
                     path.insert(0, retrieve_current_directory());
                 }
 
@@ -1157,7 +1162,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     const auto &path_back = path.back();
-                    if (path_back != '/') {
+                    if (path_back != '/' && path_back != '\\') {
                         path.append(1, '/');
                     }
                 } else {
@@ -1326,7 +1331,7 @@ int main(int argc, const char *argv[]) {
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;
                 } else {
-                    output_path_front = library_path.find_last_of('/');
+                    output_path_front = path::find_last_slash(library_path.begin(), library_path.end()) - library_path.begin();
                 }
 
                 auto output_path = library_path.substr(output_path_front);
@@ -1389,9 +1394,9 @@ int main(int argc, const char *argv[]) {
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
                     if (should_print_paths) {
-                        fprintf(stderr, "Encountered an error while reading through file, file (at path %s) is likely not a valid mach-o. Reading failed with error (%s)\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error (%s)\n", tbd_path.data(), strerror(ferror(library_file.stream)));
                     } else {
-                        fprintf(stderr, "Encountered an error while reading through file, file at provided path is likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(library_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(library_file.stream)));
                     }
 
                     break;

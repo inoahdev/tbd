@@ -17,8 +17,11 @@ namespace path {
             iter++;
         }
 
-        while (iter != end && (iter[1] == '/' || iter[1] == '\\')) {
-            iter++;
+        if (iter != end) {
+            auto back = end - 1;
+            while (iter != back && (iter[1] == '/' || iter[1] == '\\')) {
+                iter++;
+            }
         }
 
         return iter;
@@ -37,6 +40,10 @@ namespace path {
             --iter;
         }
 
+        if (*iter != '/' && *iter != '\\') {
+            return end;
+        }
+
         return iter;
     }
 
@@ -53,7 +60,7 @@ namespace path {
             --iter;
         }
 
-        while (iter >= begin) {
+        while (iter > begin) {
             if (iter[-1] != '/' && iter[-1] != '\\') {
                 break;
             }
@@ -97,6 +104,23 @@ namespace path {
             while (end_slash != begin && (end_slash[-1] == '/' || end_slash[-1] == '\\')) {
                 --end_slash;
             }
+
+            // If end_slash went back to begin, two situations exist, either
+            // no slash was found, and we should return the entire range or
+            // the only slash found was the one at begin, in which case we
+            // should return that one slash
+
+            if (end_slash == begin) {
+                // '/' or '\' is the first path component, returned here
+                // if the slash found is at the beginning of the
+                // string
+
+                if (*end_slash == '/' || *end_slash == '\\') {
+                    return std::make_pair(begin, end_slash + 1);
+                }
+
+                return std::make_pair(begin, end);
+            }
         } else {
             // If end_slash is not a terminating
             // slash for the path-component, set
@@ -105,27 +129,10 @@ namespace path {
             end_slash = end;
         }
 
-        // If end_slash went back to begin, two situations exist, either
-        // no slash was found, and we should return the entire range or
-        // the only slash found was the one at begin, in which case we
-        // should return that one slash
-
-        if (end_slash == begin) {
-            // '/' or '\' is the first path component, returned here
-            // if the slash found is at the beginning of the
-            // string
-
-            if (*end_slash == '/' || *end_slash == '\\') {
-                return std::make_pair(begin, end_slash + 1);
-            }
-
-            return std::make_pair(begin, end);
-        }
-
         T component_begin = find_last_slash(begin, end_slash);
         if (component_begin == end_slash) {
             // If we don't happen to find a
-            // slash, return the whole string
+            // slash, return from beginning
 
             component_begin = begin;
         } else {
@@ -153,7 +160,7 @@ namespace path {
 
     template <typename T>
     inline bool ends_with_slash(const T &begin, const T &end) {
-        return *(end - 1) == '/';
+        return end[-1] == '/' || end[-1] == '\\';
     }
 
     bool ends_with_slash(char *string);

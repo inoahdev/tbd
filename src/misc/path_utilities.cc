@@ -14,7 +14,7 @@ namespace path {
         while (*iter != '\0' && *iter != '/' && *iter != '\\') {
             iter++;
         }
-        
+
         while (*iter != '\0' && (iter[1] == '/' || iter[1] == '\\')) {
             iter++;
         }
