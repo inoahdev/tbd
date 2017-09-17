@@ -535,9 +535,9 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        recurse_directories = 1 << 8, // Use second-byte to support tbd-symbol options
+        recurse_directories    = 1 << 8, // Use second-byte to support tbd-symbol options
         recurse_subdirectories = 1 << 9,
-        maintain_directories = 1 << 10,
+        maintain_directories   = 1 << 10,
     };
 
     typedef struct tbd_file {
@@ -1388,6 +1388,12 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
+                    if (should_print_paths) {
+                        fprintf(stderr, "Encountered an error while reading through file, file (at path %s) is likely not a valid mach-o. Reading failed with error (%s)\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                    } else {
+                        fprintf(stderr, "Encountered an error while reading through file, file at provided path is likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(library_file.stream)));
+                    }
+
                     break;
 
                 case macho::file::open_result::zero_architectures: {
@@ -1461,13 +1467,12 @@ int main(int argc, const char *argv[]) {
             }
 
             const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
-            if (!result) {
-                if (!tbd_output_path.empty()) {
+
+            if (!tbd_output_path.empty()) {
+                if (!result) {
                     recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_ptr);
                 }
-            }
 
-            if (output_file != stdout) {
                 fclose(output_file);
             }
         }
