@@ -310,7 +310,7 @@ namespace tbd {
             auto new_line_length = reexport_string_length + 2;
             auto new_current_line_length = current_line_length + new_line_length;
 
-            // A line that is printed is allowed to go upto a line_length_max. An exception
+            // A line that is printed is allowed to go up to a line_length_max. An exception
             // is made when one reexport-string is longer than line_length_max. When calculating
             // additional line length for a reexport-string, in addition to the reexport-string-length,
             // 2 is added for the comma and the space behind it.
@@ -364,7 +364,7 @@ namespace tbd {
             auto new_line_length = reexport_string_length + 2;
             auto new_current_line_length = current_line_length + new_line_length;
 
-            // A line that is printed is allowed to go upto a line_length_max. An exception
+            // A line that is printed is allowed to go up to a line_length_max. An exception
             // is made when one reexport-string is longer than line_length_max. When calculating
             // additional line length for a reexport-string, in addition to the reexport-string-length,
             // 2 is added for the comma and the space behind it.
@@ -406,7 +406,7 @@ namespace tbd {
         }
 
         // If no valid symbols were found, print_symbols should
-        // return immedietly.
+        // return immediately.
 
         if (symbols_begin == symbols_end) {
             return;
@@ -467,7 +467,7 @@ namespace tbd {
 
             auto new_current_line_length = current_line_length + new_line_length;
 
-            // A line that is printed is allowed to go upto a line_length_max. When
+            // A line that is printed is allowed to go up to a line_length_max. When
             // calculating additional line length for a symbol, in addition to the
             // symbol-length, 2 is added for the comma and the space behind it
             // exception is made only when one symbol is longer than line_length_max.
@@ -527,7 +527,7 @@ namespace tbd {
         }
 
         // If no valid symbols were found, print_symbols should
-        // return immedietly.
+        // return immediately.
 
         if (symbols_begin == symbols_end) {
             return;
@@ -595,7 +595,7 @@ namespace tbd {
 
             auto new_current_line_length = current_line_length + new_line_length;
 
-            // A line that is printed is allowed to go upto a line_length_max. When
+            // A line that is printed is allowed to go up to a line_length_max. When
             // calculating additional line length for a symbol, in addition to the
             // symbol-length, 2 is added for the comma and the space behind it
             // exception is made only when one symbol is longer than line_length_max.
