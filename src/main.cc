@@ -85,7 +85,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
         if (!architecture_info || !architecture_info->name) {
             // macho::architecture_info_from_name() returning nullptr can be the result of one
             // of two scenarios, The string stored in architecture being invalid,
-            // such as being mispelled, or the string being the path object inevitebly
+            // such as being misspelled, or the string being the path object inevitably
             // following the architecture argument.
 
             // If the architectures vector is empty, the user did not provide any architectures
@@ -126,7 +126,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         auto slash_char = slash[0];
         slash[0] = '\0';
 
-        // Make sure if next_slash is null (and if the path ends with a forwrd-slash)
+        // Make sure if next_slash is null (and if the path ends with a forward-slash)
         // then we are on the last path component, and should check `create_last_as_directory`
 
         auto next_slash = path::find_next_slash(&slash[1]);
@@ -176,10 +176,9 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     // index.
 
     auto last_slash = (char *)nullptr;
-    auto slash = path::find_next_slash(&path[1]);
-
     auto return_value = (char *)nullptr;
 
+    auto slash = path::find_next_slash(&path[1]);
     while (slash != nullptr) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
@@ -488,7 +487,7 @@ void print_usage() {
     fputs("Usage: tbd [-p file-paths] [-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
-    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overriden. Can also provide \"stdout\" to print to stdout\n", stdout);
+    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
     fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd\n", stdout);
     fputs("    -u, --usage,    Print this message\n", stdout);
 
@@ -496,7 +495,7 @@ void print_usage() {
     fputs("Path options:\n", stdout);
     fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform platform] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
     fputs("    -a, --arch,     Specify architecture(s) to output to tbd\n", stdout);
-    fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provieded mach-o file(s)\n", stdout);
+    fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provided mach-o file(s)\n", stdout);
     fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
     fputs("    -r, --recurse,  Specify directory to recurse and find mach-o library files in\n", stdout);
     fputs("    -v, --version,  Specify version of tbd to convert to (default is v2)\n", stdout);
@@ -511,7 +510,7 @@ void print_usage() {
     fputs("    -a, --arch,     Specify architecture(s) to output to tbd (where architectures were not already specified)\n", stdout);
     fputs("        --archs,    Specify architecture(s) to override architectures found in file (where default architecture-overrides were not already provided)\n", stdout);
     fputs("        --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)\n", stdout);
-    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)\n", stdout);
+    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
@@ -781,7 +780,7 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path_data, strerror(errno));
                         }
 
-                        // Print a newline between each pair for readibility
+                        // Print a newline between each pair for readability
                         // purposes, But an extra new-line is not needed for the
                         // last pair
 
@@ -804,7 +803,7 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Failed to open file (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
                         } else {
                             // As the user provided only one path to a specific mach-o library file,
-                            // --list-macho-libraries is expected to explicity print out whether or
+                            // --list-macho-libraries is expected to explicitly print out whether or
                             // not the provided mach-o library file is valid.
 
                             if (path_is_library) {
@@ -930,7 +929,7 @@ int main(int argc, const char *argv[]) {
 
                 const auto tbds_size = tbds.size();
                 if (output_paths_index >= tbds_size) {
-                    fprintf(stderr, "No coresponding mach-o files for output-path (%s, at index %d)\n", path.data(), output_paths_index);
+                    fprintf(stderr, "No corresponding mach-o files for output-path (%s, at index %d)\n", path.data(), output_paths_index);
                     return 1;
                 }
 
@@ -1016,8 +1015,8 @@ int main(int argc, const char *argv[]) {
             }
 
             // To parse options for the path command in the middle of an
-            // argument list, while also keeping a similar argument and option
-            // stype, the path option handles custom output options in between
+            // argument list, while also keeping a similar argument and options
+            // type, the path option handles custom output options in between
             // the path option argument and the mach-o library path argument.
 
             auto local_architectures = uint64_t();
