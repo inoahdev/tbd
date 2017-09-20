@@ -21,8 +21,8 @@ namespace macho {
         explicit container(const container &) = delete;
         explicit container(container &&) noexcept;
 
-        container& operator=(const container &) = delete;
-        container& operator=(container &&) noexcept;
+        container &operator=(const container &) = delete;
+        container &operator=(container &&) noexcept;
 
         ~container();
 
@@ -50,6 +50,8 @@ namespace macho {
 
         open_result open(FILE *stream, long base = 0, size_t size = 0) noexcept;
         open_result open_from_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
+
+        open_result open_copy(const container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
 
         enum class load_command_iteration_result {
             ok,

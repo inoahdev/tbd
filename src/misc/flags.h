@@ -18,9 +18,8 @@ typedef uint32_t flags_integer_t;
 class flags {
 public:
     explicit flags() = default;
-    explicit flags(flags_integer_t length);
 
-    explicit flags(const flags &) noexcept;
+    explicit flags(const flags &) = delete;
     explicit flags(flags &&) noexcept;
 
     ~flags();
@@ -30,6 +29,14 @@ public:
         flags_integer_t *pointer;
     } bits;
 
+    enum class creation_result {
+        ok,
+        failed_to_allocate_memory
+    };
+
+    creation_result create(flags_integer_t length);
+    creation_result create_copy(const flags &flags);
+
     void cast(flags_integer_t index, bool flag) noexcept;
     bool at(flags_integer_t index) const noexcept;
 
@@ -38,7 +45,7 @@ public:
     bool operator==(const flags &flags) const noexcept;
     inline bool operator!=(const flags &flags) const noexcept { return !(*this == flags); }
 
-    flags &operator=(const flags &) noexcept;
+    flags &operator=(const flags &) = delete;
     flags &operator=(flags &&) noexcept;
 
 private:

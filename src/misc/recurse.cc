@@ -164,6 +164,7 @@ namespace recurse {
                             }
 
                             break;
+
                         default:
                             break;
                     }

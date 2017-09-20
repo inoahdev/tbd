@@ -14,6 +14,12 @@
 #include "file.h"
 
 namespace macho {
+    file::file(file &&file) noexcept :
+    stream(file.stream), magic(file.magic), containers(std::move(file.containers)) {
+        file.stream = nullptr;
+        file.magic = magic::normal;
+    }
+
     file::open_result file::open(const char *path) noexcept {
         auto descriptor = ::open(path, O_RDONLY);
         if (descriptor == -1) {
@@ -494,11 +500,10 @@ namespace macho {
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
 
-                    auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
                     // Avoid rechecking by not calling container::open_from_library.
-                    container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -541,11 +546,10 @@ namespace macho {
                     this->magic = magic;
                     this->stream = fdopen(descriptor, "r");
 
-                    auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
                     // Avoid rechecking by not calling container::open_from_library.
-                    container_open_result = container.open(stream);
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream);
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -654,11 +658,10 @@ namespace macho {
             for (auto i = 0; i < nfat_arch; i++) {
                 const auto &architecture = architectures[i];
 
-                auto container = macho::container();
-                auto container_open_result = container::open_result::ok;
-
                 // Avoid rechecking by not calling container::open_from_library.
-                container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                auto container = macho::container();
+                auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                 switch (container_open_result) {
                     case container::open_result::ok:
@@ -801,11 +804,10 @@ namespace macho {
                         this->stream = fopen(path, mode);
                     }
 
-                    auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
                     // Avoid rechecking by not calling container::open_from_library.
-                    container_open_result = container.open(stream);
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream);
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -836,6 +838,56 @@ namespace macho {
         }
 
         return open_result::ok;
+    }
+
+    file::open_result file::open_copy(const file &file) {
+        stream = freopen(nullptr, "r", file.stream);
+        if (!stream) {
+            return open_result::failed_to_open_stream;
+        }
+
+        magic = file.magic;
+        containers.reserve(file.containers.size());
+
+        for (auto &container : file.containers) {
+            auto new_container = macho::container();
+            new_container.open_copy(container, stream);
+
+            containers.emplace_back(std::move(new_container));
+        }
+
+        return open_result::ok;
+    }
+
+    file::open_result file::open_copy(const file &file, const char *mode) {
+        stream = freopen(nullptr, mode, file.stream);
+        if (!stream) {
+            return open_result::failed_to_open_stream;
+        }
+
+        magic = file.magic;
+        containers.reserve(file.containers.size());
+
+        for (auto &container : file.containers) {
+            auto new_container = macho::container();
+            new_container.open_copy(container, stream);
+
+            containers.emplace_back(std::move(new_container));
+        }
+
+        return open_result::ok;
+    }
+
+    file &file::operator=(file &&file) noexcept {
+        stream = file.stream;
+        magic = file.magic;
+
+        containers = std::move(file.containers);
+
+        stream = nullptr;
+        magic = file.magic;
+
+        return *this;
     }
 
     file::~file() noexcept {

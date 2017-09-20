@@ -16,10 +16,20 @@
 namespace macho {
     class file {
     public:
+        explicit file() = default;
+
         FILE *stream = nullptr;
         magic magic = magic::normal;
 
         std::vector<container> containers = std::vector<container>();
+
+        explicit file(const file &) = delete;
+        explicit file(file &&) noexcept;
+
+        file &operator=(const file &) = delete;
+        file &operator=(file &&) noexcept;
+
+        ~file() noexcept;
 
         enum class open_result {
             ok,
@@ -55,7 +65,8 @@ namespace macho {
             return open_from_library(path.data(), mode);
         }
 
-        ~file() noexcept;
+        open_result open_copy(const file &file);
+        open_result open_copy(const file &file, const char *mode);
 
         enum check_error {
             ok,
@@ -85,6 +96,8 @@ namespace macho {
         }
 
     private:
+        const char *mode_ = nullptr; // for copies
+
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);
     };

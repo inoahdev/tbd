@@ -20,8 +20,44 @@ namespace tbd {
     class group {
     public:
         explicit group() = default;
-        explicit group(const flags &flags) noexcept
-        : flags(flags) {}
+
+        explicit group(const group &) = delete;
+        explicit group(group &&group) noexcept
+        : flags(std::move(group.flags)), reexports_count(group.reexports_count), symbols_count(group.symbols_count) {
+            group.reexports_count = 0;
+            group.symbols_count = 0;
+        }
+
+        group &operator=(const group &) = delete;
+        group &operator=(group &&group) noexcept {
+            flags = std::move(group.flags);
+
+            reexports_count = group.reexports_count;
+            symbols_count = group.symbols_count;
+
+            group.reexports_count = 0;
+            group.symbols_count = 0;
+
+            return *this;
+        }
+
+        enum class creation_result {
+            ok,
+            failed_to_allocate_memory
+        };
+
+        creation_result create(const flags &flags) {
+            auto creation_result = this->flags.create_copy(flags);
+            switch (creation_result) {
+                case flags::creation_result::ok:
+                    break;
+
+                case flags::creation_result::failed_to_allocate_memory:
+                    return creation_result::failed_to_allocate_memory;
+            }
+
+            return creation_result::ok;
+        }
 
         class flags flags;
 
@@ -34,8 +70,57 @@ namespace tbd {
 
     class reexport {
     public:
-        explicit reexport(const char *string, flags_integer_t flags_length) noexcept
-        : flags(flags_length), string(string) {}
+        explicit reexport() = default;
+
+        explicit reexport(const reexport &) = delete;
+        explicit reexport(reexport &&reexport) noexcept
+        : flags(std::move(reexport.flags)), string(reexport.string) {
+            reexport.string = nullptr;
+        }
+
+        reexport &operator=(const reexport &) = delete;
+        reexport &operator=(reexport &&reexport) noexcept {
+            flags = std::move(reexport.flags);
+            string = reexport.string;
+
+            reexport.string = nullptr;
+            return *this;
+        }
+
+        enum class creation_result {
+            ok,
+            failed_to_allocate_memory
+        };
+
+        creation_result create(const char *string, flags_integer_t flags_length) noexcept {
+            this->string = string;
+
+            auto flags_creation_result = this->flags.create(flags_length);
+            switch (flags_creation_result) {
+                case flags::creation_result::ok:
+                    break;
+
+                case flags::creation_result::failed_to_allocate_memory:
+                    return creation_result::failed_to_allocate_memory;
+            }
+
+            return creation_result::ok;
+        }
+
+        creation_result create_copy(const reexport &reexport) noexcept {
+            string = reexport.string;
+
+            auto flags_creation_result = flags.create_copy(reexport.flags);
+            switch (flags_creation_result) {
+                case flags::creation_result::ok:
+                    break;
+
+                case flags::creation_result::failed_to_allocate_memory:
+                    return creation_result::failed_to_allocate_memory;
+            }
+
+            return creation_result::ok;
+        }
 
         inline void add_architecture(flags_integer_t index) noexcept { flags.cast(index, true); }
 
@@ -58,8 +143,73 @@ namespace tbd {
             objc_ivars
         };
 
-        explicit symbol(const char *string, bool weak, flags_integer_t flags_length, enum type type) noexcept
-        : flags(flags_length), string(string), type(type), weak(weak) {}
+        explicit symbol() = default;
+
+        explicit symbol(const symbol &) = delete;
+        explicit symbol(symbol &&symbol) noexcept
+        : flags(std::move(symbol.flags)), string(symbol.string), type(symbol.type), weak(symbol.weak) {
+            symbol.string = nullptr;
+            symbol.type = type::symbols;
+
+            symbol.weak = false;
+        }
+
+        symbol &operator=(const symbol &) = delete;
+        symbol &operator=(symbol &&symbol) noexcept {
+            flags = std::move(symbol.flags);
+            string = symbol.string;
+
+            weak = symbol.weak;
+            type = symbol.type;
+
+            symbol.string = nullptr;
+            symbol.type = type::symbols;
+
+            symbol.weak = false;
+
+            return *this;
+        }
+
+        enum class creation_result {
+            ok,
+            failed_to_allocate_memory
+        };
+
+        creation_result create(const char *string, bool weak, flags_integer_t flags_length, enum type type) noexcept {
+            this->string = string;
+
+            this->type = type;
+            this->weak = weak;
+
+            auto flags_creation_result = flags.create(flags_length);
+            switch (flags_creation_result) {
+                case flags::creation_result::ok:
+                    break;
+
+                case flags::creation_result::failed_to_allocate_memory:
+                    return creation_result::failed_to_allocate_memory;
+            }
+
+            return creation_result::ok;
+        }
+
+        creation_result create_copy(const symbol &symbol) noexcept {
+            string = symbol.string;
+
+            type = symbol.type;
+            weak = symbol.weak;
+
+            auto flags_creation_result = flags.create_copy(symbol.flags);
+            switch (flags_creation_result) {
+                case flags::creation_result::ok:
+                    break;
+
+                case flags::creation_result::failed_to_allocate_memory:
+                    return creation_result::failed_to_allocate_memory;
+            }
+
+            return creation_result::ok;
+        }
 
         class flags flags;
         const char *string;
@@ -640,12 +790,13 @@ namespace tbd {
         auto &library_containers = library.containers;
         auto library_containers_index = 0;
 
-        auto library_uuids = std::vector<const uint8_t *>();
         const auto library_containers_size = library_containers.size();
+
+        auto library_uuids = std::vector<const uint8_t *>();
+        auto library_container_architectures = std::vector<const macho::architecture_info *>();
 
         library_uuids.reserve(library_containers_size);
 
-        auto library_container_architectures = std::vector<const macho::architecture_info *>();
         if (!has_architecture_overrides) {
             library_container_architectures.reserve(library_containers_size);
         }
@@ -699,7 +850,7 @@ namespace tbd {
             const auto library_container_size = library_container.size;
 
             auto library_container_stream = library_container.stream;
-            auto library_container_load_command_iteration_result = library_container.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
+            auto library_container_load_command_iteration_result = library_container.iterate_load_commands([&](long location, const macho::load_command *swapped, const macho::load_command *load_command) {
                 switch (swapped->cmd) {
                     case macho::load_commands::build_version: {
                         if (!should_find_library_platform) {
@@ -822,8 +973,20 @@ namespace tbd {
                         if (library_reexports_iter != library_reexports.end()) {
                             library_reexports_iter->add_architecture(library_containers_index);
                         } else {
-                            auto &library_reexport = library_reexports.emplace_back(reexport_dylib_string, library_containers_size);
+                            auto library_reexport = reexport();
+                            auto library_reexport_creation_result = library_reexport.create(reexport_dylib_string, library_containers_size);
+
+                            switch (library_reexport_creation_result) {
+                                case reexport::creation_result::ok:
+                                    break;
+
+                                case reexport::creation_result::failed_to_allocate_memory:
+                                    failure_result = creation_result::failed_to_allocate_memory;
+                                    return false;
+                            }
+
                             library_reexport.add_architecture(library_containers_index);
+                            library_reexports.emplace_back(std::move(library_reexport));
                         }
 
                         break;
@@ -1216,9 +1379,6 @@ namespace tbd {
                             }
 
                             break;
-
-                        default:
-                            break;
                     }
                 }
 
@@ -1227,8 +1387,20 @@ namespace tbd {
                 if (symbols_iter != library_symbols.end()) {
                     symbols_iter->add_architecture(library_containers_index);
                 } else {
-                    auto &library_symbol = library_symbols.emplace_back(parsed_symbol_string, symbol_is_weak, library_containers_size, symbol_type);
+                    auto library_symbol = symbol();
+                    auto library_symbol_creation_result = library_symbol.create(parsed_symbol_string, symbol_is_weak, library_containers_size, symbol_type);
+
+                    switch (library_symbol_creation_result) {
+                        case symbol::creation_result::ok:
+                            break;
+
+                        case symbol::creation_result::failed_to_allocate_memory:
+                            failure_result = creation_result::failed_to_allocate_memory;
+                            return false;
+                    }
+
                     library_symbol.add_architecture(library_containers_index);
+                    library_symbols.emplace_back(std::move(library_symbol));
                 }
 
                 return true;
@@ -1288,8 +1460,19 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto &group = groups.emplace_back(library_reexport_flags);
+                    auto group = ::tbd::group();
+                    auto group_creation_result = group.create(library_reexport_flags);
+
+                    switch (group_creation_result) {
+                        case group::creation_result::ok:
+                            break;
+
+                        case group::creation_result::failed_to_allocate_memory:
+                            return creation_result::failed_to_allocate_memory;
+                    }
+
                     group.reexports_count++;
+                    groups.emplace_back(std::move(group));
                 }
             }
 
@@ -1302,8 +1485,19 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto &group = groups.emplace_back(library_symbol_flags);
+                    auto group = ::tbd::group();
+                    auto group_creation_result = group.create(library_symbol_flags);
+
+                    switch (group_creation_result) {
+                        case group::creation_result::ok:
+                            break;
+
+                        case group::creation_result::failed_to_allocate_memory:
+                            return creation_result::failed_to_allocate_memory;
+                    }
+
                     group.symbols_count++;
+                    groups.emplace_back(std::move(group));
                 }
             }
 
@@ -1729,7 +1923,19 @@ namespace tbd {
                         // Only add unique reexports to reexports
                         // vector
 
-                        reexports.emplace_back(reexport_dylib_string, 0);
+                        auto reexport = ::tbd::reexport();
+                        auto reexport_creation_result = reexport.create(reexport_dylib_string, 0);
+
+                        switch (reexport_creation_result) {
+                            case reexport::creation_result::ok:
+                                break;
+
+                            case reexport::creation_result::failed_to_allocate_memory:
+                                failure_result = creation_result::failed_to_allocate_memory;
+                                return false;
+                        }
+
+                        reexports.emplace_back(std::move(reexport));
                     }
 
                     break;
@@ -2083,15 +2289,24 @@ namespace tbd {
                         }
 
                         break;
-
-                    default:
-                        break;
                 }
             }
 
             const auto symbols_iter = std::find(symbols.begin(), symbols.end(), parsed_symbol_string);
             if (symbols_iter == symbols.end()) {
-                symbols.emplace_back(parsed_symbol_string, symbol_is_weak, 0, symbol_type);
+                auto symbol = ::tbd::symbol();
+                auto symbol_creation_result = symbol.create(parsed_symbol_string, symbol_is_weak, 0, symbol_type);
+
+                switch (symbol_creation_result) {
+                    case symbol::creation_result::ok:
+                        break;
+
+                    case symbol::creation_result::failed_to_allocate_memory:
+                        failure_result = creation_result::failed_to_allocate_memory;
+                        return false;
+                }
+
+                symbols.emplace_back(std::move(symbol));
             }
 
             return true;

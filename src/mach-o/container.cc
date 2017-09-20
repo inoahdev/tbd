@@ -87,6 +87,26 @@ namespace macho {
         return open_result::ok;
     }
 
+    container::open_result container::open_copy(const container &container, FILE *stream, long base, size_t size) noexcept {
+        auto result = open_result::ok;
+        this->stream = stream;
+
+        if (base != 0) {
+            this->base = base;
+        }
+
+        if (size != 0) {
+            this->size = size;
+        }
+
+        auto file_size = calculate_size(result);
+        if (this->size != 0 && file_size - base > this->size) {
+            return open_result::invalid_macho;
+        }
+
+        return result;
+    }
+
     container::open_result container::validate() noexcept {
         auto &magic = header.magic;
 

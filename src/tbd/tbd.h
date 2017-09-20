@@ -100,6 +100,7 @@ namespace tbd {
         has_no_uuid,
         contradictary_container_information,
         no_provided_architectures,
+        failed_to_allocate_memory,
         no_symbols_or_reexports
     };
 

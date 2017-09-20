@@ -393,18 +393,18 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
 
         case tbd::creation_result::failed_to_iterate_load_commands:
             if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architectures's load-commands\n", macho_file_path);
+                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's load-commands\n", macho_file_path);
             } else {
-                fputs("Failed to iterate through provided mach-o file, or one of its architectures's load-commands\n", stderr);
+                fputs("Failed to iterate through provided mach-o file, or one of its architecture's load-commands\n", stderr);
             }
 
             break;
 
         case tbd::creation_result::failed_to_iterate_symbols:
             if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architectures's symbols\n", macho_file_path);
+                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's symbols\n", macho_file_path);
             } else {
-                fputs("Failed to iterate through provided mach-o file, or one of its architectures's symbols\n", stderr);
+                fputs("Failed to iterate through provided mach-o file, or one of its architecture's symbols\n", stderr);
             }
 
             break;
@@ -466,6 +466,15 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
                 } else {
                     fputs("Provided mach-o file does not have architectures provided to output tbd from\n", stderr);
                 }
+            }
+
+            break;
+
+        case tbd::creation_result::failed_to_allocate_memory:
+            if (creation_handling_options & creation_handling_print_paths) {
+                fprintf(stderr, "Failed to allocate memory necessary for operating on mach-o file (at path %s)\n", macho_file_path);
+            } else {
+                fputs("Failed to allocate memory necessary for operating on mach-o file at provided path\n", stderr);
             }
 
             break;
@@ -822,7 +831,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path, &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path, strerror(errno));
+                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error (%s)\n", path, strerror(errno));
                     return 1;
                 }
 
@@ -1189,7 +1198,7 @@ int main(int argc, const char *argv[]) {
 
                 tbds.emplace_back(std::move(tbd));
 
-                // Clear the local option fields to signal that a
+                // Clear the local fields to signal that a
                 // path was provided
 
                 local_architectures = 0;
@@ -1370,6 +1379,7 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "No mach-o files were found for outputting while recursing once through directory (at path %s)\n", tbd_path.data());
                         }
                     }
+
                     break;
 
                 case recurse::operation_result::failed_to_open_directory:
@@ -1381,6 +1391,9 @@ int main(int argc, const char *argv[]) {
             auto library_file_open_result = library_file.open_from_library(tbd_path.data());
 
             switch (library_file_open_result) {
+                case macho::file::open_result::ok:
+                    break;
+
                 case macho::file::open_result::failed_to_open_stream:
                     if (should_print_paths) {
                         fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
@@ -1437,9 +1450,6 @@ int main(int argc, const char *argv[]) {
 
                     break;
                 }
-
-                default:
-                    break;
             }
 
             if (library_file_open_result != macho::file::open_result::ok) {
@@ -1447,14 +1457,10 @@ int main(int argc, const char *argv[]) {
             }
 
             auto output_file = stdout;
-
-            auto output_file_path = (const char *)nullptr;
             auto recursive_directory_creation_ptr = (char *)nullptr;
 
             if (!tbd_output_path.empty()) {
                 recursive_directory_creation_ptr = recursively_create_directories_from_file_path(tbd_output_path.data(), false);
-
-                output_file_path = tbd_output_path.data();
                 output_file = fopen(tbd_output_path.data(), "w");
 
                 if (!output_file) {
