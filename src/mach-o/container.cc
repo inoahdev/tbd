@@ -290,10 +290,6 @@ namespace macho {
                     return load_command_iteration_result::load_command_is_too_small;
                 }
 
-                if (cmdsize >= sizeofcmds) {
-                    return load_command_iteration_result::load_command_is_too_large;
-                }
-
                 size_used += cmdsize;
                 if (size_used > sizeofcmds) {
                     return load_command_iteration_result::load_command_is_too_large;
