@@ -251,7 +251,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
     if (access(path, F_OK) == 0) {
         if (remove(path) != 0) {
             fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
-            return;
+            exit(1);
         }
     } else {
         return;
@@ -274,7 +274,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
 
         if (remove(path) != 0) {
             fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
-            return;
+            exit(1);
         }
 
         slash[0] = slash_char;
