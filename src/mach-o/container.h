@@ -59,7 +59,7 @@ namespace macho {
             load_command_is_too_large
         };
 
-        load_command_iteration_result iterate_load_commands(const std::function<bool(const struct load_command *, const struct load_command *)> &callback) noexcept;
+        load_command_iteration_result iterate_load_commands(const std::function<bool(long, const struct load_command *, const struct load_command *)> &callback) noexcept;
 
         enum class symbols_iteration_result {
             ok,

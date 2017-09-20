@@ -1605,7 +1605,7 @@ namespace tbd {
         auto library_container_stream = library.stream;
         auto failure_result = creation_result::ok;
 
-        auto library_container_load_command_iteration_result = library.iterate_load_commands([&](const macho::load_command *swapped, const macho::load_command *load_command) {
+        auto library_container_load_command_iteration_result = library.iterate_load_commands([&](long location, const macho::load_command *swapped, const macho::load_command *load_command) {
             switch (swapped->cmd) {
                 case macho::load_commands::build_version: {
                     if (!should_find_library_platform) {
