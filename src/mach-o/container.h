@@ -101,7 +101,7 @@ namespace macho {
         struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
-        size_t calculate_size(open_result &result) noexcept;
+        size_t file_size(open_result &result) noexcept;
         open_result validate() noexcept;
     };
 }

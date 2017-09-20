@@ -19,15 +19,21 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        auto calculated_size_result = open_result::ok;
-        const auto calculated_size = calculate_size(calculated_size_result);
+        auto result = open_result::ok;
 
-        if (calculated_size_result != open_result::ok) {
-            return calculated_size_result;
+        const auto file_size = this->file_size(result);
+        const auto calculated_size = file_size - base;
+
+        if (result != open_result::ok) {
+            return result;
         }
 
         if (!size) {
             this->size = calculated_size;
+        }
+
+        if (calculated_size < this->size) {
+            return open_result::invalid_macho;
         }
 
         return validate();
@@ -39,20 +45,26 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        auto calculated_size_result = open_result::ok;
-        const auto calculated_size = calculate_size(calculated_size_result);
+        auto file_size_calculation_result = open_result::ok;
 
-        if (calculated_size_result != open_result::ok) {
-            return calculated_size_result;
+        const auto file_size = this->file_size(file_size_calculation_result);
+        const auto calculated_size = file_size - base;
+
+        if (file_size_calculation_result != open_result::ok) {
+            return file_size_calculation_result;
         }
 
         if (!size) {
             this->size = calculated_size;
         }
 
-        const auto result = validate();
-        if (result != open_result::ok) {
-            return result;
+        if (calculated_size < this->size) {
+            return open_result::invalid_macho;
+        }
+
+        const auto validation_result = validate();
+        if (validation_result != open_result::ok) {
+            return validation_result;
         }
 
         auto is_library = false;
@@ -88,19 +100,21 @@ namespace macho {
     }
 
     container::open_result container::open_copy(const container &container, FILE *stream, long base, size_t size) noexcept {
-        auto result = open_result::ok;
         this->stream = stream;
 
-        if (base != 0) {
-            this->base = base;
+        this->base = base;
+        this->size = size;
+
+        auto result = open_result::ok;
+
+        auto file_size = this->file_size(result);
+        auto calculated_size = file_size - base;
+
+        if (!this->size) {
+            this->size = calculated_size;
         }
 
-        if (size != 0) {
-            this->size = size;
-        }
-
-        auto file_size = calculate_size(result);
-        if (this->size != 0 && file_size - base > this->size) {
+        if (calculated_size < this->size) {
             return open_result::invalid_macho;
         }
 
@@ -184,7 +198,7 @@ namespace macho {
         return *this;
     }
 
-    size_t container::calculate_size(container::open_result &result) noexcept {
+    size_t container::file_size(container::open_result &result) noexcept {
         const auto position = ftell(stream);
         if (fseek(stream, 0, SEEK_END) != 0) {
             result = open_result::stream_seek_error;
@@ -196,8 +210,6 @@ namespace macho {
             result = open_result::invalid_range;
             return size;
         }
-
-        size -= base;
 
         if (fseek(stream, position, SEEK_SET) != 0) {
             result = open_result::stream_seek_error;
