@@ -22,18 +22,18 @@ namespace macho {
         auto result = open_result::ok;
 
         const auto file_size = this->file_size(result);
-        const auto calculated_size = file_size - base;
+        const auto max_size = file_size - base;
 
         if (result != open_result::ok) {
             return result;
         }
 
         if (!size) {
-            this->size = calculated_size;
+            this->size = max_size;
         }
 
-        if (calculated_size < this->size) {
-            return open_result::invalid_macho;
+        if (this->size > max_size) {
+            return open_result::invalid_range;
         }
 
         return validate();
@@ -48,18 +48,18 @@ namespace macho {
         auto file_size_calculation_result = open_result::ok;
 
         const auto file_size = this->file_size(file_size_calculation_result);
-        const auto calculated_size = file_size - base;
+        const auto max_size = file_size - base;
 
         if (file_size_calculation_result != open_result::ok) {
             return file_size_calculation_result;
         }
 
         if (!size) {
-            this->size = calculated_size;
+            this->size = max_size;
         }
 
-        if (calculated_size < this->size) {
-            return open_result::invalid_macho;
+        if (this->size > max_size) {
+            return open_result::invalid_range;
         }
 
         const auto validation_result = validate();
@@ -108,14 +108,14 @@ namespace macho {
         auto result = open_result::ok;
 
         auto file_size = this->file_size(result);
-        auto calculated_size = file_size - base;
+        auto max_size = file_size - base;
 
         if (!this->size) {
-            this->size = calculated_size;
+            this->size = max_size;
         }
 
-        if (calculated_size < this->size) {
-            return open_result::invalid_macho;
+        if (this->size > max_size) {
+            return open_result::invalid_range;
         }
 
         return result;
