@@ -953,11 +953,8 @@ namespace tbd {
 
                     case macho::load_commands::reexport_dylib: {
                         auto reexport_dylib_command = (macho::dylib_command *)load_command;
-                        if (library_container_is_big_endian) {
-                            macho::swap_dylib_command(reexport_dylib_command);
-                        }
-
                         auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
+
                         if (library_container_is_big_endian) {
                             macho::swap_uint32(&reexport_dylib_string_index);
                         }
@@ -1902,11 +1899,8 @@ namespace tbd {
 
                 case macho::load_commands::reexport_dylib: {
                     auto reexport_dylib_command = (macho::dylib_command *)load_command;
-                    if (library_container_is_big_endian) {
-                        macho::swap_dylib_command(reexport_dylib_command);
-                    }
-
                     auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
+
                     if (library_container_is_big_endian) {
                         macho::swap_uint32(&reexport_dylib_string_index);
                     }
