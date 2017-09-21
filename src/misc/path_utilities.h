@@ -40,10 +40,6 @@ namespace path {
             --iter;
         }
 
-        if (*iter != '/' && *iter != '\\') {
-            return end;
-        }
-
         return iter;
     }
 
