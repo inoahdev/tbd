@@ -851,8 +851,17 @@ namespace macho {
 
         for (auto &container : file.containers) {
             auto new_container = macho::container();
-            new_container.open_copy(container, stream);
+            auto new_container_open_result = new_container.open_copy(container);
 
+            switch (new_container_open_result) {
+                case container::open_result::ok:
+                    break;
+
+                default:
+                    return open_result::invalid_container;
+            }
+
+            new_container.stream = stream;
             containers.emplace_back(std::move(new_container));
         }
 
@@ -870,8 +879,17 @@ namespace macho {
 
         for (auto &container : file.containers) {
             auto new_container = macho::container();
-            new_container.open_copy(container, stream);
+            auto new_container_open_result = new_container.open_copy(container);
 
+            switch (new_container_open_result) {
+                case container::open_result::ok:
+                    break;
+
+                default:
+                    return open_result::invalid_container;
+            }
+
+            new_container.stream = stream;
             containers.emplace_back(std::move(new_container));
         }
 

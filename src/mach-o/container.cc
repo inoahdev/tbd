@@ -99,26 +99,13 @@ namespace macho {
         return open_result::ok;
     }
 
-    container::open_result container::open_copy(const container &container, FILE *stream, long base, size_t size) noexcept {
-        this->stream = stream;
+    container::open_result container::open_copy(const container &container) noexcept {
+        this->stream = container.stream;
 
-        this->base = base;
-        this->size = size;
+        this->base = container.base;
+        this->size = container.size;
 
-        auto result = open_result::ok;
-
-        auto file_size = this->file_size(result);
-        auto max_size = file_size - base;
-
-        if (!this->size) {
-            this->size = max_size;
-        }
-
-        if (this->size > max_size) {
-            return open_result::invalid_range;
-        }
-
-        return result;
+        return open_result::ok;
     }
 
     container::open_result container::validate() noexcept {

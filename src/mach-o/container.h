@@ -51,7 +51,7 @@ namespace macho {
         open_result open(FILE *stream, long base = 0, size_t size = 0) noexcept;
         open_result open_from_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
 
-        open_result open_copy(const container &container, FILE *stream, long base = 0, size_t size = 0) noexcept;
+        open_result open_copy(const container &container) noexcept;
 
         enum class load_command_iteration_result {
             ok,
