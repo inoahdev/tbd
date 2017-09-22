@@ -148,9 +148,7 @@ namespace macho {
             const auto magic_is_thin = macho::magic_is_thin(magic);
             if (magic_is_thin) {
                 auto container = macho::container();
-                auto container_open_result = container::open_result::ok;
-
-                container_open_result = container.open(stream);
+                auto container_open_result = container.open(stream);
 
                 switch (container_open_result) {
                     case container::open_result::ok:

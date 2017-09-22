@@ -160,7 +160,7 @@ namespace macho {
         container.cached_symbol_table_ = nullptr;
     }
 
-    container& container::operator=(container &&container) noexcept {
+    container &container::operator=(container &&container) noexcept {
         stream = container.stream;
 
         base = container.base;
