@@ -304,7 +304,8 @@ void print_platforms() {
 
 enum creation_handling {
     creation_handling_print_paths = 1 << 0,
-    creation_handling_ignore_no_provided_architectures = 1 << 1
+    creation_handling_ignore_no_provided_architectures = 1 << 1,
+    creation_handling_dont_print_warnings = 1 << 2
 };
 
 bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, tbd::platform platform, tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
@@ -359,137 +360,141 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
         result = tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
     }
 
-    switch (result) {
-        case tbd::creation_result::ok:
-            return true;
+    if (!(creation_handling_options & creation_handling_dont_print_warnings)) {
+        switch (result) {
+            case tbd::creation_result::ok:
+                return true;
 
-        case tbd::creation_result::invalid_subtype:
-        case tbd::creation_result::invalid_cputype:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unrecognized machine\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, is for an unrecognized machine\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::invalid_load_command:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, has an invalid load-command\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::invalid_segment:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, has an invalid segment\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::failed_to_iterate_load_commands:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's load-commands\n", macho_file_path);
-            } else {
-                fputs("Failed to iterate through provided mach-o file, or one of its architecture's load-commands\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::failed_to_iterate_symbols:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's symbols\n", macho_file_path);
-            } else {
-                fputs("Failed to iterate through provided mach-o file, or one of its architecture's symbols\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::contradictary_load_command_information:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has multiple load-commands of the same type with contradictory information\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, has multiple load-commands of the same type with contradictory information\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::uuid_is_not_unique:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "One of mach-o file (at path %s)'s architectures has a uuid that is not unique from other architectures\n", macho_file_path);
-            } else {
-                fputs("One of provided mach-o file's architectures has a uuid that is not unique from other architectures\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::platform_not_found:
-        case tbd::creation_result::platform_not_supported:
-        case tbd::creation_result::multiple_platforms:
-            break;
-
-        case tbd::creation_result::not_a_library:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, is not a mach-o library\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::has_no_uuid:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, does not have a uuid\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file, or one of its architectures, does not have a uuid\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::contradictary_container_information:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s) has information in architectures contradicting the same information in other architectures\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file has information in architectures contradicting the same information in other architectures\n", stderr);
-            }
-
-            break;
-
-        case tbd::creation_result::no_provided_architectures:
-            if (!(creation_handling_options & creation_handling_ignore_no_provided_architectures)) {
+            case tbd::creation_result::invalid_subtype:
+            case tbd::creation_result::invalid_cputype:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Mach-o file (at path %s) does not have architectures provided to output tbd from\n", macho_file_path);
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unrecognized machine\n", macho_file_path);
                 } else {
-                    fputs("Provided mach-o file does not have architectures provided to output tbd from\n", stderr);
+                    fputs("Provided mach-o file, or one of its architectures, is for an unrecognized machine\n", stderr);
                 }
-            }
 
-            break;
+                break;
 
-        case tbd::creation_result::failed_to_allocate_memory:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Failed to allocate memory necessary for operating on mach-o file (at path %s)\n", macho_file_path);
-            } else {
-                fputs("Failed to allocate memory necessary for operating on mach-o file at provided path\n", stderr);
-            }
+            case tbd::creation_result::invalid_load_command:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid load-command\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, has an invalid load-command\n", stderr);
+                }
 
-            break;
+                break;
 
-        case tbd::creation_result::no_symbols_or_reexports:
-            if (creation_handling_options & creation_handling_print_paths) {
-                fprintf(stderr, "Mach-o file (at path %s) does not have any symbols or reexports to be outputted\n", macho_file_path);
-            } else {
-                fputs("Provided mach-o file does not have any symbols or reexports to be outputted\n", stderr);
-            }
+            case tbd::creation_result::invalid_segment:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, has an invalid segment\n", stderr);
+                }
 
-            break;
+                break;
+
+            case tbd::creation_result::failed_to_iterate_load_commands:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's load-commands\n", macho_file_path);
+                } else {
+                    fputs("Failed to iterate through provided mach-o file, or one of its architecture's load-commands\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::failed_to_iterate_symbols:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Failed to iterate through mach-o file (at path %s), or one of its architecture's symbols\n", macho_file_path);
+                } else {
+                    fputs("Failed to iterate through provided mach-o file, or one of its architecture's symbols\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::contradictary_load_command_information:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has multiple load-commands of the same type with contradictory information\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, has multiple load-commands of the same type with contradictory information\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::uuid_is_not_unique:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "One of mach-o file (at path %s)'s architectures has a uuid that is not unique from other architectures\n", macho_file_path);
+                } else {
+                    fputs("One of provided mach-o file's architectures has a uuid that is not unique from other architectures\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::platform_not_found:
+            case tbd::creation_result::platform_not_supported:
+            case tbd::creation_result::multiple_platforms:
+                break;
+
+            case tbd::creation_result::not_a_library:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, is not a mach-o library\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::has_no_uuid:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, does not have a uuid\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, does not have a uuid\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::contradictary_container_information:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s) has information in architectures contradicting the same information in other architectures\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file has information in architectures contradicting the same information in other architectures\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::no_provided_architectures:
+                if (!(creation_handling_options & creation_handling_ignore_no_provided_architectures)) {
+                    if (creation_handling_options & creation_handling_print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) does not have architectures provided to output tbd from\n", macho_file_path);
+                    } else {
+                        fputs("Provided mach-o file does not have architectures provided to output tbd from\n", stderr);
+                    }
+                }
+
+                break;
+
+            case tbd::creation_result::failed_to_allocate_memory:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Failed to allocate memory necessary for operating on mach-o file (at path %s)\n", macho_file_path);
+                } else {
+                    fputs("Failed to allocate memory necessary for operating on mach-o file at provided path\n", stderr);
+                }
+
+                break;
+
+            case tbd::creation_result::no_symbols_or_reexports:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s) does not have any symbols or reexports to be outputted\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file does not have any symbols or reexports to be outputted\n", stderr);
+                }
+
+                break;
+        }
+
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 void print_usage() {
@@ -522,6 +527,10 @@ void print_usage() {
     fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)\n", stdout);
 
     fputc('\n', stdout);
+    fputs("Miscellaneous options:\n", stdout);
+    fputs("        --dont-print-warnings, Don't print any warnings (both path and global option)\n", stdout);
+
+    fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
     fputs("        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)\n", stdout);
     fputs("        --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)\n", stdout);
@@ -549,6 +558,7 @@ int main(int argc, const char *argv[]) {
         recurse_directories    = 1 << 8, // Use second-byte to support tbd-symbol options
         recurse_subdirectories = 1 << 9,
         maintain_directories   = 1 << 10,
+        dont_print_warnings    = 1 << 11
     };
 
     typedef struct tbd_file {
@@ -661,6 +671,8 @@ int main(int argc, const char *argv[]) {
 
             fputc('\n', stdout);
             return 0;
+        } else if (strcmp(option, "dont-print-warnings") == 0) {
+            options |= dont_print_warnings;
         } else if (strcmp(option, "list-macho-libraries") == 0) {
             if (!is_first_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -688,7 +700,9 @@ int main(int argc, const char *argv[]) {
                             option++;
                         }
 
-                        if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
+                        if (strcmp(option, "dont-print-warnings") == 0) {
+                            options |= dont_print_warnings;
+                        } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                             options |= recurse_directories | recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
                             const auto recurse_type_string = strchr(option, '=') + 1;
@@ -761,7 +775,11 @@ int main(int argc, const char *argv[]) {
                         }
 
                         auto found_libraries = false;
-                        auto recurse_options = recurse::options::print_warnings;
+                        auto recurse_options = uint64_t();
+
+                        if (!(options & dont_print_warnings)) {
+                            recurse_options |= recurse::options::print_warnings;
+                        }
 
                         if (options & recurse_subdirectories) {
                             recurse_options |= recurse::options::recurse_subdirectories;
@@ -1081,6 +1099,8 @@ int main(int argc, const char *argv[]) {
                         local_options |= tbd::symbol_options::allow_private_objc_classes;
                     } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
                         local_options |= tbd::symbol_options::allow_private_objc_ivars;
+                    } else if (strcmp(option, "dont-print-warnings") == 0) {
+                        local_options |= dont_print_warnings;
                     } else if (strcmp(option, "p") == 0) {
                         fprintf(stderr, "Please provide a path for option (%s)\n", argument);
                         return 1;
@@ -1316,6 +1336,10 @@ int main(int argc, const char *argv[]) {
             }
         }
 
+        if (options & dont_print_warnings) {
+            tbd_options |= dont_print_warnings;
+        }
+
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
@@ -1326,7 +1350,11 @@ int main(int argc, const char *argv[]) {
             const auto tbd_output_path_length = tbd_output_path.length();
 
             auto outputted_any_macho_libraries = false;
-            auto recurse_options = recurse::options::print_warnings;
+            auto recurse_options = uint64_t();
+
+            if (!(tbd_options & dont_print_warnings)) {
+                recurse_options |= recurse::options::print_warnings;
+            }
 
             if (tbd_options & recurse_subdirectories) {
                 recurse_options |= recurse::options::recurse_subdirectories;
@@ -1361,7 +1389,12 @@ int main(int argc, const char *argv[]) {
                     return;
                 }
 
-                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths | creation_handling_ignore_no_provided_architectures);
+                auto tbd_creation_options = creation_handling_print_paths | creation_handling_ignore_no_provided_architectures;
+                if (tbd_options & dont_print_warnings) {
+                    tbd_creation_options |= creation_handling_dont_print_warnings;
+                }
+
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, tbd_creation_options);
                 if (!result) {
                     recursively_remove_directories_from_file_path(output_path.data(), recursive_directory_creation_ptr);
                 }
@@ -1474,7 +1507,12 @@ int main(int argc, const char *argv[]) {
                 }
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, creation_handling_print_paths);
+            auto tbd_creation_options = (uint64_t)creation_handling_print_paths;
+            if (tbd_options & dont_print_warnings) {
+                tbd_creation_options |= creation_handling_dont_print_warnings;
+            }
+
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != tbd::platform::none ? tbd.platform : platform, tbd.version != (enum tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, tbd_creation_options);
 
             if (!tbd_output_path.empty()) {
                 if (!result) {

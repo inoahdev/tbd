@@ -26,6 +26,9 @@ Global options:
         --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)
     -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tnd-version was not provided)
 
+Miscellaneous options:
+        --dont-print-warnings, Don't print any warnings (both path and global option)
+
 Symbol options: (Both path and global options)
         --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)
         --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)
