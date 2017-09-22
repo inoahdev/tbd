@@ -15,7 +15,6 @@
 #include <cstring>
 
 #include <utility>
-
 #include "flags.h"
 
 flags::creation_result flags::create(flags_integer_t length) {
@@ -112,10 +111,10 @@ bool flags::operator==(const flags &flags) const noexcept {
     }
 
     if (length > bit_size()) {
-        return memcmp(bits.pointer, flags.bits.pointer, length);
-    } else {
-        return bits.integer == flags.bits.integer;
+        return memcmp(bits.pointer, flags.bits.pointer, length) == 0;
     }
+
+    return bits.integer == flags.bits.integer;
 }
 
 flags &flags::operator=(flags &&flags) noexcept {
