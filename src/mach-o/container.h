@@ -55,6 +55,7 @@ namespace macho {
 
         enum class load_command_iteration_result {
             ok,
+            no_load_commands,
             stream_seek_error,
             stream_read_error,
             load_command_is_too_small,

@@ -79,6 +79,9 @@ namespace macho {
             case load_command_iteration_result::ok:
                 break;
 
+            case load_command_iteration_result::no_load_commands:
+                break;
+
             case load_command_iteration_result::stream_seek_error:
                 return open_result::stream_seek_error;
 
@@ -227,6 +230,10 @@ namespace macho {
 
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
+
+        if (!ncmds || !sizeofcmds) {
+            return load_command_iteration_result::no_load_commands;
+        }
 
         auto &cached_load_commands = cached_load_commands_;
         const auto created_cached_load_commands = !cached_load_commands;

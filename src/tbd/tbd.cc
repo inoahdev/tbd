@@ -1273,6 +1273,7 @@ namespace tbd {
                 case macho::container::load_command_iteration_result::ok:
                     break;
 
+                case macho::container::load_command_iteration_result::no_load_commands:
                 case macho::container::load_command_iteration_result::stream_seek_error:
                 case macho::container::load_command_iteration_result::stream_read_error:
                 case macho::container::load_command_iteration_result::load_command_is_too_small:
@@ -2212,6 +2213,7 @@ namespace tbd {
             case macho::container::load_command_iteration_result::ok:
                 break;
 
+            case macho::container::load_command_iteration_result::no_load_commands:
             case macho::container::load_command_iteration_result::stream_seek_error:
             case macho::container::load_command_iteration_result::stream_read_error:
             case macho::container::load_command_iteration_result::load_command_is_too_small:

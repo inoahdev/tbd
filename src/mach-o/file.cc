@@ -911,8 +911,11 @@ namespace macho {
         }
 
         const auto load_commands_size = header->sizeofcmds;
-        const auto load_commands = std::make_unique<uint8_t[]>(load_commands_size);
+        if (!load_commands_size) {
+            return false;
+        }
 
+        const auto load_commands = std::make_unique<uint8_t[]>(load_commands_size);
         if (read(descriptor, load_commands.get(), load_commands_size) == -1) {
             if (error != nullptr) {
                 *error = check_error::failed_to_read_descriptor;
@@ -925,6 +928,10 @@ namespace macho {
         auto size_left = load_commands_size;
 
         const auto &ncmds = header->ncmds;
+        if (!ncmds) {
+            return false;
+        }
+
         for (auto i = 0; i < ncmds; i++) {
             const auto load_cmd = (struct load_command *)&load_commands[index];
             if (header_magic_is_big_endian) {
