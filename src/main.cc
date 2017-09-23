@@ -746,6 +746,8 @@ int main(int argc, const char *argv[]) {
                 for (auto architecture_names_iter = architecture_names.begin() + 1; architecture_names_iter != architecture_names.end(); architecture_names_iter++) {
                     fprintf(stdout, ", %s", *architecture_names_iter);
                 }
+
+                fputc('\n', stdout);
             }
 
             return 0;
@@ -1510,6 +1512,8 @@ int main(int argc, const char *argv[]) {
                     } else {
                         fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
                     }
+
+                    break;
 
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
