@@ -51,7 +51,7 @@ namespace recurse {
                     closedir(sub_directory);
                 } else {
                     if (options & options::print_warnings) {
-                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
                     }
                 }
             } else {
@@ -75,7 +75,7 @@ namespace recurse {
 
                         case macho::file::open_result::failed_to_open_stream:
                             if (options & options::print_warnings) {
-                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
                             }
 
                             break;
@@ -135,7 +135,7 @@ namespace recurse {
                         closedir(sub_directory);
                     } else {
                         if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
                         }
                     }
                 }
@@ -160,7 +160,7 @@ namespace recurse {
 
                         case macho::file::open_result::failed_to_open_stream:
                             if (options & options::print_warnings) {
-                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
                             }
 
                             break;
@@ -217,7 +217,7 @@ namespace recurse {
                     closedir(sub_directory);
                 } else {
                     if (options & options::print_warnings) {
-                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
                     }
                 }
             } else {
@@ -236,7 +236,7 @@ namespace recurse {
 
                     if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
                         if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
                         }
                     }
 
@@ -295,7 +295,7 @@ namespace recurse {
                         closedir(sub_directory);
                     } else {
                         if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error (%s)\n", sub_directory_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
                         }
                     }
                 }
@@ -315,7 +315,7 @@ namespace recurse {
 
                     if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
                         if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error (%s)\n", directory_entry_path.data(), strerror(errno));
+                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
                         }
                     }
 

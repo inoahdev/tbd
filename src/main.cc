@@ -31,7 +31,7 @@ const char *retrieve_current_directory() {
 
         const auto current_directory_string = getcwd(nullptr, 0);
         if (!current_directory_string) {
-            fprintf(stderr, "Failed to get current working-directory, failing with error (%s)\n", strerror(errno));
+            fprintf(stderr, "Failed to get current working-directory, failing with error: %s\n", strerror(errno));
             exit(1);
         }
 
@@ -133,13 +133,13 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         if (!next_slash && ends_with_slash) {
             if (create_last_as_directory) {
                 if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
                     exit(1);
                 }
             }
         } else {
             if (mkdir(path, 0755) != 0) {
-                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
                 exit(1);
             }
         }
@@ -153,7 +153,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
     if (last_slash[1] != '\0') {
         if (create_last_as_directory) {
             if (mkdir(path, 0755) != 0) {
-                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
                 exit(1);
             }
         }
@@ -225,7 +225,7 @@ char *recursively_create_directories_from_file_path(char *path, size_t index, bo
         if (create_last_as_directory) {
             if (access(path, F_OK) != 0) {
                 if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error (%s)\n", path, strerror(errno));
+                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
                     exit(1);
                 }
             }
@@ -257,7 +257,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
 
     if (access(path, F_OK) == 0) {
         if (remove(path) != 0) {
-            fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
+            fprintf(stderr, "Failed to remove object (at path %s), failing with error: %s\n", path, strerror(errno));
             exit(1);
         }
     } else {
@@ -280,7 +280,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
         slash[0] = '\0';
 
         if (remove(path) != 0) {
-            fprintf(stderr, "Failed to remove object (at path %s), failing with error (%s)\n", path, strerror(errno));
+            fprintf(stderr, "Failed to remove object (at path %s), failing with error: %s\n", path, strerror(errno));
             exit(1);
         }
 
@@ -702,12 +702,12 @@ int main(int argc, const char *argv[]) {
                         break;
 
                     case macho::file::open_result::failed_to_open_stream:
-                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
+                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error: %s\n", strerror(errno));
                         return 1;
 
                     case macho::file::open_result::stream_seek_error:
                     case macho::file::open_result::stream_read_error:
-                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(macho_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(macho_file.stream)));
                         return 1;
 
                     case macho::file::open_result::zero_architectures:
@@ -841,7 +841,7 @@ int main(int argc, const char *argv[]) {
 
                     struct stat sbuf;
                     if (stat(path_data, &sbuf) != 0) {
-                        fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path_data, strerror(errno));
+                        fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error: %s\n", path_data, strerror(errno));
                         return 1;
                     }
 
@@ -884,7 +884,7 @@ int main(int argc, const char *argv[]) {
                             }
 
                             case recurse::operation_result::failed_to_open_directory:
-                                fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path_data, strerror(errno));
+                                fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error: %s\n", path_data, strerror(errno));
                         }
 
                         // Print a newline between each pair for readability
@@ -907,7 +907,7 @@ int main(int argc, const char *argv[]) {
                             // Instead of ignoring this failure, it is better to inform the user of the open
                             // failure to so they are aware of why a file may not have been parsed
 
-                            fprintf(stderr, "Failed to open file (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
+                            fprintf(stderr, "Failed to open file (at path %s), failing with error: %s\n", path.data(), strerror(errno));
                         } else {
                             // As the user provided only one path to a specific mach-o library file,
                             // --list-macho-libraries is expected to explicitly print out whether or
@@ -929,7 +929,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path, &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error (%s)\n", path, strerror(errno));
+                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error: %s\n", path, strerror(errno));
                     return 1;
                 }
 
@@ -948,7 +948,7 @@ int main(int argc, const char *argv[]) {
                         break;
 
                     case recurse::operation_result::failed_to_open_directory:
-                        fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path, strerror(errno));
+                        fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error: %s\n", path, strerror(errno));
                         return 1;
                 }
             }
@@ -1253,7 +1253,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error (%s)\n", path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error: %s\n", path.data(), strerror(errno));
                     return 1;
                 }
 
@@ -1464,7 +1464,7 @@ int main(int argc, const char *argv[]) {
                     // should_print_paths is always true for recursing,
                     // so a check here is unnecessary
 
-                    fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", output_path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error: %s\n", output_path.data(), strerror(errno));
                     return;
                 }
 
@@ -1495,7 +1495,7 @@ int main(int argc, const char *argv[]) {
                     break;
 
                 case recurse::operation_result::failed_to_open_directory:
-                    fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                    fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error: %s\n", tbd_path.data(), strerror(errno));
                     break;
             }
         } else {
@@ -1508,9 +1508,9 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::failed_to_open_stream:
                     if (should_print_paths) {
-                        fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error (%s)\n", tbd_path.data(), strerror(errno));
+                        fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error: %s\n", tbd_path.data(), strerror(errno));
                     } else {
-                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
+                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error: %s\n", strerror(errno));
                     }
 
                     break;
@@ -1518,9 +1518,9 @@ int main(int argc, const char *argv[]) {
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
                     if (should_print_paths) {
-                        fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error (%s)\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error: %s\n", tbd_path.data(), strerror(ferror(library_file.stream)));
                     } else {
-                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(library_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(library_file.stream)));
                     }
 
                     break;
@@ -1579,9 +1579,9 @@ int main(int argc, const char *argv[]) {
 
                 if (!output_file) {
                     if (should_print_paths) {
-                        fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error (%s)\n", tbd_output_path.data(), strerror(errno));
+                        fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error: %s\n", tbd_output_path.data(), strerror(errno));
                     } else {
-                        fprintf(stderr, "Failed to open file at provided output-path for writing, failing with error (%s)\n", strerror(errno));
+                        fprintf(stderr, "Failed to open file at provided output-path for writing, failing with error: %s\n", strerror(errno));
                     }
 
                     continue;
