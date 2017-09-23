@@ -658,25 +658,86 @@ int main(int argc, const char *argv[]) {
         } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
             options |= tbd::symbol_options::allow_private_objc_ivars;
         } else if (strcmp(option, "list-architectures") == 0) {
-            if (!is_first_argument || !is_last_argument) {
+            if (!is_first_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
                 return 1;
             }
 
-            auto architecture_info = macho::get_architecture_info_table();
-            fputs(architecture_info->name, stdout);
+            if (is_last_argument) {
+                auto architecture_info = macho::get_architecture_info_table();
+                fputs(architecture_info->name, stdout);
 
-            while (true) {
-                architecture_info++;
+                while (true) {
+                    architecture_info++;
 
-                if (!architecture_info->name) {
-                    break;
+                    if (!architecture_info->name) {
+                        break;
+                    }
+
+                    fprintf(stdout, ", %s", architecture_info->name);
                 }
 
-                fprintf(stdout, ", %s", architecture_info->name);
+                fputc('\n', stdout);
+            } else {
+                auto path = std::string(argv[++i]);
+                if (path.front() != '/' && path.front() != '\\') {
+                    path.insert(0, retrieve_current_directory());
+                }
+
+                auto macho_file = macho::file();
+                auto macho_file_open_result = macho_file.open(path);
+
+                switch (macho_file_open_result) {
+                    case macho::file::open_result::ok:
+                        break;
+
+                    case macho::file::open_result::failed_to_open_stream:
+                        fprintf(stderr, "Failed to open file at provided path for reading, failing with error (%s)\n", strerror(errno));
+                        return 1;
+
+                    case macho::file::open_result::stream_seek_error:
+                    case macho::file::open_result::stream_read_error:
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error (%s)\n", strerror(ferror(macho_file.stream)));
+                        return 1;
+
+                    case macho::file::open_result::zero_architectures:
+                        fputs("Fat mach-o file at provided path does not have any architectures\n", stderr);
+                        return 1;
+
+                    case macho::file::open_result::invalid_container:
+                        fputs("Mach-o file at provided path is invalid\n", stderr);
+                        return 1;
+
+                    case macho::file::open_result::not_a_macho:
+                        fputs("File at provided path is not a valid mach-o\n", stderr);
+                        return 1;
+
+                    case macho::file::open_result::not_a_library:
+                        break;
+                }
+
+                auto architecture_names = std::vector<const char *>();
+                architecture_names.reserve(macho_file.containers.size());
+
+                for (const auto &container : macho_file.containers) {
+                    const auto container_cputype = container.header.cputype;
+                    const auto container_subtype = macho::subtype_from_cputype(container_cputype, container.header.cpusubtype);
+
+                    const auto container_arch_info = macho::architecture_info_from_cputype(container_cputype, container_subtype);
+                    if (!container_arch_info) {
+                        fputs("Mach-o file at provided path has unknown architectures\n", stderr);
+                        return 1;
+                    }
+
+                    architecture_names.emplace_back(container_arch_info->name);
+                }
+
+                fputs(architecture_names.front(), stdout);
+                for (auto architecture_names_iter = architecture_names.begin() + 1; architecture_names_iter != architecture_names.end(); architecture_names_iter++) {
+                    fprintf(stdout, ", %s", *architecture_names_iter);
+                }
             }
 
-            fputc('\n', stdout);
             return 0;
         } else if (strcmp(option, "dont-print-warnings") == 0) {
             options |= dont_print_warnings;
