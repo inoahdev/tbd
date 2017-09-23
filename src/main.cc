@@ -160,14 +160,15 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
     }
 }
 
-char *recursively_create_directories_from_file_path(char *path, bool create_last_as_directory) {
+char *recursively_create_directories_from_file_path(char *path, size_t index, bool create_last_as_directory) {
     // If the path begins off with multiple forward-slashes,
     // increment the path to begin at the last slash.
 
-    if (path[1] == '/' || path[1] == '\\') {
-        do {
+    auto begin = &path[index];
+    if (*begin == '/') {
+        while (begin[1] == '/' || begin[1] == '\\') {
             path++;
-        } while (path[1] == '/' || path[1] == '\\');
+        }
     }
 
     // If the path begins off with a forward slash, it will
@@ -178,7 +179,13 @@ char *recursively_create_directories_from_file_path(char *path, bool create_last
     auto last_slash = (char *)nullptr;
     auto return_value = (char *)nullptr;
 
-    auto slash = path::find_next_slash(&path[1]);
+    auto slash = (char *)nullptr;
+    if (*begin == '/') {
+        slash = path::find_next_slash(&begin[1]);
+    } else {
+        slash = path::find_next_slash(begin);
+    }
+
     while (slash != nullptr) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
@@ -574,8 +581,8 @@ int main(int argc, const char *argv[]) {
         uint64_t options;
     } tbd_file;
 
-    auto architectures = uint64_t();
-    auto architecture_overrides = uint64_t();
+    uint64_t architectures = 0;
+    uint64_t architecture_overrides = 0;
 
     auto tbds = std::vector<tbd_file>();
 
@@ -1016,7 +1023,7 @@ int main(int argc, const char *argv[]) {
                         // `recursively_create_directories_from_file_path` only creates directories
                         // if they don't exist
 
-                        recursively_create_directories_from_file_path(path.data(), true);
+                        recursively_create_directories_from_file_path(path.data(), 0, true);
                     }
                 }
 
@@ -1378,7 +1385,7 @@ int main(int argc, const char *argv[]) {
                 output_path.insert(0, tbd_output_path);
                 output_path.append(".tbd");
 
-                auto recursive_directory_creation_ptr = recursively_create_directories_from_file_path(output_path.data(), false);
+                auto recursive_directory_creation_ptr = recursively_create_directories_from_file_path(output_path.data(), tbd_output_path_length, false);
                 auto output_file = fopen(output_path.data(), "w");
 
                 if (!output_file) {
@@ -1493,7 +1500,7 @@ int main(int argc, const char *argv[]) {
             auto recursive_directory_creation_ptr = (char *)nullptr;
 
             if (!tbd_output_path.empty()) {
-                recursive_directory_creation_ptr = recursively_create_directories_from_file_path(tbd_output_path.data(), false);
+                recursive_directory_creation_ptr = recursively_create_directories_from_file_path(tbd_output_path.data(), 0, false);
                 output_file = fopen(tbd_output_path.data(), "w");
 
                 if (!output_file) {

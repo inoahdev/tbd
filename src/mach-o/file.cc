@@ -312,9 +312,7 @@ namespace macho {
             const auto magic_is_thin = macho::magic_is_thin(magic);
             if (magic_is_thin) {
                 auto container = macho::container();
-                auto container_open_result = container::open_result::ok;
-
-                container_open_result = container.open(stream);
+                auto container_open_result = container.open(stream);
 
                 switch (container_open_result) {
                     case container::open_result::ok:
@@ -412,11 +410,10 @@ namespace macho {
             for (auto i = 0; i < nfat_arch; i++) {
                 const auto &architecture = architectures[i];
 
-                auto container = macho::container();
-                auto container_open_result = container::open_result::ok;
-
                 // Avoid rechecking by not calling container::open_from_library.
-                container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                auto container = macho::container();
+                auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                 switch (container_open_result) {
                     case container::open_result::ok:
@@ -748,11 +745,10 @@ namespace macho {
                 for (auto i = 0; i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
 
-                    auto container = macho::container();
-                    auto container_open_result = container::open_result::ok;
-
                     // Avoid rechecking by not calling container::open_from_library.
-                    container_open_result = container.open(stream, architecture.offset, architecture.size);
+
+                    auto container = macho::container();
+                    auto container_open_result = container.open(stream, architecture.offset, architecture.size);
 
                     switch (container_open_result) {
                         case container::open_result::ok:

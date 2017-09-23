@@ -56,9 +56,7 @@ namespace macho {
 
         if (!size) {
             this->size = max_size;
-        }
-
-        if (this->size > max_size) {
+        } else if (this->size > max_size) {
             return open_result::invalid_range;
         }
 

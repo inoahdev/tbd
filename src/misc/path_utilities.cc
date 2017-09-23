@@ -27,20 +27,7 @@ namespace path {
     }
 
     char *find_last_slash(char *string) {
-        auto iter = string;
-        while (true) {
-            if (*iter == '\0') {
-                return nullptr;
-            }
-
-            if (*iter == '/' || *iter == '\\') {
-                break;
-            }
-
-            ++iter;
-        }
-
-        return iter;
+        return find_last_slash(string, &string[strlen(string)]);
     }
 
     bool ends_with_slash(char *string) {
