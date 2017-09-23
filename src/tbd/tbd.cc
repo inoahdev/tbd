@@ -1828,8 +1828,12 @@ namespace tbd {
                             build_version_parsed_platform = platform::watchos;
                             break;
 
-                        default:
+                        case macho::build_version::platform::bridgeos:
                             failure_result = creation_result::platform_not_supported;
+                            return false;
+
+                        default:
+                            failure_result = creation_result::unrecognized_platform;
                             return false;
                     }
 

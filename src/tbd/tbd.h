@@ -95,6 +95,7 @@ namespace tbd {
         uuid_is_not_unique,
         platform_not_found,
         platform_not_supported,
+        unrecognized_platform,
         multiple_platforms,
         not_a_library,
         has_no_uuid,

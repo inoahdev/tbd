@@ -317,7 +317,7 @@ enum creation_handling {
 
 bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, tbd::platform platform, tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
     auto result = tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
-    if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::multiple_platforms) {
+    if (result == tbd::creation_result::platform_not_found || result == tbd::creation_result::platform_not_supported || result == tbd::creation_result::unrecognized_platform ||  result == tbd::creation_result::multiple_platforms) {
         switch (result) {
             case tbd::creation_result::platform_not_found:
                 if (creation_handling_options & creation_handling_print_paths) {
@@ -333,6 +333,15 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
                     fprintf(stdout, "Platform in mach-o library (at path %s) is unsupported. ", macho_file_path);
                 } else {
                     fputs("Platform in provided mach-o library is unsupported. ", stdout);
+                }
+
+                break;
+
+            case tbd::creation_result::unrecognized_platform:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stdout, "Platform in mach-o library (at path %s) is unrecognized. ", macho_file_path);
+                } else {
+                    fputs("Platform in provided mach-o library is unrecognized. ", stdout);
                 }
 
                 break;
@@ -438,6 +447,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
 
             case tbd::creation_result::platform_not_found:
             case tbd::creation_result::platform_not_supported:
+            case tbd::creation_result::unrecognized_platform:
             case tbd::creation_result::multiple_platforms:
                 break;
 
@@ -928,13 +938,12 @@ int main(int argc, const char *argv[]) {
                 });
 
                 switch (recursion_result) {
-                    case recurse::operation_result::ok: {
+                    case recurse::operation_result::ok:
                         if (!found_libraries) {
                             fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path);
                         }
 
                         break;
-                    }
 
                     case recurse::operation_result::failed_to_open_directory:
                         fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error (%s)\n", path, strerror(errno));
@@ -1114,8 +1123,8 @@ int main(int argc, const char *argv[]) {
             // type, the path option handles custom output options in between
             // the path option argument and the mach-o library path argument.
 
-            auto local_architectures = uint64_t();
-            auto local_architecture_overrides = uint64_t();
+            uint64_t local_architectures = 0;
+            uint64_t local_architecture_overrides = 0;
 
             auto local_options = uint64_t();
             auto local_platform = tbd::platform::none;
