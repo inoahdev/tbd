@@ -110,8 +110,10 @@ bool flags::operator==(const flags &flags) const noexcept {
         return false;
     }
 
-    if (length > bit_size()) {
-        return memcmp(bits.pointer, flags.bits.pointer, length) == 0;
+    auto bit_size = this->bit_size();
+    if (length > bit_size) {
+        auto size = (flags_integer_t)((double)length / bit_size) + 1;
+        return memcmp(bits.pointer, flags.bits.pointer, sizeof(flags_integer_t) * size) == 0;
     }
 
     return bits.integer == flags.bits.integer;
