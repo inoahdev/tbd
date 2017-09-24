@@ -68,8 +68,9 @@ namespace macho {
         open_result open_copy(const file &file);
         open_result open_copy(const file &file, const char *mode);
 
-        enum check_error {
+        enum class check_error {
             ok,
+            failed_to_allocate_memory,
 
             failed_to_open_descriptor,
             failed_to_close_descriptor,

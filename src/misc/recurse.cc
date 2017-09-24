@@ -234,10 +234,16 @@ namespace recurse {
                     auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
                     const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
 
-                    if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                        if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
-                        }
+                    switch (directory_entry_path_is_valid_library_check_error) {
+                        case macho::file::check_error::failed_to_open_descriptor:
+                            if (options & options::print_warnings) {
+                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
+                            }
+
+                            break;
+
+                        default:
+                            break;
                     }
 
                     if (directory_entry_path_is_valid_library) {
@@ -313,10 +319,16 @@ namespace recurse {
                     auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
                     const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
 
-                    if (directory_entry_path_is_valid_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                        if (options & options::print_warnings) {
-                            fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
-                        }
+                    switch (directory_entry_path_is_valid_library_check_error) {
+                        case macho::file::check_error::failed_to_open_descriptor:
+                            if (options & options::print_warnings) {
+                                fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", directory_entry_path.data(), strerror(errno));
+                            }
+
+                            break;
+
+                        default:
+                            break;
                     }
 
                     if (directory_entry_path_is_valid_library) {

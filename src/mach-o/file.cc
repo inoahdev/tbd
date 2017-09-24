@@ -760,100 +760,53 @@ namespace macho {
                 *error = check_error::failed_to_read_descriptor;
             }
 
-            if (close(descriptor) != 0) {
-                if (error != nullptr) {
-                    *error = check_error::failed_to_close_descriptor;
-                }
-            }
-
-            return -1;
+            close(descriptor);
+            return false;
         }
 
-        const auto magic_is_fat_64 = macho::magic_is_fat_64(magic);
-        if (magic_is_fat_64) {
+        const auto magic_is_fat = macho::magic_is_fat(magic);
+        if (magic_is_fat) {
             auto nfat_arch = uint32_t();
             if (read(descriptor, &nfat_arch, sizeof(nfat_arch)) == -1) {
                 if (error != nullptr) {
                     *error = check_error::failed_to_read_descriptor;
                 }
 
+                close(descriptor);
                 return false;
             }
 
-            const auto magic_is_big_endian = magic == magic::fat_64_big_endian;
-            if (magic_is_big_endian) {
-                swap_value(nfat_arch);
-            }
-
-            const auto architectures = std::make_unique<architecture_64[]>(nfat_arch);
-            const auto architectures_size = sizeof(architecture_64) * nfat_arch;
-
-            if (read(descriptor, architectures.get(), architectures_size) == -1) {
-                if (error != nullptr) {
-                    *error = check_error::failed_to_read_descriptor;
-                }
-
-                goto fail;
-            }
-
-            if (magic_is_big_endian) {
-                swap_fat_arch_64(architectures.get(), nfat_arch);
-            }
-
-            for (auto i = 0; i < nfat_arch; i++) {
-                const auto &architecture = architectures[i];
-                header header;
-
-                if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
-                    if (error != nullptr) {
-                        *error = check_error::failed_to_seek_descriptor;
-                    }
-
-                    goto fail;
-                }
-
-                if (read(descriptor, &header, sizeof(header)) == -1) {
-                    if (error != nullptr) {
-                        *error = check_error::failed_to_read_descriptor;
-                    }
-
-                    goto fail;
-                }
-
-                if (!has_library_command(descriptor, &header, error)) {
-                    goto fail;
-                }
-            }
-        } else {
-            const auto magic_is_fat_32 = macho::magic_is_fat_32(magic);
-            if (magic_is_fat_32) {
-                auto nfat_arch = uint32_t();
-                if (read(descriptor, &nfat_arch, sizeof(nfat_arch)) == -1) {
-                    if (error != nullptr) {
-                        *error = check_error::failed_to_read_descriptor;
-                    }
-
-                    goto fail;
-                }
-
-                const auto magic_is_big_endian = magic == magic::fat_big_endian;
+            const auto magic_is_fat_64 = magic == magic::fat_64 || magic == magic::fat_64_big_endian;
+            if (magic_is_fat_64) {
+                const auto magic_is_big_endian = magic == magic::fat_64_big_endian;
                 if (magic_is_big_endian) {
                     swap_value(nfat_arch);
                 }
 
-                const auto architectures = std::make_unique<architecture[]>(nfat_arch);
-                const auto architectures_size = sizeof(architecture) * nfat_arch;
+                const auto architectures = (architecture_64 *)malloc(sizeof(architecture_64) * nfat_arch);
+                if (!architectures) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_allocate_memory;
+                    }
 
-                if (read(descriptor, architectures.get(), architectures_size) == -1) {
+                    close(descriptor);
+                    return false;
+                }
+
+                const auto architectures_size = sizeof(architecture_64) * nfat_arch;
+                if (read(descriptor, architectures, architectures_size) == -1) {
                     if (error != nullptr) {
                         *error = check_error::failed_to_read_descriptor;
                     }
 
-                    goto fail;
+                    free(architectures);
+                    close(descriptor);
+
+                    return false;
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch(architectures.get(), nfat_arch);
+                    swap_fat_arch_64(architectures, nfat_arch);
                 }
 
                 for (auto i = 0; i < nfat_arch; i++) {
@@ -865,7 +818,10 @@ namespace macho {
                             *error = check_error::failed_to_seek_descriptor;
                         }
 
-                        goto fail;
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
                     }
 
                     if (read(descriptor, &header, sizeof(header)) == -1) {
@@ -873,33 +829,137 @@ namespace macho {
                             *error = check_error::failed_to_read_descriptor;
                         }
 
-                        goto fail;
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
                     }
 
                     if (!has_library_command(descriptor, &header, error)) {
-                        goto fail;
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
                     }
                 }
-            } else {
-                const auto magic_is_thin = macho::magic_is_thin(magic);
-                if (magic_is_thin) {
-                    header header;
-                    header.magic = magic;
 
-                    if (read(descriptor, &header.cputype, sizeof(header) - sizeof(header.magic)) == -1) {
+                free(architectures);
+            } else {
+                const auto magic_is_big_endian = magic == magic::fat_big_endian;
+                if (magic_is_big_endian) {
+                    swap_value(nfat_arch);
+                }
+
+                const auto architectures = (architecture *)malloc(sizeof(architecture) * nfat_arch);
+                if (!architectures) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_allocate_memory;
+                    }
+
+                    close(descriptor);
+                    return false;
+                }
+
+                const auto architectures_size = sizeof(architecture) * nfat_arch;
+                if (read(descriptor, architectures, architectures_size) == -1) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_read_descriptor;
+                    }
+
+                    free(architectures);
+                    close(descriptor);
+
+                    return false;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch(architectures, nfat_arch);
+                }
+
+                for (auto i = 0; i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+                    header header;
+
+                    if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
+                        if (error != nullptr) {
+                            *error = check_error::failed_to_seek_descriptor;
+                        }
+
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
+                    }
+
+                    if (read(descriptor, &header, sizeof(header)) == -1) {
                         if (error != nullptr) {
                             *error = check_error::failed_to_read_descriptor;
                         }
 
-                        goto fail;
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
                     }
 
                     if (!has_library_command(descriptor, &header, error)) {
-                        goto fail;
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
                     }
-                } else {
-                    goto fail;
                 }
+
+                free(architectures);
+            }
+        } else {
+            const auto magic_is_thin = macho::magic_is_thin(magic);
+            if (magic_is_thin) {
+                header header;
+                header.magic = magic;
+
+                if (read(descriptor, &header.cputype, sizeof(header) - sizeof(header.magic)) == -1) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_read_descriptor;
+                    }
+
+                    close(descriptor);
+                    return false;
+                }
+
+                if (!has_library_command(descriptor, &header, error)) {
+                    if (close(descriptor) != 0) {
+                        if (error != nullptr) {
+                            if (*error == check_error::ok) {
+                                *error = check_error::failed_to_close_descriptor;
+                            }
+                        }
+                    }
+
+                    return false;
+                }
+            } else {
+                if (close(descriptor) != 0) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_close_descriptor;
+                    }
+                }
+
+                return false;
             }
         }
 
@@ -910,15 +970,6 @@ namespace macho {
         }
 
         return true;
-
-    fail:
-        if (close(descriptor) != 0) {
-            if (error != nullptr) {
-                *error = check_error::failed_to_close_descriptor;
-            }
-        }
-
-        return false;
     }
 
     bool file::has_library_command(int descriptor, const struct header *header, check_error *error) noexcept {
@@ -945,8 +996,16 @@ namespace macho {
             return false;
         }
 
-        const auto load_commands = std::make_unique<uint8_t[]>(load_commands_size);
-        if (read(descriptor, load_commands.get(), load_commands_size) == -1) {
+        const auto load_commands = (uint8_t *)malloc(load_commands_size);
+        if (!load_commands) {
+            if (error != nullptr) {
+                *error = check_error::failed_to_allocate_memory;
+            }
+
+            return false;
+        }
+
+        if (read(descriptor, load_commands, load_commands_size) == -1) {
             if (error != nullptr) {
                 *error = check_error::failed_to_read_descriptor;
             }
@@ -986,6 +1045,11 @@ namespace macho {
             }
 
             if (load_cmd->cmd == load_commands::identification_dylib) {
+                if (load_cmd->cmdsize < sizeof(dylib_command)) {
+                    // Make sure load-command is valid
+                    return false;
+                }
+
                 return true;
             }
 
