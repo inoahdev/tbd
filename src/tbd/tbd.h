@@ -92,6 +92,7 @@ namespace tbd {
         failed_to_iterate_load_commands,
         failed_to_iterate_symbols,
         contradictary_load_command_information,
+        empty_installation_name,
         uuid_is_not_unique,
         platform_not_found,
         platform_not_supported,

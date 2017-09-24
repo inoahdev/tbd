@@ -913,6 +913,12 @@ namespace tbd {
                         }
 
                         const auto &identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
+                        const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[strlen(identification_dylib_installation_name_string)];
+
+                        if (*identification_dylib_installation_name_string == '\0' || std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
+                            failure_result = creation_result::empty_installation_name;
+                            return false;
+                        }
 
                         if (local_installation_name != nullptr) {
                             if (strcmp(local_installation_name, identification_dylib_installation_name_string) != 0) {
@@ -1864,6 +1870,12 @@ namespace tbd {
                     }
 
                     const auto &identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
+                    const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[strlen(identification_dylib_installation_name_string)];
+
+                    if (*identification_dylib_installation_name_string == '\0' || std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
+                        failure_result = creation_result::empty_installation_name;
+                        return false;
+                    }
 
                     if (installation_name != nullptr) {
                         if (strcmp(installation_name, identification_dylib_installation_name_string) != 0) {
