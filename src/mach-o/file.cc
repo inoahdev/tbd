@@ -613,6 +613,19 @@ namespace macho {
     }
 
     file::open_result file::open_copy(const file &file) {
+        if (!file.stream) {
+            if (stream != nullptr) {
+                fclose(stream);
+                stream = nullptr;
+            }
+
+            magic = magic::normal;
+            containers.clear();
+
+            // Copied an empty file object
+            return open_result::ok;
+        }
+
         stream = freopen(nullptr, "r", file.stream);
         if (!stream) {
             return open_result::failed_to_open_stream;
@@ -641,6 +654,19 @@ namespace macho {
     }
 
     file::open_result file::open_copy(const file &file, const char *mode) {
+        if (!file.stream) {
+            if (stream != nullptr) {
+                fclose(stream);
+                stream = nullptr;
+            }
+
+            magic = magic::normal;
+            containers.clear();
+            
+            // Copied an empty file object
+            return open_result::ok;
+        }
+
         stream = freopen(nullptr, mode, file.stream);
         if (!stream) {
             return open_result::failed_to_open_stream;
