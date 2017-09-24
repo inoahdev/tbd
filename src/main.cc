@@ -595,8 +595,6 @@ int main(int argc, const char *argv[]) {
     uint64_t architecture_overrides = 0;
 
     auto tbds = std::vector<tbd_file>();
-
-    auto current_directory = std::string();
     auto output_paths_index = 0;
 
     auto options = uint64_t();
