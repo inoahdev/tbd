@@ -160,6 +160,8 @@ namespace macho {
                 }
 
                 containers.emplace_back(std::move(container));
+            } else {
+                return open_result::not_a_macho;
             }
         }
 
@@ -306,6 +308,8 @@ namespace macho {
                 }
 
                 containers.emplace_back(std::move(container));
+            } else {
+                return open_result::not_a_macho;
             }
         }
 
@@ -384,7 +388,7 @@ namespace macho {
 
                     containers.emplace_back(std::move(container));
                 }
-            } else if (magic == magic::fat || magic == magic::fat_big_endian) {
+            } else {
                 const auto architectures = std::make_unique<architecture[]>(nfat_arch);
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
 
@@ -532,7 +536,7 @@ namespace macho {
 
                     containers.emplace_back(std::move(container));
                 }
-            } else if (magic == magic::fat || magic == magic::fat_big_endian) {
+            } else {
                 const auto architectures = std::make_unique<architecture[]>(nfat_arch);
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
 
