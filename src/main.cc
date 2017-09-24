@@ -689,7 +689,14 @@ int main(int argc, const char *argv[]) {
 
                 fputc('\n', stdout);
             } else {
-                auto path = std::string(argv[++i]);
+                i++;
+
+                if (i + 2 <= argc) {
+                    fprintf(stderr, "Unrecognized argument: %s\n", argv[i + 1]);
+                    return 1;
+                }
+
+                auto path = std::string(argv[i]);
                 if (path.front() != '/' && path.front() != '\\') {
                     path.insert(0, retrieve_current_directory());
                 }
@@ -798,7 +805,7 @@ int main(int argc, const char *argv[]) {
                             if (strcmp(recurse_type_string, "all") == 0) {
                                 options |= recurse_subdirectories;
                             } else if (strcmp(recurse_type_string, "once") != 0) {
-                                fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
+                                fprintf(stderr, "Unrecognized recurse-type: %s\n", recurse_type_string);
                                 return 1;
                             }
                         } else {
