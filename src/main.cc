@@ -558,7 +558,7 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("List options:\n", stdout);
-    fputs("        --list-architectures,   List all valid architectures for .tbd files\n", stdout);
+    fputs("        --list-architectures,   List all valid architectures for .tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
     fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
     fputs("        --list-platform,        List all valid platforms\n", stdout);
     fputs("        --list-recurse,         List all valid recurse options for parsing directories\n", stdout);
