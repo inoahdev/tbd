@@ -558,11 +558,11 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("List options:\n", stdout);
-    fputs("        --list-architectures,   List all valid architectures for tbd-files\n", stdout);
+    fputs("        --list-architectures,   List all valid architectures for .tbd files\n", stdout);
     fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
     fputs("        --list-platform,        List all valid platforms\n", stdout);
     fputs("        --list-recurse,         List all valid recurse options for parsing directories\n", stdout);
-    fputs("        --list-versions,        List all valid versions for tbd-files\n", stdout);
+    fputs("        --list-versions,        List all valid versions for .tbd files\n", stdout);
 }
 
 int main(int argc, const char *argv[]) {
@@ -1070,7 +1070,7 @@ int main(int argc, const char *argv[]) {
                     const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                     if (path_is_directory) {
                         if (!(tbd_options & recurse_directories)) {
-                            fprintf(stderr, "Cannot output tbd-file to directory (at path %s), please provide a path to a file to output to\n", path.data());
+                            fprintf(stderr, "Cannot output a .tbd to directory (at path %s), please provide a path to a file to output to\n", path.data());
                             return 1;
                         }
 
@@ -1082,7 +1082,7 @@ int main(int argc, const char *argv[]) {
                         const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
                         if (path_is_regular_file) {
                             if (tbd_options & recurse_directories) {
-                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output tbd-files to\n", tbd.path.data(), path.data());
+                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output .tbd files to\n", tbd.path.data(), path.data());
                                 return 1;
                             }
                         }
@@ -1428,7 +1428,7 @@ int main(int argc, const char *argv[]) {
 
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
-                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd-files to\n", tbd_path.data());
+                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output .tbd files to\n", tbd_path.data());
                 return 1;
             }
 
