@@ -65,15 +65,8 @@ namespace macho {
             return validation_result;
         }
 
-        auto is_library = false;
-        auto iteration_result = iterate_load_commands([&](long location, const struct load_command *swapped, const struct load_command *load_cmd) {
-            if (swapped->cmd != load_commands::identification_dylib) {
-                return true;
-            }
-
-            is_library = true;
-            return false;
-        });
+        auto iteration_result = load_command_iteration_result::ok;
+        auto identification_dylib = (dylib_command *)iterate_for_first_of_load_command(load_commands::identification_dylib, &iteration_result);
 
         switch (iteration_result) {
             case load_command_iteration_result::ok:
@@ -93,7 +86,16 @@ namespace macho {
                 return open_result::invalid_macho;
         }
 
-        if (!is_library) {
+        if (!identification_dylib) {
+            return open_result::not_a_library;
+        }
+
+        auto identification_dylib_cmdsize = identification_dylib->cmdsize;
+        if (is_big_endian()) {
+            swap_uint32(&identification_dylib_cmdsize);
+        }
+
+        if (identification_dylib_cmdsize < sizeof(dylib_command)) {
             return open_result::not_a_library;
         }
 
@@ -424,10 +426,13 @@ namespace macho {
             return symbols_iteration_result::no_symbol_table_load_command;
         }
 
+        auto symbol_table_cmdsize = symbol_table->cmdsize;
+        if (is_big_endian) {
+            swap_uint32(&symbol_table_cmdsize);
+        }
 
-            if (!symbol_table) {
-                return symbols_iteration_result::no_symbol_table_load_command;
-            }
+        if (symbol_table_cmdsize != sizeof(symtab_command)) {
+            return symbols_iteration_result::invalid_symbol_table_load_command;
         }
 
         auto &cached_string_table = cached_string_table_;
@@ -438,25 +443,25 @@ namespace macho {
             }
 
             if (!string_table_location) {
-                return symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             if (string_table_location > size) {
-                return symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             const auto &string_table_size = symbol_table->strsize;
             if (!string_table_size) {
-                return symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             if (string_table_size > size) {
-                return symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             const auto string_table_end = string_table_location + string_table_size;
             if (string_table_end > size) {
-                return symbols_iteration_result::invalid_string_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             if (fseek(stream, base + string_table_location, SEEK_SET) != 0) {
@@ -488,11 +493,11 @@ namespace macho {
             }
 
             if (!symbol_table_location) {
-                return symbols_iteration_result::invalid_symbol_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             if (symbol_table_location > size) {
-                return symbols_iteration_result::invalid_symbol_table;
+                return symbols_iteration_result::invalid_symbol_table_load_command;
             }
 
             if (fseek(stream, base + symbol_table_location, SEEK_SET) != 0) {
@@ -503,12 +508,12 @@ namespace macho {
             if (is_64_bit) {
                 const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    return symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    return symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];
@@ -526,12 +531,12 @@ namespace macho {
             } else {
                 const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
                 if (symbol_table_size > size) {
-                    return symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
                 const auto symbol_table_end = symbol_table_location + symbol_table_size;
                 if (symbol_table_end > size) {
-                    return symbols_iteration_result::invalid_symbol_table;
+                    return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
                 cached_symbol_table = new uint8_t[symbol_table_size];

@@ -72,11 +72,9 @@ namespace macho {
             stream_read_error,
 
             no_symbol_table_load_command,
+            invalid_symbol_table_load_command,
+
             no_symbols,
-
-            invalid_string_table,
-            invalid_symbol_table,
-
             invalid_symbol_table_entry
         };
 

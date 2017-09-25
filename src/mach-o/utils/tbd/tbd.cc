@@ -1635,8 +1635,7 @@ namespace macho::utils::tbd {
 
             case container::symbols_iteration_result::stream_seek_error:
             case container::symbols_iteration_result::stream_read_error:
-            case container::symbols_iteration_result::invalid_string_table:
-            case container::symbols_iteration_result::invalid_symbol_table:
+            case container::symbols_iteration_result::invalid_symbol_table_load_command:
             case container::symbols_iteration_result::invalid_symbol_table_entry:
                 return creation_result::failed_to_iterate_symbols;
         }
