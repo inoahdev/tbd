@@ -62,6 +62,7 @@ namespace macho {
             load_command_is_too_large
         };
 
+        struct load_command *iterate_for_first_of_load_command(load_commands cmd, load_command_iteration_result *result = nullptr);
         load_command_iteration_result iterate_load_commands(const std::function<bool(long, const struct load_command *, const struct load_command *)> &callback) noexcept;
 
         enum class symbols_iteration_result {
@@ -99,7 +100,6 @@ namespace macho {
         uint8_t *cached_load_commands_ = nullptr;
         uint8_t *cached_symbol_table_ = nullptr;
 
-        struct symtab_command *symbol_table_ = nullptr;
         char *cached_string_table_ = nullptr;
 
         size_t file_size(open_result &result) noexcept;

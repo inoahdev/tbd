@@ -225,6 +225,113 @@ namespace macho {
         }
     }
 
+    struct load_command *container::iterate_for_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
+        const auto is_big_endian = this->is_big_endian();
+
+        const auto &ncmds = header.ncmds;
+        const auto &sizeofcmds = header.sizeofcmds;
+
+        if (!ncmds || !sizeofcmds) {
+            if (result != nullptr) {
+                *result = load_command_iteration_result::no_load_commands;
+            }
+
+            return nullptr;
+        }
+
+        auto &cached_load_commands = cached_load_commands_;
+        const auto created_cached_load_commands = !cached_load_commands;
+
+        auto load_command_base = base + sizeof(header);
+        if (is_64_bit()) {
+            load_command_base += sizeof(uint32_t);
+        }
+
+        if (!cached_load_commands) {
+            const auto position = ftell(stream);
+
+            if (fseek(stream, load_command_base, SEEK_SET) != 0) {
+                if (result != nullptr) {
+                    *result = load_command_iteration_result::stream_seek_error;
+                }
+
+                return nullptr;
+            }
+
+            cached_load_commands = new uint8_t[sizeofcmds];
+
+            if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
+                delete[] cached_load_commands;
+                cached_load_commands = nullptr;
+
+                if (result != nullptr) {
+                    *result = load_command_iteration_result::stream_read_error;
+                }
+
+                return nullptr;
+            }
+
+            if (fseek(stream, position, SEEK_SET) != 0) {
+                if (result != nullptr) {
+                    *result = load_command_iteration_result::stream_seek_error;
+                }
+
+                return nullptr;
+            }
+        }
+
+        auto size_used = 0;
+        for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+            auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+
+            auto load_cmd_cmd = load_cmd->cmd;
+            auto load_cmd_cmdsize = load_cmd->cmdsize;
+
+            if (created_cached_load_commands) {
+                auto swapped_load_command = *load_cmd;
+                if (is_big_endian) {
+                    swap_load_command(&swapped_load_command);
+                }
+
+                load_cmd_cmdsize = swapped_load_command.cmdsize;
+                if (load_cmd_cmdsize < sizeof(struct load_command)) {
+                    if (result != nullptr) {
+                        *result = load_command_iteration_result::load_command_is_too_small;
+                    }
+
+                    return nullptr;
+                }
+
+                size_used += load_cmd_cmdsize;
+                if (size_used > sizeofcmds || (size_used == sizeofcmds && i != ncmds - 1)) {
+                    if (result != nullptr) {
+                        *result = load_command_iteration_result::load_command_is_too_large;
+                    }
+
+                    return nullptr;
+                }
+
+                load_cmd_cmd = swapped_load_command.cmd;
+            }
+
+            if (load_cmd_cmd == cmd) {
+                if (result != nullptr) {
+                    *result = load_command_iteration_result::ok;
+                }
+
+                return load_cmd;
+            }
+
+            cached_load_commands_index += load_cmd_cmdsize;
+        }
+
+        if (result != nullptr) {
+            *result = load_command_iteration_result::ok;
+        }
+
+        return nullptr;
+    }
+
     container::load_command_iteration_result container::iterate_load_commands(const std::function<bool (long, const struct load_command *, const struct load_command *)> &callback) noexcept {
         const auto is_big_endian = this->is_big_endian();
 
@@ -312,16 +419,11 @@ namespace macho {
         const auto is_big_endian = this->is_big_endian();
         const auto position = ftell(stream);
 
-        auto &symbol_table = symbol_table_;
+        const auto symbol_table = (symtab_command *)iterate_for_first_of_load_command(load_commands::symbol_table);
         if (!symbol_table) {
-            iterate_load_commands([&](long location, const struct load_command *swapped, const struct load_command *load_command) {
-                if (swapped->cmd != load_commands::symbol_table) {
-                    return true;
-                }
+            return symbols_iteration_result::no_symbol_table_load_command;
+        }
 
-                symbol_table = (struct symtab_command *)load_command;
-                return false;
-            });
 
             if (!symbol_table) {
                 return symbols_iteration_result::no_symbol_table_load_command;
