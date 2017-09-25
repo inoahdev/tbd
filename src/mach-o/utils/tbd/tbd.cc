@@ -8,15 +8,15 @@
 
 #include <cerrno>
 
-#include "../mach-o/headers/build.h"
-#include "../mach-o/headers/segment.h"
+#include "../../../misc/flags.h"
+#include "../../../objc/image_info.h"
 
-#include "../misc/flags.h"
-#include "../objc/image_info.h"
+#include "../../headers/build.h"
+#include "../../headers/segment.h"
 
 #include "tbd.h"
 
-namespace tbd {
+namespace macho::utils::tbd {
     class group {
     public:
         explicit group() = default;
@@ -774,7 +774,7 @@ namespace tbd {
         fputs(" ]\n", output);
     }
 
-    creation_result create_from_macho_library(macho::file &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architecture = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -793,7 +793,7 @@ namespace tbd {
         const auto library_containers_size = library_containers.size();
 
         auto library_uuids = std::vector<const uint8_t *>();
-        auto library_container_architectures = std::vector<const macho::architecture_info *>();
+        auto library_container_architectures = std::vector<const architecture_info *>();
 
         library_uuids.reserve(library_containers_size);
 
@@ -806,14 +806,14 @@ namespace tbd {
         for (auto &library_container : library_containers) {
             const auto &library_container_header = library_container.header;
 
-            const auto library_container_header_cputype = macho::cputype(library_container_header.cputype);
-            const auto library_container_header_subtype = macho::subtype_from_cputype(library_container_header_cputype, library_container_header.cpusubtype);
+            const auto library_container_header_cputype = cputype(library_container_header.cputype);
+            const auto library_container_header_subtype = subtype_from_cputype(library_container_header_cputype, library_container_header.cpusubtype);
 
-            if (library_container_header_subtype == macho::subtype::none) {
+            if (library_container_header_subtype == subtype::none) {
                 return creation_result::invalid_subtype;
             }
 
-            const auto library_container_architecture_info = macho::architecture_info_from_cputype(library_container_header_cputype, library_container_header_subtype);
+            const auto library_container_architecture_info = architecture_info_from_cputype(library_container_header_cputype, library_container_header_subtype);
             if (!library_container_architecture_info) {
                 return creation_result::invalid_cputype;
             }
@@ -821,8 +821,8 @@ namespace tbd {
             if (has_provided_architecture) {
                 // any is the first architecture info and if set is stored in the LSB
                 if (!(architectures & 1)) {
-                    const auto architecture_info_table = macho::get_architecture_info_table();
-                    const auto architecture_info_table_index = ((uint64_t)library_container_architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
+                    const auto architecture_info_table = get_architecture_info_table();
+                    const auto architecture_info_table_index = ((uint64_t)library_container_architecture_info - (uint64_t)architecture_info_table) / sizeof(architecture_info);
 
                     if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
                         continue;
@@ -850,9 +850,9 @@ namespace tbd {
             const auto library_container_size = library_container.size;
 
             auto library_container_stream = library_container.stream;
-            auto library_container_load_command_iteration_result = library_container.iterate_load_commands([&](long location, const macho::load_command *swapped, const macho::load_command *load_command) {
+            auto library_container_load_command_iteration_result = library_container.iterate_load_commands([&](long location, const load_command *swapped, const load_command *load_command) {
                 switch (swapped->cmd) {
-                    case macho::load_commands::build_version: {
+                    case load_commands::build_version: {
                         if (!should_find_library_platform) {
                             break;
                         }
@@ -861,24 +861,24 @@ namespace tbd {
                         auto build_version_platform = build_version_command->platform;
 
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&build_version_platform);
+                            swap_uint32(&build_version_platform);
                         }
 
                         auto build_version_parsed_platform = platform::none;
-                        switch (macho::build_version::platform(build_version_platform)) {
-                            case macho::build_version::platform::macos:
+                        switch (build_version::platform(build_version_platform)) {
+                            case build_version::platform::macos:
                                 build_version_parsed_platform = platform::macosx;
                                 break;
 
-                            case macho::build_version::platform::ios:
+                            case build_version::platform::ios:
                                 build_version_parsed_platform = platform::ios;
                                 break;
 
-                            case macho::build_version::platform::tvos:
+                            case build_version::platform::tvos:
                                 build_version_parsed_platform = platform::tvos;
                                 break;
 
-                            case macho::build_version::platform::watchos:
+                            case build_version::platform::watchos:
                                 build_version_parsed_platform = platform::watchos;
                                 break;
 
@@ -899,12 +899,12 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::identification_dylib: {
-                        auto identification_dylib_command = (macho::dylib_command *)load_command;
+                    case load_commands::identification_dylib: {
+                        auto identification_dylib_command = (dylib_command *)load_command;
                         auto identification_dylib_installation_name_string_index = identification_dylib_command->name.offset;
 
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&identification_dylib_installation_name_string_index);
+                            swap_uint32(&identification_dylib_installation_name_string_index);
                         }
 
                         if (identification_dylib_installation_name_string_index >= swapped->cmdsize) {
@@ -933,8 +933,8 @@ namespace tbd {
                         auto identification_dylib_compatibility_version = identification_dylib_command->compatibility_version;
 
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&identification_dylib_current_version);
-                            macho::swap_uint32(&identification_dylib_compatibility_version);
+                            swap_uint32(&identification_dylib_current_version);
+                            swap_uint32(&identification_dylib_compatibility_version);
                         }
 
                         if (local_current_version != -1) {
@@ -957,12 +957,12 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::reexport_dylib: {
-                        auto reexport_dylib_command = (macho::dylib_command *)load_command;
+                    case load_commands::reexport_dylib: {
+                        auto reexport_dylib_command = (dylib_command *)load_command;
                         auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
 
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&reexport_dylib_string_index);
+                            swap_uint32(&reexport_dylib_string_index);
                         }
 
                         if (reexport_dylib_string_index >= swapped->cmdsize) {
@@ -995,7 +995,7 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::segment: {
+                    case load_commands::segment: {
                         const auto segment_command = (macho::segment_command *)load_command;
                         if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
                             break;
@@ -1008,17 +1008,17 @@ namespace tbd {
 
                         auto segment_sections_count = segment_command->nsects;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_sections_count);
+                            swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section *)((uint64_t)segment_command + sizeof(macho::segment_command));
+                        auto segment_section = (segments::section *)((uint64_t)segment_command + sizeof(segment_command));
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section *)((uint64_t)segment_section + sizeof(macho::segments::section));
+                                segment_section = (segments::section *)((uint64_t)segment_section + sizeof(segments::section));
                                 segment_sections_count--;
 
                                 continue;
@@ -1026,7 +1026,7 @@ namespace tbd {
 
                             auto segment_section_data_offset = segment_section->offset;
                             if (library_container_is_big_endian) {
-                                macho::swap_uint32(&segment_section_data_offset);
+                                swap_uint32(&segment_section_data_offset);
                             }
 
                             if (segment_section_data_offset >= library_container_size) {
@@ -1036,7 +1036,7 @@ namespace tbd {
 
                             auto segment_section_data_size = segment_section->size;
                             if (library_container_is_big_endian) {
-                                macho::swap_uint32(&segment_section_data_offset);
+                                swap_uint32(&segment_section_data_offset);
                             }
 
                             if (segment_section_data_size >= library_container_size) {
@@ -1080,8 +1080,8 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::segment_64: {
-                        const auto segment_command = (macho::segment_command_64 *)load_command;
+                    case load_commands::segment_64: {
+                        const auto segment_command = (segment_command_64 *)load_command;
                         if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
                             break;
                         }
@@ -1093,17 +1093,17 @@ namespace tbd {
 
                         auto segment_sections_count = segment_command->nsects;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_sections_count);
+                            swap_uint32(&segment_sections_count);
                         }
 
-                        auto segment_section = (macho::segments::section_64 *)((uint64_t)segment_command + sizeof(macho::segment_command_64));
+                        auto segment_section = (segments::section_64 *)((uint64_t)segment_command + sizeof(segment_command_64));
 
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
                         while (segment_sections_count != 0) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                                segment_section = (macho::segments::section_64 *)((uint64_t)segment_section + sizeof(macho::segments::section_64));
+                                segment_section = (segments::section_64 *)((uint64_t)segment_section + sizeof(segments::section_64));
                                 segment_sections_count--;
 
                                 continue;
@@ -1111,7 +1111,7 @@ namespace tbd {
 
                             auto segment_section_data_offset = segment_section->offset;
                             if (library_container_is_big_endian) {
-                                macho::swap_uint32(&segment_section_data_offset);
+                                swap_uint32(&segment_section_data_offset);
                             }
 
                             if (segment_section_data_offset >= library_container_size) {
@@ -1121,7 +1121,7 @@ namespace tbd {
 
                             auto segment_section_data_size = segment_section->size;
                             if (library_container_is_big_endian) {
-                                macho::swap_uint32(&segment_section_data_offset);
+                                swap_uint32(&segment_section_data_offset);
                             }
 
                             if (segment_section_data_size >= library_container_size) {
@@ -1165,12 +1165,12 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::uuid: {
+                    case load_commands::uuid: {
                         if (version != version::v2) {
                             break;
                         }
 
-                        const auto &library_uuid = ((macho::uuid_command *)load_command)->uuid;
+                        const auto &library_uuid = ((uuid_command *)load_command)->uuid;
                         const auto library_uuids_size = library_uuids.size();
 
                         // Check if multiple uuid load-commands were
@@ -1200,7 +1200,7 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::version_min_macosx: {
+                    case load_commands::version_min_macosx: {
                         if (!should_find_library_platform) {
                             break;
                         }
@@ -1217,7 +1217,7 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::version_min_iphoneos: {
+                    case load_commands::version_min_iphoneos: {
                         if (!should_find_library_platform) {
                             break;
                         }
@@ -1234,7 +1234,7 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::version_min_watchos: {
+                    case load_commands::version_min_watchos: {
                         if (!should_find_library_platform) {
                             break;
                         }
@@ -1251,7 +1251,7 @@ namespace tbd {
                         break;
                     }
 
-                    case macho::load_commands::version_min_tvos: {
+                    case load_commands::version_min_tvos: {
                         if (!should_find_library_platform) {
                             break;
                         }
@@ -1276,14 +1276,14 @@ namespace tbd {
             });
 
             switch (library_container_load_command_iteration_result) {
-                case macho::container::load_command_iteration_result::ok:
+                case container::load_command_iteration_result::ok:
                     break;
 
-                case macho::container::load_command_iteration_result::no_load_commands:
-                case macho::container::load_command_iteration_result::stream_seek_error:
-                case macho::container::load_command_iteration_result::stream_read_error:
-                case macho::container::load_command_iteration_result::load_command_is_too_small:
-                case macho::container::load_command_iteration_result::load_command_is_too_large:
+                case container::load_command_iteration_result::no_load_commands:
+                case container::load_command_iteration_result::stream_seek_error:
+                case container::load_command_iteration_result::stream_read_error:
+                case container::load_command_iteration_result::load_command_is_too_small:
+                case container::load_command_iteration_result::load_command_is_too_large:
                     return creation_result::failed_to_iterate_load_commands;
             }
 
@@ -1331,22 +1331,22 @@ namespace tbd {
                 library_swift_version = local_swift_version;
             }
 
-            auto library_container_symbols_iteration_result = library_container.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
+            auto library_container_symbols_iteration_result = library_container.iterate_symbols([&](const nlist_64 &symbol_table_entry, const char *symbol_string) {
                 const auto &symbol_table_entry_type = symbol_table_entry.n_type;
-                if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
+                if ((symbol_table_entry_type & symbol_table::flags::type) != symbol_table::type::section) {
                     return true;
                 }
 
                 enum symbol::type symbol_type;
 
-                const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
+                const auto symbol_is_weak = symbol_table_entry.n_desc & symbol_table::description::weak_definition;
                 const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
                 if (!(options & symbol_options::allow_all_private_symbols)) {
                     switch (symbol_type) {
                         case symbol::type::symbols:
                             if (!(options & symbol_options::allow_private_normal_symbols)) {
-                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -1355,7 +1355,7 @@ namespace tbd {
 
                         case symbol::type::weak_symbols:
                             if (!(options & symbol_options::allow_private_weak_symbols)) {
-                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -1365,7 +1365,7 @@ namespace tbd {
                         case symbol::type::objc_classes:
                             if (!(options & symbol_options::allow_private_objc_symbols)) {
                                 if (!(options & symbol_options::allow_private_objc_classes)) {
-                                    if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                    if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                         return true;
                                     }
                                 }
@@ -1376,7 +1376,7 @@ namespace tbd {
                         case symbol::type::objc_ivars:
                             if (!(options & symbol_options::allow_private_objc_symbols)) {
                                 if (!(options & symbol_options::allow_private_objc_ivars)) {
-                                    if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                    if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                         return true;
                                     }
                                 }
@@ -1411,16 +1411,16 @@ namespace tbd {
             });
 
             switch (library_container_symbols_iteration_result) {
-                case macho::container::symbols_iteration_result::ok:
-                case macho::container::symbols_iteration_result::no_symbols:
-                case macho::container::symbols_iteration_result::no_symbol_table_load_command:
+                case container::symbols_iteration_result::ok:
+                case container::symbols_iteration_result::no_symbols:
+                case container::symbols_iteration_result::no_symbol_table_load_command:
                     break;
 
-                case macho::container::symbols_iteration_result::stream_seek_error:
-                case macho::container::symbols_iteration_result::stream_read_error:
-                case macho::container::symbols_iteration_result::invalid_string_table:
-                case macho::container::symbols_iteration_result::invalid_symbol_table:
-                case macho::container::symbols_iteration_result::invalid_symbol_table_entry:
+                case container::symbols_iteration_result::stream_seek_error:
+                case container::symbols_iteration_result::stream_read_error:
+                case container::symbols_iteration_result::invalid_string_table:
+                case container::symbols_iteration_result::invalid_symbol_table:
+                case container::symbols_iteration_result::invalid_symbol_table_entry:
                     return creation_result::failed_to_iterate_symbols;
             }
 
@@ -1464,7 +1464,7 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto group = ::tbd::group();
+                    auto group = ::macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_reexport_flags);
 
                     switch (group_creation_result) {
@@ -1489,7 +1489,7 @@ namespace tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto group = ::tbd::group();
+                    auto group = ::macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_symbol_flags);
 
                     switch (group_creation_result) {
@@ -1521,8 +1521,8 @@ namespace tbd {
         fprintf(output, "\narchs:%-17s[ ", "");
 
         if (has_architecture_overrides) {
-            const auto architecture_info_table = macho::get_architecture_info_table();
-            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+            const auto architecture_info_table = get_architecture_info_table();
+            const auto architecture_info_table_size = get_architecture_info_table_size();
 
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
@@ -1544,8 +1544,8 @@ namespace tbd {
 
             fputs(" ]\n", output);
         } else if (has_provided_architecture) {
-            const auto architecture_info_table = macho::get_architecture_info_table();
-            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+            const auto architecture_info_table = get_architecture_info_table();
+            const auto architecture_info_table_size = get_architecture_info_table_size();
 
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
@@ -1670,8 +1670,8 @@ namespace tbd {
         fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
-            const auto architecture_info_table = macho::get_architecture_info_table();
-            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+            const auto architecture_info_table = get_architecture_info_table();
+            const auto architecture_info_table_size = get_architecture_info_table_size();
 
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
@@ -1753,7 +1753,7 @@ namespace tbd {
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(macho::container &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(container &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architecture = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -1770,14 +1770,14 @@ namespace tbd {
 
         const auto &header = library.header;
 
-        const auto header_cputype = macho::cputype(header.cputype);
-        const auto header_subtype = macho::subtype_from_cputype(header_cputype, header.cpusubtype);
+        const auto header_cputype = cputype(header.cputype);
+        const auto header_subtype = subtype_from_cputype(header_cputype, header.cpusubtype);
 
-        if (header_subtype == macho::subtype::none) {
+        if (header_subtype == subtype::none) {
             return creation_result::invalid_subtype;
         }
 
-        const auto architecture_info = macho::architecture_info_from_cputype(header_cputype, header_subtype);
+        const auto architecture_info = architecture_info_from_cputype(header_cputype, header_subtype);
         if (!architecture_info) {
             return creation_result::invalid_cputype;
         }
@@ -1785,8 +1785,8 @@ namespace tbd {
         if (has_provided_architecture) {
             // any is the first architecture info and if set is stored in the LSB
             if (!(architectures & 1)) {
-                const auto architecture_info_table = macho::get_architecture_info_table();
-                const auto architecture_info_table_index = ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
+                const auto architecture_info_table = get_architecture_info_table();
+                const auto architecture_info_table_index = ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(architecture_info);
 
                 if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
                     return creation_result::no_provided_architectures;
@@ -1803,9 +1803,9 @@ namespace tbd {
         auto library_container_stream = library.stream;
         auto failure_result = creation_result::ok;
 
-        auto library_container_load_command_iteration_result = library.iterate_load_commands([&](long location, const macho::load_command *swapped, const macho::load_command *load_command) {
+        auto library_container_load_command_iteration_result = library.iterate_load_commands([&](long location, const load_command *swapped, const load_command *load_command) {
             switch (swapped->cmd) {
-                case macho::load_commands::build_version: {
+                case load_commands::build_version: {
                     if (!should_find_library_platform) {
                         break;
                     }
@@ -1814,28 +1814,28 @@ namespace tbd {
                     auto build_version_platform = build_version_command->platform;
 
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&build_version_platform);
+                        swap_uint32(&build_version_platform);
                     }
 
                     auto build_version_parsed_platform = platform::none;
-                    switch (macho::build_version::platform(build_version_platform)) {
-                        case macho::build_version::platform::macos:
+                    switch (build_version::platform(build_version_platform)) {
+                        case build_version::platform::macos:
                             build_version_parsed_platform = platform::macosx;
                             break;
 
-                        case macho::build_version::platform::ios:
+                        case build_version::platform::ios:
                             build_version_parsed_platform = platform::ios;
                             break;
 
-                        case macho::build_version::platform::tvos:
+                        case build_version::platform::tvos:
                             build_version_parsed_platform = platform::tvos;
                             break;
 
-                        case macho::build_version::platform::watchos:
+                        case build_version::platform::watchos:
                             build_version_parsed_platform = platform::watchos;
                             break;
 
-                        case macho::build_version::platform::bridgeos:
+                        case build_version::platform::bridgeos:
                             failure_result = creation_result::platform_not_supported;
                             return false;
 
@@ -1856,12 +1856,12 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::identification_dylib: {
-                    auto identification_dylib_command = (macho::dylib_command *)load_command;
+                case load_commands::identification_dylib: {
+                    auto identification_dylib_command = (dylib_command *)load_command;
                     auto identification_dylib_installation_name_string_index = identification_dylib_command->name.offset;
 
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&identification_dylib_installation_name_string_index);
+                        swap_uint32(&identification_dylib_installation_name_string_index);
                     }
 
                     if (identification_dylib_installation_name_string_index >= swapped->cmdsize) {
@@ -1890,8 +1890,8 @@ namespace tbd {
                     auto identification_dylib_compatibility_version = identification_dylib_command->compatibility_version;
 
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&identification_dylib_current_version);
-                        macho::swap_uint32(&identification_dylib_compatibility_version);
+                        swap_uint32(&identification_dylib_current_version);
+                        swap_uint32(&identification_dylib_compatibility_version);
                     }
 
                     if (current_version != -1) {
@@ -1914,12 +1914,12 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::reexport_dylib: {
-                    auto reexport_dylib_command = (macho::dylib_command *)load_command;
+                case load_commands::reexport_dylib: {
+                    auto reexport_dylib_command = (dylib_command *)load_command;
                     auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
 
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&reexport_dylib_string_index);
+                        swap_uint32(&reexport_dylib_string_index);
                     }
 
                     if (reexport_dylib_string_index >= swapped->cmdsize) {
@@ -1934,7 +1934,7 @@ namespace tbd {
                         // Only add unique reexports to reexports
                         // vector
 
-                        auto reexport = ::tbd::reexport();
+                        auto reexport = ::macho::utils::tbd::reexport();
                         auto reexport_creation_result = reexport.create(reexport_dylib_string, 0);
 
                         switch (reexport_creation_result) {
@@ -1952,7 +1952,7 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::segment: {
+                case load_commands::segment: {
                     const auto segment_command = (macho::segment_command *)load_command;
                     if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
                         break;
@@ -1965,17 +1965,17 @@ namespace tbd {
 
                     auto segment_sections_count = segment_command->nsects;
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&segment_sections_count);
+                        swap_uint32(&segment_sections_count);
                     }
 
-                    auto segment_section = (macho::segments::section *)((uint64_t)segment_command + sizeof(macho::segment_command));
+                    auto segment_section = (segments::section *)((uint64_t)segment_command + sizeof(segment_command));
 
                     auto objc_image_info = objc::image_info();
                     auto found_objc_image_info = false;
 
                     while (segment_sections_count != 0) {
                         if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                            segment_section = (macho::segments::section *)((uint64_t)segment_section + sizeof(macho::segments::section));
+                            segment_section = (segments::section *)((uint64_t)segment_section + sizeof(segments::section));
                             segment_sections_count--;
 
                             continue;
@@ -1983,7 +1983,7 @@ namespace tbd {
 
                         auto segment_section_data_offset = segment_section->offset;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_section_data_offset);
+                            swap_uint32(&segment_section_data_offset);
                         }
 
                         if (segment_section_data_offset >= library_container_size) {
@@ -1993,7 +1993,7 @@ namespace tbd {
 
                         auto segment_section_data_size = segment_section->size;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_section_data_offset);
+                            swap_uint32(&segment_section_data_offset);
                         }
 
                         if (segment_section_data_size >= library_container_size) {
@@ -2037,8 +2037,8 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::segment_64: {
-                    const auto segment_command = (macho::segment_command_64 *)load_command;
+                case load_commands::segment_64: {
+                    const auto segment_command = (segment_command_64 *)load_command;
                     if (strcmp(segment_command->segname, "__DATA") != 0 && strcmp(segment_command->segname, "__DATA_CONST") != 0 && strcmp(segment_command->segname, "__DATA_DIRTY") != 0) {
                         break;
                     }
@@ -2050,17 +2050,17 @@ namespace tbd {
 
                     auto segment_sections_count = segment_command->nsects;
                     if (library_container_is_big_endian) {
-                        macho::swap_uint32(&segment_sections_count);
+                        swap_uint32(&segment_sections_count);
                     }
 
-                    auto segment_section = (macho::segments::section_64 *)((uint64_t)segment_command + sizeof(macho::segment_command_64));
+                    auto segment_section = (segments::section_64 *)((uint64_t)segment_command + sizeof(segment_command_64));
 
                     auto objc_image_info = objc::image_info();
                     auto found_objc_image_info = false;
 
                     while (segment_sections_count != 0) {
                         if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0) {
-                            segment_section = (macho::segments::section_64 *)((uint64_t)segment_section + sizeof(macho::segments::section_64));
+                            segment_section = (segments::section_64 *)((uint64_t)segment_section + sizeof(segments::section_64));
                             segment_sections_count--;
 
                             continue;
@@ -2068,7 +2068,7 @@ namespace tbd {
 
                         auto segment_section_data_offset = segment_section->offset;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_section_data_offset);
+                            swap_uint32(&segment_section_data_offset);
                         }
 
                         if (segment_section_data_offset >= library_container_size) {
@@ -2078,7 +2078,7 @@ namespace tbd {
 
                         auto segment_section_data_size = segment_section->size;
                         if (library_container_is_big_endian) {
-                            macho::swap_uint32(&segment_section_data_offset);
+                            swap_uint32(&segment_section_data_offset);
                         }
 
                         if (segment_section_data_size >= library_container_size) {
@@ -2122,12 +2122,12 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::uuid: {
+                case load_commands::uuid: {
                     if (version != version::v2) {
                         break;
                     }
 
-                    const auto &library_uuid = ((macho::uuid_command *)load_command)->uuid;
+                    const auto &library_uuid = ((uuid_command *)load_command)->uuid;
 
                     // Check if multiple uuid load-commands
                     // were found
@@ -2146,7 +2146,7 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::version_min_macosx: {
+                case load_commands::version_min_macosx: {
                     if (!should_find_library_platform) {
                         break;
                     }
@@ -2163,7 +2163,7 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::version_min_iphoneos: {
+                case load_commands::version_min_iphoneos: {
                     if (!should_find_library_platform) {
                         break;
                     }
@@ -2180,7 +2180,7 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::version_min_watchos: {
+                case load_commands::version_min_watchos: {
                     if (!should_find_library_platform) {
                         break;
                     }
@@ -2197,7 +2197,7 @@ namespace tbd {
                     break;
                 }
 
-                case macho::load_commands::version_min_tvos: {
+                case load_commands::version_min_tvos: {
                     if (!should_find_library_platform) {
                         break;
                     }
@@ -2222,14 +2222,14 @@ namespace tbd {
         });
 
         switch (library_container_load_command_iteration_result) {
-            case macho::container::load_command_iteration_result::ok:
+            case container::load_command_iteration_result::ok:
                 break;
 
-            case macho::container::load_command_iteration_result::no_load_commands:
-            case macho::container::load_command_iteration_result::stream_seek_error:
-            case macho::container::load_command_iteration_result::stream_read_error:
-            case macho::container::load_command_iteration_result::load_command_is_too_small:
-            case macho::container::load_command_iteration_result::load_command_is_too_large:
+            case container::load_command_iteration_result::no_load_commands:
+            case container::load_command_iteration_result::stream_seek_error:
+            case container::load_command_iteration_result::stream_read_error:
+            case container::load_command_iteration_result::load_command_is_too_small:
+            case container::load_command_iteration_result::load_command_is_too_large:
                 return creation_result::failed_to_iterate_load_commands;
         }
 
@@ -2249,22 +2249,22 @@ namespace tbd {
             return creation_result::has_no_uuid;
         }
 
-        auto library_container_symbols_iteration_result = library.iterate_symbols([&](const macho::nlist_64 &symbol_table_entry, const char *symbol_string) {
+        auto library_container_symbols_iteration_result = library.iterate_symbols([&](const nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
-            if ((symbol_table_entry_type & macho::symbol_table::flags::type) != macho::symbol_table::type::section) {
+            if ((symbol_table_entry_type & symbol_table::flags::type) != symbol_table::type::section) {
                 return true;
             }
 
             enum symbol::type symbol_type;
 
-            const auto symbol_is_weak = symbol_table_entry.n_desc & macho::symbol_table::description::weak_definition;
+            const auto symbol_is_weak = symbol_table_entry.n_desc & symbol_table::description::weak_definition;
             const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
             if (!(options & symbol_options::allow_all_private_symbols)) {
                 switch (symbol_type) {
                     case symbol::type::symbols:
                         if (!(options & symbol_options::allow_private_normal_symbols)) {
-                            if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                            if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                 return true;
                             }
                         }
@@ -2273,7 +2273,7 @@ namespace tbd {
 
                     case symbol::type::weak_symbols:
                         if (!(options & symbol_options::allow_private_weak_symbols)) {
-                            if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                            if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                 return true;
                             }
                         }
@@ -2283,7 +2283,7 @@ namespace tbd {
                     case symbol::type::objc_classes:
                         if (!(options & symbol_options::allow_private_objc_symbols)) {
                             if (!(options & symbol_options::allow_private_objc_classes)) {
-                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -2294,7 +2294,7 @@ namespace tbd {
                     case symbol::type::objc_ivars:
                         if (!(options & symbol_options::allow_private_objc_symbols)) {
                             if (!(options & symbol_options::allow_private_objc_ivars)) {
-                                if (!(symbol_table_entry_type & macho::symbol_table::flags::external)) {
+                                if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
                             }
@@ -2306,7 +2306,7 @@ namespace tbd {
 
             const auto symbols_iter = std::find(symbols.begin(), symbols.end(), parsed_symbol_string);
             if (symbols_iter == symbols.end()) {
-                auto symbol = ::tbd::symbol();
+                auto symbol = ::macho::utils::tbd::symbol();
                 auto symbol_creation_result = symbol.create(parsed_symbol_string, symbol_is_weak, 0, symbol_type);
 
                 switch (symbol_creation_result) {
@@ -2325,16 +2325,16 @@ namespace tbd {
         });
 
         switch (library_container_symbols_iteration_result) {
-            case macho::container::symbols_iteration_result::ok:
-            case macho::container::symbols_iteration_result::no_symbols:
-            case macho::container::symbols_iteration_result::no_symbol_table_load_command:
+            case container::symbols_iteration_result::ok:
+            case container::symbols_iteration_result::no_symbols:
+            case container::symbols_iteration_result::no_symbol_table_load_command:
                 break;
 
-            case macho::container::symbols_iteration_result::stream_seek_error:
-            case macho::container::symbols_iteration_result::stream_read_error:
-            case macho::container::symbols_iteration_result::invalid_string_table:
-            case macho::container::symbols_iteration_result::invalid_symbol_table:
-            case macho::container::symbols_iteration_result::invalid_symbol_table_entry:
+            case container::symbols_iteration_result::stream_seek_error:
+            case container::symbols_iteration_result::stream_read_error:
+            case container::symbols_iteration_result::invalid_string_table:
+            case container::symbols_iteration_result::invalid_symbol_table:
+            case container::symbols_iteration_result::invalid_symbol_table_entry:
                 return creation_result::failed_to_iterate_symbols;
         }
 
@@ -2364,8 +2364,8 @@ namespace tbd {
         fprintf(output, "\narchs:%-17s[ ", "");
 
         if (has_architecture_overrides) {
-            const auto architecture_info_table = macho::get_architecture_info_table();
-            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+            const auto architecture_info_table = get_architecture_info_table();
+            const auto architecture_info_table_size = get_architecture_info_table_size();
 
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
@@ -2456,8 +2456,8 @@ namespace tbd {
         fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
-            const auto architecture_info_table = macho::get_architecture_info_table();
-            const auto architecture_info_table_size = macho::get_architecture_info_table_size();
+            const auto architecture_info_table = get_architecture_info_table();
+            const auto architecture_info_table_size = get_architecture_info_table_size();
 
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {

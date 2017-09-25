@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "../mach-o/architecture_info.h"
-#include "../mach-o/file.h"
+#include "../../architecture_info.h"
+#include "../../file.h"
 
-namespace tbd {
+namespace macho::utils::tbd {
     enum class platform {
         none,
         aix,
