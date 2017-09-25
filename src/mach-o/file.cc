@@ -169,7 +169,9 @@ namespace macho {
     }
 
     file::open_result file::open(const char *path, const char *mode) noexcept {
+        mode_ = mode;
         stream = fopen(path, mode);
+
         if (!stream) {
             return open_result::failed_to_open_stream;
         }
@@ -465,7 +467,9 @@ namespace macho {
     }
 
     file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
+        mode_ = mode;
         stream = fopen(path, mode);
+
         if (!stream) {
             return open_result::failed_to_open_stream;
         }
@@ -626,7 +630,7 @@ namespace macho {
             return open_result::ok;
         }
 
-        stream = freopen(nullptr, "r", file.stream);
+        stream = freopen(nullptr, mode_, file.stream);
         if (!stream) {
             return open_result::failed_to_open_stream;
         }
@@ -662,7 +666,7 @@ namespace macho {
 
             magic = magic::normal;
             containers.clear();
-            
+
             // Copied an empty file object
             return open_result::ok;
         }
