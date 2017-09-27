@@ -129,7 +129,7 @@ void recursively_create_directories_from_file_path_without_check(char *path, cha
         // Make sure if next_slash is null (and if the path ends with a forward-slash)
         // then we are on the last path component, and should check `create_last_as_directory`
 
-        auto next_slash = path::find_next_slash(&slash[1]);
+        auto next_slash = path::find_next_unique_slash(&slash[1]);
         if (!next_slash && ends_with_slash) {
             if (create_last_as_directory) {
                 if (mkdir(path, 0755) != 0) {
@@ -179,7 +179,7 @@ char *recursively_create_directories_from_file_path(char *path, size_t index, bo
     auto last_slash = (char *)nullptr;
     auto return_value = (char *)nullptr;
 
-    auto slash = path::find_next_slash(&begin[1]);
+    auto slash = path::find_next_unique_slash(&begin[1]);
     while (slash != nullptr) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
@@ -210,7 +210,7 @@ char *recursively_create_directories_from_file_path(char *path, size_t index, bo
         }
 
         last_slash = slash;
-        slash = path::find_next_slash(&slash[1]);
+        slash = path::find_next_unique_slash(&slash[1]);
     }
 
     if (!return_value) {
@@ -231,7 +231,7 @@ char *recursively_create_directories_from_file_path(char *path, size_t index, bo
 
 void recursively_remove_directories_from_file_path(char *path, char *begin, char *end = nullptr) {
     // Set end-index to the null-terminator
-    // (if unprovided).
+    // (if not provided).
 
     if (!end) {
         end = begin;

@@ -131,7 +131,7 @@ namespace path {
         // requested path component at end - 1, and
         // moving backwards
 
-        T end_slash = end - 1;
+        auto end_slash = end - 1;
         if (*end_slash == '/' || *end_slash == '\\') {
             // Use a `while {}` instead of a `do { } while` here
             // to make sure end != begin + 1, otherwise we go behind
