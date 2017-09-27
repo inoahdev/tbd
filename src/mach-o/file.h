@@ -33,7 +33,9 @@ namespace macho {
 
         enum class open_result {
             ok,
+
             failed_to_open_stream,
+            failed_to_allocate_memory,
 
             stream_seek_error,
             stream_read_error,
@@ -42,7 +44,7 @@ namespace macho {
             invalid_container,
 
             not_a_macho,
-            not_a_library,
+            not_a_library
         };
 
         open_result open(const char *path) noexcept;
@@ -55,6 +57,8 @@ namespace macho {
             return open(path.data(), mode);
         }
 
+        open_result open(FILE *file, const char *mode = "r") noexcept;
+
         open_result open_from_library(const char *path) noexcept;
         inline open_result open_from_library(const std::string &path) noexcept {
             return open_from_library(path.data());
@@ -64,6 +68,8 @@ namespace macho {
         inline open_result open_from_library(const std::string &path, const char *mode) noexcept {
             return open_from_library(path.data(), mode);
         }
+
+        open_result open_from_library(FILE *file, const char *mode = "r") noexcept;
 
         open_result open_copy(const file &file);
         open_result open_copy(const file &file, const char *mode);
@@ -101,5 +107,8 @@ namespace macho {
 
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);
+
+        open_result load_containers() noexcept;
+        open_result load_containers_for_library() noexcept;
     };
 }

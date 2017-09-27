@@ -522,7 +522,7 @@ void print_usage() {
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
     fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
-    fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd\n", stdout);
+    fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd. Can also provide \"stdin\" to use stdin\n", stdout);
     fputs("    -u, --usage,    Print this message\n", stdout);
 
     fputc('\n', stdout);
@@ -711,6 +711,10 @@ int main(int argc, const char *argv[]) {
 
                     case macho::file::open_result::failed_to_open_stream:
                         fprintf(stderr, "Failed to open file at provided path for reading, failing with error: %s\n", strerror(errno));
+                        return 1;
+
+                    case macho::file::open_result::failed_to_allocate_memory:
+                        fputs("Failed to allocate memory necessary for operating on file at provided path\n", stderr);
                         return 1;
 
                     case macho::file::open_result::stream_seek_error:
@@ -1256,42 +1260,48 @@ int main(int argc, const char *argv[]) {
                 // a forward slash, it is assumed that the path exists
                 // in the current-directory
 
-                if (path_front != '/' && path_front != '\\') {
-                    path.insert(0, retrieve_current_directory());
-                }
+                if (path == "stdin") {
+                    if (local_options & recurse_directories) {
+                        fputs("Cannot recurse stdin\n", stderr);
+                        return 1;
+                    }
+                } else {
+                    if (path_front != '/' && path_front != '\\') {
+                        path.insert(0, retrieve_current_directory());
+                    }
 
-                struct stat sbuf;
-                if (stat(path.data(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error: %s\n", path.data(), strerror(errno));
-                    return 1;
+                    struct stat sbuf;
+                    if (stat(path.data(), &sbuf) != 0) {
+                        fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error: %s\n", path.data(), strerror(errno));
+                        return 1;
+                    }
+
+                    const auto path_is_directory = S_ISDIR(sbuf.st_mode);
+                    if (path_is_directory) {
+                        if (!(local_options & recurse_directories)) {
+                            fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r to recurse the directory\n", path.data());
+                            return 1;
+                        }
+
+                        const auto &path_back = path.back();
+                        if (path_back != '/' && path_back != '\\') {
+                            path.append(1, '/');
+                        }
+                    } else {
+                        const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
+                        if (path_is_regular_file) {
+                            if (local_options & recurse_directories) {
+                                fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
+                                return 1;
+                            }
+                        } else {
+                            fprintf(stderr, "Object (at path %s) is not a regular file\n", path.data());
+                            return 1;
+                        }
+                    }
                 }
 
                 auto tbd = tbd_file({});
-
-                const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                if (path_is_directory) {
-                    if (!(local_options & recurse_directories)) {
-                        fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r to recurse the directory\n", path.data());
-                        return 1;
-                    }
-
-                    const auto &path_back = path.back();
-                    if (path_back != '/' && path_back != '\\') {
-                        path.append(1, '/');
-                    }
-                } else {
-                    const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
-                    if (path_is_regular_file) {
-                        if (local_options & recurse_directories) {
-                            fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
-                            return 1;
-                        }
-                    } else {
-                        fprintf(stderr, "Object (at path %s) is not a regular file\n", path.data());
-                        return 1;
-                    }
-                }
-
                 tbd.path = std::move(path);
 
                 auto tbd_platform = local_platform;
@@ -1509,7 +1519,13 @@ int main(int argc, const char *argv[]) {
             }
         } else {
             auto library_file = macho::file();
-            auto library_file_open_result = library_file.open_from_library(tbd_path.data());
+            auto library_file_open_result = macho::file::open_result::ok;
+
+            if (tbd_path == "stdin") {
+                library_file_open_result = library_file.open_from_library(stdin);
+            } else {
+                library_file_open_result = library_file.open_from_library(tbd_path.data());
+            }
 
             switch (library_file_open_result) {
                 case macho::file::open_result::ok:
@@ -1517,9 +1533,26 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::failed_to_open_stream:
                     if (should_print_paths) {
-                        fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error: %s\n", tbd_path.data(), strerror(errno));
+                        if (tbd_path == "stdin") {
+                            fprintf(stderr, "Failed to open file (in stdin) for reading, failing with error: %s\n", strerror(errno));
+                        } else {
+                            fprintf(stderr, "Failed to open file (at path %s) for reading, failing with error: %s\n", tbd_path.data(), strerror(errno));
+                        }
                     } else {
                         fprintf(stderr, "Failed to open file at provided path for reading, failing with error: %s\n", strerror(errno));
+                    }
+
+                    break;
+
+                case macho::file::open_result::failed_to_allocate_memory:
+                    if (should_print_paths) {
+                        if (tbd_path == "stdin") {
+                            fputs("Failed to allocate memory necessary for processing file (in stdin)\n", stderr);
+                        } else {
+                            fprintf(stderr, "Failed to allocate memory necessary for processing file (at path %s)\n", tbd_path.data());
+                        }
+                    } else {
+                        fputs("Failed to allocate memory necessary for processing file at provided path\n", stderr);
                     }
 
                     break;
@@ -1527,7 +1560,11 @@ int main(int argc, const char *argv[]) {
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
                     if (should_print_paths) {
-                        fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error: %s\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                        if (tbd_path == "stdin") {
+                            fprintf(stderr, "Encountered an error while reading through file (in stdin), likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(library_file.stream)));
+                        } else {
+                            fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error: %s\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                        }
                     } else {
                         fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(library_file.stream)));
                     }
@@ -1536,7 +1573,11 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::zero_architectures: {
                     if (should_print_paths) {
-                        fprintf(stderr, "Fat mach-o file (at path %s) does not have any architectures\n", tbd_path.data());
+                        if (tbd_path == "stdin") {
+                            fputs("Fat mach-o file (in stdin) does not have any architectures\n", stderr);
+                        } else {
+                            fprintf(stderr, "Fat mach-o file (at path %s) does not have any architectures\n", tbd_path.data());
+                        }
                     } else {
                         fputs("Fat mach-o file at provided path does not have any architectures\n", stderr);
                     }
@@ -1546,7 +1587,11 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::invalid_container: {
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) is invalid\n", tbd_path.data());
+                        if (tbd_path == "stdin") {
+                            fputs("Mach-o file (in stdin) is invalid\n", stderr);
+                        } else {
+                            fprintf(stderr, "Mach-o file (at path %s) is invalid\n", tbd_path.data());
+                        }
                     } else {
                         fputs("Mach-o file at provided path is invalid\n", stderr);
                     }
@@ -1556,7 +1601,11 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::not_a_macho: {
                     if (should_print_paths) {
-                        fprintf(stderr, "File (at path %s) is not a valid mach-o\n", tbd_path.data());
+                        if (tbd_path == "stdin") {
+                            fputs("File (in stdin) is not a valid mach-o\n", stderr);
+                        } else {
+                            fprintf(stderr, "File (at path %s) is not a valid mach-o\n", tbd_path.data());
+                        }
                     } else {
                         fputs("File at provided path is not a valid mach-o\n", stderr);
                     }
@@ -1566,7 +1615,11 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::not_a_library: {
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) is not a mach-o library\n", tbd_path.data());
+                        if (tbd_path == "stdin") {
+                            fputs("Mach-o file (in stdin) is not a mach-o library\n", stderr);
+                        } else {
+                            fputs("Mach-o file (at path %s) is not a mach-o library\n", stderr);
+                        }
                     } else {
                         fputs("Mach-o file at provided path is not a valid mach-o library\n", stderr);
                     }
