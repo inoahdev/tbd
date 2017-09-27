@@ -216,7 +216,7 @@ namespace path {
         }
 
         auto rhs_reverse_iter = rhs_end - 1;
-        while (rhs_reverse_iter != rhs_begin && (*rhs_reverse_iter == '/' || *rhs_reverse_iter == '\\')) {
+        while (rhs_reverse_iter != rhs_begin && (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\')) {
             --rhs_reverse_iter;
         }
 
@@ -227,9 +227,9 @@ namespace path {
         auto lhs_prev_path_component_iter = lhs_iter;
         auto rhs_prev_path_component_iter = rhs_iter;
 
-        while (lhs_prev_path_component_iter != lhs_end && rhs_prev_path_component_iter != rhs_end) {
-            auto lhs_path_component = find_next_component(lhs_prev_path_component_iter, lhs_end);
-            auto rhs_path_component = find_next_component(rhs_prev_path_component_iter, rhs_end);
+        while (lhs_prev_path_component_iter != lhs_reverse_iter && rhs_prev_path_component_iter != rhs_reverse_iter) {
+            auto lhs_path_component = find_next_component(lhs_prev_path_component_iter, lhs_reverse_iter);
+            auto rhs_path_component = find_next_component(rhs_prev_path_component_iter, rhs_reverse_iter);
 
             const auto lhs_path_component_length = (uint64_t)lhs_path_component.second.base() - (uint64_t)lhs_path_component.first.base();
             const auto rhs_path_component_length = (uint64_t)rhs_path_component.second.base() - (uint64_t)rhs_path_component.first.base();
@@ -253,28 +253,28 @@ namespace path {
                 return *lhs_path_component_iter - *rhs_path_component_iter;
             }
 
-            lhs_prev_path_component_iter = find_next_unique_slash(lhs_path_component.second, lhs_end);
-            rhs_prev_path_component_iter = find_next_unique_slash(rhs_path_component.second, rhs_end);
+            lhs_prev_path_component_iter = find_next_unique_slash(lhs_path_component.second, lhs_reverse_iter);
+            rhs_prev_path_component_iter = find_next_unique_slash(rhs_path_component.second, rhs_reverse_iter);
 
             // Skip over the "unique" slash to the front of the
             // path component (only if unique slash was even found)
 
-            if (lhs_prev_path_component_iter != lhs_end) {
+            if (lhs_prev_path_component_iter != lhs_reverse_iter) {
                 ++lhs_prev_path_component_iter;
             }
 
-            if (rhs_prev_path_component_iter != rhs_end) {
+            if (rhs_prev_path_component_iter != rhs_reverse_iter) {
                 ++rhs_prev_path_component_iter;
             }
         }
 
-        if (lhs_prev_path_component_iter == lhs_end) {
-            if (rhs_prev_path_component_iter == rhs_end) {
+        if (lhs_prev_path_component_iter == lhs_reverse_iter) {
+            if (rhs_prev_path_component_iter == rhs_reverse_iter) {
                 return 0;
             }
 
             return -*rhs_prev_path_component_iter;
-        } else if (rhs_prev_path_component_iter == rhs_end) {
+        } else if (rhs_prev_path_component_iter == rhs_reverse_iter) {
             return *lhs_prev_path_component_iter;
         }
 
