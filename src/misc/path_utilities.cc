@@ -73,11 +73,7 @@ namespace path {
         return iter;
     }
 
-    char *find_last_slash(char *string) {
-        return find_last_slash(string, &string[strlen(string)]);
-    }
-
-    bool ends_with_slash(char *string) {
+    bool ends_with_slash(const char *string) {
         while (*string != '\0') {
             string++;
         }

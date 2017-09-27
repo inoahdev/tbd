@@ -60,10 +60,20 @@ namespace path {
             --iter;
         }
 
+        if (*iter != '/' && *iter != '\\') {
+            return end;
+        }
+
         return iter;
     }
 
-    char *find_last_slash(char *string);
+    inline char *find_last_slash(char *string) {
+        return find_last_slash(string, &string[strlen(string)]);
+    }
+
+    inline const char *find_last_slash(const char *string) {
+        return find_last_slash(string, &string[strlen(string)]);
+    }
 
     template <typename T>
     T find_last_slash_in_front_of_pattern(const T &begin, const T &end) {
@@ -82,6 +92,10 @@ namespace path {
             }
 
             --iter;
+        }
+
+        if (*iter != '/' && *iter != '\\') {
+            return end;
         }
 
         return iter;
@@ -194,6 +208,10 @@ namespace path {
         return find_last_component(string, &string[strlen(string)]);
     }
 
+    inline std::pair<const char *, const char *> find_last_component(const char *string) {
+        return find_last_component(string, &string[strlen(string)]);
+    }
+
     template <typename T>
     int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
         // Skip beginning slashes
@@ -286,5 +304,5 @@ namespace path {
         return end[-1] == '/' || end[-1] == '\\';
     }
 
-    bool ends_with_slash(char *string);
+    bool ends_with_slash(const char *string);
 }

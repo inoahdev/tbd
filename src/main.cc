@@ -263,7 +263,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
     auto last_slash = (char *)nullptr;
     auto slash = path::find_last_slash(begin, end);
 
-    while (*slash == '/' || *slash == '\\') {
+    while (slash != end) {
         // In order to avoid unnecessary (and expensive) allocations,
         // terminate the string at the location of the forward slash
         // and revert back after use.
