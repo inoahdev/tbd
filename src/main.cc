@@ -1402,6 +1402,39 @@ int main(int argc, const char *argv[]) {
         if (!(tbd_options & recurse_directories)) {
             should_print_paths = false;
         }
+    } else {
+        // Remove any duplicates
+        for (auto tbd_iter = tbds.begin(); tbd_iter != tbds.end(); tbd_iter++) {
+            const auto &tbd = *tbd_iter;
+            const auto &tbd_path = tbd.path;
+
+            for (auto tbd_inner_iter = tbd_iter + 1; tbd_inner_iter != tbds.end();) {
+                const auto &tbd_inner = *tbd_inner_iter;
+                const auto &tbd_inner_path = tbd_inner.path;
+
+                if (path::compare(tbd_path.begin(), tbd_path.end(), tbd_inner_path.begin(), tbd_inner_path.end()) != 0) {
+                    continue;
+                }
+
+                // See if any options that make a
+                // difference when outputting (ex:
+                // --maintain-directories) exist
+
+                auto tbd_options = tbd.options;
+                auto tbd_inner_options = tbd_inner.options;
+
+                if (tbd_inner_options & recurse_subdirectories) {
+                    tbd_options |= recurse_subdirectories;
+                    tbd_inner_options &= ~recurse_subdirectories;
+                }
+
+                if (tbd_inner_options != 0) {
+                    tbd_inner_iter++;
+                } else {
+                    tbd_inner_iter = tbds.erase(tbd_inner_iter);
+                }
+            }
+        }
     }
 
     for (auto &tbd : tbds) {

@@ -6,7 +6,9 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include <string.h>
+#include <cstdint>
+#include <cstring>
+
 #include <utility>
 
 namespace path {
@@ -17,17 +19,35 @@ namespace path {
             iter++;
         }
 
+        return iter;
+    }
+
+    char *find_next_slash(char *string);
+    const char *find_next_slash(const char *string);
+
+    template <typename T>
+    T find_next_unique_slash(const T &begin, const T &end) {
+        auto iter = begin;
+        while (iter != end && *iter != '/' && *iter != '\\') {
+            iter++;
+        }
+
         if (iter != end) {
             auto back = end - 1;
             while (iter != back && (iter[1] == '/' || iter[1] == '\\')) {
                 iter++;
+            }
+
+            if (iter == back) {
+                return end;
             }
         }
 
         return iter;
     }
 
-    char *find_next_slash(char *string);
+    char *find_next_unique_slash(char *string);
+    const char *find_next_unique_slash(const char *string);
 
     template <typename T>
     T find_last_slash(const T &begin, const T &end) {
@@ -79,6 +99,26 @@ namespace path {
     }
 
     template <typename T>
+    std::pair<T, T> find_next_component(const T &begin, const T &end) {
+        if (begin == end || begin + 1 == end) {
+            return std::make_pair(begin, end);
+        }
+
+        auto begin_slash = begin;
+        auto end_slash = begin_slash + 1;
+
+        if (*begin_slash == '/' || *begin_slash == '\\') {
+            return std::make_pair(begin_slash, end_slash);
+        }
+
+        while (end_slash != end && *end_slash != '/' && *end_slash != '\\') {
+            end_slash++;
+        }
+
+        return std::make_pair(begin_slash, end_slash);
+    }
+
+    template <typename T>
     std::pair<T, T> find_last_component(const T &begin, const T &end) {
         // Return an empty string if begin and
         // end are equal to each other
@@ -125,7 +165,7 @@ namespace path {
             end_slash = end;
         }
 
-        T component_begin = find_last_slash(begin, end_slash);
+        auto component_begin = find_last_slash(begin, end_slash);
         if (component_begin == end_slash) {
             // If we don't happen to find a
             // slash, return from beginning
@@ -152,6 +192,93 @@ namespace path {
 
     inline std::pair<char *, char *> find_last_component(char *string) {
         return find_last_component(string, &string[strlen(string)]);
+    }
+
+    template <typename T>
+    int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
+        // Skip beginning slashes
+
+        auto lhs_iter = lhs_begin;
+        while (lhs_iter != lhs_end && (*lhs_iter == '/' || *lhs_iter == '\\')) {
+            ++lhs_iter;
+        }
+
+        auto rhs_iter = rhs_begin;
+        while (rhs_iter != rhs_end && (*rhs_iter == '/' || *rhs_iter == '\\')) {
+            ++rhs_iter;
+        }
+
+        // Set end to the last (from back) of a row of slashes
+
+        auto lhs_reverse_iter = lhs_end - 1;
+        while (lhs_reverse_iter != lhs_begin && (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\')) {
+            --lhs_reverse_iter;
+        }
+
+        auto rhs_reverse_iter = rhs_end - 1;
+        while (rhs_reverse_iter != rhs_begin && (*rhs_reverse_iter == '/' || *rhs_reverse_iter == '\\')) {
+            --rhs_reverse_iter;
+        }
+
+        // A check for `*hs_reverse_iter` == `*hs_end` isn't needed
+        // because the path has already been checked for having atleast
+        // 1 non-slash character
+
+        auto lhs_prev_path_component_iter = lhs_iter;
+        auto rhs_prev_path_component_iter = rhs_iter;
+
+        while (lhs_prev_path_component_iter != lhs_end && rhs_prev_path_component_iter != rhs_end) {
+            auto lhs_path_component = find_next_component(lhs_prev_path_component_iter, lhs_end);
+            auto rhs_path_component = find_next_component(rhs_prev_path_component_iter, rhs_end);
+
+            const auto lhs_path_component_length = (uint64_t)lhs_path_component.second.base() - (uint64_t)lhs_path_component.first.base();
+            const auto rhs_path_component_length = (uint64_t)rhs_path_component.second.base() - (uint64_t)rhs_path_component.first.base();
+
+            if (lhs_path_component_length < rhs_path_component_length) {
+                return -*(rhs_path_component.first + lhs_path_component_length);
+            } else if (rhs_path_component_length > lhs_path_component_length) {
+                return *(lhs_path_component.first + rhs_path_component_length);
+            }
+
+            // both lhs_path_component and rhs_path_component should have the same length
+
+            auto lhs_path_component_iter = lhs_path_component.first;
+            auto rhs_path_component_iter = rhs_path_component.first;
+
+            for (; lhs_path_component_iter != lhs_path_component.second; lhs_path_component_iter++, rhs_path_component_iter++) {
+                if (*lhs_path_component_iter == *rhs_path_component_iter) {
+                    continue;
+                }
+
+                return *lhs_path_component_iter - *rhs_path_component_iter;
+            }
+
+            lhs_prev_path_component_iter = find_next_unique_slash(lhs_path_component.second, lhs_end);
+            rhs_prev_path_component_iter = find_next_unique_slash(rhs_path_component.second, rhs_end);
+
+            // Skip over the "unique" slash to the front of the
+            // path component (only if unique slash was even found)
+
+            if (lhs_prev_path_component_iter != lhs_end) {
+                ++lhs_prev_path_component_iter;
+            }
+
+            if (rhs_prev_path_component_iter != rhs_end) {
+                ++rhs_prev_path_component_iter;
+            }
+        }
+
+        if (lhs_prev_path_component_iter == lhs_end) {
+            if (rhs_prev_path_component_iter == rhs_end) {
+                return 0;
+            }
+
+            return -*rhs_prev_path_component_iter;
+        } else if (rhs_prev_path_component_iter == rhs_end) {
+            return *lhs_prev_path_component_iter;
+        }
+
+        return 0;
     }
 
     template <typename T>
