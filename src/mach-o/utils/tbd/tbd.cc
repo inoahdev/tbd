@@ -1114,7 +1114,7 @@ namespace macho::utils::tbd {
         fputs(" ]\n", output);
     }
 
-    creation_result get_required_load_commands(container &container, uint32_t containers_size, uint32_t &current_version, uint32_t &compatibility_version, uint32_t &swift_version, const char *&installation_name, platform &platform, std::vector<reexport> &reexports, uint8_t *&uuid) {
+    creation_result get_required_load_commands(container &container, size_t containers_size, uint32_t &current_version, uint32_t &compatibility_version, uint32_t &swift_version, const char *&installation_name, platform &platform, std::vector<reexport> &reexports, uint8_t *&uuid) {
         auto failure_result = creation_result::ok;
 
         const auto container_is_big_endian = container.is_big_endian();
