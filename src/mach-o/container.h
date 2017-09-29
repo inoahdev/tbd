@@ -62,7 +62,7 @@ namespace macho {
             load_command_is_too_large
         };
 
-        struct load_command *iterate_for_first_of_load_command(load_commands cmd, load_command_iteration_result *result = nullptr);
+        struct load_command *find_first_of_load_command(load_commands cmd, load_command_iteration_result *result = nullptr);
         load_command_iteration_result iterate_load_commands(const std::function<bool(long, const struct load_command *, const struct load_command *)> &callback) noexcept;
 
         enum class symbols_iteration_result {

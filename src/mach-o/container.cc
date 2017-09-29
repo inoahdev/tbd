@@ -66,7 +66,7 @@ namespace macho {
         }
 
         auto iteration_result = load_command_iteration_result::ok;
-        auto identification_dylib = (dylib_command *)iterate_for_first_of_load_command(load_commands::identification_dylib, &iteration_result);
+        auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
 
         switch (iteration_result) {
             case load_command_iteration_result::ok:
@@ -227,7 +227,7 @@ namespace macho {
         }
     }
 
-    struct load_command *container::iterate_for_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
+    struct load_command *container::find_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
         const auto is_big_endian = this->is_big_endian();
 
         const auto &ncmds = header.ncmds;
@@ -421,7 +421,7 @@ namespace macho {
         const auto is_big_endian = this->is_big_endian();
         const auto position = ftell(stream);
 
-        const auto symbol_table = (symtab_command *)iterate_for_first_of_load_command(load_commands::symbol_table);
+        const auto symbol_table = (symtab_command *)find_first_of_load_command(load_commands::symbol_table);
         if (!symbol_table) {
             return symbols_iteration_result::no_symbol_table_load_command;
         }
