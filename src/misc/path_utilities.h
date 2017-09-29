@@ -226,44 +226,54 @@ namespace path {
             ++rhs_iter;
         }
 
-        // Set end to the last (from back) of a row of slashes
+        // Set end to the front of terminating row of slashes
 
-        auto lhs_reverse_iter = lhs_end - 1;
-        while (lhs_reverse_iter != lhs_begin && (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\')) {
-            --lhs_reverse_iter;
+        auto lhs_reverse_iter = lhs_end;
+        if (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\') {
+            do {
+                --lhs_reverse_iter;
+            } while (lhs_reverse_iter != lhs_begin && (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\'));
         }
 
-        auto rhs_reverse_iter = rhs_end - 1;
-        while (rhs_reverse_iter != rhs_begin && (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\')) {
-            --rhs_reverse_iter;
+        auto rhs_reverse_iter = rhs_end;
+        if (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\') {
+            do {
+                --rhs_reverse_iter;
+            } while (rhs_reverse_iter != rhs_begin && (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\'));
         }
 
         // A check for `*hs_reverse_iter` == `*hs_end` isn't needed
         // because the path has already been checked for having atleast
         // 1 non-slash character
 
-        auto lhs_prev_path_component_iter = lhs_iter;
-        auto rhs_prev_path_component_iter = rhs_iter;
+        auto lhs_path_component_begin = lhs_iter;
+        auto rhs_path_component_begin = rhs_iter;
 
-        while (lhs_prev_path_component_iter != lhs_reverse_iter && rhs_prev_path_component_iter != rhs_reverse_iter) {
-            auto lhs_path_component = find_next_component(lhs_prev_path_component_iter, lhs_reverse_iter);
-            auto rhs_path_component = find_next_component(rhs_prev_path_component_iter, rhs_reverse_iter);
+        while (lhs_path_component_begin != lhs_reverse_iter && rhs_path_component_begin != rhs_reverse_iter) {
+            // Skip over the "unique" slash to the front of the
+            // path component
 
-            const auto lhs_path_component_length = (uint64_t)lhs_path_component.second.base() - (uint64_t)lhs_path_component.first.base();
-            const auto rhs_path_component_length = (uint64_t)rhs_path_component.second.base() - (uint64_t)rhs_path_component.first.base();
+            ++lhs_path_component_begin;
+            ++rhs_path_component_begin;
+
+            auto lhs_path_component_end = find_next_slash(lhs_path_component_begin, lhs_reverse_iter);
+            auto rhs_path_component_end = find_next_slash(rhs_path_component_begin, rhs_reverse_iter);
+
+            const auto lhs_path_component_length = lhs_path_component_end - lhs_path_component_begin;
+            const auto rhs_path_component_length = lhs_path_component_end - rhs_path_component_begin;
 
             if (lhs_path_component_length < rhs_path_component_length) {
-                return -*(rhs_path_component.first + lhs_path_component_length);
+                return -*(rhs_path_component_begin + lhs_path_component_length);
             } else if (rhs_path_component_length > lhs_path_component_length) {
-                return *(lhs_path_component.first + rhs_path_component_length);
+                return *(lhs_path_component_begin + rhs_path_component_length);
             }
 
             // both lhs_path_component and rhs_path_component should have the same length
 
-            auto lhs_path_component_iter = lhs_path_component.first;
-            auto rhs_path_component_iter = rhs_path_component.first;
+            auto lhs_path_component_iter = lhs_path_component_begin;
+            auto rhs_path_component_iter = rhs_path_component_begin;
 
-            for (; lhs_path_component_iter != lhs_path_component.second; lhs_path_component_iter++, rhs_path_component_iter++) {
+            for (; lhs_path_component_iter != lhs_path_component_end; lhs_path_component_iter++, rhs_path_component_end++) {
                 if (*lhs_path_component_iter == *rhs_path_component_iter) {
                     continue;
                 }
@@ -271,29 +281,18 @@ namespace path {
                 return *lhs_path_component_iter - *rhs_path_component_iter;
             }
 
-            lhs_prev_path_component_iter = find_next_unique_slash(lhs_path_component.second, lhs_reverse_iter);
-            rhs_prev_path_component_iter = find_next_unique_slash(rhs_path_component.second, rhs_reverse_iter);
-
-            // Skip over the "unique" slash to the front of the
-            // path component (only if unique slash was even found)
-
-            if (lhs_prev_path_component_iter != lhs_reverse_iter) {
-                ++lhs_prev_path_component_iter;
-            }
-
-            if (rhs_prev_path_component_iter != rhs_reverse_iter) {
-                ++rhs_prev_path_component_iter;
-            }
+            lhs_path_component_begin = find_next_unique_slash(lhs_path_component_end, lhs_reverse_iter);
+            rhs_path_component_begin = find_next_unique_slash(rhs_path_component_end, rhs_reverse_iter);
         }
 
-        if (lhs_prev_path_component_iter == lhs_reverse_iter) {
-            if (rhs_prev_path_component_iter == rhs_reverse_iter) {
+        if (lhs_path_component_begin == lhs_reverse_iter) {
+            if (rhs_path_component_begin == rhs_reverse_iter) {
                 return 0;
             }
 
-            return -*rhs_prev_path_component_iter;
-        } else if (rhs_prev_path_component_iter == rhs_reverse_iter) {
-            return *lhs_prev_path_component_iter;
+            return -*rhs_path_component_begin;
+        } else if (rhs_path_component_begin == rhs_reverse_iter) {
+            return *lhs_path_component_begin;
         }
 
         return 0;

@@ -114,172 +114,131 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
     index--;
 }
 
-void recursively_create_directories_from_file_path_without_check(char *path, char *slash, bool create_last_as_directory) {
-    auto last_slash = (const char *)nullptr;
-    auto ends_with_slash = path::ends_with_slash(slash);
+char *recursively_create_directories_from_file_path_inner(char *path, char *begin, char *end, char *slash, bool create_last_as_directory) {
+    auto next_component_iter = begin;
+    auto component = std::make_pair(begin, slash);
 
     do {
-        // If the current-slash is the last slash in the path_string, then we are operating on
-        // the last path-element which may be requested by the user to
-        // not be created by the user
-
-        auto slash_char = slash[0];
-        slash[0] = '\0';
-
-        // Make sure if next_slash is null (and if the path ends with a forward-slash)
-        // then we are on the last path component, and should check `create_last_as_directory`
-
-        auto next_slash = path::find_next_unique_slash(&slash[1]);
-        if (!next_slash && ends_with_slash) {
-            if (create_last_as_directory) {
-                if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
-                    exit(1);
-                }
-            }
-        } else {
-            if (mkdir(path, 0755) != 0) {
-                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
-                exit(1);
+        if (slash == end) {
+            if (!create_last_as_directory) {
+                break;
             }
         }
 
-        slash[0] = slash_char;
+        *slash = '\0';
 
-        last_slash = slash;
-        slash = next_slash;
-    } while (slash != nullptr);
-
-    if (last_slash[1] != '\0') {
-        if (create_last_as_directory) {
-            if (mkdir(path, 0755) != 0) {
-                fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
-                exit(1);
-            }
+        if (mkdir(path, 0755) != 0) {
+            fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
+            exit(1);
         }
-    }
+
+        *slash = '/';
+        next_component_iter = path::find_next_unique_slash(component.second, end);
+
+        // Skip slash at begin of unique_slash
+
+        if (next_component_iter == end) {
+            break;
+        }
+
+        next_component_iter++;
+        component = path::find_next_component(next_component_iter, end);
+    } while (true);
+
+    return slash;
 }
 
 char *recursively_create_directories_from_file_path(char *path, size_t index, bool create_last_as_directory) {
-    // If the path begins off with multiple forward-slashes,
-    // increment the path to begin at the last slash.
-
     auto begin = &path[index];
-    if (*begin == '/') {
-        while (begin[1] == '/' || begin[1] == '\\') {
-            path++;
-        }
+    auto end = &path[strlen(path)];
+
+    // Iterate to last of row of beginning slashes at front of path[index]
+    while (begin != end && (*(begin + 1) == '/' || *(begin + 1) == '\\')) {
+        begin++;
     }
 
-    // If the path begins off with a forward slash, it will
-    // result in the while loop running on a path that is
-    // empty. To avoid this, begin the search at the first
-    // index.
+    if (begin == end) {
+        return nullptr;
+    }
 
-    auto last_slash = (char *)nullptr;
-    auto return_value = (char *)nullptr;
+    // Move to front of terminating slashes
 
-    auto slash = path::find_next_unique_slash(&begin[1]);
-    while (slash != nullptr) {
-        // In order to avoid unnecessary (and expensive) allocations,
-        // terminate the string at the location of the forward slash
-        // and revert back after use.
+    auto path_reverse_iter = end;
+    if (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\') {
+        do {
+            --path_reverse_iter;
+        } while (path_reverse_iter != begin && (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\'));
+    }
 
-        auto slash_char = slash[0];
-        slash[0] = '\0';
+    auto path_component_begin = begin;
+    while (path_component_begin != path_reverse_iter) {
+        path_component_begin++;
+
+        auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
+        auto path_component_end_char = *path_component_end;
+
+        *path_component_end = '\0';
 
         if (access(path, F_OK) != 0) {
-            // Set return-value to the first character
-            // of the path-component that is being created
-            // so other functions know which component is
-            // being used
+            *path_component_end = path_component_end_char;
+            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as_directory);
 
-            return_value = &last_slash[1];
-
-            // If a directory doesn't exist, it's assumed the sub-directories
-            // won't exist either, so avoid additional calls to access()
-            // by directly calling mkdir.
-
-            slash[0] = slash_char;
-            recursively_create_directories_from_file_path_without_check(path, slash, create_last_as_directory);
-
-            last_slash = slash;
-            break;
-        } else {
-            slash[0] = slash_char;
+            return path_component_begin;
         }
 
-        last_slash = slash;
-        slash = path::find_next_unique_slash(&slash[1]);
+        *path_component_end = path_component_end_char;
+        path_component_begin = path::find_next_unique_slash(path_component_end, path_reverse_iter);
     }
 
-    if (!return_value) {
-        return_value = &last_slash[1];
-
-        if (create_last_as_directory) {
-            if (access(path, F_OK) != 0) {
-                if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
-                    exit(1);
-                }
-            }
-        }
-    }
-
-    return return_value;
+    return nullptr;
 }
 
 void recursively_remove_directories_from_file_path(char *path, char *begin, char *end = nullptr) {
-    // Set end-index to the null-terminator
-    // (if not provided).
+     // Make sure end is null-terminated
 
     if (!end) {
-        end = begin;
-        while (*end != '\0') {
-            end++;
+        while (*begin != '\0') {
+            begin++;
         }
     }
 
-    if ((uint64_t)begin >= (uint64_t)end) {
+    auto path_component_end = end;
+    if (*(path_component_end - 1) == '/' || *(path_component_end - 1) == '\\') {
+        do {
+            --path_component_end;
+        } while (path_component_end != begin && (*(path_component_end - 1) == '/' || *(path_component_end - 1) == '\\'));
+    }
+
+    auto path_component_end_char = *path_component_end;
+    *path_component_end = '\0';
+
+    if (access(path, F_OK) != 0) {
         return;
     }
 
-    // Make sure end is null-terminated
-
-    auto end_char = end[0];
-    end[0] = '\0';
-
-    if (access(path, F_OK) == 0) {
-        if (remove(path) != 0) {
-            fprintf(stderr, "Failed to remove object (at path %s), failing with error: %s\n", path, strerror(errno));
-            exit(1);
-        }
-    } else {
-        return;
+    if (remove(path) != 0) {
+        fprintf(stderr, "Failed to remove object (at path %s), failing with error: %s\n", path, strerror(errno));
+        exit(1);
     }
 
-    end[0] = end_char;
+    auto prev_path_component_end = path_component_end;
 
-    auto last_slash = (char *)nullptr;
-    auto slash = path::find_last_slash(begin, end);
+    *path_component_end = path_component_end_char;
+    path_component_end = path::find_last_slash(begin, path_component_end);
 
-    while (slash != end) {
-        // In order to avoid unnecessary (and expensive) allocations,
-        // terminate the string at the location of the forward slash
-        // and revert back after use.
-
-        last_slash = slash;
-
-        auto slash_char = slash[0];
-        slash[0] = '\0';
+    while (path_component_end != prev_path_component_end) {
+        path_component_end_char = *path_component_end;
+        *path_component_end = '\0';
 
         if (remove(path) != 0) {
             fprintf(stderr, "Failed to remove object (at path %s), failing with error: %s\n", path, strerror(errno));
             exit(1);
         }
 
-        slash[0] = slash_char;
-        slash = path::find_last_slash(begin, slash);
+        *path_component_end = path_component_end_char;
+        prev_path_component_end = path_component_end;
+
+        path_component_end = path::find_last_slash(begin, prev_path_component_end);
     }
 }
 
