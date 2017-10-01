@@ -53,7 +53,7 @@ namespace path {
     T find_last_slash(const T &begin, const T &end) {
         auto iter = end - 1;
         while (iter != begin) {
-            if (*iter == '/' || *iter == '\\') {
+            if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
                 break;
             }
 
@@ -79,7 +79,7 @@ namespace path {
     T find_last_slash_in_front_of_pattern(const T &begin, const T &end) {
         auto iter = end - 1;
         while (iter >= begin) {
-            if (*iter == '/' || *iter == '\\') {
+            if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
                 break;
             }
 
@@ -87,14 +87,14 @@ namespace path {
         }
 
         while (iter > begin) {
-            if (iter[-1] != '/' && iter[-1] != '\\') {
+            if (const auto &elmt = iter[-1]; elmt == '/' || elmt == '\\') {
                 break;
             }
 
             --iter;
         }
 
-        if (*iter != '/' && *iter != '\\') {
+        if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
             return end;
         }
 
@@ -121,7 +121,7 @@ namespace path {
         auto begin_slash = begin;
         auto end_slash = begin_slash + 1;
 
-        if (*begin_slash == '/' || *begin_slash == '\\') {
+        if (const auto &begin_slash_elmt = *begin_slash; begin_slash_elmt == '/' || begin_slash_elmt == '\\') {
             return std::make_pair(begin_slash, end_slash);
         }
 
@@ -146,7 +146,7 @@ namespace path {
         // moving backwards
 
         auto end_slash = end - 1;
-        if (*end_slash == '/' || *end_slash == '\\') {
+        if (const auto &end_slash_elmt = *end_slash; end_slash_elmt == '/' || end_slash_elmt == '\\') {
             // Use a `while {}` instead of a `do { } while` here
             // to make sure end != begin + 1, otherwise we go behind
             // begin
@@ -165,7 +165,7 @@ namespace path {
                 // if the slash found is at the beginning of the
                 // string
 
-                if (*end_slash == '/' || *end_slash == '\\') {
+                if (const auto &end_slash_elmt = *end_slash; end_slash_elmt == '/' || end_slash_elmt == '\\') {
                     return std::make_pair(begin, end_slash + 1);
                 }
 
@@ -229,14 +229,14 @@ namespace path {
         // Set end to the front of terminating row of slashes
 
         auto lhs_reverse_iter = lhs_end;
-        if (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\') {
+        if (const auto &lhs_reverse_iter_elmt = lhs_reverse_iter[-1]; lhs_reverse_iter_elmt == '/' || lhs_reverse_iter_elmt == '\\') {
             do {
                 --lhs_reverse_iter;
             } while (lhs_reverse_iter != lhs_begin && (*(lhs_reverse_iter - 1) == '/' || *(lhs_reverse_iter - 1) == '\\'));
         }
 
         auto rhs_reverse_iter = rhs_end;
-        if (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\') {
+        if (const auto &rhs_reverse_iter_elmt = rhs_reverse_iter[-1]; rhs_reverse_iter_elmt == '/' || rhs_reverse_iter_elmt == '\\') {
             do {
                 --rhs_reverse_iter;
             } while (rhs_reverse_iter != rhs_begin && (*(rhs_reverse_iter - 1) == '/' || *(rhs_reverse_iter - 1) == '\\'));
@@ -300,7 +300,8 @@ namespace path {
 
     template <typename T>
     inline bool ends_with_slash(const T &begin, const T &end) {
-        return end[-1] == '/' || end[-1] == '\\';
+        const auto back = end[-1];
+        return back == '/' || back == '\\';
     }
 
     bool ends_with_slash(const char *string);

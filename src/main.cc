@@ -265,8 +265,8 @@ enum creation_handling {
     creation_handling_dont_print_warnings = 1 << 2
 };
 
-bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
-    auto result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
+bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, macho::utils::tbd::flags flags, macho::utils::tbd::objc_constraint constraint, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
+    auto result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, flags, constraint, platform, version, architectures, architecture_overrides);
     if (result == macho::utils::tbd::creation_result::platform_not_found || result == macho::utils::tbd::creation_result::platform_not_supported || result == macho::utils::tbd::creation_result::unrecognized_platform ||  result == macho::utils::tbd::creation_result::multiple_platforms) {
         switch (result) {
             case macho::utils::tbd::creation_result::platform_not_found:
@@ -319,11 +319,11 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             if (platform_string == "--list-platform") {
                 print_platforms();
             } else {
-                new_platform = macho::utils::tbd::string_to_platform(platform_string.data());
+                new_platform = macho::utils::tbd::platform_from_string(platform_string.data());
             }
         } while (new_platform == macho::utils::tbd::platform::none);
 
-        result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, platform, version, architectures, architecture_overrides);
+        result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     if (!(creation_handling_options & creation_handling_dont_print_warnings)) {
@@ -389,9 +389,18 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
 
             case macho::utils::tbd::creation_result::invalid_sub_client:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid sub-client\n", macho_file_path);
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid sub-client command\n", macho_file_path);
                 } else {
-                    fputs("Provided mach-o file, or one of its architectures, has an invalid sub-client\n", stderr);
+                    fputs("Provided mach-o file, or one of its architectures, has an invalid sub-client command\n", stderr);
+                }
+
+                break;
+
+            case macho::utils::tbd::creation_result::invalid_sub_umbrella:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid sub-umbrella command\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, has an invalid sub-umbrella command\n", stderr);
                 }
 
                 break;
@@ -553,12 +562,21 @@ void print_usage() {
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
 
     fputc('\n', stdout);
+    fputs("tbd field options: (Both path and global options)\n", stdout);
+    fputs("        --flags,                  Specify flags to add onto ones found in provided mach-o file(s)", stdout);
+    fputs("        --objc-constraint,        Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)", stdout);
+    fputs("        --remove-flags,           Remove flags field from outputted tbds\n", stdout);
+    fputs("        --remove-objc-constraint, Remove objc-constraint field from outputted tbds\n", stdout);
+
+    fputc('\n', stdout);
     fputs("List options:\n", stdout);
-    fputs("        --list-architectures,   List all valid architectures for .tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
-    fputs("        --list-macho-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
-    fputs("        --list-platform,        List all valid platforms\n", stdout);
-    fputs("        --list-recurse,         List all valid recurse options for parsing directories\n", stdout);
-    fputs("        --list-versions,        List all valid versions for .tbd files\n", stdout);
+    fputs("        --list-architectures,    List all valid architectures for .tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
+    fputs("        --list-tbd-flags,        List all valid flags for .tbd files\n", stdout);
+    fputs("        --list-macho-libraries,  List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
+    fputs("        --list-objc-constraints, List all valid objc-constraint options for .tbd files\n", stdout);
+    fputs("        --list-platform,         List all valid platforms\n", stdout);
+    fputs("        --list-recurse,          List all valid recurse options for parsing directories\n", stdout);
+    fputs("        --list-versions,         List all valid versions for .tbd files\n", stdout);
 }
 
 int main(int argc, const char *argv[]) {
@@ -568,7 +586,7 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        recurse_directories    = 1 << 8, // Use second-byte to support tbd-symbol options
+        recurse_directories    = 1 << 8, // Use second-byte to support native tbd options
         recurse_subdirectories = 1 << 9,
         maintain_directories   = 1 << 10,
         dont_print_warnings    = 1 << 11
@@ -577,10 +595,11 @@ int main(int argc, const char *argv[]) {
     typedef struct tbd_file {
         std::string path;
         std::string output_path;
-
         uint64_t architectures;
         uint64_t architecture_overrides;
 
+        enum macho::utils::tbd::flags flags;
+        enum macho::utils::tbd::objc_constraint constraint;
         enum macho::utils::tbd::platform platform;
         enum macho::utils::tbd::version version;
 
@@ -594,6 +613,9 @@ int main(int argc, const char *argv[]) {
     auto output_paths_index = 0;
 
     auto options = uint64_t();
+
+    auto flags = macho::utils::tbd::flags::none;
+    auto objc_constraint = macho::utils::tbd::objc_constraint::no_value;
     auto platform = macho::utils::tbd::platform::none;
     auto version = macho::utils::tbd::version::v2;
 
@@ -650,17 +672,44 @@ int main(int argc, const char *argv[]) {
             print_usage();
             return 0;
         } else if (strcmp(option, "allow-all-private-symbols") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_all_private_symbols;
+            options |= macho::utils::tbd::options::allow_all_private_symbols;
         } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_private_normal_symbols;
+            options |= macho::utils::tbd::options::allow_private_normal_symbols;
         } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_private_weak_symbols;
+            options |= macho::utils::tbd::options::allow_private_weak_symbols;
         } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_private_objc_symbols;
+            options |= macho::utils::tbd::options::allow_private_objc_symbols;
         } else if (strcmp(option, "allow-private-objc-classes") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_private_objc_classes;
+            options |= macho::utils::tbd::options::allow_private_objc_classes;
         } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
-            options |= macho::utils::tbd::symbol_options::allow_private_objc_ivars;
+            options |= macho::utils::tbd::options::allow_private_objc_ivars;
+        } else if (strcmp(option, "dont-print-warnings") == 0) {
+            options |= dont_print_warnings;
+        } else if (strcmp(option, "flags") == 0) {
+            if (is_last_argument) {
+                fputs("Please provide a list of flags to add onto ones found in provided mach-o file(s)\n", stderr);
+                return 1;
+            }
+
+            auto j = ++i;
+            for (; j < argc; j++) {
+                const auto argument = argv[j];
+                if (strcmp(argument, "flat_namespace") == 0) {
+                    flags |= macho::utils::tbd::flags::flat_namespace;
+                } else if (strcmp(argument, "not_app_extension_safe") == 0) {
+                    flags |= macho::utils::tbd::flags::not_app_extension_safe;
+                } else {
+                    if (j == i) {
+                        fputs("Please provide a list of flags to add onto ones found in provided mach-o file(s)\n", stderr);
+                        return 1;
+                    }
+
+                    j--;
+                    break;
+                }
+            }
+
+            i = j;
         } else if (strcmp(option, "list-architectures") == 0) {
             if (!is_first_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -691,7 +740,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto path = std::string(argv[i]);
-                if (path.front() != '/' && path.front() != '\\') {
+                if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                     path.insert(0, retrieve_current_directory());
                 }
 
@@ -735,10 +784,9 @@ int main(int argc, const char *argv[]) {
                 architecture_names.reserve(macho_file.containers.size());
 
                 for (const auto &container : macho_file.containers) {
-                    const auto container_cputype = container.header.cputype;
-                    const auto container_subtype = macho::subtype_from_cputype(container_cputype, container.header.cpusubtype);
+                    const auto container_subtype = macho::subtype_from_cputype(container.header.cputype, container.header.cpusubtype);
+                    const auto container_arch_info = macho::architecture_info_from_cputype(container.header.cputype, container_subtype);
 
-                    const auto container_arch_info = macho::architecture_info_from_cputype(container_cputype, container_subtype);
                     if (!container_arch_info) {
                         fputs("Mach-o file at provided path has unknown architectures\n", stderr);
                         return 1;
@@ -756,8 +804,14 @@ int main(int argc, const char *argv[]) {
             }
 
             return 0;
-        } else if (strcmp(option, "dont-print-warnings") == 0) {
-            options |= dont_print_warnings;
+        } else if (strcmp(option, "list-tbd-flags") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            fputs("flat_namespace\nnot_app_extension_safe\n", stdout);
+            return 0;
         } else if (strcmp(option, "list-macho-libraries") == 0) {
             if (!is_first_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -960,6 +1014,23 @@ int main(int argc, const char *argv[]) {
             }
 
             return 0;
+        } else if (strcmp(option, "list-objc-constraints") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            auto objc_constraint_integer = uint64_t(1);
+            auto objc_constraint_string = macho::utils::tbd::objc_constraint_to_string(macho::utils::tbd::objc_constraint(objc_constraint_integer));
+
+            while (objc_constraint_string != nullptr) {
+                fprintf(stdout, "%s\n", objc_constraint_string);
+
+                objc_constraint_integer++;
+                objc_constraint_string = macho::utils::tbd::objc_constraint_to_string(macho::utils::tbd::objc_constraint(objc_constraint_integer));
+            }
+
+            return 0;
         } else if (strcmp(option, "list-platform") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -1029,8 +1100,7 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argument);
                 if (path != "stdout") {
-                    const auto &path_front = path.front();
-                    if (path_front != '/' && path_front != '\\') {
+                    if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         // If the user-provided path-string does not begin with
                         // a forward slash, it is assumed that the path exists
                         // in the current-directory.
@@ -1096,11 +1166,6 @@ int main(int argc, const char *argv[]) {
                         // If an output-directory does not exist, it is expected
                         // to be created.
 
-                        // Do not call access here as access() is already called multiple
-                        // times within `recursively_create_directories_from_file_path`, and
-                        // `recursively_create_directories_from_file_path` only creates directories
-                        // if they don't exist
-
                         recursively_create_directories_from_file_path(path.data(), 0, true);
                     }
                 }
@@ -1120,6 +1185,23 @@ int main(int argc, const char *argv[]) {
             }
 
             output_paths_index++;
+        } else if (strcmp(option, "objc-constraint") == 0) {
+            if (is_last_argument) {
+                fputs("Please provide an objc-constraint\n", stderr);
+                return 1;
+            }
+
+            i++;
+
+            const auto objc_constraint_string = argv[i];
+            const auto objc_constraint_inner = macho::utils::tbd::objc_constraint_from_string(objc_constraint_string);
+
+            if (objc_constraint_inner == macho::utils::tbd::objc_constraint::no_value) {
+                fprintf(stderr, "Unrecognized objc-constraint value provided (%s)\n", objc_constraint_string);
+                return 1;
+            }
+
+            objc_constraint = objc_constraint_inner;
         } else if (strcmp(option, "p") == 0 || strcmp(option, "path") == 0) {
             if (is_last_argument) {
                 fputs("Please provide path(s) to mach-o files\n", stderr);
@@ -1135,6 +1217,9 @@ int main(int argc, const char *argv[]) {
             uint64_t local_architecture_overrides = 0;
 
             auto local_options = uint64_t();
+
+            auto local_flags = macho::utils::tbd::flags::none;
+            auto local_objc_constraint = macho::utils::tbd::objc_constraint::no_value;
             auto local_platform = macho::utils::tbd::platform::none;
             auto local_tbd_version = (enum macho::utils::tbd::version)0;
 
@@ -1173,19 +1258,61 @@ int main(int argc, const char *argv[]) {
                         i++;
                         parse_architectures_list(local_architecture_overrides, i, argc, argv);
                     } else if (strcmp(option, "allow-all-private-symbols") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_all_private_symbols;
+                        local_options |= macho::utils::tbd::options::allow_all_private_symbols;
                     } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_private_normal_symbols;
+                        local_options |= macho::utils::tbd::options::allow_private_normal_symbols;
                     } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_private_weak_symbols;
+                        local_options |= macho::utils::tbd::options::allow_private_weak_symbols;
                     } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_private_objc_symbols;
+                        local_options |= macho::utils::tbd::options::allow_private_objc_symbols;
                     } else if (strcmp(option, "allow-private-objc-classes") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_private_objc_classes;
+                        local_options |= macho::utils::tbd::options::allow_private_objc_classes;
                     } else if (strcmp(option, "allow-private-objc-ivars") == 0) {
-                        local_options |= macho::utils::tbd::symbol_options::allow_private_objc_ivars;
+                        local_options |= macho::utils::tbd::options::allow_private_objc_ivars;
                     } else if (strcmp(option, "dont-print-warnings") == 0) {
                         local_options |= dont_print_warnings;
+                    } else if (strcmp(option, "flags") == 0) {
+                        if (is_last_argument) {
+                            fputs("Please provide a list of flags to add onto ones found in provided mach-o file(s)\n", stderr);
+                            return 1;
+                        }
+
+                        auto j = ++i;
+                        for (; j < argc; j++) {
+                            const auto argument = argv[j];
+                            if (strcmp(argument, "flat_namespace") == 0) {
+                                local_flags |= macho::utils::tbd::flags::flat_namespace;
+                            } else if (strcmp(argument, "not_app_extension_safe") == 0) {
+                                local_flags |= macho::utils::tbd::flags::not_app_extension_safe;
+                            } else {
+                                if (j == i) {
+                                    fputs("Please provide a list of flags to add onto ones found in provided mach-o file(s)\n", stderr);
+                                    return 1;
+                                }
+
+                                j--;
+                                break;
+                            }
+                        }
+
+                        i = j;
+                    } else if (strcmp(option, "objc-constraint") == 0) {
+                        if (is_last_argument) {
+                            fputs("Please provide an objc-constraint\n", stderr);
+                            return 1;
+                        }
+
+                        i++;
+
+                        const auto objc_constraint_string = argv[i];
+                        const auto objc_constraint_inner = macho::utils::tbd::objc_constraint_from_string(objc_constraint_string);
+
+                        if (objc_constraint_inner == macho::utils::tbd::objc_constraint::no_value) {
+                            fprintf(stderr, "Unrecognized objc-constraint value provided (%s)\n", objc_constraint_string);
+                            return 1;
+                        }
+
+                        local_objc_constraint = objc_constraint_inner;
                     } else if (strcmp(option, "p") == 0) {
                         fprintf(stderr, "Please provide a path for option (%s)\n", argument);
                         return 1;
@@ -1198,7 +1325,7 @@ int main(int argc, const char *argv[]) {
                         i++;
 
                         const auto &platform_string = argv[i];
-                        local_platform = macho::utils::tbd::string_to_platform(platform_string);
+                        local_platform = macho::utils::tbd::platform_from_string(platform_string);
 
                         if (local_platform == macho::utils::tbd::platform::none) {
                             fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
@@ -1233,7 +1360,7 @@ int main(int argc, const char *argv[]) {
 
                         const auto &version_string = argv[i];
 
-                        local_tbd_version = macho::utils::tbd::string_to_version(version_string);
+                        local_tbd_version = macho::utils::tbd::version_from_string(version_string);
                         if (local_tbd_version == (enum macho::utils::tbd::version)0) {
                             fprintf(stderr, "(%s) is not a valid tbd-version\n", version_string);
                             return 1;
@@ -1247,7 +1374,6 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto path = std::string(argument);
-                auto &path_front = path.front();
 
                 // If the user-provided path-string does not begin with
                 // a forward slash, it is assumed that the path exists
@@ -1259,7 +1385,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
                 } else {
-                    if (path_front != '/' && path_front != '\\') {
+                    if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         path.insert(0, retrieve_current_directory());
                     }
 
@@ -1297,15 +1423,12 @@ int main(int argc, const char *argv[]) {
                 auto tbd = tbd_file({});
                 tbd.path = std::move(path);
 
-                auto tbd_platform = local_platform;
-                auto tbd_version = local_tbd_version;
-
                 tbd.architectures = local_architectures;
                 tbd.architecture_overrides = local_architecture_overrides;
 
                 tbd.options = local_options;
-                tbd.platform = tbd_platform;
-                tbd.version = tbd_version;
+                tbd.platform = local_platform;
+                tbd.version = local_tbd_version;
 
                 tbds.emplace_back(std::move(tbd));
 
@@ -1339,7 +1462,7 @@ int main(int argc, const char *argv[]) {
             i++;
 
             const auto &platform_string = argv[i];
-            platform = macho::utils::tbd::string_to_platform(platform_string);
+            platform = macho::utils::tbd::platform_from_string(platform_string);
 
             if (platform == macho::utils::tbd::platform::none) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
@@ -1409,10 +1532,6 @@ int main(int argc, const char *argv[]) {
                     continue;
                 }
 
-                // See if any options that make a
-                // difference when outputting (ex:
-                // --maintain-directories) exist
-
                 auto tbd_options = tbd.options;
                 auto tbd_inner_options = tbd_inner.options;
 
@@ -1434,28 +1553,37 @@ int main(int argc, const char *argv[]) {
         auto &tbd_path = tbd.path;
         auto &tbd_output_path = tbd.output_path;
 
+
+        auto &tbd_flags = tbd.flags;
+        if ((tbd_flags & macho::utils::tbd::flags::flat_namespace) != macho::utils::tbd::flags::none) {
+            tbd_flags |= macho::utils::tbd::flags::flat_namespace;
+        }
+
+        if ((tbd_flags & macho::utils::tbd::flags::not_app_extension_safe) != macho::utils::tbd::flags::none) {
+            tbd_flags |= macho::utils::tbd::flags::not_app_extension_safe;
+        }
+
         auto &tbd_options = tbd.options;
-
-        if (options & macho::utils::tbd::symbol_options::allow_all_private_symbols) {
-            tbd_options |= macho::utils::tbd::symbol_options::allow_all_private_symbols;
+        if (options & macho::utils::tbd::options::allow_all_private_symbols) {
+            tbd_options |= macho::utils::tbd::options::allow_all_private_symbols;
         } else {
-            if (options & macho::utils::tbd::symbol_options::allow_private_normal_symbols) {
-                tbd_options |= macho::utils::tbd::symbol_options::allow_private_normal_symbols;
+            if (options & macho::utils::tbd::options::allow_private_normal_symbols) {
+                tbd_options |= macho::utils::tbd::options::allow_private_normal_symbols;
             }
 
-            if (options & macho::utils::tbd::symbol_options::allow_private_weak_symbols) {
-                tbd_options |= macho::utils::tbd::symbol_options::allow_private_weak_symbols;
+            if (options & macho::utils::tbd::options::allow_private_weak_symbols) {
+                tbd_options |= macho::utils::tbd::options::allow_private_weak_symbols;
             }
 
-            if (options & macho::utils::tbd::symbol_options::allow_private_objc_symbols) {
-                tbd_options |= macho::utils::tbd::symbol_options::allow_private_objc_symbols;
+            if (options & macho::utils::tbd::options::allow_private_objc_symbols) {
+                tbd_options |= macho::utils::tbd::options::allow_private_objc_symbols;
             } else {
-                if (options & macho::utils::tbd::symbol_options::allow_private_objc_classes) {
-                    tbd_options |= macho::utils::tbd::symbol_options::allow_private_objc_classes;
+                if (options & macho::utils::tbd::options::allow_private_objc_classes) {
+                    tbd_options |= macho::utils::tbd::options::allow_private_objc_classes;
                 }
 
-                if (options & macho::utils::tbd::symbol_options::allow_private_objc_ivars) {
-                    tbd_options |= macho::utils::tbd::symbol_options::allow_private_objc_ivars;
+                if (options & macho::utils::tbd::options::allow_private_objc_ivars) {
+                    tbd_options |= macho::utils::tbd::options::allow_private_objc_ivars;
                 }
             }
         }
@@ -1518,7 +1646,27 @@ int main(int argc, const char *argv[]) {
                     tbd_creation_options |= creation_handling_dont_print_warnings;
                 }
 
-                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.platform != macho::utils::tbd::platform::none ? tbd.platform : platform, tbd.version != (enum macho::utils::tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, tbd_creation_options);
+                if (tbd.constraint == macho::utils::tbd::objc_constraint::no_value) {
+                    tbd.constraint = objc_constraint;
+                }
+
+                if (tbd.platform == macho::utils::tbd::platform::none) {
+                    tbd.platform = platform;
+                }
+
+                if (tbd.version == (enum macho::utils::tbd::version)0) {
+                    tbd.version = version;
+                }
+
+                if (!tbd.architectures) {
+                    tbd.architectures = architectures;
+                }
+
+                if (!tbd.architecture_overrides) {
+                    tbd.architecture_overrides = architecture_overrides;
+                }
+
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
                 if (!result) {
                     recursively_remove_directories_from_file_path(output_path.data(), recursive_directory_creation_ptr);
                 }
@@ -1681,8 +1829,27 @@ int main(int argc, const char *argv[]) {
                 tbd_creation_options |= creation_handling_dont_print_warnings;
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.platform != macho::utils::tbd::platform::none ? tbd.platform : platform, tbd.version != (enum macho::utils::tbd::version)0 ? tbd.version : version, tbd.architectures ?: architectures, tbd.architecture_overrides ?: architecture_overrides, tbd_creation_options);
+            if (tbd.constraint == macho::utils::tbd::objc_constraint::no_value) {
+                tbd.constraint = objc_constraint;
+            }
 
+            if (tbd.platform == macho::utils::tbd::platform::none) {
+                tbd.platform = platform;
+            }
+
+            if (tbd.version == (enum macho::utils::tbd::version)0) {
+                tbd.version = version;
+            }
+
+            if (!tbd.architectures) {
+                tbd.architectures = architectures;
+            }
+
+            if (!tbd.architecture_overrides) {
+                tbd.architecture_overrides = architecture_overrides;
+            }
+
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
             if (!tbd_output_path.empty()) {
                 if (!result) {
                     recursively_remove_directories_from_file_path(tbd_output_path.data(), recursive_directory_creation_ptr);

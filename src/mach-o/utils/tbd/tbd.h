@@ -12,6 +12,44 @@
 #include "../../file.h"
 
 namespace macho::utils::tbd {
+    enum class flags : uint64_t {
+        none,
+        flat_namespace         = 1 << 0,
+        not_app_extension_safe = 1 << 1
+    };
+
+    inline uint64_t operator|(const uint64_t &lhs, const flags &rhs) noexcept { return lhs | (uint64_t)rhs; }
+    inline void operator|=(uint64_t &lhs, const flags &rhs) noexcept { lhs |= (uint64_t)rhs; }
+
+    inline flags operator|(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)((uint64_t)lhs | rhs); }
+    inline void operator|=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)((uint64_t)lhs | rhs); }
+
+    inline flags operator|(const flags &lhs, const flags &rhs) noexcept { return (flags)((uint64_t)lhs | (uint64_t)rhs); }
+    inline void operator|=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)((uint64_t)lhs | (uint64_t)rhs); }
+
+    inline uint64_t operator&(const uint64_t &lhs, const flags &rhs) noexcept { return lhs & (uint64_t)rhs; }
+    inline void operator&=(uint64_t &lhs, const flags &rhs) noexcept { lhs &= (uint64_t)rhs; }
+
+    inline flags operator&(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)((uint64_t)lhs & rhs); }
+    inline void operator&=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)((uint64_t)lhs & rhs); }
+
+    inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return (flags)((uint64_t)lhs & (uint64_t)rhs); }
+    inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)((uint64_t)lhs & (uint64_t)rhs); }
+
+    inline flags operator~(const flags &lhs) noexcept { return (flags)~(uint16_t)lhs; }
+
+    enum class objc_constraint : uint32_t {
+        no_value,
+        none,
+        retain_release,
+        retain_release_for_simulator,
+        retain_release_or_gc,
+        gc
+    };
+
+    __attribute__((unused)) const char *objc_constraint_to_string(const objc_constraint &constraint) noexcept;
+    __attribute__((unused)) objc_constraint objc_constraint_from_string(const char *string) noexcept;
+
     enum class platform {
         none,
         aix,
@@ -47,43 +85,45 @@ namespace macho::utils::tbd {
     };
 
     __attribute__((unused)) const char *platform_to_string(const platform &platform) noexcept;
-    __attribute__((unused)) platform string_to_platform(const char *platform) noexcept;
+    __attribute__((unused)) platform platform_from_string(const char *platform) noexcept;
 
     enum version {
         v1 = 1,
         v2
     };
 
-    __attribute__((unused)) version string_to_version(const char *version) noexcept;
+    __attribute__((unused)) version version_from_string(const char *version) noexcept;
 
-    enum class symbol_options : uint64_t {
+    enum class options : uint64_t {
         allow_all_private_symbols    = 1 << 0,
         allow_private_normal_symbols = 1 << 1,
         allow_private_weak_symbols   = 1 << 2,
         allow_private_objc_symbols   = 1 << 3,
         allow_private_objc_classes   = 1 << 4,
         allow_private_objc_ivars     = 1 << 5,
+        remove_objc_constraint       = 1 << 6,
+        remove_flags                 = 1 << 7,
     };
 
-    inline uint64_t operator|(const uint64_t &lhs, const symbol_options &rhs) noexcept { return lhs | (uint64_t)rhs; }
-    inline void operator|=(uint64_t &lhs, const symbol_options &rhs) noexcept { lhs |= (uint64_t)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | (uint64_t)rhs; }
+    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= (uint64_t)rhs; }
 
-    inline symbol_options operator|(const symbol_options &lhs, const uint64_t &rhs) noexcept { return (symbol_options)((uint64_t)lhs | rhs); }
-    inline void operator|=(symbol_options &lhs, const uint64_t &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs | rhs); }
+    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs | rhs); }
+    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs | rhs); }
 
-    inline symbol_options operator|(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((uint64_t)lhs | (uint64_t)rhs); }
-    inline void operator|=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline options operator|(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs | (uint64_t)rhs); }
 
-    inline uint64_t operator&(const uint64_t &lhs, const symbol_options &rhs) noexcept { return lhs & (uint64_t)rhs; }
-    inline void operator&=(uint64_t &lhs, const symbol_options &rhs) noexcept { lhs &= (uint64_t)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & (uint64_t)rhs; }
+    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= (uint64_t)rhs; }
 
-    inline symbol_options operator&(const symbol_options &lhs, const uint64_t &rhs) noexcept { return (symbol_options)((uint64_t)lhs & rhs); }
-    inline void operator&=(symbol_options &lhs, const uint64_t &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs & rhs); }
+    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs & rhs); }
+    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs & rhs); }
 
-    inline symbol_options operator&(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
-    inline void operator&=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline options operator&(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs & (uint64_t)rhs); }
 
-    inline symbol_options operator~(const symbol_options &lhs) noexcept { return (symbol_options)~(uint16_t)lhs; }
+    inline options operator~(const options &lhs) noexcept { return (options)~(uint16_t)lhs; }
 
     enum class creation_result {
         ok,
@@ -96,6 +136,7 @@ namespace macho::utils::tbd {
         invalid_load_command,
         invalid_segment,
         invalid_sub_client,
+        invalid_sub_umbrella,
         failed_to_iterate_load_commands,
         failed_to_iterate_symbols,
         contradictary_load_command_information,
@@ -113,9 +154,9 @@ namespace macho::utils::tbd {
         no_symbols_or_reexports
     };
 
-    __attribute__((unused)) creation_result create_from_macho_library(file &library, int output_descriptor, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
-    __attribute__((unused)) creation_result create_from_macho_library(container &container, int output_descriptor, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(file &library, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(container &container, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
 
-    __attribute__((unused)) creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
-    __attribute__((unused)) creation_result create_from_macho_library(container &container, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(container &container, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
 }

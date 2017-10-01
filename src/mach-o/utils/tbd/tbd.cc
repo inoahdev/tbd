@@ -45,7 +45,7 @@ namespace macho::utils::tbd {
         creation_result create(const char *string) noexcept {
             this->string = string;
 
-            auto bits_creation_result = this->bits.create_stack_max();
+            auto bits_creation_result = bits.create_stack_max();
             switch (bits_creation_result) {
                 case bits::creation_result::ok:
                     break;
@@ -222,6 +222,49 @@ namespace macho::utils::tbd {
         inline bool operator!=(const group &group) const noexcept { return bits != group.bits; }
     };
 
+    const char *objc_constraint_to_string(const objc_constraint &constraint) noexcept {
+        switch (constraint) {
+            case objc_constraint::none:
+                return "none";
+                break;
+
+            case objc_constraint::retain_release:
+                return "retain_release";
+                break;
+
+            case objc_constraint::retain_release_for_simulator:
+                return "retain_release_for_simulator";
+                break;
+
+            case objc_constraint::retain_release_or_gc:
+                return "retain_release_or_gc";
+                break;
+
+            case objc_constraint::gc:
+                return "gc";
+                break;
+
+            default:
+                break;
+        }
+
+        return nullptr;
+    }
+
+    objc_constraint objc_constraint_from_string(const char *string) noexcept {
+        if (strcmp(string, "none") == 0) {
+            return objc_constraint::none;
+        } else if (strcmp(string, "retain_release") == 0) {
+            return objc_constraint::retain_release;
+        } else if (strcmp(string, "retain_release_for_simulator") == 0) {
+            return objc_constraint::retain_release_for_simulator;
+        } else if (strcmp(string, "gc") == 0) {
+            return objc_constraint::gc;
+        }
+
+        return objc_constraint::no_value;
+    }
+
     const char *platform_to_string(const enum platform &platform) noexcept {
         switch (platform) {
             case platform::none:
@@ -322,7 +365,7 @@ namespace macho::utils::tbd {
         }
     }
 
-    enum platform string_to_platform(const char *platform) noexcept {
+    enum platform platform_from_string(const char *platform) noexcept {
         if (strcmp(platform, "none") == 0) {
             return platform::none;
         } else if (strcmp(platform, "aix") == 0) {
@@ -390,7 +433,7 @@ namespace macho::utils::tbd {
         return platform::none;
     }
 
-    enum version string_to_version(const char *version) noexcept {
+    enum version version_from_string(const char *version) noexcept {
         if (strcmp(version, "v1") == 0) {
             return version::v1;
         } else if (strcmp(version, "v2") == 0) {
@@ -1099,15 +1142,7 @@ namespace macho::utils::tbd {
         }
     }
 
-    enum class objc_constraint : uint32_t {
-        none,
-        retain_release,
-        retain_release_simulator,
-        retain_release_or_gc,
-        gc
-    };
-
-    creation_result get_required_load_command_data(container &container, uint64_t architecture_info_index, uint32_t &current_version, uint32_t &compatibility_version, uint32_t &swift_version, const char *&installation_name, platform &platform, objc_constraint &constraint, std::vector<reexport> &reexports, std::vector<std::string> &sub_clients, uint8_t *&uuid) {
+    creation_result get_required_load_command_data(container &container, uint64_t architecture_info_index, uint32_t &current_version, uint32_t &compatibility_version, uint32_t &swift_version, const char *&installation_name, platform &platform, objc_constraint &constraint, std::vector<reexport> &reexports, std::vector<std::string> &sub_clients, std::string &parent_umbrella, uint8_t *&uuid) {
         auto failure_result = creation_result::ok;
 
         const auto container_is_big_endian = container.is_big_endian();
@@ -1245,7 +1280,7 @@ namespace macho::utils::tbd {
                     if (reexports_iter != reexports.end()) {
                         reexports_iter->add_architecture(containers_index);
                     } else {
-                        auto reexport = ::macho::utils::tbd::reexport();
+                        auto reexport = macho::utils::tbd::reexport();
                         auto reexport_creation_result = reexport.create(reexport_dylib_string);
 
                         switch (reexport_creation_result) {
@@ -1345,8 +1380,33 @@ namespace macho::utils::tbd {
                     }
 
                     const auto &objc_image_info_flags = objc_image_info.flags;
-                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
 
+                    if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                        if (constraint != objc_constraint::none && constraint != objc_constraint::gc) {
+                            failure_result = creation_result::contradictary_load_command_information;
+                            return false;
+                        } else {
+                            constraint = objc_constraint::gc;
+                        }
+                    } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_or_gc) {
+                            failure_result = creation_result::contradictary_load_command_information;
+                            return false;
+                        } else {
+                            constraint = objc_constraint::retain_release_or_gc;
+                        }
+                    } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_for_simulator) {
+                            failure_result = creation_result::contradictary_load_command_information;
+                            return false;
+                        } else {
+                            constraint = objc_constraint::retain_release_for_simulator;
+                        }
+                    } else {
+                        constraint = objc_constraint::retain_release;
+                    }
+
+                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
                     if (swift_version != 0) {
                         if (objc_image_info_flags_swift_version != swift_version) {
                             failure_result = creation_result::contradictary_load_command_information;
@@ -1456,11 +1516,11 @@ namespace macho::utils::tbd {
                             constraint = objc_constraint::retain_release_or_gc;
                         }
                     } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_simulator) {
+                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_for_simulator) {
                             failure_result = creation_result::contradictary_load_command_information;
                             return false;
                         } else {
-                            constraint = objc_constraint::retain_release_simulator;
+                            constraint = objc_constraint::retain_release_for_simulator;
                         }
                     } else {
                         constraint = objc_constraint::retain_release;
@@ -1480,14 +1540,14 @@ namespace macho::utils::tbd {
                 }
 
                 case load_commands::sub_client: {
-                    const auto sub_client_command = (::macho::sub_client_command *)load_command;
+                    const auto sub_client_command = (macho::sub_client_command *)load_command;
 
                     auto sub_client_command_cmdsize = sub_client_command->cmdsize;
                     if (container_is_big_endian) {
                         swap_uint32(&sub_client_command_cmdsize);
                     }
 
-                    if (sub_client_command_cmdsize < sizeof(sub_client_command)) {
+                    if (sub_client_command_cmdsize < sizeof(macho::sub_client_command)) {
                         failure_result = creation_result::invalid_sub_client;
                         return false;
                     }
@@ -1497,7 +1557,7 @@ namespace macho::utils::tbd {
                         swap_uint32(&sub_client_command_cmdsize);
                     }
 
-                    if (sub_client_command_client_location > sub_client_command_cmdsize) {
+                    if (sub_client_command_client_location < sizeof(macho::sub_client_command) || sub_client_command_client_location > sub_client_command_cmdsize) {
                         failure_result = creation_result::invalid_sub_client;
                         return false;
                     }
@@ -1506,17 +1566,103 @@ namespace macho::utils::tbd {
                     if (sub_client_command_client_size != 0) {
                         const auto library_container_stream_position = ftell(container_stream);
 
-                        if (fseek(container_stream, container_base + sub_client_command_client_location, SEEK_SET) != 0) {
+                        if (fseek(container_stream, location + sub_client_command_client_location, SEEK_SET) != 0) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }
 
-                        auto sub_client_command_client_string = std::string();
-                        sub_client_command_client_string.reserve(sub_client_command_client_size);
+                        auto sub_client_command_client_string = (char *)nullptr;
+                        if (sub_client_command_client_size > sizeof(char *)) {
+                            sub_client_command_client_string = (char *)malloc(sub_client_command_client_size);
+                            if (!sub_client_command_client_string) {
+                                failure_result = creation_result::failed_to_allocate_memory;
+                                return false;
+                            }
 
-                        if (fread(sub_client_command_client_string.data(), sub_client_command_client_size, 1, container_stream) != 1) {
-                            failure_result = creation_result::stream_read_error;
+                            if (fread(sub_client_command_client_string, sub_client_command_client_size, 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_read_error;
+                                return false;
+                            }
+                        } else {
+                            if (fread(&sub_client_command_client_string, sub_client_command_client_size, 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_read_error;
+                                return false;
+                            }
+                        }
+
+                        auto sub_clients_iter = sub_clients.end();
+                        if (sub_client_command_client_size > sizeof(char *)) {
+                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), sub_client_command_client_string);
+                        } else {
+                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), (char *)&sub_client_command_client_string);
+                        }
+
+                        if (sub_clients_iter == sub_clients.end()) {
+                            if (sub_client_command_client_size > sizeof(char *)) {
+                                sub_clients.emplace_back(sub_client_command_client_string);
+                            } else {
+                                sub_clients.emplace_back((char *)&sub_client_command_client_string);
+                            }
+                        }
+
+                        if (sub_client_command_client_size > sizeof(char *)) {
+                            free(sub_client_command_client_string);
+                        }
+
+                        if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                            failure_result = creation_result::stream_seek_error;
                             return false;
+                        }
+                    }
+
+                    break;
+                }
+
+                case load_commands::sub_umbrella: {
+                    const auto sub_umbrella_command = (macho::sub_umbrella_command *)load_command;
+
+                    auto sub_umbrella_command_cmdsize = sub_umbrella_command->cmdsize;
+                    if (container_is_big_endian) {
+                        swap_uint32(&sub_umbrella_command_cmdsize);
+                    }
+
+                    if (sub_umbrella_command_cmdsize < sizeof(macho::sub_umbrella_command)) {
+                        failure_result = creation_result::invalid_sub_umbrella;
+                        return false;
+                    }
+
+                    const auto sub_umbrella_command_umbrella_location = sub_umbrella_command->sub_umbrella.offset;
+                    if (sub_umbrella_command_umbrella_location < sizeof(macho::sub_umbrella_command) || sub_umbrella_command_umbrella_location > sub_umbrella_command_cmdsize) {
+                        failure_result = creation_result::invalid_sub_umbrella;
+                        return false;
+                    }
+
+                    const auto sub_umbrella_command_umbrella_size = sub_umbrella_command_cmdsize - sub_umbrella_command_umbrella_location;
+                    if (sub_umbrella_command_umbrella_size != 0) {
+                        const auto library_container_stream_position = ftell(container_stream);
+
+                        if (fseek(container_stream, location + sub_umbrella_command_umbrella_location, SEEK_SET) != 0) {
+                            failure_result = creation_result::stream_seek_error;
+                            return false;
+                        }
+
+                        auto sub_umbrella_command_umbrella_string = (char *)nullptr;
+                        if (sub_umbrella_command_umbrella_size > sizeof(char *)) {
+                            sub_umbrella_command_umbrella_string = (char *)malloc(sub_umbrella_command_umbrella_size);
+                            if (!sub_umbrella_command_umbrella_string) {
+                                failure_result = creation_result::failed_to_allocate_memory;
+                                return false;
+                            }
+
+                            if (fread(sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size, 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_read_error;
+                                return false;
+                            }
+                        } else {
+                            if (fread(&sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size, 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_read_error;
+                                return false;
+                            }
                         }
 
                         if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
@@ -1524,10 +1670,18 @@ namespace macho::utils::tbd {
                             return false;
                         }
 
-                        auto sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), sub_client_command_client_string);
-                        if (sub_clients_iter == sub_clients.end()) {
-                            sub_clients.emplace_back(std::move(sub_client_command_client_string));
+                        if (!parent_umbrella.empty() && sub_umbrella_command_umbrella_string != parent_umbrella) {
+                            failure_result = creation_result::contradictary_load_command_information;
+                            return false;
                         }
+
+                        if (sub_umbrella_command_umbrella_size > sizeof(char *)) {
+                            parent_umbrella = (char *)&sub_umbrella_command_umbrella_string;
+                        } else {
+                            parent_umbrella = sub_umbrella_command_umbrella_string;
+                        }
+
+                        free(sub_umbrella_command_umbrella_string);
                     }
 
                     break;
@@ -1655,10 +1809,10 @@ namespace macho::utils::tbd {
             const auto symbol_is_weak = symbol_table_entry.n_desc & symbol_table::description::weak_definition;
             const auto parsed_symbol_string = get_parsed_symbol_string(symbol_string, symbol_is_weak, &symbol_type);
 
-            if (!(options & symbol_options::allow_all_private_symbols)) {
+            if (!(options & options::allow_all_private_symbols)) {
                 switch (symbol_type) {
                     case symbol::type::symbols:
-                        if (!(options & symbol_options::allow_private_normal_symbols)) {
+                        if (!(options & options::allow_private_normal_symbols)) {
                             if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                 return true;
                             }
@@ -1667,7 +1821,7 @@ namespace macho::utils::tbd {
                         break;
 
                     case symbol::type::weak_symbols:
-                        if (!(options & symbol_options::allow_private_weak_symbols)) {
+                        if (!(options & options::allow_private_weak_symbols)) {
                             if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                 return true;
                             }
@@ -1676,8 +1830,8 @@ namespace macho::utils::tbd {
                         break;
 
                     case symbol::type::objc_classes:
-                        if (!(options & symbol_options::allow_private_objc_symbols)) {
-                            if (!(options & symbol_options::allow_private_objc_classes)) {
+                        if (!(options & options::allow_private_objc_symbols)) {
+                            if (!(options & options::allow_private_objc_classes)) {
                                 if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
@@ -1687,8 +1841,8 @@ namespace macho::utils::tbd {
                         break;
 
                     case symbol::type::objc_ivars:
-                        if (!(options & symbol_options::allow_private_objc_symbols)) {
-                            if (!(options & symbol_options::allow_private_objc_ivars)) {
+                        if (!(options & options::allow_private_objc_symbols)) {
+                            if (!(options & options::allow_private_objc_ivars)) {
                                 if (!(symbol_table_entry_type & symbol_table::flags::external)) {
                                     return true;
                                 }
@@ -1703,7 +1857,7 @@ namespace macho::utils::tbd {
             if (symbols_iter != symbols.end()) {
                 symbols_iter->add_architecture(architecture_info_index);
             } else {
-                auto symbol = ::macho::utils::tbd::symbol();
+                auto symbol = macho::utils::tbd::symbol();
                 auto symbol_creation_result = symbol.create(parsed_symbol_string, symbol_is_weak, symbol_type);
 
                 switch (symbol_creation_result) {
@@ -1738,7 +1892,7 @@ namespace macho::utils::tbd {
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(file &library, int output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(file &library, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -1749,6 +1903,7 @@ namespace macho::utils::tbd {
 
         auto library_installation_name = (const char *)nullptr;
         auto library_objc_constraint = objc_constraint::none;
+        auto library_parent_umbrella = std::string();
 
         auto library_reexports = std::vector<reexport>();
         auto library_symbols = std::vector<symbol>();
@@ -1785,23 +1940,25 @@ namespace macho::utils::tbd {
                 return creation_result::unsupported_filetype;
             }
 
-            if (library_container_header_flags & flags::two_level_namespaces) {
-                if (!(library_flags & flags::two_level_namespaces)) {
-                    if (library_containers_index != 0) {
-                        return creation_result::inconsistent_flags;
-                    }
+            if (!(options & options::remove_flags)) {
+                if (library_container_header_flags & macho::flags::two_level_namespaces) {
+                    if (!(library_flags & macho::flags::two_level_namespaces)) {
+                        if (library_containers_index != 0) {
+                            return creation_result::inconsistent_flags;
+                        }
 
-                    library_flags |= flags::two_level_namespaces;
+                        library_flags |= macho::flags::two_level_namespaces;
+                    }
                 }
-            }
 
-            if (!(library_container_header_flags & flags::app_extension_safe)) {
-                if (library_flags & flags::app_extension_safe) {
-                    if (library_containers_index != 0) {
-                        return creation_result::inconsistent_flags;
+                if (!(library_container_header_flags & macho::flags::app_extension_safe)) {
+                    if (library_flags & macho::flags::app_extension_safe) {
+                        if (library_containers_index != 0) {
+                            return creation_result::inconsistent_flags;
+                        }
+
+                        library_flags &= ~macho::flags::app_extension_safe;
                     }
-
-                    library_flags &= ~flags::app_extension_safe;
                 }
             }
 
@@ -1836,11 +1993,12 @@ namespace macho::utils::tbd {
 
             auto local_installation_name = (const char *)nullptr;
             auto local_objc_constraint = objc_constraint::none;
+            auto local_parent_umbrella = std::string();
 
             auto local_sub_clients = std::vector<std::string>();
             auto local_uuid = (uint8_t *)nullptr;
 
-            const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_uuid);
+            const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_parent_umbrella, local_uuid);
 
             if (failure_result != creation_result::ok) {
                 return failure_result;
@@ -1886,15 +2044,32 @@ namespace macho::utils::tbd {
                 library_swift_version = local_swift_version;
             }
 
-            if (library_objc_constraint != objc_constraint::none) {
-                if (library_objc_constraint != local_objc_constraint) {
-                    return creation_result::contradictary_container_information;
+            if (!(options & options::remove_objc_constraint)) {
+                if (library_objc_constraint != objc_constraint::none) {
+                    if (library_objc_constraint != local_objc_constraint) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_objc_constraint = local_objc_constraint;
                 }
-            } else {
-                library_objc_constraint = local_objc_constraint;
             }
 
             if (version == version::v2) {
+                if (!library_parent_umbrella.empty()) {
+                    if (library_parent_umbrella != local_parent_umbrella) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    // In the scenario where one container had no (or empty) parent-umbrella
+                    // and another container did not
+
+                    if (library_containers_index != 0) {
+                        return creation_result::contradictary_container_information;
+                    }
+
+                    library_parent_umbrella = std::move(local_parent_umbrella);
+                }
+
                 if (!local_uuid) {
                     return creation_result::has_no_uuid;
                 } else {
@@ -1956,7 +2131,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto group = ::macho::utils::tbd::group();
+                    auto group = macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_reexport_bits);
 
                     switch (group_creation_result) {
@@ -1981,7 +2156,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto group = ::macho::utils::tbd::group();
+                    auto group = macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_symbol_bits);
 
                     switch (group_creation_result) {
@@ -2044,24 +2219,32 @@ namespace macho::utils::tbd {
 
         dprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
 
-        if (library_flags & flags::two_level_namespaces || !(library_flags & flags::app_extension_safe)) {
-            dprintf(output, "flags:%-17s[ ", "");
-
-            if (library_flags & flags::two_level_namespaces) {
-                dprintf(output, "flat_namespace");
-
-                if (!(library_flags & flags::app_extension_safe)) {
-                    dprintf(output, ", not_app_extension_safe");
+        if (!(options & options::remove_flags) || flags != flags::none) {
+            if (flags != flags::none) {
+                if ((flags & flags::flat_namespace) != flags::none) {
+                    library_flags |= macho::flags::two_level_namespaces;
                 }
-            } else if (!(library_flags & flags::app_extension_safe)) {
-                dprintf(output, "flat_namespace");
 
-                if (!(library_flags & flags::app_extension_safe)) {
-                    dprintf(output, ", not_app_extension_safe");
+                if ((flags & flags::not_app_extension_safe) != flags::none) {
+                    library_flags &= ~macho::flags::two_level_namespaces;
                 }
             }
 
-            dprintf(output, " ]\n");
+            if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
+                dprintf(output, "flags:%-17s[ ", "");
+
+                if (library_flags & macho::flags::two_level_namespaces) {
+                    dprintf(output, "flat_namespace");
+
+                    if (!(library_flags & macho::flags::app_extension_safe)) {
+                        dprintf(output, ", not_app_extension_safe");
+                    }
+                } else if (!(library_flags & macho::flags::app_extension_safe)) {
+                    dprintf(output, "not_app_extension_safe");
+                }
+
+                dprintf(output, " ]\n");
+            }
         }
 
         dprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
@@ -2120,34 +2303,17 @@ namespace macho::utils::tbd {
             }
         }
 
-        dprintf(output, "objc-constraint:%-7s", "");
-
-        switch (library_objc_constraint) {
-            case objc_constraint::none:
-                dprintf(output, "none");
-                break;
-
-            case objc_constraint::retain_release:
-                dprintf(output, "retain_release");
-                break;
-
-            case objc_constraint::retain_release_simulator:
-                dprintf(output, "retain_release_for_simulator");
-                break;
-
-            case objc_constraint::retain_release_or_gc:
-                dprintf(output, "retain_release_or_gc");
-                break;
-
-            case objc_constraint::gc:
-                dprintf(output, "gc");
-                break;
-
-            default:
-                break;
+        if (!(options & options::remove_objc_constraint)) {
+            dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
         }
 
-        dprintf(output, "\nexports:\n");
+        if (version == version::v2) {
+            if (!library_parent_umbrella.empty()) {
+                dprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+            }
+        }
+
+        dprintf(output, "exports:\n");
 
         if (has_architecture_overrides) {
             print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols);
@@ -2161,8 +2327,9 @@ namespace macho::utils::tbd {
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(container &container, int output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(container &container, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
+        const auto has_architecture_overrides = architecture_overrides != 0;
 
         uint32_t current_version = -1;
         uint32_t compatibility_version = -1;
@@ -2170,6 +2337,7 @@ namespace macho::utils::tbd {
 
         auto installation_name = (const char *)nullptr;
         auto objc_constraint = objc_constraint::none;
+        auto parent_umbrella = std::string();
 
         auto reexports = std::vector<reexport>();
         auto symbols = std::vector<symbol>();
@@ -2179,15 +2347,15 @@ namespace macho::utils::tbd {
 
         const auto &header = container.header;
 
-        auto header_filetype = header.filetype;
-        auto header_flags = header.flags;
+        const auto header_filetype = header.filetype;
+        const auto header_flags = header.flags;
 
-        auto header_cputype = header.cputype;
-        auto header_cpusubtype = header.cpusubtype;
+        const auto header_cputype = header.cputype;
+        const auto header_cpusubtype = header.cpusubtype;
 
         if (container.is_big_endian()) {
             swap_uint32((uint32_t *)&header_filetype);
-            swap_uint32(&header_flags);
+            swap_uint32((uint32_t *)&header_flags);
 
             swap_uint32((uint32_t *)&header_cputype);
             swap_uint32((uint32_t *)&header_cpusubtype);
@@ -2213,7 +2381,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        const auto failure_result = get_required_load_command_data(container, architecture_info_table_index, current_version, compatibility_version, swift_version, installation_name, platform, objc_constraint, reexports, sub_clients, uuid);
+        const auto failure_result = get_required_load_command_data(container, architecture_info_table_index, current_version, compatibility_version, swift_version, installation_name, platform, objc_constraint, reexports, sub_clients, parent_umbrella, uuid);
         if (failure_result != creation_result::ok) {
             return failure_result;
         }
@@ -2261,26 +2429,44 @@ namespace macho::utils::tbd {
         dprintf(output, "\n");
         print_architectures_array_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides);
 
+        if (!has_architecture_overrides) {
+            if (version == version::v2) {
+                const auto architecture_info_table = get_architecture_info_table();
+                const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
+
+                dprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+            }
+        }
+
         dprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
 
-        if (header_flags & flags::two_level_namespaces || !(header_flags & flags::app_extension_safe)) {
-            dprintf(output, "flags:%-17s[ ", "");
-
-            if (header_flags & flags::two_level_namespaces) {
-                dprintf(output, "flat_namespace");
-
-                if (!(header_flags & flags::app_extension_safe)) {
-                    dprintf(output, ", not_app_extension_safe");
+        if (!(options & options::remove_flags) || flags != flags::none) {
+            auto container_flags = header_flags;
+            if (flags != flags::none) {
+                if ((flags & flags::flat_namespace) != flags::none) {
+                    container_flags |= macho::flags::two_level_namespaces;
                 }
-            } else if (!(header_flags & flags::app_extension_safe)) {
-                dprintf(output, "flat_namespace");
 
-                if (!(header_flags & flags::app_extension_safe)) {
-                    dprintf(output, ", not_app_extension_safe");
+                if ((flags & flags::not_app_extension_safe) != flags::none) {
+                    container_flags &= ~macho::flags::two_level_namespaces;
                 }
             }
 
-            dprintf(output, " ]\n");
+            if (container_flags & macho::flags::two_level_namespaces || !(container_flags & macho::flags::app_extension_safe)) {
+                dprintf(output, "flags:%-17s[ ", "");
+
+                if (header_flags & macho::flags::two_level_namespaces) {
+                    dprintf(output, "flat_namespace");
+
+                    if (!(header_flags & macho::flags::app_extension_safe)) {
+                        dprintf(output, ", not_app_extension_safe");
+                    }
+                } else if (!(header_flags & macho::flags::app_extension_safe)) {
+                    dprintf(output, "not_app_extension_safe");
+                }
+
+                dprintf(output, " ]\n");
+            }
         }
 
         dprintf(output, "install-name:%-10s%s\n", "", installation_name);
@@ -2339,42 +2525,24 @@ namespace macho::utils::tbd {
             }
         }
 
-        dprintf(output, "objc-constraint:%-7s", "");
-
-        switch (objc_constraint) {
-            case objc_constraint::none:
-                dprintf(output, "none");
-                break;
-
-            case objc_constraint::retain_release:
-                dprintf(output, "retain_release");
-                break;
-
-            case objc_constraint::retain_release_simulator:
-                dprintf(output, "retain_release_for_simulator");
-                break;
-
-            case objc_constraint::retain_release_or_gc:
-                dprintf(output, "retain_release_or_gc");
-                break;
-
-            case objc_constraint::gc:
-                dprintf(output, "gc");
-                break;
-
-            default:
-                break;
+        if (!(options & options::remove_objc_constraint)) {
+            dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
         }
 
-        dprintf(output, "\nexports:\n");
+        if (version == version::v2) {
+            if (!parent_umbrella.empty()) {
+                dprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+            }
+        }
 
+        dprintf(output, "exports:\n");
         print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols);
 
         dprintf(output, "...\n");
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -2385,6 +2553,7 @@ namespace macho::utils::tbd {
 
         auto library_installation_name = (const char *)nullptr;
         auto library_objc_constraint = objc_constraint::none;
+        auto library_parent_umbrella = std::string();
 
         auto library_reexports = std::vector<reexport>();
         auto library_symbols = std::vector<symbol>();
@@ -2421,23 +2590,23 @@ namespace macho::utils::tbd {
                 return creation_result::unsupported_filetype;
             }
 
-            if (library_container_header_flags & flags::two_level_namespaces) {
-                if (!(library_flags & flags::two_level_namespaces)) {
+            if (library_container_header_flags & macho::flags::two_level_namespaces) {
+                if (!(library_flags & macho::flags::two_level_namespaces)) {
                     if (library_containers_index != 0) {
                         return creation_result::inconsistent_flags;
                     }
 
-                    library_flags |= flags::two_level_namespaces;
+                    library_flags |= macho::flags::two_level_namespaces;
                 }
             }
 
-            if (!(library_container_header_flags & flags::app_extension_safe)) {
-                if (library_flags & flags::app_extension_safe) {
+            if (!(library_container_header_flags & macho::flags::app_extension_safe)) {
+                if (library_flags & macho::flags::app_extension_safe) {
                     if (library_containers_index != 0) {
                         return creation_result::inconsistent_flags;
                     }
 
-                    library_flags &= ~flags::app_extension_safe;
+                    library_flags &= ~macho::flags::app_extension_safe;
                 }
             }
 
@@ -2472,11 +2641,12 @@ namespace macho::utils::tbd {
 
             auto local_installation_name = (const char *)nullptr;
             auto local_objc_constraint = objc_constraint::none;
+            auto local_parent_umbrella = std::string();
 
             auto local_sub_clients = std::vector<std::string>();
             auto local_uuid = (uint8_t *)nullptr;
 
-            const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_uuid);
+            const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_parent_umbrella, local_uuid);
 
             if (failure_result != creation_result::ok) {
                 return failure_result;
@@ -2522,15 +2692,32 @@ namespace macho::utils::tbd {
                 library_swift_version = local_swift_version;
             }
 
-            if (library_objc_constraint != objc_constraint::none) {
-                if (library_objc_constraint != local_objc_constraint) {
-                    return creation_result::contradictary_container_information;
+            if (!(options & options::remove_objc_constraint)) {
+                if (library_objc_constraint != objc_constraint::none) {
+                    if (library_objc_constraint != local_objc_constraint) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_objc_constraint = local_objc_constraint;
                 }
-            } else {
-                library_objc_constraint = local_objc_constraint;
             }
 
             if (version == version::v2) {
+                if (!library_parent_umbrella.empty()) {
+                    if (library_parent_umbrella != local_parent_umbrella) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    // In the scenario where one container had no (or empty) parent-umbrella
+                    // and another container did not
+
+                    if (library_containers_index != 0) {
+                        return creation_result::contradictary_container_information;
+                    }
+
+                    library_parent_umbrella = std::move(local_parent_umbrella);
+                }
+
                 if (!local_uuid) {
                     return creation_result::has_no_uuid;
                 } else {
@@ -2592,7 +2779,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto group = ::macho::utils::tbd::group();
+                    auto group = macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_reexport_bits);
 
                     switch (group_creation_result) {
@@ -2617,7 +2804,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto group = ::macho::utils::tbd::group();
+                    auto group = macho::utils::tbd::group();
                     auto group_creation_result = group.create(library_symbol_bits);
 
                     switch (group_creation_result) {
@@ -2680,24 +2867,32 @@ namespace macho::utils::tbd {
 
         fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
 
-        if (library_flags & flags::two_level_namespaces || !(library_flags & flags::app_extension_safe)) {
-            fprintf(output, "flags:%-17s[ ", "");
-
-            if (library_flags & flags::two_level_namespaces) {
-                fputs("flat_namespace", output);
-
-                if (!(library_flags & flags::app_extension_safe)) {
-                    fputs(", not_app_extension_safe", output);
+        if (!(options & options::remove_flags) || flags != flags::none) {
+            if (flags != flags::none) {
+                if ((flags & flags::flat_namespace) != flags::none) {
+                    library_flags |= macho::flags::two_level_namespaces;
                 }
-            } else if (!(library_flags & flags::app_extension_safe)) {
-                fputs("flat_namespace", output);
 
-                if (!(library_flags & flags::app_extension_safe)) {
-                    fputs(", not_app_extension_safe", output);
+                if ((flags & flags::not_app_extension_safe) != flags::none) {
+                    library_flags &= ~macho::flags::two_level_namespaces;
                 }
             }
 
-            fputs(" ]\n", output);
+            if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
+                fprintf(output, "flags:%-17s[ ", "");
+
+                if (library_flags & macho::flags::two_level_namespaces) {
+                    fputs("flat_namespace", output);
+
+                    if (!(library_flags & macho::flags::app_extension_safe)) {
+                        fputs(", not_app_extension_safe", output);
+                    }
+                } else if (!(library_flags & macho::flags::app_extension_safe)) {
+                    fputs("not_app_extension_safe", output);
+                }
+
+                fputs(" ]\n", output);
+            }
         }
 
         fprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
@@ -2756,34 +2951,17 @@ namespace macho::utils::tbd {
             }
         }
 
-        fprintf(output, "objc-constraint:%-7s", "");
-
-        switch (library_objc_constraint) {
-            case objc_constraint::none:
-                fputs("none", output);
-                break;
-
-            case objc_constraint::retain_release:
-                fputs("retain_release", output);
-                break;
-
-            case objc_constraint::retain_release_simulator:
-                fputs("retain_release_for_simulator", output);
-                break;
-
-            case objc_constraint::retain_release_or_gc:
-                fputs("retain_release_or_gc", output);
-                break;
-
-            case objc_constraint::gc:
-                fputs("gc", output);
-                break;
-
-            default:
-                break;
+        if (!(options & options::remove_objc_constraint)) {
+            fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
         }
 
-        fputs("\nexports:\n", output);
+        if (version == version::v2) {
+            if (!library_parent_umbrella.empty()) {
+                fprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+            }
+        }
+
+        fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
             print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols);
@@ -2797,7 +2975,7 @@ namespace macho::utils::tbd {
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(container &container, FILE *output, uint64_t options, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    creation_result create_from_macho_library(container &container, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -2807,6 +2985,7 @@ namespace macho::utils::tbd {
 
         auto objc_constraint = objc_constraint::none;
         auto installation_name = (const char *)nullptr;
+        auto parent_umbrella = std::string();
 
         auto sub_clients = std::vector<std::string>();
 
@@ -2854,7 +3033,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        const auto failure_result = get_required_load_command_data(container, architecture_info_table_index, current_version, compatibility_version, swift_version, installation_name, platform, objc_constraint, reexports, sub_clients, uuid);
+        const auto failure_result = get_required_load_command_data(container, architecture_info_table_index, current_version, compatibility_version, swift_version, installation_name, platform, objc_constraint, reexports, sub_clients, parent_umbrella, uuid);
         if (failure_result != creation_result::ok) {
             return failure_result;
         }
@@ -2912,6 +3091,36 @@ namespace macho::utils::tbd {
         }
 
         fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
+
+        if (!(options & options::remove_flags) || flags != flags::none) {
+            auto tbd_flags = header_flags;
+            if (flags != flags::none) {
+                if ((flags & flags::flat_namespace) != flags::none) {
+                    tbd_flags |= macho::flags::two_level_namespaces;
+                }
+
+                if ((flags & flags::not_app_extension_safe) != flags::none) {
+                    tbd_flags &= ~macho::flags::two_level_namespaces;
+                }
+            }
+
+            if (tbd_flags & macho::flags::two_level_namespaces || !(tbd_flags & macho::flags::app_extension_safe)) {
+                fprintf(output, "flags:%-17s[ ", "");
+
+                if (tbd_flags & macho::flags::two_level_namespaces) {
+                    fputs("flat_namespace", output);
+
+                    if (!(header_flags & macho::flags::app_extension_safe)) {
+                        fputs(", not_app_extension_safe", output);
+                    }
+                } else if (!(tbd_flags & macho::flags::app_extension_safe)) {
+                    fputs("not_app_extension_safe", output);
+                }
+
+                fputs(" ]\n", output);
+            }
+        }
+
         fprintf(output, "install-name:%-10s%s\n", "", installation_name);
 
         auto library_current_version_major = current_version >> 16;
@@ -2968,40 +3177,18 @@ namespace macho::utils::tbd {
             }
         }
 
-        fprintf(output, "objc-constraint:%-7s", "");
+        if (!(options & options::remove_objc_constraint)) {
+            fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+        }
 
-        switch (objc_constraint) {
-            case objc_constraint::none:
-                fputs("none", output);
-                break;
-
-            case objc_constraint::retain_release:
-                fputs("retain_release", output);
-                break;
-
-            case objc_constraint::retain_release_simulator:
-                fputs("retain_release_for_simulator", output);
-                break;
-
-            case objc_constraint::retain_release_or_gc:
-                fputs("retain_release_or_gc", output);
-                break;
-
-            case objc_constraint::gc:
-                fputs("gc", output);
-                break;
-
-            default:
-                break;
+        if (version == version::v2) {
+            if (!parent_umbrella.empty()) {
+                fprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+            }
         }
 
         fputs("exports:\n", output);
-
-        if (has_architecture_overrides) {
-            print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), std::vector<std::string>(), reexports, symbols);
-        } else {
-            print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols);
-        }
+        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols);
 
         fputs("...\n", output);
         return creation_result::ok;
