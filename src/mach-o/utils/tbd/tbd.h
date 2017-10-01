@@ -83,12 +83,19 @@ namespace macho::utils::tbd {
     inline symbol_options operator&(const symbol_options &lhs, const symbol_options &rhs) noexcept { return (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
     inline void operator&=(symbol_options &lhs, const symbol_options &rhs) noexcept { lhs = (symbol_options)((uint64_t)lhs & (uint64_t)rhs); }
 
+    inline symbol_options operator~(const symbol_options &lhs) noexcept { return (symbol_options)~(uint16_t)lhs; }
+
     enum class creation_result {
         ok,
+        stream_seek_error,
+        stream_read_error,
+        unsupported_filetype,
+        inconsistent_flags,
         invalid_subtype,
         invalid_cputype,
         invalid_load_command,
         invalid_segment,
+        invalid_sub_client,
         failed_to_iterate_load_commands,
         failed_to_iterate_symbols,
         contradictary_load_command_information,

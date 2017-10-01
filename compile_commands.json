@@ -1,5 +1,5 @@
 [
   {
-    "command" : "clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/utils/tbd/tbd.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/flags.cc src/misc/recurse.cc src/misc/path_utilities.cc src/main.cc -o build/tbd",
+    "command" : "clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/utils/tbd/tbd.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/misc/bits.cc src/misc/recurse.cc src/misc/path_utilities.cc src/main.cc -o build/tbd",
   }
 ]

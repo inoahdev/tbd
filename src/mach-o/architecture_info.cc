@@ -112,4 +112,22 @@ namespace macho {
 
         return nullptr;
     }
+
+    size_t architecture_info_index_from_name(const char *name) {
+        auto architecture_info = architecture_info_from_name(name);
+        if (!architecture_info) {
+            return -1;
+        }
+
+        return ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
+    }
+
+    size_t architecture_info_index_from_cputype(cputype cputype, subtype subtype) {
+        auto architecture_info = architecture_info_from_cputype(cputype, subtype);
+        if (!architecture_info) {
+            return -1;
+        }
+
+        return ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
+    }
 }

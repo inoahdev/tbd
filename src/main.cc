@@ -81,8 +81,8 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             break;
         }
 
-        const auto architecture_info = macho::architecture_info_from_name(architecture_string);
-        if (!architecture_info || !architecture_info->name) {
+        const auto architecture_info_table_index = macho::architecture_info_index_from_name(architecture_string);
+        if (architecture_info_table_index == -1) {
             // macho::architecture_info_from_name() returning nullptr can be the result of one
             // of two scenarios, The string stored in architecture being invalid,
             // such as being misspelled, or the string being the path object inevitably
@@ -93,15 +93,12 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             // being provided.
 
             if (!architectures) {
-                fprintf(stderr, "Unrecognized architecture with name (%s)\n", architecture_string);
+                fprintf(stderr, "Unrecognized architecture with name (%s)\n", macho::get_architecture_info_table()[architecture_info_table_index].name);
                 exit(1);
             }
 
             break;
         }
-
-        const auto architecture_info_table = macho::get_architecture_info_table();
-        const auto architecture_info_table_index = ((uint64_t)architecture_info - (uint64_t)architecture_info_table) / sizeof(macho::architecture_info);
 
         architectures |= ((uint64_t)1 << architecture_info_table_index);
         index++;
@@ -334,12 +331,40 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::ok:
                 return true;
 
+            case macho::utils::tbd::creation_result::stream_seek_error:
+            case macho::utils::tbd::creation_result::stream_read_error:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error (%s)\n", macho_file_path, strerror(ferror(file.stream)));
+                } else {
+                    fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error (%s)\n", strerror(ferror(file.stream)));
+                }
+
+                break;
+
+            case macho::utils::tbd::creation_result::unsupported_filetype:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is of an unsupported filetype\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, is of an unsupported filetype\n", stderr);
+                }
+
+                break;
+
+            case macho::utils::tbd::creation_result::inconsistent_flags:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s) has inconsistent information between its architectures\n", macho_file_path);
+                } else {
+                    fputs("Provided mch-o file has inconsistent information between its architectures\n", stderr);
+                }
+
+                break;
+
             case macho::utils::tbd::creation_result::invalid_subtype:
             case macho::utils::tbd::creation_result::invalid_cputype:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unrecognized machine\n", macho_file_path);
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is for an unsupported machine\n", macho_file_path);
                 } else {
-                    fputs("Provided mach-o file, or one of its architectures, is for an unrecognized machine\n", stderr);
+                    fputs("Provided mach-o file, or one of its architectures, is for an unsupported machine\n", stderr);
                 }
 
                 break;
@@ -358,6 +383,15 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid segment\n", macho_file_path);
                 } else {
                     fputs("Provided mach-o file, or one of its architectures, has an invalid segment\n", stderr);
+                }
+
+                break;
+
+            case macho::utils::tbd::creation_result::invalid_sub_client:
+                if (creation_handling_options & creation_handling_print_paths) {
+                    fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, has an invalid sub-client\n", macho_file_path);
+                } else {
+                    fputs("Provided mach-o file, or one of its architectures, has an invalid sub-client\n", stderr);
                 }
 
                 break;

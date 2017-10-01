@@ -13,10 +13,10 @@
 		C33CE0C11F33423000E738EA /* cputype.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33CE0BA1F33423000E738EA /* cputype.cc */; };
 		C33DD9441F79C924003C1FFC /* tbd.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33DD9431F79C924003C1FFC /* tbd.cc */; };
 		C39BE6F21F6CA65F00997E38 /* path_utilities.cc in Sources */ = {isa = PBXBuildFile; fileRef = C39BE6F11F6CA65F00997E38 /* path_utilities.cc */; };
-		C3B67BB01F3FAA3200BDE7F8 /* flags.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3B67BAF1F3FAA0800BDE7F8 /* flags.cc */; };
 		C3BA3CA81F131AC30049C652 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA71F131AC30049C652 /* main.cc */; };
 		C3BA3CAD1F131AD00049C652 /* container.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA91F131AD00049C652 /* container.cc */; };
 		C3BA3CAE1F131AD00049C652 /* file.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CAB1F131AD00049C652 /* file.cc */; };
+		C3E4A8A41F801EAC00A6A4E4 /* bits.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3E4A8A31F801EAC00A6A4E4 /* bits.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,7 +52,7 @@
 		C33DD9431F79C924003C1FFC /* tbd.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = tbd.cc; path = "../../src/mach-o/utils/tbd/tbd.cc"; sourceTree = "<group>"; };
 		C33DD9451F79C934003C1FFC /* tbd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = "../../src/mach-o/utils/tbd/tbd.h"; sourceTree = "<group>"; };
 		C39BE6F11F6CA65F00997E38 /* path_utilities.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = path_utilities.cc; path = ../../src/misc/path_utilities.cc; sourceTree = "<group>"; };
-		C3B67BAF1F3FAA0800BDE7F8 /* flags.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = flags.cc; path = ../../src/misc/flags.cc; sourceTree = "<group>"; };
+		C3A45E4E1F804E4800FC649E /* compile_commands.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = compile_commands.json; path = ../../compile_commands.json; sourceTree = "<group>"; };
 		C3BA3CA71F131AC30049C652 /* main.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cc; path = ../../src/main.cc; sourceTree = "<group>"; };
 		C3BA3CA91F131AD00049C652 /* container.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = container.cc; path = "../../src/mach-o/container.cc"; sourceTree = "<group>"; };
 		C3BA3CAB1F131AD00049C652 /* file.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = file.cc; path = "../../src/mach-o/file.cc"; sourceTree = "<group>"; };
@@ -60,7 +60,9 @@
 		C3D027001F1AAFD900BAA510 /* make.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make.sh; path = ../../make.sh; sourceTree = "<group>"; };
 		C3D027021F1AE88100BAA510 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
 		C3DB912A1F10F20C00A7C2E7 /* file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file.h; path = "../../src/mach-o/file.h"; sourceTree = "<group>"; };
-		C3E269E01F3FA959005ED144 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = ../../src/misc/flags.h; sourceTree = "<group>"; };
+		C3E4A8A31F801EAC00A6A4E4 /* bits.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = bits.cc; path = ../../src/misc/bits.cc; sourceTree = "<group>"; };
+		C3E4A8A51F801EB400A6A4E4 /* bits.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bits.h; path = ../../src/misc/bits.h; sourceTree = "<group>"; };
+		C3E4A8A61F80281300A6A4E4 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = "../../src/mach-o/headers/flags.h"; sourceTree = "<group>"; };
 		C3FB674B1F4339470025EB0A /* image_info.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = image_info.h; path = ../../src/objc/image_info.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -80,6 +82,7 @@
 			children = (
 				C32A7AA91F10E600000BF14E /* src */,
 				C3D027001F1AAFD900BAA510 /* make.sh */,
+				C3A45E4E1F804E4800FC649E /* compile_commands.json */,
 				C3D027021F1AE88100BAA510 /* README.md */,
 				C32A7AA01F10E5DA000BF14E /* Products */,
 			);
@@ -129,6 +132,7 @@
 				C33CE0BF1F33423000E738EA /* cputype.h */,
 				C33CE0BA1F33423000E738EA /* cputype.cc */,
 				C33CE0BC1F33423000E738EA /* filetype.h */,
+				C3E4A8A61F80281300A6A4E4 /* flags.h */,
 				C33CE0C01F33423000E738EA /* header.h */,
 				C33CE0B91F33423000E738EA /* load_commands.h */,
 				C33CE0BE1F33423000E738EA /* magic.h */,
@@ -157,8 +161,8 @@
 		C3E269DF1F3FA92F005ED144 /* misc */ = {
 			isa = PBXGroup;
 			children = (
-				C3E269E01F3FA959005ED144 /* flags.h */,
-				C3B67BAF1F3FAA0800BDE7F8 /* flags.cc */,
+				C3E4A8A51F801EB400A6A4E4 /* bits.h */,
+				C3E4A8A31F801EAC00A6A4E4 /* bits.cc */,
 				C31BA0C31F64907900BF6202 /* path_utilities.h */,
 				C39BE6F11F6CA65F00997E38 /* path_utilities.cc */,
 				C31620AD1F50F575005A67A7 /* recurse.h */,
@@ -201,7 +205,7 @@
 		C32A7A971F10E5DA000BF14E /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0900;
+				LastUpgradeCheck = 0910;
 				ORGANIZATIONNAME = inoahdev;
 				TargetAttributes = {
 					C32A7A9E1F10E5DA000BF14E = {
@@ -231,9 +235,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3E4A8A41F801EAC00A6A4E4 /* bits.cc in Sources */,
 				C33DD9441F79C924003C1FFC /* tbd.cc in Sources */,
 				C39BE6F21F6CA65F00997E38 /* path_utilities.cc in Sources */,
-				C3B67BB01F3FAA3200BDE7F8 /* flags.cc in Sources */,
 				C3BA3CAD1F131AD00049C652 /* container.cc in Sources */,
 				C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */,
 				C3BA3CAE1F131AD00049C652 /* file.cc in Sources */,
@@ -267,6 +271,8 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
@@ -320,6 +326,8 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;

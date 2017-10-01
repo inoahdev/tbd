@@ -104,5 +104,7 @@ namespace macho {
 
         inline description operator&(const description &lhs, const uint16_t &rhs) noexcept { return (description)((uint16_t)lhs & rhs); }
         inline void operator&=(description &lhs, const uint16_t &rhs) noexcept { lhs = (description)((uint16_t)lhs & rhs); }
+
+        inline description operator~(const description &lhs) noexcept { return (description)~(uint16_t)lhs; }
     }
 }
