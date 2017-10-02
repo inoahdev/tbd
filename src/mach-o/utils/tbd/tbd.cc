@@ -1315,7 +1315,7 @@ namespace macho::utils::tbd {
                         swap_uint32(&segment_sections_count);
                     }
 
-                    auto segment_section = (segments::section *)((uint64_t)segment_command + sizeof(segment_command));
+                    auto segment_section = (segments::section *)((uint64_t)segment_command + sizeof(macho::segment_command));
 
                     auto objc_image_info = objc::image_info();
                     auto found_objc_image_info = false;
@@ -1361,7 +1361,7 @@ namespace macho::utils::tbd {
                             return false;
                         }
 
-                        if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 0) {
+                        if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }

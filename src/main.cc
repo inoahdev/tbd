@@ -551,7 +551,7 @@ void print_usage() {
     fputc('\n', stdout);
     fputs("Miscellaneous options:\n", stdout);
     fputs("        --dont-print-warnings,    Don't print any warnings (both path and global option)\n", stdout);
-    fputs("        --replace-path-extension, Replace path-extension on mach-o file when creating output-file (both path and global option)\n", stdout);
+    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
