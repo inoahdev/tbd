@@ -1382,23 +1382,29 @@ namespace macho::utils::tbd {
                     const auto &objc_image_info_flags = objc_image_info.flags;
 
                     if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::gc) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::gc) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::gc;
                         }
                     } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_or_gc) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::retain_release_or_gc) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::retain_release_or_gc;
                         }
                     } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_for_simulator) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::retain_release_for_simulator) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::retain_release_for_simulator;
                         }
@@ -1502,23 +1508,29 @@ namespace macho::utils::tbd {
                     const auto &objc_image_info_flags = objc_image_info.flags;
 
                     if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::gc) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::gc) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::gc;
                         }
                     } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_or_gc) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::retain_release_or_gc) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::retain_release_or_gc;
                         }
                     } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
-                        if (constraint != objc_constraint::none && constraint != objc_constraint::retain_release_for_simulator) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
+                        if (constraint != objc_constraint::no_value) {
+                            if (constraint != objc_constraint::retain_release_for_simulator) {
+                                failure_result = creation_result::contradictary_load_command_information;
+                                return false;
+                            }
                         } else {
                             constraint = objc_constraint::retain_release_for_simulator;
                         }
@@ -1793,7 +1805,7 @@ namespace macho::utils::tbd {
                 return creation_result::failed_to_iterate_load_commands;
         }
 
-        return creation_result::ok;
+        return failure_result;
     }
 
     creation_result get_symbols(container &container, uint64_t architecture_info_index, uint64_t containers_count, std::vector<symbol> &symbols, uint64_t options) {
@@ -1902,7 +1914,7 @@ namespace macho::utils::tbd {
         uint32_t library_flags = 0;
 
         auto library_installation_name = (const char *)nullptr;
-        auto library_objc_constraint = objc_constraint::none;
+        auto library_objc_constraint = objc_constraint::no_value;
         auto library_parent_umbrella = std::string();
 
         auto library_reexports = std::vector<reexport>();
@@ -1992,7 +2004,7 @@ namespace macho::utils::tbd {
             uint32_t local_swift_version = 0;
 
             auto local_installation_name = (const char *)nullptr;
-            auto local_objc_constraint = objc_constraint::none;
+            auto local_objc_constraint = objc_constraint::no_value;
             auto local_parent_umbrella = std::string();
 
             auto local_sub_clients = std::vector<std::string>();
@@ -2045,7 +2057,7 @@ namespace macho::utils::tbd {
             }
 
             if (!(options & options::remove_objc_constraint)) {
-                if (library_objc_constraint != objc_constraint::none) {
+                if (library_objc_constraint != objc_constraint::no_value) {
                     if (library_objc_constraint != local_objc_constraint) {
                         return creation_result::contradictary_container_information;
                     }
@@ -2059,7 +2071,7 @@ namespace macho::utils::tbd {
                     if (library_parent_umbrella != local_parent_umbrella) {
                         return creation_result::contradictary_container_information;
                     }
-                } else {
+                } else if (!local_parent_umbrella.empty()) {
                     // In the scenario where one container had no (or empty) parent-umbrella
                     // and another container did not
 
@@ -2336,7 +2348,7 @@ namespace macho::utils::tbd {
         uint32_t swift_version = 0;
 
         auto installation_name = (const char *)nullptr;
-        auto objc_constraint = objc_constraint::none;
+        auto objc_constraint = objc_constraint::no_value;
         auto parent_umbrella = std::string();
 
         auto reexports = std::vector<reexport>();
@@ -2552,7 +2564,7 @@ namespace macho::utils::tbd {
         uint32_t library_flags = 0;
 
         auto library_installation_name = (const char *)nullptr;
-        auto library_objc_constraint = objc_constraint::none;
+        auto library_objc_constraint = objc_constraint::no_value;
         auto library_parent_umbrella = std::string();
 
         auto library_reexports = std::vector<reexport>();
@@ -2640,7 +2652,7 @@ namespace macho::utils::tbd {
             uint32_t local_swift_version = 0;
 
             auto local_installation_name = (const char *)nullptr;
-            auto local_objc_constraint = objc_constraint::none;
+            auto local_objc_constraint = objc_constraint::no_value;
             auto local_parent_umbrella = std::string();
 
             auto local_sub_clients = std::vector<std::string>();
@@ -2693,7 +2705,7 @@ namespace macho::utils::tbd {
             }
 
             if (!(options & options::remove_objc_constraint)) {
-                if (library_objc_constraint != objc_constraint::none) {
+                if (library_objc_constraint != objc_constraint::no_value) {
                     if (library_objc_constraint != local_objc_constraint) {
                         return creation_result::contradictary_container_information;
                     }
@@ -2707,7 +2719,7 @@ namespace macho::utils::tbd {
                     if (library_parent_umbrella != local_parent_umbrella) {
                         return creation_result::contradictary_container_information;
                     }
-                } else {
+                } else if (!local_parent_umbrella.empty()) {
                     // In the scenario where one container had no (or empty) parent-umbrella
                     // and another container did not
 
@@ -2983,7 +2995,7 @@ namespace macho::utils::tbd {
         uint32_t compatibility_version = -1;
         uint32_t swift_version = 0;
 
-        auto objc_constraint = objc_constraint::none;
+        auto objc_constraint = objc_constraint::no_value;
         auto installation_name = (const char *)nullptr;
         auto parent_umbrella = std::string();
 

@@ -112,34 +112,33 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
 }
 
 char *recursively_create_directories_from_file_path_inner(char *path, char *begin, char *end, char *slash, bool create_last_as_directory) {
-    auto next_component_iter = begin;
-    auto component = std::make_pair(begin, slash);
+    auto path_component_begin = begin;
+    auto path_component_end = slash;
 
     do {
-        if (slash == end) {
+        if (path_component_end == end) {
             if (!create_last_as_directory) {
                 break;
             }
         }
 
-        *slash = '\0';
+        *path_component_end = '\0';
 
         if (mkdir(path, 0755) != 0) {
             fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
             exit(1);
         }
 
-        *slash = '/';
-        next_component_iter = path::find_next_unique_slash(component.second, end);
+        *path_component_end = '/';
+        path_component_begin = path::find_next_unique_slash(path_component_end, end);
 
-        // Skip slash at begin of unique_slash
-
-        if (next_component_iter == end) {
+        if (path_component_begin == end) {
             break;
         }
 
-        next_component_iter++;
-        component = path::find_next_component(next_component_iter, end);
+        // Skip slash at begin of unique_slash
+        path_component_begin++;
+        path_component_end = path::find_next_slash(path_component_begin, end);
     } while (true);
 
     return slash;
@@ -194,8 +193,9 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
      // Make sure end is null-terminated
 
     if (!end) {
-        while (*begin != '\0') {
-            begin++;
+        end = begin;
+        while (*end != '\0') {
+            end++;
         }
     }
 
@@ -1697,7 +1697,9 @@ int main(int argc, const char *argv[]) {
 
                 const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
                 if (!result) {
-                    recursively_remove_directories_from_file_path(output_path.data(), recursive_directory_creation_ptr);
+                    if (recursive_directory_creation_ptr != nullptr) {
+                        recursively_remove_directories_from_file_path(output_path.data(), recursive_directory_creation_ptr);
+                    }
                 }
 
                 fclose(output_file);
