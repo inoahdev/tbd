@@ -550,7 +550,8 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("Miscellaneous options:\n", stdout);
-    fputs("        --dont-print-warnings, Don't print any warnings (both path and global option)\n", stdout);
+    fputs("        --dont-print-warnings,    Don't print any warnings (both path and global option)\n", stdout);
+    fputs("        --replace-path-extension, Replace path-extension on mach-o file when creating output-file (both path and global option)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
@@ -563,8 +564,8 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("tbd field options: (Both path and global options)\n", stdout);
-    fputs("        --flags,                  Specify flags to add onto ones found in provided mach-o file(s)", stdout);
-    fputs("        --objc-constraint,        Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)", stdout);
+    fputs("        --flags,                  Specify flags to add onto ones found in provided mach-o file(s)\n", stdout);
+    fputs("        --objc-constraint,        Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)\n", stdout);
     fputs("        --remove-flags,           Remove flags field from outputted tbds\n", stdout);
     fputs("        --remove-objc-constraint, Remove objc-constraint field from outputted tbds\n", stdout);
 
@@ -589,7 +590,8 @@ int main(int argc, const char *argv[]) {
         recurse_directories    = 1 << 8, // Use second-byte to support native tbd options
         recurse_subdirectories = 1 << 9,
         maintain_directories   = 1 << 10,
-        dont_print_warnings    = 1 << 11
+        dont_print_warnings    = 1 << 11,
+        replace_path_extension = 1 << 12
     };
 
     typedef struct tbd_file {
@@ -1350,6 +1352,8 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                             return 1;
                         }
+                    } else if (strcmp(option, "replace-path-extension") == 0) {
+                        local_options |= replace_path_extension;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a tbd-version\n", stderr);
@@ -1384,6 +1388,11 @@ int main(int argc, const char *argv[]) {
                         fputs("Cannot recurse stdin\n", stderr);
                         return 1;
                     }
+
+                    if (local_options & replace_path_extension) {
+                        fputs("Cannot replace path-extension of stdin\n", stderr);
+                        return 1;
+                    }
                 } else {
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         path.insert(0, retrieve_current_directory());
@@ -1411,6 +1420,11 @@ int main(int argc, const char *argv[]) {
                         if (path_is_regular_file) {
                             if (local_options & recurse_directories) {
                                 fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
+                                return 1;
+                            }
+
+                            if (local_options & replace_path_extension) {
+                                fputs("Replacing path-extension for output-files is meant only to be used while recursing\n", stderr);
                                 return 1;
                             }
                         } else {
@@ -1468,6 +1482,8 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
+        } else if (strcmp(option, "replace-path-extension") == 0) {
+            options |= replace_path_extension;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -1592,6 +1608,10 @@ int main(int argc, const char *argv[]) {
             tbd_options |= dont_print_warnings;
         }
 
+        if (options & replace_path_extension) {
+            tbd_options |= replace_path_extension;
+        }
+
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output .tbd files to\n", tbd_path.data());
@@ -1626,8 +1646,17 @@ int main(int argc, const char *argv[]) {
                 auto output_path_new_length = output_path_length + tbd_output_path_length + 4;
 
                 output_path.reserve(output_path_new_length);
-
                 output_path.insert(0, tbd_output_path);
+
+                if (tbd_options & replace_path_extension) {
+                    auto output_path_end = output_path.end();
+                    auto path_extension = path::find_extension(output_path.begin(), output_path_end);
+
+                    if (path_extension != output_path_end) {
+                        output_path.erase(path_extension, output_path_end);
+                    }
+                }
+
                 output_path.append(".tbd");
 
                 auto recursive_directory_creation_ptr = recursively_create_directories_from_file_path(output_path.data(), tbd_output_path_length, false);

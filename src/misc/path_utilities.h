@@ -213,6 +213,40 @@ namespace path {
     }
 
     template <typename T>
+    T find_extension(const T &begin, const T &end) {
+        auto iter = end - 1;
+        for (; iter != begin && *iter != '.'; iter--) {}
+
+        if (*iter != '.') {
+            return end;
+        }
+
+        return iter;
+    }
+
+    inline char *find_extension(char *string) {
+        auto end = &string[strlen(string)];
+        auto result = find_extension(string, end);
+
+        if (result == end) {
+            return nullptr;
+        }
+
+        return result;
+    }
+
+    inline const char *find_extension(const char *string) {
+        auto end = &string[strlen(string)];
+        auto result = find_extension(string, end);
+
+        if (result == end) {
+            return nullptr;
+        }
+
+        return result;
+    }
+
+    template <typename T>
     int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
         // Skip beginning slashes
 
