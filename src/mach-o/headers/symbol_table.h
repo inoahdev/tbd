@@ -75,36 +75,36 @@ namespace macho {
             alternate_entry = 0x0200
         };
 
-        inline int16_t operator|(const int16_t &lhs, const description &rhs) noexcept { return lhs | (int16_t)rhs; }
-        inline void operator|=(int16_t &lhs, const description &rhs) noexcept { lhs |= (int16_t)rhs; }
+        inline int16_t operator|(const int16_t &lhs, const description &rhs) noexcept { return lhs | static_cast<int16_t>(rhs); }
+        inline void operator|=(int16_t &lhs, const description &rhs) noexcept { lhs |= static_cast<int16_t>(rhs); }
 
-        inline description operator|(const description &lhs, const int16_t &rhs) noexcept { return (description)((int16_t)lhs | rhs); }
-        inline void operator|=(description &lhs, const int16_t &rhs) noexcept { lhs = (description)((int16_t)lhs | rhs); }
+        inline description operator|(const description &lhs, const int16_t &rhs) noexcept { return static_cast<description>(static_cast<int16_t>(lhs) | rhs); }
+        inline void operator|=(description &lhs, const int16_t &rhs) noexcept { lhs = static_cast<description>(static_cast<int16_t>(lhs) | rhs); }
 
-        inline description operator|(const description &lhs, const description &rhs) noexcept { return (description)((int16_t)lhs | (int16_t)rhs); }
-        inline void operator|=(description &lhs, const description &rhs) noexcept { lhs = (description)((int16_t)lhs | (int16_t)rhs); }
+        inline description operator|(const description &lhs, const description &rhs) noexcept { return static_cast<description>(static_cast<int16_t>(lhs) | static_cast<int16_t>(rhs)); }
+        inline void operator|=(description &lhs, const description &rhs) noexcept { lhs = static_cast<description>(static_cast<int16_t>(lhs) | static_cast<int16_t>(rhs)); }
 
-        inline int16_t operator&(const int16_t &lhs, const description &rhs) noexcept { return lhs & (int16_t)rhs; }
-        inline void operator&=(int16_t &lhs, const description &rhs) noexcept { lhs &= (int16_t)rhs; }
+        inline int16_t operator&(const int16_t &lhs, const description &rhs) noexcept { return lhs & static_cast<int16_t>(rhs); }
+        inline void operator&=(int16_t &lhs, const description &rhs) noexcept { lhs &= static_cast<int16_t>(rhs); }
 
-        inline description operator&(const description &lhs, const int16_t &rhs) noexcept { return (description)((int16_t)lhs & rhs); }
-        inline void operator&=(description &lhs, const int16_t &rhs) noexcept { lhs = (description)((int16_t)lhs & rhs); }
+        inline description operator&(const description &lhs, const int16_t &rhs) noexcept { return static_cast<description>(static_cast<int16_t>(lhs) & rhs); }
+        inline void operator&=(description &lhs, const int16_t &rhs) noexcept { lhs = static_cast<description>(static_cast<int16_t>(lhs) & rhs); }
 
-        inline description operator&(const description &lhs, const description &rhs) noexcept { return (description)((int16_t)lhs & (int16_t)rhs); }
-        inline void operator&=(description &lhs, const description &rhs) noexcept { lhs = (description)((int16_t)lhs & (int16_t)rhs); }
+        inline description operator&(const description &lhs, const description &rhs) noexcept { return static_cast<description>(static_cast<int16_t>(lhs) & static_cast<int16_t>(rhs)); }
+        inline void operator&=(description &lhs, const description &rhs) noexcept { lhs = static_cast<description>(static_cast<int16_t>(lhs) & static_cast<int16_t>(rhs)); }
 
-        inline uint16_t operator|(const uint16_t &lhs, const description &rhs) noexcept { return lhs | (uint16_t)rhs; }
-        inline void operator|=(uint16_t &lhs, const description &rhs) noexcept { lhs |= (uint16_t)rhs; }
+        inline uint16_t operator|(const uint16_t &lhs, const description &rhs) noexcept { return lhs | static_cast<uint16_t>(rhs); }
+        inline void operator|=(uint16_t &lhs, const description &rhs) noexcept { lhs |= static_cast<uint16_t>(rhs); }
 
-        inline description operator|(const description &lhs, const uint16_t &rhs) noexcept { return (description)((uint16_t)lhs | rhs); }
-        inline void operator|=(description &lhs, const uint16_t &rhs) noexcept { lhs = (description)((uint16_t)lhs | rhs); }
+        inline description operator|(const description &lhs, const uint16_t &rhs) noexcept { return static_cast<description>(static_cast<uint16_t>(lhs) | rhs); }
+        inline void operator|=(description &lhs, const uint16_t &rhs) noexcept { lhs = static_cast<description>(static_cast<uint16_t>(lhs) | rhs); }
 
-        inline int16_t operator&(const uint16_t &lhs, const description &rhs) noexcept { return lhs & (uint16_t)rhs; }
-        inline void operator&=(uint16_t &lhs, const description &rhs) noexcept { lhs &= (uint16_t)rhs; }
+        inline int16_t operator&(const uint16_t &lhs, const description &rhs) noexcept { return lhs & static_cast<uint16_t>(rhs); }
+        inline void operator&=(uint16_t &lhs, const description &rhs) noexcept { lhs &= static_cast<uint16_t>(rhs); }
 
-        inline description operator&(const description &lhs, const uint16_t &rhs) noexcept { return (description)((uint16_t)lhs & rhs); }
-        inline void operator&=(description &lhs, const uint16_t &rhs) noexcept { lhs = (description)((uint16_t)lhs & rhs); }
+        inline description operator&(const description &lhs, const uint16_t &rhs) noexcept { return static_cast<description>(static_cast<uint16_t>(lhs) & rhs); }
+        inline void operator&=(description &lhs, const uint16_t &rhs) noexcept { lhs = static_cast<description>(static_cast<uint16_t>(lhs) & rhs); }
 
-        inline description operator~(const description &lhs) noexcept { return (description)~(uint16_t)lhs; }
+        inline description operator~(const description &lhs) noexcept { return static_cast<description>(~static_cast<uint16_t>(lhs)); }
     }
 }

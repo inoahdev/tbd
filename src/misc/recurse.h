@@ -21,23 +21,23 @@ namespace recurse {
         print_warnings = 1 << 1
     };
 
-    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | (uint64_t)rhs; }
-    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= (uint64_t)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
+    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
 
-    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs | rhs); }
-    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs | rhs); }
+    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) | rhs); }
 
-    inline options operator|(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs | (uint64_t)rhs); }
-    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline options operator|(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
 
-    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & (uint64_t)rhs; }
-    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= (uint64_t)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
+    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
 
-    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs & rhs); }
-    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs & rhs); }
+    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) & rhs); }
+    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) & rhs); }
 
-    inline options operator&(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs & (uint64_t)rhs); }
-    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline options operator&(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
     enum class operation_result {
         ok,

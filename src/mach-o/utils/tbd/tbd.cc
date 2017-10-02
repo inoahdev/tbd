@@ -226,23 +226,18 @@ namespace macho::utils::tbd {
         switch (constraint) {
             case objc_constraint::none:
                 return "none";
-                break;
 
             case objc_constraint::retain_release:
                 return "retain_release";
-                break;
 
             case objc_constraint::retain_release_for_simulator:
                 return "retain_release_for_simulator";
-                break;
 
             case objc_constraint::retain_release_or_gc:
                 return "retain_release_or_gc";
-                break;
 
             case objc_constraint::gc:
                 return "gc";
-                break;
 
             default:
                 break;
@@ -443,7 +438,7 @@ namespace macho::utils::tbd {
         return (enum version)0;
     }
 
-    inline const char *get_parsed_symbol_string(const char *string, bool is_weak, enum symbol::type *type) {
+    const char *get_parsed_symbol_string(const char *string, bool is_weak, enum symbol::type *type) {
         if (is_weak) {
             *type = symbol::type::weak_symbols;
             return string;
@@ -473,7 +468,7 @@ namespace macho::utils::tbd {
         return string;
     }
 
-    static inline const auto line_length_max = 105;
+    static inline constexpr const auto line_length_max = 105;
 
     void print_string_to_tbd_output_array(int output, const char *string, unsigned long &current_line_length) {
         const auto string_length = strlen(string);

@@ -18,23 +18,23 @@ namespace macho::utils::tbd {
         not_app_extension_safe = 1 << 1
     };
 
-    inline uint64_t operator|(const uint64_t &lhs, const flags &rhs) noexcept { return lhs | (uint64_t)rhs; }
-    inline void operator|=(uint64_t &lhs, const flags &rhs) noexcept { lhs |= (uint64_t)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const flags &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
+    inline void operator|=(uint64_t &lhs, const flags &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
 
-    inline flags operator|(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)((uint64_t)lhs | rhs); }
-    inline void operator|=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)((uint64_t)lhs | rhs); }
+    inline flags operator|(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) | rhs); }
 
-    inline flags operator|(const flags &lhs, const flags &rhs) noexcept { return (flags)((uint64_t)lhs | (uint64_t)rhs); }
-    inline void operator|=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)((uint64_t)lhs | (uint64_t)rhs); }
+    inline flags operator|(const flags &lhs, const flags &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
 
-    inline uint64_t operator&(const uint64_t &lhs, const flags &rhs) noexcept { return lhs & (uint64_t)rhs; }
-    inline void operator&=(uint64_t &lhs, const flags &rhs) noexcept { lhs &= (uint64_t)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const flags &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
+    inline void operator&=(uint64_t &lhs, const flags &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
 
-    inline flags operator&(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)((uint64_t)lhs & rhs); }
-    inline void operator&=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)((uint64_t)lhs & rhs); }
+    inline flags operator&(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) & rhs); }
+    inline void operator&=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) & rhs); }
 
-    inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return (flags)((uint64_t)lhs & (uint64_t)rhs); }
-    inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)((uint64_t)lhs & (uint64_t)rhs); }
+    inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
     inline flags operator~(const flags &lhs) noexcept { return (flags)~(uint16_t)lhs; }
 
@@ -105,25 +105,25 @@ namespace macho::utils::tbd {
         remove_flags                 = 1 << 7,
     };
 
-    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | (uint64_t)rhs; }
-    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= (uint64_t)rhs; }
+    inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
+    inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
 
-    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs | rhs); }
-    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs | rhs); }
+    inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)(static_cast<uint64_t>(lhs) | rhs); }
 
-    inline options operator|(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs | (uint64_t)rhs); }
-    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs | (uint64_t)rhs); }
+    inline options operator|(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
 
-    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & (uint64_t)rhs; }
-    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= (uint64_t)rhs; }
+    inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
+    inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
 
-    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return (options)((uint64_t)lhs & rhs); }
-    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)((uint64_t)lhs & rhs); }
+    inline options operator&(const options &lhs, const uint64_t &rhs) noexcept { return static_cast<options>((static_cast<uint64_t>(lhs) & rhs)); }
+    inline void operator&=(options &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) & rhs); }
 
-    inline options operator&(const options &lhs, const options &rhs) noexcept { return (options)((uint64_t)lhs & (uint64_t)rhs); }
-    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = (options)((uint64_t)lhs & (uint64_t)rhs); }
+    inline options operator&(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
-    inline options operator~(const options &lhs) noexcept { return (options)~(uint16_t)lhs; }
+    inline options operator~(const options &lhs) noexcept { return static_cast<options>(~(uint64_t)lhs); }
 
     enum class creation_result {
         ok,

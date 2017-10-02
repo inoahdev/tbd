@@ -1145,8 +1145,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        const auto &path_back = path.back();
-                        if (path_back != '/' && path_back != '\\') {
+                        if (const auto &path_back = path.back(); path_back != '/' && path_back != '\\') {
                             path.append(1, '/');
                         }
                     } else {
@@ -1160,8 +1159,7 @@ int main(int argc, const char *argv[]) {
                     }
                 } else {
                     if (tbd_options & recurse_directories) {
-                        const auto &path_back = path.back();
-                        if (path_back != '/' && path_back != '\\') {
+                        if (const auto &path_back = path.back(); path_back != '/' && path_back != '\\') {
                             path.append(1, '/');
                         }
 
@@ -1568,7 +1566,6 @@ int main(int argc, const char *argv[]) {
     for (auto &tbd : tbds) {
         auto &tbd_path = tbd.path;
         auto &tbd_output_path = tbd.output_path;
-
 
         auto &tbd_flags = tbd.flags;
         if ((tbd_flags & macho::utils::tbd::flags::flat_namespace) != macho::utils::tbd::flags::none) {
