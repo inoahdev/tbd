@@ -562,9 +562,7 @@ namespace macho {
         const auto &string_table_size = symbol_table->strsize;
 
         const auto string_table_max_index = string_table_size - 1;
-        const auto container_is_64_bit = this->is_64_bit();
-
-        if (container_is_64_bit) {
+        if (is_64_bit()) {
             for (auto i = 0; i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = &((struct nlist_64 *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;

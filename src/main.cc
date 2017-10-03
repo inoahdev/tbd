@@ -882,9 +882,13 @@ int main(int argc, const char *argv[]) {
                         path.append(current_directory);
                         path.append(argument);
 
+                        path::clean(path);
                         paths.emplace_back(std::move(path), options);
                     } else {
-                        paths.emplace_back(argument, options);
+                        auto path = std::string(argument);
+                        path::clean(path);
+
+                        paths.emplace_back(path, options);
                     }
 
                     options = 0;
@@ -1102,6 +1106,8 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argument);
                 if (path != "stdout") {
+                    path::clean(path);
+
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         // If the user-provided path-string does not begin with
                         // a forward slash, it is assumed that the path exists
@@ -1392,6 +1398,8 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
                 } else {
+                    path::clean(path);
+
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         path.insert(0, retrieve_current_directory());
                     }
@@ -1605,14 +1613,14 @@ int main(int argc, const char *argv[]) {
             tbd_options |= dont_print_warnings;
         }
 
-        if (options & replace_path_extension) {
-            tbd_options |= replace_path_extension;
-        }
-
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output .tbd files to\n", tbd_path.data());
                 return 1;
+            }
+
+            if (options & replace_path_extension) {
+                tbd_options |= replace_path_extension;
             }
 
             const auto tbd_path_length = tbd_path.length();

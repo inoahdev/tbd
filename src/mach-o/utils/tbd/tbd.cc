@@ -1146,9 +1146,7 @@ namespace macho::utils::tbd {
         const auto container_base = container.base;
         const auto container_size = container.size;
 
-        auto containers_index = 0;
         auto container_stream = container.stream;
-
         auto container_load_command_iteration_result = container.iterate_load_commands([&](long location, const load_command *swapped, const load_command *load_command) {
             switch (swapped->cmd) {
                 case load_commands::build_version: {
@@ -1273,7 +1271,7 @@ namespace macho::utils::tbd {
                     const auto reexports_iter = std::find(reexports.begin(), reexports.end(), reexport_dylib_string);
 
                     if (reexports_iter != reexports.end()) {
-                        reexports_iter->add_architecture(containers_index);
+                        reexports_iter->add_architecture(architecture_info_index);
                     } else {
                         auto reexport = macho::utils::tbd::reexport();
                         auto reexport_creation_result = reexport.create(reexport_dylib_string);
