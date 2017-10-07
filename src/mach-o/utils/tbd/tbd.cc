@@ -665,7 +665,7 @@ namespace macho::utils::tbd {
         }
     }
 
-    void print_export_group_to_tbd_output(int output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols) {
+    void print_export_group_to_tbd_output(int output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
         const auto should_check_bits = bits.was_created();
 
         auto reexports_end = reexports.end();
@@ -771,7 +771,15 @@ namespace macho::utils::tbd {
             auto clients_begin = clients.begin();
             auto clients_end = clients.end();
 
-            dprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
+            switch (version) {
+                case version::v1:
+                    dprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
+                    break;
+
+                case version::v2:
+                    dprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
+                    break;
+            }
 
             for (clients_begin++; clients_begin != clients_end; clients_begin++) {
                 dprintf(output, ", %s", clients_begin->data());
@@ -901,7 +909,7 @@ namespace macho::utils::tbd {
         }
     }
 
-    void print_export_group_to_tbd_output(FILE *output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols) {
+    void print_export_group_to_tbd_output(FILE *output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
         const auto should_check_bits = bits.was_created();
 
         auto reexports_end = reexports.end();
@@ -1007,7 +1015,15 @@ namespace macho::utils::tbd {
             auto clients_begin = clients.begin();
             auto clients_end = clients.end();
 
-            fprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
+            switch (version) {
+                case version::v1:
+                    fprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
+                    break;
+
+                case version::v2:
+                    fprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
+                    break;
+            }
 
             for (clients_begin++; clients_begin != clients_end; clients_begin++) {
                 fprintf(output, ", %s", clients_begin->data());
@@ -2321,10 +2337,10 @@ namespace macho::utils::tbd {
         dprintf(output, "exports:\n");
 
         if (has_architecture_overrides) {
-            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols);
+            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
         } else {
             for (const auto &group : groups) {
-                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols);
+                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
             }
         }
 
@@ -2545,7 +2561,7 @@ namespace macho::utils::tbd {
         }
 
         dprintf(output, "exports:\n");
-        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols);
+        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
 
         dprintf(output, "...\n");
         return creation_result::ok;
@@ -2973,10 +2989,10 @@ namespace macho::utils::tbd {
         fputs("exports:\n", output);
 
         if (has_architecture_overrides) {
-            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols);
+            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
         } else {
             for (const auto &group : groups) {
-                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols);
+                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
             }
         }
 
@@ -3197,7 +3213,7 @@ namespace macho::utils::tbd {
         }
 
         fputs("exports:\n", output);
-        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols);
+        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
 
         fputs("...\n", output);
         return creation_result::ok;
