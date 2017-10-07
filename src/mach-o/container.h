@@ -80,16 +80,7 @@ namespace macho {
 
         symbols_iteration_result iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback) noexcept;
 
-        inline uint32_t &swap_value(uint32_t &value) const noexcept {
-            const auto is_big_endian = this->is_big_endian();
-            if (is_big_endian) {
-                swap_uint32(&value);
-            }
-
-            return value;
-        }
-
-        inline const bool is_big_endian() const noexcept { return magic_is_big_endian(header.magic); }
+        inline const bool is_big_endian() const noexcept { return header.magic == magic::big_endian || header.magic == magic::bits64_big_endian; }
 
         inline const bool is_32_bit() const noexcept { return magic_is_32_bit(header.magic); }
         inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header.magic); }

@@ -95,13 +95,6 @@ namespace macho {
             return is_valid_library(path.data());
         }
 
-        inline static uint32_t &swap_value(uint32_t &value) noexcept {
-            value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
-            value = ((value >> 16) & 0x0000ffff) | ((value << 16) & 0xffff0000);
-
-            return value;
-        }
-
     private:
         const char *mode_ = nullptr; // for copies
 

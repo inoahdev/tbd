@@ -1273,7 +1273,7 @@ namespace macho::utils::tbd {
                     if (reexports_iter != reexports.end()) {
                         reexports_iter->add_architecture(architecture_info_index);
                     } else {
-                        auto reexport = macho::utils::tbd::reexport();
+                        auto reexport = tbd::reexport();
                         auto reexport_creation_result = reexport.create(reexport_dylib_string);
 
                         switch (reexport_creation_result) {
@@ -1862,7 +1862,7 @@ namespace macho::utils::tbd {
             if (symbols_iter != symbols.end()) {
                 symbols_iter->add_architecture(architecture_info_index);
             } else {
-                auto symbol = macho::utils::tbd::symbol();
+                auto symbol = tbd::symbol();
                 auto symbol_creation_result = symbol.create(parsed_symbol_string, symbol_is_weak, symbol_type);
 
                 switch (symbol_creation_result) {
@@ -1941,7 +1941,7 @@ namespace macho::utils::tbd {
                 swap_uint32((uint32_t *)&library_container_header_cpusubtype);
             }
 
-            if (library_container_header_filetype != filetype::dylib && library_container_header_filetype != filetype::dylib_stub) {
+            if (!filetype_is_dynamic_library(library_container_header_filetype)) {
                 return creation_result::unsupported_filetype;
             }
 
@@ -2136,7 +2136,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto group = macho::utils::tbd::group();
+                    auto group = tbd::group();
                     auto group_creation_result = group.create(library_reexport_bits);
 
                     switch (group_creation_result) {
@@ -2161,7 +2161,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto group = macho::utils::tbd::group();
+                    auto group = tbd::group();
                     auto group_creation_result = group.create(library_symbol_bits);
 
                     switch (group_creation_result) {
@@ -2364,6 +2364,10 @@ namespace macho::utils::tbd {
 
             swap_uint32((uint32_t *)&header_cputype);
             swap_uint32((uint32_t *)&header_cpusubtype);
+        }
+
+        if (!filetype_is_dynamic_library(header_filetype)) {
+            return creation_result::unsupported_filetype;
         }
 
         const auto header_subtype = subtype_from_cputype(header_cputype, header_cpusubtype);
@@ -2591,7 +2595,7 @@ namespace macho::utils::tbd {
                 swap_uint32((uint32_t *)&library_container_header_cpusubtype);
             }
 
-            if (library_container_header_filetype != filetype::dylib && library_container_header_filetype != filetype::dylib_stub) {
+            if (!filetype_is_dynamic_library(library_container_header_filetype)) {
                 return creation_result::unsupported_filetype;
             }
 
@@ -2784,7 +2788,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->reexports_count++;
                 } else {
-                    auto group = macho::utils::tbd::group();
+                    auto group = tbd::group();
                     auto group_creation_result = group.create(library_reexport_bits);
 
                     switch (group_creation_result) {
@@ -2809,7 +2813,7 @@ namespace macho::utils::tbd {
                 if (group_iter != groups.end()) {
                     group_iter->symbols_count++;
                 } else {
-                    auto group = macho::utils::tbd::group();
+                    auto group = tbd::group();
                     auto group_creation_result = group.create(library_symbol_bits);
 
                     switch (group_creation_result) {
@@ -3015,7 +3019,7 @@ namespace macho::utils::tbd {
             swap_uint32((uint32_t *)&header_cpusubtype);
         }
 
-        if (header_filetype != filetype::dylib && header_filetype != filetype::dylib_stub) {
+        if (!filetype_is_dynamic_library(header_filetype)) {
             return creation_result::unsupported_filetype;
         }
 

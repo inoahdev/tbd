@@ -23,4 +23,7 @@ namespace macho {
         dsym,
         kext
     };
+
+    inline bool filetype_is_library(const filetype &filetype) noexcept { return filetype == filetype::dylib || filetype == filetype::dylib_stub || filetype == filetype::fvmlib; }
+    inline bool filetype_is_dynamic_library(const filetype &filetype) noexcept { return filetype == filetype::dylib || filetype == filetype::dylib_stub; }
 }

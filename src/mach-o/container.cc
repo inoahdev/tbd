@@ -65,6 +65,17 @@ namespace macho {
             return validation_result;
         }
 
+        auto filetype = header.filetype;
+        auto magic_is_big_endian = is_big_endian();
+
+        if (magic_is_big_endian) {
+            swap_uint32((uint32_t *)filetype);
+        }
+
+        if (!filetype_is_library(filetype)) {
+            return open_result::not_a_library;
+        }
+
         auto iteration_result = load_command_iteration_result::ok;
         auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
 
@@ -91,7 +102,7 @@ namespace macho {
         }
 
         auto identification_dylib_cmdsize = identification_dylib->cmdsize;
-        if (is_big_endian()) {
+        if (magic_is_big_endian) {
             swap_uint32(&identification_dylib_cmdsize);
         }
 
@@ -228,7 +239,7 @@ namespace macho {
     }
 
     struct load_command *container::find_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
-        const auto is_big_endian = this->is_big_endian();
+        const auto magic_is_big_endian = is_big_endian();
 
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
@@ -283,7 +294,7 @@ namespace macho {
         }
 
         auto size_used = 0;
-        for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+        for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
 
             auto load_cmd_cmd = load_cmd->cmd;
@@ -291,7 +302,7 @@ namespace macho {
 
             if (created_cached_load_commands) {
                 auto swapped_load_command = *load_cmd;
-                if (is_big_endian) {
+                if (magic_is_big_endian) {
                     swap_load_command(&swapped_load_command);
                 }
 
@@ -376,7 +387,7 @@ namespace macho {
         auto size_used = 0;
         auto should_callback = true;
 
-        for (auto i = 0, cached_load_commands_index = 0; i < ncmds; i++) {
+        for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
             auto cmdsize = load_cmd->cmdsize;
 
@@ -419,9 +430,11 @@ namespace macho {
 
     container::symbols_iteration_result container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {
         const auto is_big_endian = this->is_big_endian();
-        const auto position = ftell(stream);
+        const auto is_64_bit = this->is_64_bit();
 
+        const auto position = ftell(stream);
         const auto symbol_table = (symtab_command *)find_first_of_load_command(load_commands::symbol_table);
+
         if (!symbol_table) {
             return symbols_iteration_result::no_symbol_table_load_command;
         }
@@ -504,7 +517,6 @@ namespace macho {
                 return symbols_iteration_result::stream_seek_error;
             }
 
-            const auto is_64_bit = this->is_64_bit();
             if (is_64_bit) {
                 const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
                 if (symbol_table_size > size) {
@@ -562,8 +574,8 @@ namespace macho {
         const auto &string_table_size = symbol_table->strsize;
 
         const auto string_table_max_index = string_table_size - 1;
-        if (is_64_bit()) {
-            for (auto i = 0; i < symbol_table_count; i++) {
+        if (is_64_bit) {
+            for (auto i = uint32_t(); i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = &((struct nlist_64 *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
@@ -579,7 +591,7 @@ namespace macho {
                 }
             }
         } else {
-            for (auto i = 0; i < symbol_table_count; i++) {
+            for (auto i = uint32_t(); i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = &((struct nlist *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
 
