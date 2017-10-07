@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C31620AE1F50F575005A67A7 /* recurse.cc in Sources */ = {isa = PBXBuildFile; fileRef = C31620AC1F50F575005A67A7 /* recurse.cc */; };
+		C322B18A1F88C265009B10F9 /* recursively.cc in Sources */ = {isa = PBXBuildFile; fileRef = C322B1891F88C265009B10F9 /* recursively.cc */; };
 		C33131401F23D0680031B4BD /* swap.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331313F1F23D0680031B4BD /* swap.cc */; };
 		C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331314D1F23D0AD0031B4BD /* architecture_info.cc */; };
 		C33CE0C11F33423000E738EA /* cputype.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33CE0BA1F33423000E738EA /* cputype.cc */; };
@@ -35,6 +36,8 @@
 		C31620AC1F50F575005A67A7 /* recurse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recurse.cc; path = ../../src/misc/recurse.cc; sourceTree = "<group>"; };
 		C31620AD1F50F575005A67A7 /* recurse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recurse.h; path = ../../src/misc/recurse.h; sourceTree = "<group>"; };
 		C31BA0C31F64907900BF6202 /* path_utilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = path_utilities.h; path = ../../src/misc/path_utilities.h; sourceTree = "<group>"; };
+		C322B1891F88C265009B10F9 /* recursively.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recursively.cc; path = ../../src/misc/recursively.cc; sourceTree = "<group>"; };
+		C322B18B1F88C270009B10F9 /* recursively.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recursively.h; path = ../../src/misc/recursively.h; sourceTree = "<group>"; };
 		C32A7A9F1F10E5DA000BF14E /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C331313E1F23D0680031B4BD /* swap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swap.h; path = "../../src/mach-o/swap.h"; sourceTree = "<group>"; };
 		C331313F1F23D0680031B4BD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = "../../src/mach-o/swap.cc"; sourceTree = "<group>"; };
@@ -167,6 +170,8 @@
 				C39BE6F11F6CA65F00997E38 /* path_utilities.cc */,
 				C31620AD1F50F575005A67A7 /* recurse.h */,
 				C31620AC1F50F575005A67A7 /* recurse.cc */,
+				C322B18B1F88C270009B10F9 /* recursively.h */,
+				C322B1891F88C265009B10F9 /* recursively.cc */,
 			);
 			name = misc;
 			sourceTree = "<group>";
@@ -235,6 +240,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C322B18A1F88C265009B10F9 /* recursively.cc in Sources */,
 				C3E4A8A41F801EAC00A6A4E4 /* bits.cc in Sources */,
 				C33DD9441F79C924003C1FFC /* tbd.cc in Sources */,
 				C39BE6F21F6CA65F00997E38 /* path_utilities.cc in Sources */,

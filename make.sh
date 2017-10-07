@@ -29,8 +29,8 @@ if [ "$type" == "build" ]; then
 
     mkdir -p build >/dev/null 2>/dev/null
     if [ $should_log = true ]; then
-        clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/mach-o/utils/tbd/tbd.cc src/misc/bits.cc src/misc/recurse.cc src/misc/path_utilities.cc src/main.cc $build_flag -o build/tbd
+        clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/headers/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/mach-o/utils/tbd/tbd.cc src/misc/bits.cc src/misc/recurse.cc src/misc/path_utilities.cc src/misc/recursively.cc src/main.cc $build_flag -o build/tbd
     else
-        clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/mach-o/utils/tbd/tbd.cc src/misc/bits.cc src/misc/recurse.cc src/misc/path_utilities.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
+        clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/header/cputype.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/swap.cc src/mach-o/utils/tbd/tbd.cc src/misc/bits.cc src/misc/recurse.cc src/misc/path_utilities.cc src/misc/recursively.cc src/main.cc $build_flag -o build/tbd >/dev/null 2>/dev/null
     fi
 fi
