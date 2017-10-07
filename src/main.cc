@@ -1356,6 +1356,8 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                             return 1;
                         }
+                    } else if (strcmp(option, "remove-objc-constraint") == 0) {
+                        options |= macho::utils::tbd::options::remove_objc_constraint;
                     } else if (strcmp(option, "replace-path-extension") == 0) {
                         local_options |= replace_path_extension;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
@@ -1488,6 +1490,8 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
+        } else if (strcmp(option, "remove-objc-constraint") == 0) {
+            options |= macho::utils::tbd::options::remove_objc_constraint;
         } else if (strcmp(option, "replace-path-extension") == 0) {
             options |= replace_path_extension;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
