@@ -92,7 +92,9 @@ namespace macho {
             return open_result::ok;
         }
 
+        mode_ = file.mode_;
         stream = freopen(nullptr, mode_, file.stream);
+
         if (!stream) {
             return open_result::failed_to_open_stream;
         }
