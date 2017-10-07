@@ -6,6 +6,8 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#pragma once
+
 #include <cstdint>
 #include <cstring>
 
