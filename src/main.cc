@@ -467,7 +467,7 @@ int main(int argc, const char *argv[]) {
     typedef struct tbd_file {
         std::string path;
         std::string output_path;
-        
+
         uint64_t architectures;
         uint64_t architecture_overrides;
 
@@ -650,6 +650,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
 
                     case macho::file::open_result::not_a_library:
+                    case macho::file::open_result::not_a_dynamic_library:
                         break;
                 }
 
@@ -1614,9 +1615,9 @@ int main(int argc, const char *argv[]) {
             auto library_file_open_result = macho::file::open_result::ok;
 
             if (tbd_path == "stdin") {
-                library_file_open_result = library_file.open_from_library(stdin);
+                library_file_open_result = library_file.open_from_dynamic_library(stdin);
             } else {
-                library_file_open_result = library_file.open_from_library(tbd_path.data());
+                library_file_open_result = library_file.open_from_dynamic_library(tbd_path.data());
             }
 
             switch (library_file_open_result) {
@@ -1714,6 +1715,20 @@ int main(int argc, const char *argv[]) {
                         }
                     } else {
                         fputs("Mach-o file at provided path is not a valid mach-o library\n", stderr);
+                    }
+
+                    break;
+                }
+
+                case macho::file::open_result::not_a_dynamic_library: {
+                    if (should_print_paths) {
+                        if (tbd_path == "stdin") {
+                            fputs("Mach-o file (in stdin) is not a mach-o dynamic library\n", stderr);
+                        } else {
+                            fputs("Mach-o file (at path %s) is not a mach-o dynamic library\n", stderr);
+                        }
+                    } else {
+                        fputs("Mach-o file at provided path is not a valid mach-o dynamic library\n", stderr);
                     }
 
                     break;

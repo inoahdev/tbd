@@ -45,11 +45,13 @@ namespace macho {
             not_a_macho,
             invalid_macho,
 
-            not_a_library
+            not_a_library,
+            not_a_dynamic_library
         };
 
         open_result open(FILE *stream, long base = 0, size_t size = 0) noexcept;
         open_result open_from_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
+        open_result open_from_dynamic_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
 
         open_result open_copy(const container &container) noexcept;
 
@@ -90,8 +92,14 @@ namespace macho {
         uint8_t *cached_symbol_table_ = nullptr;
 
         char *cached_string_table_ = nullptr;
-
         size_t file_size(open_result &result) noexcept;
-        open_result validate() noexcept;
+
+        enum class validation_type : uint64_t {
+            none,
+            library,
+            dynamic_library
+        };
+
+        open_result validate_and_load_data(validation_type type = validation_type::none) noexcept;
     };
 }

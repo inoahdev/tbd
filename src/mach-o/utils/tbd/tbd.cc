@@ -1310,7 +1310,7 @@ namespace macho::utils::tbd {
 
                 case load_commands::segment: {
                     const auto segment_command = (macho::segment_command *)load_command;
-                    if (strncmp(segment_command->segname, "__DATA", 16) != 0 && strncmp(segment_command->segname, "__DATA_CONST", 16) != 0 && strncmp(segment_command->segname, "__DATA_DIRTY", 16) != 0 && strncmp(segment_command->segname, "__OBJC", 16)) {
+                    if (strncmp(segment_command->segname, "__DATA", 16) != 0 && strncmp(segment_command->segname, "__DATA_CONST", 16) != 0 && strncmp(segment_command->segname, "__DATA_DIRTY", 16) != 0 && strncmp(segment_command->segname, "__OBJC", 16) != 0) {
                         break;
                     }
 
@@ -1436,7 +1436,7 @@ namespace macho::utils::tbd {
 
                 case load_commands::segment_64: {
                     const auto segment_command = (segment_command_64 *)load_command;
-                    if (strncmp(segment_command->segname, "__DATA", 16) != 0 && strncmp(segment_command->segname, "__DATA_CONST", 16) != 0 && strncmp(segment_command->segname, "__DATA_DIRTY", 16) != 0 && strncmp(segment_command->segname, "__OBJC", 16)) {
+                    if (strncmp(segment_command->segname, "__DATA", 16) != 0 && strncmp(segment_command->segname, "__DATA_CONST", 16) != 0 && strncmp(segment_command->segname, "__DATA_DIRTY", 16) != 0 && strncmp(segment_command->segname, "__OBJC", 16) != 0) {
                         break;
                     }
 

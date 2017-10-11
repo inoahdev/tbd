@@ -19,24 +19,7 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        auto result = open_result::ok;
-
-        const auto file_size = this->file_size(result);
-        const auto max_size = file_size - base;
-
-        if (result != open_result::ok) {
-            return result;
-        }
-
-        if (!size) {
-            this->size = max_size;
-        }
-
-        if (this->size > max_size) {
-            return open_result::invalid_range;
-        }
-
-        return validate();
+        return validate_and_load_data();
     }
 
     container::open_result container::open_from_library(FILE *stream, long base, size_t size) noexcept {
@@ -45,72 +28,16 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        auto file_size_calculation_result = open_result::ok;
+        return validate_and_load_data(validation_type::library);
+    }
 
-        const auto file_size = this->file_size(file_size_calculation_result);
-        const auto max_size = file_size - base;
+    container::open_result container::open_from_dynamic_library(FILE *stream, long base, size_t size) noexcept {
+        this->stream = stream;
 
-        if (file_size_calculation_result != open_result::ok) {
-            return file_size_calculation_result;
-        }
+        this->base = base;
+        this->size = size;
 
-        if (!size) {
-            this->size = max_size;
-        } else if (this->size > max_size) {
-            return open_result::invalid_range;
-        }
-
-        const auto validation_result = validate();
-        if (validation_result != open_result::ok) {
-            return validation_result;
-        }
-
-        auto filetype = header.filetype;
-        auto magic_is_big_endian = is_big_endian();
-
-        if (magic_is_big_endian) {
-            swap_uint32((uint32_t *)filetype);
-        }
-
-        if (!filetype_is_library(filetype)) {
-            return open_result::not_a_library;
-        }
-
-        auto iteration_result = load_command_iteration_result::ok;
-        auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
-
-        switch (iteration_result) {
-            case load_command_iteration_result::ok:
-                break;
-
-            case load_command_iteration_result::no_load_commands:
-                break;
-
-            case load_command_iteration_result::stream_seek_error:
-                return open_result::stream_seek_error;
-
-            case load_command_iteration_result::stream_read_error:
-                return open_result::stream_read_error;
-
-            case load_command_iteration_result::load_command_is_too_small:
-            case load_command_iteration_result::load_command_is_too_large:
-                return open_result::invalid_macho;
-        }
-
-        if (!identification_dylib) {
-            return open_result::not_a_library;
-        }
-
-        auto identification_dylib_cmdsize = identification_dylib->cmdsize;
-        if (magic_is_big_endian) {
-            swap_uint32(&identification_dylib_cmdsize);
-        }
-
-        if (identification_dylib_cmdsize < sizeof(dylib_command)) {
-            return open_result::not_a_library;
-        }
-
-        return open_result::ok;
+        return validate_and_load_data(validation_type::dynamic_library);
     }
 
     container::open_result container::open_copy(const container &container) noexcept {
@@ -119,13 +46,13 @@ namespace macho {
         this->base = container.base;
         this->size = container.size;
 
-        return open_result::ok;
+        return validate_and_load_data();
     }
 
-    container::open_result container::validate() noexcept {
+    container::open_result container::validate_and_load_data(container::validation_type type) noexcept {
         auto &magic = header.magic;
 
-        const auto is_big_endian = this->is_big_endian();
+        const auto magic_is_big_endian = is_big_endian();
         const auto stream_position = ftell(stream);
 
         if (fseek(stream, base, SEEK_SET) != 0) {
@@ -142,7 +69,7 @@ namespace macho {
                 return open_result::stream_read_error;
             }
 
-            if (is_big_endian) {
+            if (magic_is_big_endian) {
                 swap_mach_header(&header);
             }
         } else {
@@ -156,6 +83,81 @@ namespace macho {
 
         if (fseek(stream, stream_position, SEEK_SET) != 0) {
             return open_result::stream_seek_error;
+        }
+
+        auto file_size_calculation_result = open_result::ok;
+
+        const auto file_size = this->file_size(file_size_calculation_result);
+        const auto max_size = file_size - base;
+
+        if (file_size_calculation_result != open_result::ok) {
+            return file_size_calculation_result;
+        }
+
+        if (!size) {
+            size = max_size;
+        } else if (size > max_size) {
+            return open_result::invalid_range;
+        }
+
+        if (type == validation_type::library || type == validation_type::dynamic_library) {
+            auto filetype = header.filetype;
+            if (magic_is_big_endian) {
+                swap_uint32((uint32_t *)filetype);
+            }
+
+            switch (type) {
+                case validation_type::none:
+                    break;
+
+                case validation_type::library:
+                    if (!filetype_is_library(filetype)) {
+                        return open_result::not_a_library;
+                    }
+
+                    break;
+
+                case validation_type::dynamic_library:
+                    if (!filetype_is_dynamic_library(filetype)) {
+                        return open_result::not_a_dynamic_library;
+                    }
+
+                    break;
+            }
+
+            auto iteration_result = load_command_iteration_result::ok;
+            auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
+
+            switch (iteration_result) {
+                case load_command_iteration_result::ok:
+                    break;
+
+                case load_command_iteration_result::no_load_commands:
+                    break;
+
+                case load_command_iteration_result::stream_seek_error:
+                    return open_result::stream_seek_error;
+
+                case load_command_iteration_result::stream_read_error:
+                    return open_result::stream_read_error;
+
+                case load_command_iteration_result::load_command_is_too_small:
+                case load_command_iteration_result::load_command_is_too_large:
+                    return open_result::invalid_macho;
+            }
+
+            if (!identification_dylib) {
+                return open_result::not_a_library;
+            }
+
+            auto identification_dylib_cmdsize = identification_dylib->cmdsize;
+            if (magic_is_big_endian) {
+                swap_uint32(&identification_dylib_cmdsize);
+            }
+
+            if (identification_dylib_cmdsize < sizeof(dylib_command)) {
+                return open_result::not_a_library;
+            }
         }
 
         return open_result::ok;
@@ -256,7 +258,9 @@ namespace macho {
         const auto created_cached_load_commands = !cached_load_commands;
 
         auto load_command_base = base + sizeof(header);
-        if (is_64_bit()) {
+        auto magic_is_64_bit = is_64_bit();
+
+        if (magic_is_64_bit) {
             load_command_base += sizeof(uint32_t);
         }
 
@@ -293,7 +297,7 @@ namespace macho {
             }
         }
 
-        auto size_used = 0;
+        auto size_used = uint32_t();
         for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
             auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
 
@@ -346,7 +350,7 @@ namespace macho {
     }
 
     container::load_command_iteration_result container::iterate_load_commands(const std::function<bool (long, const struct load_command *, const struct load_command *)> &callback) noexcept {
-        const auto is_big_endian = this->is_big_endian();
+        const auto magic_is_big_endian = is_big_endian();
 
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
@@ -359,7 +363,9 @@ namespace macho {
         const auto created_cached_load_commands = !cached_load_commands;
 
         auto load_command_base = base + sizeof(header);
-        if (is_64_bit()) {
+        auto magic_is_64_bit = is_64_bit();
+
+        if (magic_is_64_bit) {
             load_command_base += sizeof(uint32_t);
         }
 
@@ -384,7 +390,7 @@ namespace macho {
             }
         }
 
-        auto size_used = 0;
+        auto size_used = uint32_t();
         auto should_callback = true;
 
         for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
@@ -393,7 +399,7 @@ namespace macho {
 
             if (created_cached_load_commands) {
                 auto swapped_load_command = *load_cmd;
-                if (is_big_endian) {
+                if (magic_is_big_endian) {
                     swap_load_command(&swapped_load_command);
                 }
 
@@ -403,9 +409,7 @@ namespace macho {
                 }
 
                 size_used += cmdsize;
-                if (size_used > sizeofcmds) {
-                    return load_command_iteration_result::load_command_is_too_large;
-                } else if (size_used == sizeofcmds && i != ncmds - 1) {
+                if (size_used > sizeofcmds || (size_used == sizeofcmds && i != ncmds - 1)) {
                     return load_command_iteration_result::load_command_is_too_large;
                 }
 
@@ -429,8 +433,8 @@ namespace macho {
     }
 
     container::symbols_iteration_result container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {
-        const auto is_big_endian = this->is_big_endian();
-        const auto is_64_bit = this->is_64_bit();
+        const auto magic_is_big_endian = is_big_endian();
+        const auto magic_is_64_bit = is_64_bit();
 
         const auto position = ftell(stream);
         const auto symbol_table = (symtab_command *)find_first_of_load_command(load_commands::symbol_table);
@@ -440,7 +444,7 @@ namespace macho {
         }
 
         auto symbol_table_cmdsize = symbol_table->cmdsize;
-        if (is_big_endian) {
+        if (magic_is_big_endian) {
             swap_uint32(&symbol_table_cmdsize);
         }
 
@@ -451,7 +455,7 @@ namespace macho {
         auto &cached_string_table = cached_string_table_;
         if (!cached_string_table) {
             auto string_table_location = symbol_table->stroff;
-            if (is_big_endian) {
+            if (magic_is_big_endian) {
                 macho::swap_uint32(&string_table_location);
             }
 
@@ -496,7 +500,7 @@ namespace macho {
             auto symbol_table_count = symbol_table->nsyms;
             auto symbol_table_location = symbol_table->symoff;
 
-            if (is_big_endian) {
+            if (magic_is_big_endian) {
                 macho::swap_uint32(&symbol_table_count);
                 macho::swap_uint32(&symbol_table_location);
             }
@@ -517,7 +521,7 @@ namespace macho {
                 return symbols_iteration_result::stream_seek_error;
             }
 
-            if (is_64_bit) {
+            if (magic_is_64_bit) {
                 const auto symbol_table_size = sizeof(struct nlist_64) * symbol_table_count;
                 if (symbol_table_size > size) {
                     return symbols_iteration_result::invalid_symbol_table_load_command;
@@ -537,7 +541,7 @@ namespace macho {
                     return symbols_iteration_result::stream_read_error;
                 }
 
-                if (is_big_endian) {
+                if (magic_is_big_endian) {
                     swap_nlist_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
                 }
             } else {
@@ -560,7 +564,7 @@ namespace macho {
                     return symbols_iteration_result::stream_read_error;
                 }
 
-                if (is_big_endian) {
+                if (magic_is_big_endian) {
                     swap_nlist((struct nlist *)cached_symbol_table, symbol_table_count);
                 }
             }
@@ -574,7 +578,7 @@ namespace macho {
         const auto &string_table_size = symbol_table->strsize;
 
         const auto string_table_max_index = string_table_size - 1;
-        if (is_64_bit) {
+        if (magic_is_64_bit) {
             for (auto i = uint32_t(); i < symbol_table_count; i++) {
                 const auto &symbol_table_entry = &((struct nlist_64 *)cached_symbol_table)[i];
                 const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;

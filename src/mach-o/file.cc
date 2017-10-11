@@ -57,7 +57,7 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers_for_library();
+        return load_containers(load_containers_type::library);
     }
 
     file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
@@ -68,14 +68,43 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers_for_library();
+        return load_containers(load_containers_type::library);
     }
 
     file::open_result file::open_from_library(FILE *file, const char *mode) noexcept {
         mode_ = mode;
         stream = file;
 
-        return load_containers_for_library();
+        return load_containers(load_containers_type::library);
+    }
+
+    file::open_result file::open_from_dynamic_library(const char *path) noexcept {
+        mode_ = "r";
+        stream = fopen(path, mode_);
+
+        if (!stream) {
+            return open_result::failed_to_open_stream;
+        }
+
+        return load_containers(load_containers_type::dynamic_library);
+    }
+
+    file::open_result file::open_from_dynamic_library(const char *path, const char *mode) noexcept {
+        mode_ = mode;
+        stream = fopen(path, mode);
+
+        if (!stream) {
+            return open_result::failed_to_open_stream;
+        }
+
+        return load_containers(load_containers_type::dynamic_library);
+    }
+
+    file::open_result file::open_from_dynamic_library(FILE *file, const char *mode) noexcept {
+        mode_ = mode;
+        stream = file;
+
+        return load_containers(load_containers_type::dynamic_library);
     }
 
     file::open_result file::open_copy(const file &file) {
@@ -182,7 +211,7 @@ namespace macho {
         containers.clear();
     }
 
-    file::open_result file::load_containers() noexcept {
+    file::open_result file::load_containers(file::load_containers_type type) noexcept {
         if (fread(&magic, sizeof(magic), 1, stream) != 1) {
             return open_result::stream_read_error;
         }
@@ -223,11 +252,25 @@ namespace macho {
                     swap_fat_arch_64(architectures, nfat_arch);
                 }
 
-                for (auto i = 0; i < nfat_arch; i++) {
+                for (auto i = uint32_t(); i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
+                    auto container_open_result = container::open_result::ok;
+
+                    switch (type) {
+                        case load_containers_type::none:
+                            container_open_result = container.open(stream);
+                            break;
+
+                        case load_containers_type::library:
+                            container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
+                            break;
+
+                        case load_containers_type::dynamic_library:
+                            container_open_result = container.open_from_dynamic_library(stream, architecture.offset, architecture.size);
+                            break;
+                    }
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -249,6 +292,19 @@ namespace macho {
                             return open_result::invalid_container;
 
                         case container::open_result::not_a_library:
+                            if (type == load_containers_type::library) {
+                                free(architectures);
+                                return open_result::not_a_library;
+                            }
+
+                            break;
+
+                        case container::open_result::not_a_dynamic_library:
+                            if (type == load_containers_type::dynamic_library) {
+                                free(architectures);
+                                return open_result::not_a_dynamic_library;
+                            }
+
                             break;
                     }
 
@@ -273,11 +329,25 @@ namespace macho {
                     swap_fat_arch(architectures, nfat_arch);
                 }
 
-                for (auto i = 0; i < nfat_arch; i++) {
+                for (auto i = uint32_t(); i < nfat_arch; i++) {
                     const auto &architecture = architectures[i];
 
                     auto container = macho::container();
-                    auto container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
+                    auto container_open_result = container::open_result::ok;
+
+                    switch (type) {
+                        case load_containers_type::none:
+                            container_open_result = container.open(stream);
+                            break;
+
+                        case load_containers_type::library:
+                            container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
+                            break;
+
+                        case load_containers_type::dynamic_library:
+                            container_open_result = container.open_from_dynamic_library(stream, architecture.offset, architecture.size);
+                            break;
+                    }
 
                     switch (container_open_result) {
                         case container::open_result::ok:
@@ -299,6 +369,19 @@ namespace macho {
                             return open_result::invalid_container;
 
                         case container::open_result::not_a_library:
+                            if (type == load_containers_type::library) {
+                                free(architectures);
+                                return open_result::not_a_library;
+                            }
+
+                            break;
+
+                        case container::open_result::not_a_dynamic_library:
+                            if (type == load_containers_type::dynamic_library) {
+                                free(architectures);
+                                return open_result::not_a_dynamic_library;
+                            }
+
                             break;
                     }
 
@@ -311,7 +394,21 @@ namespace macho {
             const auto magic_is_thin = macho::magic_is_thin(magic);
             if (magic_is_thin) {
                 auto container = macho::container();
-                auto container_open_result = container.open_from_library(stream);
+                auto container_open_result = container::open_result::ok;
+
+                switch (type) {
+                    case load_containers_type::none:
+                        container_open_result = container.open(stream);
+                        break;
+
+                    case load_containers_type::library:
+                        container_open_result = container.open_from_library(stream);
+                        break;
+
+                    case load_containers_type::dynamic_library:
+                        container_open_result = container.open_from_dynamic_library(stream);
+                        break;
+                }
 
                 switch (container_open_result) {
                     case container::open_result::ok:
@@ -330,173 +427,18 @@ namespace macho {
                         return open_result::not_a_macho;
 
                     case container::open_result::not_a_library:
-                        break;
-                }
-
-                containers.emplace_back(std::move(container));
-            } else {
-                return open_result::not_a_macho;
-            }
-        }
-
-        return open_result::ok;
-    }
-
-    file::open_result file::load_containers_for_library() noexcept {
-        if (fseek(stream, 0, SEEK_SET) != 0) {
-            return open_result::stream_seek_error;
-        }
-
-        if (fread(&magic, sizeof(magic), 1, stream) != 1) {
-            return open_result::stream_read_error;
-        }
-
-        const auto magic_is_fat = macho::magic_is_fat(magic);
-        if (magic_is_fat) {
-            auto nfat_arch = uint32_t();
-            if (fread(&nfat_arch, sizeof(nfat_arch), 1, stream) != 1) {
-                return open_result::stream_read_error;
-            }
-
-            if (!nfat_arch) {
-                return open_result::zero_architectures;
-            }
-
-            auto magic_is_big_endian = macho::magic_is_big_endian(magic);
-            if (magic_is_big_endian) {
-                swap_uint32(&nfat_arch);
-            }
-
-            containers.reserve(nfat_arch);
-
-            const auto magic_is_fat_64 = macho::magic_is_fat_64(magic);
-            if (magic_is_fat_64) {
-                const auto architectures_size = sizeof(architecture_64) * nfat_arch;
-                const auto architectures = (architecture_64 *)malloc(architectures_size);
-
-                if (!architectures) {
-                    return open_result::failed_to_allocate_memory;
-                }
-
-                if (fread(architectures, architectures_size, 1, stream) != 1) {
-                    free(architectures);
-                    return open_result::stream_read_error;
-                }
-
-                if (magic_is_big_endian) {
-                    swap_fat_arch_64(architectures, nfat_arch);
-                }
-
-                for (auto i = 0; i < nfat_arch; i++) {
-                    const auto &architecture = architectures[i];
-
-                    auto container = macho::container();
-                    auto container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
-
-                    switch (container_open_result) {
-                        case container::open_result::ok:
-                            break;
-
-                        case container::open_result::stream_seek_error:
-                            free(architectures);
-                            return open_result::stream_seek_error;
-
-                        case container::open_result::stream_read_error:
-                            free(architectures);
-                            return open_result::stream_read_error;
-
-                        case container::open_result::fat_container:
-                        case container::open_result::not_a_macho:
-                        case container::open_result::invalid_macho:
-                        case container::open_result::invalid_range:
-                            free(architectures);
-                            return open_result::invalid_container;
-
-                        case container::open_result::not_a_library:
-                            free(architectures);
+                        if (type == load_containers_type::library) {
                             return open_result::not_a_library;
-                    }
+                        }
 
-                    containers.emplace_back(std::move(container));
-                }
-
-                free(architectures);
-            } else {
-                const auto architectures_size = sizeof(architecture) * nfat_arch;
-                const auto architectures = (architecture *)malloc(architectures_size);
-
-                if (!architectures) {
-                    return open_result::failed_to_allocate_memory;
-                }
-
-                if (fread(architectures, architectures_size, 1, stream) != 1) {
-                    free(architectures);
-                    return open_result::stream_read_error;
-                }
-
-                if (magic_is_big_endian) {
-                    swap_fat_arch(architectures, nfat_arch);
-                }
-
-                for (auto i = 0; i < nfat_arch; i++) {
-                    const auto &architecture = architectures[i];
-
-                    auto container = macho::container();
-                    auto container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
-
-                    switch (container_open_result) {
-                        case container::open_result::ok:
-                            break;
-
-                        case container::open_result::stream_seek_error:
-                            free(architectures);
-                            return open_result::stream_seek_error;
-
-                        case container::open_result::stream_read_error:
-                            free(architectures);
-                            return open_result::stream_read_error;
-
-                        case container::open_result::fat_container:
-                        case container::open_result::not_a_macho:
-                        case container::open_result::invalid_macho:
-                        case container::open_result::invalid_range:
-                            free(architectures);
-                            return open_result::invalid_container;
-
-                        case container::open_result::not_a_library:
-                            free(architectures);
-                            return open_result::not_a_library;
-                    }
-
-                    containers.emplace_back(std::move(container));
-                }
-
-                free(architectures);
-            }
-        } else {
-            const auto magic_is_thin = macho::magic_is_thin(magic);
-            if (magic_is_thin) {
-                auto container = macho::container();
-                auto container_open_result = container.open_from_library(stream);
-
-                switch (container_open_result) {
-                    case container::open_result::ok:
                         break;
 
-                    case container::open_result::stream_seek_error:
-                        return open_result::stream_seek_error;
+                    case container::open_result::not_a_dynamic_library:
+                        if (type == load_containers_type::dynamic_library) {
+                            return open_result::not_a_dynamic_library;
+                        }
 
-                    case container::open_result::stream_read_error:
-                        return open_result::stream_read_error;
-
-                    case container::open_result::fat_container:
-                    case container::open_result::not_a_macho:
-                    case container::open_result::invalid_macho:
-                    case container::open_result::invalid_range:
-                        return open_result::invalid_container;
-
-                    case container::open_result::not_a_library:
-                        return open_result::not_a_library;
+                        break;
                 }
 
                 containers.emplace_back(std::move(container));
@@ -582,10 +524,6 @@ namespace macho {
 
             const auto magic_is_fat_64 = magic == magic::fat_64 || magic == magic::fat_64_big_endian;
             if (magic_is_fat_64) {
-                if (magic_is_big_endian) {
-                    swap_uint32(&nfat_arch);
-                }
-
                 const auto architectures_size = sizeof(architecture_64) * nfat_arch;
                 const auto architectures = (architecture_64 *)malloc(architectures_size);
 
@@ -674,11 +612,6 @@ namespace macho {
 
                 free(architectures);
             } else {
-                const auto magic_is_big_endian = magic == magic::fat_big_endian;
-                if (magic_is_big_endian) {
-                    swap_uint32(&nfat_arch);
-                }
-
                 const auto architectures_size = sizeof(architecture) * nfat_arch;
                 const auto architectures = (architecture *)malloc(architectures_size);
 
@@ -823,6 +756,282 @@ namespace macho {
         return true;
     }
 
+    bool file::is_valid_dynamic_library(const char *path, check_error *error) noexcept {
+        const auto descriptor = ::open(path, O_RDONLY);
+        if (descriptor == -1) {
+            if (error != nullptr) {
+                *error = check_error::failed_to_open_descriptor;
+            }
+
+            return false;
+        }
+
+        auto magic = macho::magic();
+        if (read(descriptor, &magic, sizeof(magic)) == -1) {
+            if (error != nullptr) {
+                *error = check_error::failed_to_read_descriptor;
+            }
+
+            close(descriptor);
+            return false;
+        }
+
+        const auto magic_is_fat = macho::magic_is_fat(magic);
+        if (magic_is_fat) {
+            auto nfat_arch = uint32_t();
+            if (read(descriptor, &nfat_arch, sizeof(nfat_arch)) == -1) {
+                if (error != nullptr) {
+                    *error = check_error::failed_to_read_descriptor;
+                }
+
+                close(descriptor);
+                return false;
+            }
+
+            const auto magic_is_big_endian = magic == magic::fat_big_endian || magic == magic::fat_64_big_endian;
+            if (magic_is_big_endian) {
+                swap_uint32(&nfat_arch);
+            }
+
+            if (!nfat_arch) {
+                close(descriptor);
+                return false;
+            }
+
+            const auto magic_is_fat_64 = magic == magic::fat_64 || magic == magic::fat_64_big_endian;
+            if (magic_is_fat_64) {
+                const auto architectures_size = sizeof(architecture_64) * nfat_arch;
+                const auto architectures = (architecture_64 *)malloc(architectures_size);
+
+                if (!architectures) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_allocate_memory;
+                    }
+
+                    close(descriptor);
+                    return false;
+                }
+
+                if (read(descriptor, architectures, architectures_size) == -1) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_read_descriptor;
+                    }
+
+                    free(architectures);
+                    close(descriptor);
+
+                    return false;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch_64(architectures, nfat_arch);
+                }
+
+                for (auto i = uint32_t(); i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+                    header header;
+
+                    if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
+                        if (error != nullptr) {
+                            *error = check_error::failed_to_seek_descriptor;
+                        }
+
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
+                    }
+
+                    if (read(descriptor, &header, sizeof(header)) == -1) {
+                        if (error != nullptr) {
+                            *error = check_error::failed_to_read_descriptor;
+                        }
+
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
+                    }
+
+                    if (magic_is_big_endian) {
+                        swap_mach_header(&header);
+                    }
+
+                    if (!filetype_is_dynamic_library(header.filetype)) {
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
+                    }
+
+                    if (!has_library_command(descriptor, &header, error)) {
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
+                    }
+                }
+
+                free(architectures);
+            } else {
+                const auto architectures_size = sizeof(architecture) * nfat_arch;
+                const auto architectures = (architecture *)malloc(architectures_size);
+
+                if (!architectures) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_allocate_memory;
+                    }
+
+                    close(descriptor);
+                    return false;
+                }
+
+                if (read(descriptor, architectures, architectures_size) == -1) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_read_descriptor;
+                    }
+
+                    free(architectures);
+                    close(descriptor);
+
+                    return false;
+                }
+
+                if (magic_is_big_endian) {
+                    swap_fat_arch(architectures, nfat_arch);
+                }
+
+                for (auto i = uint32_t(); i < nfat_arch; i++) {
+                    const auto &architecture = architectures[i];
+                    header header;
+
+                    if (lseek(descriptor, architecture.offset, SEEK_SET) == -1) {
+                        if (error != nullptr) {
+                            *error = check_error::failed_to_seek_descriptor;
+                        }
+
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
+                    }
+
+                    if (read(descriptor, &header, sizeof(header)) == -1) {
+                        if (error != nullptr) {
+                            *error = check_error::failed_to_read_descriptor;
+                        }
+
+                        free(architectures);
+                        close(descriptor);
+
+                        return false;
+                    }
+
+                    if (magic_is_big_endian) {
+                        swap_mach_header(&header);
+                    }
+
+                    if (!filetype_is_dynamic_library(header.filetype)) {
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
+                    }
+
+                    if (!has_library_command(descriptor, &header, error)) {
+                        free(architectures);
+
+                        if (close(descriptor) != 0) {
+                            if (error != nullptr) {
+                                if (*error == check_error::ok) {
+                                    *error = check_error::failed_to_close_descriptor;
+                                }
+                            }
+                        }
+
+                        return false;
+                    }
+                }
+
+                free(architectures);
+            }
+        } else {
+            const auto magic_is_thin = macho::magic_is_thin(magic);
+            if (magic_is_thin) {
+                header header;
+                header.magic = magic;
+
+                if (read(descriptor, &header.cputype, sizeof(header) - sizeof(header.magic)) == -1) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_read_descriptor;
+                    }
+
+                    close(descriptor);
+                    return false;
+                }
+
+                auto magic_is_big_endian = magic == magic::big_endian || magic == magic::bits64_big_endian;
+                if (magic_is_big_endian) {
+                    swap_mach_header(&header);
+                }
+
+                if (!filetype_is_dynamic_library(header.filetype)) {
+                    close(descriptor);
+                    return false;
+                }
+
+                if (!has_library_command(descriptor, &header, error)) {
+                    if (close(descriptor) != 0) {
+                        if (error != nullptr) {
+                            if (*error == check_error::ok) {
+                                *error = check_error::failed_to_close_descriptor;
+                            }
+                        }
+                    }
+
+                    return false;
+                }
+            } else {
+                if (close(descriptor) != 0) {
+                    if (error != nullptr) {
+                        *error = check_error::failed_to_close_descriptor;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        if (close(descriptor) != 0) {
+            if (error != nullptr) {
+                *error = check_error::failed_to_close_descriptor;
+            }
+        }
+
+        return true;
+    }
+
     bool file::has_library_command(int descriptor, const struct header *header, check_error *error) noexcept {
         const auto header_magic_is_64_bit = magic_is_64_bit(header->magic);
 
@@ -863,32 +1072,24 @@ namespace macho {
             return false;
         }
 
-        auto index = 0;
+        auto index = uint32_t();
         auto size_left = load_commands_size;
 
         const auto header_magic_is_big_endian = header->magic == magic::big_endian || header->magic == magic::bits64_big_endian;
         const auto &ncmds = header->ncmds;
 
-        for (auto i = 0; i < ncmds; i++) {
+        for (auto i = uint32_t(); i < ncmds; i++) {
             const auto load_cmd = (struct load_command *)&load_commands[index];
             if (header_magic_is_big_endian) {
                 swap_load_command(load_cmd);
             }
 
             auto cmdsize = load_cmd->cmdsize;
-
-            const auto cmdsize_is_too_small = cmdsize < sizeof(struct load_command);
-            if (cmdsize_is_too_small) {
+            if (cmdsize < sizeof(struct load_command)) {
                 return false;
             }
 
-            const auto cmdsize_is_larger_than_load_command_space = cmdsize > size_left;
-            if (cmdsize_is_larger_than_load_command_space) {
-                return false;
-            }
-
-            const auto cmdsize_takes_up_rest_of_load_command_space = (cmdsize == size_left && i != ncmds - 1);
-            if (cmdsize_takes_up_rest_of_load_command_space) {
+            if (cmdsize > size_left || (cmdsize == size_left && i != ncmds - 1)) {
                 return false;
             }
 
