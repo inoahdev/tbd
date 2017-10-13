@@ -1421,7 +1421,7 @@ namespace macho::utils::tbd {
                         constraint = objc_constraint::retain_release;
                     }
 
-                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
+                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
                     if (swift_version != 0) {
                         if (objc_image_info_flags_swift_version != swift_version) {
                             failure_result = creation_result::contradictary_load_command_information;
@@ -1547,7 +1547,7 @@ namespace macho::utils::tbd {
                         constraint = objc_constraint::retain_release;
                     }
 
-                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::flags::swift_version_shift) & objc::image_info::flags::swift_version_mask;
+                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
                     if (swift_version != 0) {
                         if (objc_image_info_flags_swift_version != swift_version) {
                             failure_result = creation_result::contradictary_load_command_information;
