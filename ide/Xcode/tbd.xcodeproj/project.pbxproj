@@ -155,8 +155,8 @@
 		C33DD9401F79C8C7003C1FFC /* tbd */ = {
 			isa = PBXGroup;
 			children = (
-				C33DD9431F79C924003C1FFC /* tbd.cc */,
 				C33DD9451F79C934003C1FFC /* tbd.h */,
+				C33DD9431F79C924003C1FFC /* tbd.cc */,
 			);
 			name = tbd;
 			sourceTree = "<group>";

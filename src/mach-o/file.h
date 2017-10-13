@@ -122,8 +122,8 @@ namespace macho {
 
         enum class load_containers_type : uint64_t {
             none,
-            library,
-            dynamic_library
+            as_library,
+            as_dynamic_library
         };
 
         open_result load_containers(load_containers_type type = load_containers_type::none) noexcept;

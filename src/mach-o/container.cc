@@ -28,7 +28,7 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        return validate_and_load_data(validation_type::library);
+        return validate_and_load_data(validation_type::as_library);
     }
 
     container::open_result container::open_from_dynamic_library(FILE *stream, long base, size_t size) noexcept {
@@ -37,14 +37,14 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        return validate_and_load_data(validation_type::dynamic_library);
+        return validate_and_load_data(validation_type::as_dynamic_library);
     }
 
     container::open_result container::open_copy(const container &container) noexcept {
-        this->stream = container.stream;
+        stream = container.stream;
 
-        this->base = container.base;
-        this->size = container.size;
+        base = container.base;
+        size = container.size;
 
         return validate_and_load_data();
     }
@@ -100,7 +100,7 @@ namespace macho {
             return open_result::invalid_range;
         }
 
-        if (type == validation_type::library || type == validation_type::dynamic_library) {
+        if (type == validation_type::as_library || type == validation_type::as_dynamic_library) {
             auto filetype = header.filetype;
             if (magic_is_big_endian) {
                 swap_uint32((uint32_t *)filetype);
@@ -110,14 +110,14 @@ namespace macho {
                 case validation_type::none:
                     break;
 
-                case validation_type::library:
+                case validation_type::as_library:
                     if (!filetype_is_library(filetype)) {
                         return open_result::not_a_library;
                     }
 
                     break;
 
-                case validation_type::dynamic_library:
+                case validation_type::as_dynamic_library:
                     if (!filetype_is_dynamic_library(filetype)) {
                         return open_result::not_a_dynamic_library;
                     }
@@ -603,7 +603,7 @@ namespace macho {
                     return symbols_iteration_result::invalid_symbol_table_entry;
                 }
 
-                const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry->n_un.n_strx }, symbol_table_entry->n_type, symbol_table_entry->n_sect, (uint16_t)symbol_table_entry->n_desc, symbol_table_entry->n_value };
+                const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry->n_un.n_strx }, symbol_table_entry->n_type, symbol_table_entry->n_sect, static_cast<uint16_t>(symbol_table_entry->n_desc), symbol_table_entry->n_value };
 
                 const auto symbol_table_string_table_string = &cached_string_table[symbol_table_entry_string_table_index];
                 const auto result = callback(symbol_table_entry_64, symbol_table_string_table_string);

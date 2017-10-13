@@ -57,7 +57,7 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers(load_containers_type::library);
+        return load_containers(load_containers_type::as_library);
     }
 
     file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
@@ -68,14 +68,14 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers(load_containers_type::library);
+        return load_containers(load_containers_type::as_library);
     }
 
     file::open_result file::open_from_library(FILE *file, const char *mode) noexcept {
         mode_ = mode;
         stream = file;
 
-        return load_containers(load_containers_type::library);
+        return load_containers(load_containers_type::as_library);
     }
 
     file::open_result file::open_from_dynamic_library(const char *path) noexcept {
@@ -86,7 +86,7 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers(load_containers_type::dynamic_library);
+        return load_containers(load_containers_type::as_dynamic_library);
     }
 
     file::open_result file::open_from_dynamic_library(const char *path, const char *mode) noexcept {
@@ -97,14 +97,14 @@ namespace macho {
             return open_result::failed_to_open_stream;
         }
 
-        return load_containers(load_containers_type::dynamic_library);
+        return load_containers(load_containers_type::as_dynamic_library);
     }
 
     file::open_result file::open_from_dynamic_library(FILE *file, const char *mode) noexcept {
         mode_ = mode;
         stream = file;
 
-        return load_containers(load_containers_type::dynamic_library);
+        return load_containers(load_containers_type::as_dynamic_library);
     }
 
     file::open_result file::open_copy(const file &file) {
@@ -263,11 +263,11 @@ namespace macho {
                             container_open_result = container.open(stream);
                             break;
 
-                        case load_containers_type::library:
+                        case load_containers_type::as_library:
                             container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
                             break;
 
-                        case load_containers_type::dynamic_library:
+                        case load_containers_type::as_dynamic_library:
                             container_open_result = container.open_from_dynamic_library(stream, architecture.offset, architecture.size);
                             break;
                     }
@@ -292,7 +292,7 @@ namespace macho {
                             return open_result::invalid_container;
 
                         case container::open_result::not_a_library:
-                            if (type == load_containers_type::library) {
+                            if (type == load_containers_type::as_library) {
                                 free(architectures);
                                 return open_result::not_a_library;
                             }
@@ -300,7 +300,7 @@ namespace macho {
                             break;
 
                         case container::open_result::not_a_dynamic_library:
-                            if (type == load_containers_type::dynamic_library) {
+                            if (type == load_containers_type::as_dynamic_library) {
                                 free(architectures);
                                 return open_result::not_a_dynamic_library;
                             }
@@ -340,11 +340,11 @@ namespace macho {
                             container_open_result = container.open(stream);
                             break;
 
-                        case load_containers_type::library:
+                        case load_containers_type::as_library:
                             container_open_result = container.open_from_library(stream, architecture.offset, architecture.size);
                             break;
 
-                        case load_containers_type::dynamic_library:
+                        case load_containers_type::as_dynamic_library:
                             container_open_result = container.open_from_dynamic_library(stream, architecture.offset, architecture.size);
                             break;
                     }
@@ -369,7 +369,7 @@ namespace macho {
                             return open_result::invalid_container;
 
                         case container::open_result::not_a_library:
-                            if (type == load_containers_type::library) {
+                            if (type == load_containers_type::as_library) {
                                 free(architectures);
                                 return open_result::not_a_library;
                             }
@@ -377,7 +377,7 @@ namespace macho {
                             break;
 
                         case container::open_result::not_a_dynamic_library:
-                            if (type == load_containers_type::dynamic_library) {
+                            if (type == load_containers_type::as_dynamic_library) {
                                 free(architectures);
                                 return open_result::not_a_dynamic_library;
                             }
@@ -401,11 +401,11 @@ namespace macho {
                         container_open_result = container.open(stream);
                         break;
 
-                    case load_containers_type::library:
+                    case load_containers_type::as_library:
                         container_open_result = container.open_from_library(stream);
                         break;
 
-                    case load_containers_type::dynamic_library:
+                    case load_containers_type::as_dynamic_library:
                         container_open_result = container.open_from_dynamic_library(stream);
                         break;
                 }
@@ -427,14 +427,14 @@ namespace macho {
                         return open_result::not_a_macho;
 
                     case container::open_result::not_a_library:
-                        if (type == load_containers_type::library) {
+                        if (type == load_containers_type::as_library) {
                             return open_result::not_a_library;
                         }
 
                         break;
 
                     case container::open_result::not_a_dynamic_library:
-                        if (type == load_containers_type::dynamic_library) {
+                        if (type == load_containers_type::as_dynamic_library) {
                             return open_result::not_a_dynamic_library;
                         }
 

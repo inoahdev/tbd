@@ -96,8 +96,8 @@ namespace macho {
 
         enum class validation_type : uint64_t {
             none,
-            library,
-            dynamic_library
+            as_library,
+            as_dynamic_library
         };
 
         open_result validate_and_load_data(validation_type type = validation_type::none) noexcept;
