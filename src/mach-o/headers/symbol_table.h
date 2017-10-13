@@ -51,28 +51,28 @@ namespace macho {
             indirect = 0xa
         };
 
-        inline bool operator==(const flags &flags, const uint8_t &number) noexcept { return (uint8_t)flags == number; }
-        inline bool operator==(const uint8_t &number, const flags &flags) noexcept { return flags == (uint8_t)number; }
+        inline bool operator==(const flags &flags, const uint8_t &number) noexcept { return static_cast<uint8_t>(flags) == number; }
+        inline bool operator==(const uint8_t &number, const flags &flags) noexcept { return flags == static_cast<uint8_t>(number); }
 
-        inline bool operator!=(const flags &flags, const uint8_t &number) noexcept { return (uint8_t)flags != number; }
-        inline bool operator!=(const uint8_t &number, const flags &flags) noexcept { return number != (uint8_t)flags; }
+        inline bool operator!=(const flags &flags, const uint8_t &number) noexcept { return static_cast<uint8_t>(flags) != number; }
+        inline bool operator!=(const uint8_t &number, const flags &flags) noexcept { return number != static_cast<uint8_t>(flags); }
 
-        inline bool operator==(const type &type, const uint8_t &number) noexcept { return (uint8_t)type == number; }
-        inline bool operator==(const uint8_t &number, type type) noexcept { return type == (uint8_t)number; }
+        inline bool operator==(const type &type, const uint8_t &number) noexcept { return static_cast<uint8_t>(type) == number; }
+        inline bool operator==(const uint8_t &number, type type) noexcept { return type == static_cast<uint8_t>(number); }
 
-        inline bool operator!=(const type &type, const uint8_t &number) noexcept { return (uint8_t)type != number; }
-        inline bool operator!=(const uint8_t &number, type type) noexcept { return number != (uint8_t)type; }
+        inline bool operator!=(const type &type, const uint8_t &number) noexcept { return static_cast<uint8_t>(type) != number; }
+        inline bool operator!=(const uint8_t &number, type type) noexcept { return number != static_cast<uint8_t>(type); }
 
-        inline int operator&(const uint8_t &number, const flags &flags) noexcept { return number & (uint8_t)flags; }
-        inline int operator&(const flags &flags, const uint8_t &number) noexcept { return (uint8_t)flags & number; }
+        inline int operator&(const uint8_t &number, const flags &flags) noexcept { return number & static_cast<uint8_t>(flags); }
+        inline int operator&(const flags &flags, const uint8_t &number) noexcept { return static_cast<uint8_t>(flags) & number; }
 
         enum class description : int16_t {
-            no_dead_strip = 0x0020,
-            weak_reference = 0x0040,
-            weak_definition = 0x0080,
+            no_dead_strip        = 0x0020,
+            weak_reference       = 0x0040,
+            weak_definition      = 0x0080,
             arm_thumb_definition = 0x0008,
-            symbol_resolver = 0x0100,
-            alternate_entry = 0x0200
+            symbol_resolver      = 0x0100,
+            alternate_entry      = 0x0200
         };
 
         inline int16_t operator|(const int16_t &lhs, const description &rhs) noexcept { return lhs | static_cast<int16_t>(rhs); }

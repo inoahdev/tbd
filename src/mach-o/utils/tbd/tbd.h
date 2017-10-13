@@ -36,7 +36,7 @@ namespace macho::utils::tbd {
     inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
     inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
-    inline flags operator~(const flags &lhs) noexcept { return (flags)~(uint16_t)lhs; }
+    inline flags operator~(const flags &lhs) noexcept { return (flags)~static_cast<uint16_t>(lhs); }
 
     enum class objc_constraint : uint32_t {
         no_value,
@@ -109,10 +109,10 @@ namespace macho::utils::tbd {
     inline void operator|=(uint64_t &lhs, const options &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
 
     inline options operator|(const options &lhs, const uint64_t &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | rhs); }
-    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = (options)(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(options &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) | rhs); }
 
     inline options operator|(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
-    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = (options)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(options &lhs, const options &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
 
     inline uint64_t operator&(const uint64_t &lhs, const options &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
     inline void operator&=(uint64_t &lhs, const options &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
@@ -123,7 +123,7 @@ namespace macho::utils::tbd {
     inline options operator&(const options &lhs, const options &rhs) noexcept { return static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
     inline void operator&=(options &lhs, const options &rhs) noexcept { lhs = static_cast<options>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
-    inline options operator~(const options &lhs) noexcept { return static_cast<options>(~(uint64_t)lhs); }
+    inline options operator~(const options &lhs) noexcept { return static_cast<options>(~static_cast<uint64_t>(lhs)); }
 
     enum class creation_result {
         ok,

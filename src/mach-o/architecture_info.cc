@@ -114,7 +114,7 @@ namespace macho {
     }
 
     size_t architecture_info_index_from_name(const char *name) {
-        auto architecture_info = architecture_info_from_name(name);
+        const auto architecture_info = architecture_info_from_name(name);
         if (!architecture_info) {
             return -1;
         }
@@ -123,7 +123,7 @@ namespace macho {
     }
 
     size_t architecture_info_index_from_cputype(cputype cputype, subtype subtype) {
-        auto architecture_info = architecture_info_from_cputype(cputype, subtype);
+        const auto architecture_info = architecture_info_from_cputype(cputype, subtype);
         if (!architecture_info) {
             return -1;
         }

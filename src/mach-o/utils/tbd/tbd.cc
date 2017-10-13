@@ -550,7 +550,7 @@ namespace macho::utils::tbd {
         if (architecture_overrides != 0) {
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & ((uint64_t)1 << index))) {
+                if (!(architecture_overrides & (static_cast<uint64_t>(1) << index))) {
                     continue;
                 }
 
@@ -565,7 +565,7 @@ namespace macho::utils::tbd {
 
             if (index != architecture_info_table_size) {
                 for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architecture_overrides & ((uint64_t)1 << index))) {
+                    if (!(architecture_overrides & (static_cast<uint64_t>(1) << index))) {
                         continue;
                     }
 
@@ -577,7 +577,7 @@ namespace macho::utils::tbd {
         } else {
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
-                if (!(architectures & ((uint64_t)1 << index))) {
+                if (!(architectures & (static_cast<uint64_t>(1) << index))) {
                     continue;
                 }
 
@@ -592,7 +592,7 @@ namespace macho::utils::tbd {
 
             if (index != architecture_info_table_size) {
                 for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architectures & ((uint64_t)1 << index))) {
+                    if (!(architectures & (static_cast<uint64_t>(1) << index))) {
                         continue;
                     }
 
@@ -611,7 +611,7 @@ namespace macho::utils::tbd {
         if (architecture_overrides != 0) {
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & ((uint64_t)1 << index))) {
+                if (!(architecture_overrides & (static_cast<uint64_t>(1) << index))) {
                     continue;
                 }
 
@@ -626,7 +626,7 @@ namespace macho::utils::tbd {
 
             if (index != architecture_info_table_size) {
                 for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architecture_overrides & ((uint64_t)1 << index))) {
+                    if (!(architecture_overrides & (static_cast<uint64_t>(1) << index))) {
                         continue;
                     }
 
@@ -638,7 +638,7 @@ namespace macho::utils::tbd {
         } else {
             auto index = uint64_t();
             for (; index < architecture_info_table_size; index++) {
-                if (!(architectures & ((uint64_t)1 << index))) {
+                if (!(architectures & (static_cast<uint64_t>(1) << index))) {
                     continue;
                 }
 
@@ -653,7 +653,7 @@ namespace macho::utils::tbd {
 
             if (index != architecture_info_table_size) {
                 for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architectures & ((uint64_t)1 << index))) {
+                    if (!(architectures & (static_cast<uint64_t>(1) << index))) {
                         continue;
                     }
 
@@ -1324,7 +1324,7 @@ namespace macho::utils::tbd {
                         swap_uint32(&segment_sections_count);
                     }
 
-                    auto segment_section = (segments::section *)((uint64_t)segment_command + sizeof(macho::segment_command));
+                    auto segment_section = (segments::section *)(segment_command + sizeof(macho::segment_command));
 
                     auto objc_image_info = objc::image_info();
                     auto found_objc_image_info = false;
@@ -1996,7 +1996,7 @@ namespace macho::utils::tbd {
             if (has_provided_architectures) {
                 // any is the first architecture info and if set is stored in the LSB
                 if (!(architectures & 1)) {
-                    if (!(architectures & ((uint64_t)1 << library_container_architecture_info_table_index))) {
+                    if (!(architectures & (static_cast<uint64_t>(1) << library_container_architecture_info_table_index))) {
                         continue;
                     }
                 }
@@ -2005,7 +2005,7 @@ namespace macho::utils::tbd {
             }
 
             if (!has_architecture_overrides) {
-                library_container_architectures |= (uint64_t)1 << library_container_architecture_info_table_index;
+                library_container_architectures |= static_cast<uint64_t>(1) << library_container_architecture_info_table_index;
             }
 
             uint32_t local_current_version = -1;
@@ -2400,7 +2400,7 @@ namespace macho::utils::tbd {
         if (has_provided_architectures) {
             // any is the first architecture info and if set is stored in the LSB
             if (!(architectures & 1)) {
-                if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
+                if (!(architectures & (static_cast<uint64_t>(1) << architecture_info_table_index))) {
                     return creation_result::no_provided_architectures;
                 }
             }
@@ -2423,7 +2423,7 @@ namespace macho::utils::tbd {
             return creation_result::has_no_uuid;
         }
 
-        const auto symbols_iteration_failure_result = get_symbols(container, (uint64_t)1 << architecture_info_table_index, architecture_info_table_index, symbols, options);
+        const auto symbols_iteration_failure_result = get_symbols(container, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_info_table_index, symbols, options);
         if (symbols_iteration_failure_result != creation_result::ok) {
             return symbols_iteration_failure_result;
         }
@@ -2452,7 +2452,7 @@ namespace macho::utils::tbd {
         }
 
         dprintf(output, "\n");
-        print_architectures_array_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides);
+        print_architectures_array_to_tbd_output(output, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_overrides);
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
@@ -2561,7 +2561,7 @@ namespace macho::utils::tbd {
         }
 
         dprintf(output, "exports:\n");
-        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
+        print_export_group_to_tbd_output(output, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
 
         dprintf(output, "...\n");
         return creation_result::ok;
@@ -2648,7 +2648,7 @@ namespace macho::utils::tbd {
             if (has_provided_architectures) {
                 // any is the first architecture info and if set is stored in the LSB
                 if (!(architectures & 1)) {
-                    if (!(architectures & ((uint64_t)1 << library_container_architecture_info_table_index))) {
+                    if (!(architectures & (static_cast<uint64_t>(1) << library_container_architecture_info_table_index))) {
                         continue;
                     }
                 }
@@ -2657,7 +2657,7 @@ namespace macho::utils::tbd {
             }
 
             if (!has_architecture_overrides) {
-                library_container_architectures |= (uint64_t)1 << library_container_architecture_info_table_index;
+                library_container_architectures |= static_cast<uint64_t>(1) << library_container_architecture_info_table_index;
             }
 
             uint32_t local_current_version = -1;
@@ -3052,7 +3052,7 @@ namespace macho::utils::tbd {
         if (has_provided_architectures) {
             // any is the first architecture info and if set is stored in the LSB
             if (!(architectures & 1)) {
-                if (!(architectures & ((uint64_t)1 << architecture_info_table_index))) {
+                if (!(architectures & (static_cast<uint64_t>(1) << architecture_info_table_index))) {
                     return creation_result::no_provided_architectures;
                 }
             }
@@ -3075,7 +3075,7 @@ namespace macho::utils::tbd {
             return creation_result::has_no_uuid;
         }
 
-        const auto symbols_iteration_failure_result = get_symbols(container, (uint64_t)1 << architecture_info_table_index, architecture_info_table_index, symbols, options);
+        const auto symbols_iteration_failure_result = get_symbols(container, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_info_table_index, symbols, options);
         if (symbols_iteration_failure_result != creation_result::ok) {
             return symbols_iteration_failure_result;
         }
@@ -3104,7 +3104,7 @@ namespace macho::utils::tbd {
         }
 
         fputc('\n', output);
-        print_architectures_array_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides);
+        print_architectures_array_to_tbd_output(output, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_overrides);
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
@@ -3213,7 +3213,7 @@ namespace macho::utils::tbd {
         }
 
         fputs("exports:\n", output);
-        print_export_group_to_tbd_output(output, (uint64_t)1 << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
+        print_export_group_to_tbd_output(output, static_cast<uint64_t>(1) << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
 
         fputs("...\n", output);
         return creation_result::ok;

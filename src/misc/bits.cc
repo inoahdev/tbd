@@ -40,7 +40,6 @@ bits::creation_result bits::create_stack_max() {
     return creation_result::ok;
 }
 
-
 bits::creation_result bits::create_copy(const bits &bits) {
     length = bits.length;
 
@@ -83,15 +82,15 @@ void bits::cast(bits_integer_t index, bool flag) noexcept {
         index -= bit_size * location;
 
         if (flag) {
-            *pointer |= (bits_integer_t)1 << index;
+            *pointer |= static_cast<bits_integer_t>(1) << index;
         } else {
-            *pointer &= ~((bits_integer_t)1 << index);
+            *pointer &= ~(static_cast<bits_integer_t>(1) << index);
         }
     } else {
         if (flag) {
-            data.integer |= (bits_integer_t)1 << index;
+            data.integer |= static_cast<bits_integer_t>(1) << index;
         } else {
-            data.integer &= ~((bits_integer_t)1 << index);
+            data.integer &= ~(static_cast<bits_integer_t>(1) << index);
         }
     }
 }
@@ -108,7 +107,7 @@ bool bits::at(bits_integer_t index) const noexcept {
         bits = *pointer;
     }
 
-    return bits & ((bits_integer_t)1 << index);
+    return bits & (static_cast<bits_integer_t>(1) << index);
 }
 
 bool bits::operator==(const bits &bits) const noexcept {

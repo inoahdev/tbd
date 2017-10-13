@@ -98,7 +98,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             break;
         }
 
-        architectures |= ((uint64_t)1 << architecture_info_table_index);
+        architectures |= (static_cast<uint64_t>(1) << architecture_info_table_index);
         index++;
     }
 
@@ -1757,7 +1757,7 @@ int main(int argc, const char *argv[]) {
                 }
             }
 
-            auto tbd_creation_options = (uint64_t)creation_handling_print_paths;
+            auto tbd_creation_options = static_cast<uint64_t>(creation_handling_print_paths);
             if (tbd_options & dont_print_warnings) {
                 tbd_creation_options |= creation_handling_dont_print_warnings;
             }

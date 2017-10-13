@@ -46,11 +46,11 @@ namespace recurse {
 
     operation_result macho_libraries(const char *directory_path, uint64_t options, const std::function<void(std::string &, macho::file &)> &callback);
     inline operation_result macho_libraries(const char *directory_path, options options, const std::function<void(std::string &, macho::file &)> &callback) {
-        return macho_libraries(directory_path, (uint64_t)options, callback);
+        return macho_libraries(directory_path, static_cast<uint64_t>(options), callback);
     }
 
     operation_result macho_library_paths(const char *directory_path, uint64_t options, const std::function<void(std::string &)> &callback);
     inline operation_result macho_library_paths(const char *directory_path, options options, const std::function<void(std::string &)> &callback) {
-        return macho_library_paths(directory_path, (uint64_t)options, callback);
+        return macho_library_paths(directory_path, static_cast<uint64_t>(options), callback);
     }
 }
