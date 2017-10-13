@@ -412,7 +412,7 @@ namespace path {
     }
 
     template <typename S>
-    void clean(S &path) {
+    S &clean(S &path) {
         auto begin = path.begin();
         auto end = path.end();
 
@@ -432,5 +432,7 @@ namespace path {
             iter = path.erase(slash_row_begin, slash_row_end);
             end = path.end();
         }
+
+        return path;
     }
 }

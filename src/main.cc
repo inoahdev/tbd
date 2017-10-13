@@ -754,13 +754,10 @@ int main(int argc, const char *argv[]) {
                         path.append(current_directory);
                         path.append(argument);
 
-                        path::clean(path);
-                        paths.emplace_back(std::move(path), options);
+                        paths.emplace_back(std::move(path::clean(path)), options);
                     } else {
                         auto path = std::string(argument);
-                        path::clean(path);
-
-                        paths.emplace_back(path, options);
+                        paths.emplace_back(path::clean(path), options);
                     }
 
                     options = 0;
