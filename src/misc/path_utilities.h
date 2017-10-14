@@ -147,6 +147,38 @@ namespace path {
     }
 
     template <typename T>
+    T find_end_of_row_of_non_slashes(const T &begin, const T &end) {
+        auto iter = begin;
+        while (iter != end && (*iter != '/' && *iter != '\\')) {
+            iter++;
+        }
+
+        return iter;
+    }
+
+    inline char *find_end_of_row_of_non_slashes(char *string) {
+        auto end = &string[strlen(string)];
+        auto result = find_end_of_row_of_non_slashes(string, end);
+
+        if (result == end) {
+            return nullptr;
+        }
+
+        return result;
+    }
+
+    inline const char *find_end_of_row_of_non_slashes(const char *string) {
+        auto end = &string[strlen(string)];
+        auto result = find_end_of_row_of_non_slashes(string, end);
+
+        if (result == end) {
+            return nullptr;
+        }
+
+        return result;
+    }
+
+    template <typename T>
     std::pair<T, T> find_next_component(const T &begin, const T &end) {
         auto begin_slash = begin;
         auto end_slash = begin_slash + 1;
@@ -468,25 +500,29 @@ namespace path {
         if (iter != end) {
             if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
                 path.append(1, '/');
-
-                do {
-                    iter++;
-                } while (iter != end && (*iter == '/' || *iter == '\\'));
+                iter = find_end_of_row_of_slashes(begin, end);
             }
         }
 
         auto path_component_begin = iter;
         auto path_component_end = end;
 
-        while (path_component_begin != end) {
+        do {
             path_component_end = find_next_slash(path_component_begin, end);
-            path.append(path_component_begin, path_component_end);
 
-            path_component_begin = find_end_of_row_of_slashes(path_component_end, end);
-            if (path_component_begin != path_component_end) {
-                path.append(1, '/');
+            // Don't add '.' path-components
+
+            auto next_path_component_begin = find_end_of_row_of_slashes(path_component_end, end);
+            if (*path_component_begin != '.' || path_component_end != (path_component_begin + 1)) {
+                path.append(path_component_begin, path_component_end);
+
+                if (next_path_component_begin != path_component_end) {
+                    path.append(1, '/');
+                }
             }
-        }
+
+            path_component_begin = next_path_component_begin;
+        } while (path_component_begin != end);
 
         return path;
     }
@@ -496,21 +532,46 @@ namespace path {
         auto begin = path.begin();
         auto end = path.end();
 
-        auto iter = begin;
-        while (iter != end) {
-            auto slash_row_begin = find_next_slash(iter, end);
-            auto slash_row_end = find_end_of_row_of_slashes(slash_row_begin, end);
+        auto slash_row_begin = begin;
+        auto slash_row_end = end;
 
-            if (slash_row_begin != slash_row_end) {
-                if (*slash_row_begin != '/') {
-                    *slash_row_begin = '/';
+        for (;;) {
+            if (slash_row_begin != end) {
+                slash_row_end = find_end_of_row_of_slashes(slash_row_begin, end);
+
+                if (slash_row_begin != slash_row_end) {
+                    if (*slash_row_begin == '\\') {
+                        *slash_row_begin = '/';
+                        slash_row_begin++;
+                    } else if (*slash_row_begin == '/') {
+                        slash_row_begin++;
+                    }
                 }
 
-                slash_row_begin++;
+                // Remove './' path-components
+
+                auto path_component_begin = slash_row_begin;
+                if (*path_component_begin == '.') {
+                    auto path_component_end = find_end_of_row_of_non_slashes(path_component_begin, end);
+                    auto path_component_expected_end = path_component_begin + 1;
+
+                    if (path_component_end == path_component_expected_end) {
+                        slash_row_begin = path.erase(path_component_begin, path_component_end);
+                        end = path.end();
+                    }
+                }
+
+                if (slash_row_begin != end) {
+                    slash_row_begin = path.erase(slash_row_begin, slash_row_end);
+
+                    end = path.end();
+                    slash_row_begin = find_next_slash(slash_row_begin, end);
+                }
+
+                continue;
             }
 
-            iter = path.erase(slash_row_begin, slash_row_end);
-            end = path.end();
+            break;
         }
 
         return path;
