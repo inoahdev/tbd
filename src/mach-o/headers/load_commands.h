@@ -260,7 +260,7 @@ namespace macho {
         uint32_t export_size;
     };
 
-    struct linker_option_command {
+    struct linker_option_command : load_command {
         uint32_t count;
     };
 

@@ -229,7 +229,7 @@ namespace macho {
 
             auto magic_is_big_endian = macho::magic_is_big_endian(magic);
             if (magic_is_big_endian) {
-                swap_uint32(&nfat_arch);
+                swap_uint32(nfat_arch);
             }
 
             containers.reserve(nfat_arch);
@@ -249,7 +249,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch_64(architectures, nfat_arch);
+                    swap_fat_archs_64(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -326,7 +326,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch(architectures, nfat_arch);
+                    swap_fat_archs(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -514,7 +514,7 @@ namespace macho {
 
             const auto magic_is_big_endian = magic == magic::fat_big_endian || magic == magic::fat_64_big_endian;
             if (magic_is_big_endian) {
-                swap_uint32(&nfat_arch);
+                swap_uint32(nfat_arch);
             }
 
             if (!nfat_arch) {
@@ -548,7 +548,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch_64(architectures, nfat_arch);
+                    swap_fat_archs_64(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -578,7 +578,7 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_mach_header(&header);
+                        swap_mach_header(header);
                     }
 
                     if (!filetype_is_library(header.filetype)) {
@@ -636,7 +636,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch(architectures, nfat_arch);
+                    swap_fat_archs(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -666,7 +666,7 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_mach_header(&header);
+                        swap_mach_header(header);
                     }
 
                     if (!filetype_is_library(header.filetype)) {
@@ -717,7 +717,7 @@ namespace macho {
 
                 auto magic_is_big_endian = magic == magic::big_endian || magic == magic::bits64_big_endian;
                 if (magic_is_big_endian) {
-                    swap_mach_header(&header);
+                    swap_mach_header(header);
                 }
 
                 if (!filetype_is_library(header.filetype)) {
@@ -790,7 +790,7 @@ namespace macho {
 
             const auto magic_is_big_endian = magic == magic::fat_big_endian || magic == magic::fat_64_big_endian;
             if (magic_is_big_endian) {
-                swap_uint32(&nfat_arch);
+                swap_uint32(nfat_arch);
             }
 
             if (!nfat_arch) {
@@ -824,7 +824,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch_64(architectures, nfat_arch);
+                    swap_fat_archs_64(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -854,7 +854,7 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_mach_header(&header);
+                        swap_mach_header(header);
                     }
 
                     if (!filetype_is_dynamic_library(header.filetype)) {
@@ -912,7 +912,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_fat_arch(architectures, nfat_arch);
+                    swap_fat_archs(architectures, nfat_arch);
                 }
 
                 for (auto i = uint32_t(); i < nfat_arch; i++) {
@@ -942,7 +942,7 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_mach_header(&header);
+                        swap_mach_header(header);
                     }
 
                     if (!filetype_is_dynamic_library(header.filetype)) {
@@ -993,7 +993,7 @@ namespace macho {
 
                 auto magic_is_big_endian = magic == magic::big_endian || magic == magic::bits64_big_endian;
                 if (magic_is_big_endian) {
-                    swap_mach_header(&header);
+                    swap_mach_header(header);
                 }
 
                 if (!filetype_is_dynamic_library(header.filetype)) {
@@ -1079,12 +1079,12 @@ namespace macho {
         const auto &ncmds = header->ncmds;
 
         for (auto i = uint32_t(); i < ncmds; i++) {
-            const auto load_cmd = (struct load_command *)&load_commands[index];
+            auto &load_cmd = *(struct load_command *)&load_commands[index];
             if (header_magic_is_big_endian) {
                 swap_load_command(load_cmd);
             }
 
-            auto cmdsize = load_cmd->cmdsize;
+            auto cmdsize = load_cmd.cmdsize;
             if (cmdsize < sizeof(struct load_command)) {
                 return false;
             }
@@ -1093,8 +1093,8 @@ namespace macho {
                 return false;
             }
 
-            if (load_cmd->cmd == load_commands::identification_dylib) {
-                if (load_cmd->cmdsize < sizeof(dylib_command)) {
+            if (load_cmd.cmd == load_commands::identification_dylib) {
+                if (load_cmd.cmdsize < sizeof(dylib_command)) {
                     // Make sure load-command is valid
                     return false;
                 }

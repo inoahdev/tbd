@@ -70,7 +70,7 @@ namespace macho {
             }
 
             if (magic_is_big_endian) {
-                swap_mach_header(&header);
+                swap_mach_header(header);
             }
         } else {
             const auto macho_stream_is_fat = magic_is_fat(magic);
@@ -103,7 +103,7 @@ namespace macho {
         if (type == validation_type::as_library || type == validation_type::as_dynamic_library) {
             auto filetype = header.filetype;
             if (magic_is_big_endian) {
-                swap_uint32((uint32_t *)filetype);
+                swap_uint32(*(uint32_t *)&filetype);
             }
 
             switch (type) {
@@ -152,7 +152,7 @@ namespace macho {
 
             auto identification_dylib_cmdsize = identification_dylib->cmdsize;
             if (magic_is_big_endian) {
-                swap_uint32(&identification_dylib_cmdsize);
+                swap_uint32(identification_dylib_cmdsize);
             }
 
             if (identification_dylib_cmdsize < sizeof(dylib_command)) {
@@ -307,7 +307,7 @@ namespace macho {
             if (created_cached_load_commands) {
                 auto swapped_load_command = *load_cmd;
                 if (magic_is_big_endian) {
-                    swap_load_command(&swapped_load_command);
+                    swap_load_command(swapped_load_command);
                 }
 
                 load_cmd_cmdsize = swapped_load_command.cmdsize;
@@ -400,7 +400,7 @@ namespace macho {
             if (created_cached_load_commands) {
                 auto swapped_load_command = *load_cmd;
                 if (magic_is_big_endian) {
-                    swap_load_command(&swapped_load_command);
+                    swap_load_command(swapped_load_command);
                 }
 
                 cmdsize = swapped_load_command.cmdsize;
@@ -445,7 +445,7 @@ namespace macho {
 
         auto symbol_table_cmdsize = symbol_table->cmdsize;
         if (magic_is_big_endian) {
-            swap_uint32(&symbol_table_cmdsize);
+            swap_uint32(symbol_table_cmdsize);
         }
 
         if (symbol_table_cmdsize != sizeof(symtab_command)) {
@@ -456,7 +456,7 @@ namespace macho {
         if (!cached_string_table) {
             auto string_table_location = symbol_table->stroff;
             if (magic_is_big_endian) {
-                macho::swap_uint32(&string_table_location);
+                macho::swap_uint32(string_table_location);
             }
 
             if (!string_table_location) {
@@ -501,8 +501,8 @@ namespace macho {
             auto symbol_table_location = symbol_table->symoff;
 
             if (magic_is_big_endian) {
-                macho::swap_uint32(&symbol_table_count);
-                macho::swap_uint32(&symbol_table_location);
+                macho::swap_uint32(symbol_table_count);
+                macho::swap_uint32(symbol_table_location);
             }
 
             if (!symbol_table_count) {
@@ -542,7 +542,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_nlist_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
+                    swap_nlists_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
                 }
             } else {
                 const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
@@ -565,7 +565,7 @@ namespace macho {
                 }
 
                 if (magic_is_big_endian) {
-                    swap_nlist((struct nlist *)cached_symbol_table, symbol_table_count);
+                    swap_nlists((struct nlist *)cached_symbol_table, symbol_table_count);
                 }
             }
 
