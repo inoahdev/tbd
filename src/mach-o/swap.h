@@ -79,4 +79,7 @@ namespace macho {
     void swap_entry_point_command(entry_point_command &entry_point);
 
     void swap_source_version_command(source_version_command &source_version);
+
+    void swap_build_version_command(build_version_command &build_version);
+    void swap_note_command(note_command &note);
 }

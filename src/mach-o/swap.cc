@@ -350,4 +350,16 @@ namespace macho {
         swap_load_command(source_version);
         swap_uint64(source_version.version);
     }
+
+    void swap_build_version_command(build_version_command &build_version) {
+        swap_load_command(build_version);
+
+        swap_uint32(build_version.minos);
+        swap_uint32(build_version.ntools);
+    }
+
+    void swap_note_command(note_command &note) {
+        swap_load_command(note);
+        swap_uint64(note.offset);
+    }
 }
