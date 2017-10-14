@@ -672,7 +672,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 fputs(architecture_names.front(), stdout);
-                for (auto architecture_names_iter = architecture_names.begin() + 1; architecture_names_iter != architecture_names.end(); architecture_names_iter++) {
+                for (auto architecture_names_iter = architecture_names.cbegin() + 1; architecture_names_iter != architecture_names.end(); architecture_names_iter++) {
                     fprintf(stdout, ", %s", *architecture_names_iter);
                 }
 
@@ -904,7 +904,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto objc_constraint_integer = uint64_t(1);
+            auto objc_constraint_integer = static_cast<uint64_t>(1);
             auto objc_constraint_string = macho::utils::tbd::objc_constraint_to_string(macho::utils::tbd::objc_constraint(objc_constraint_integer));
 
             while (objc_constraint_string != nullptr) {
@@ -1432,7 +1432,7 @@ int main(int argc, const char *argv[]) {
                 const auto &tbd_inner = *tbd_inner_iter;
                 const auto &tbd_inner_path = tbd_inner.path;
 
-                if (path::compare(tbd_path.begin(), tbd_path.end(), tbd_inner_path.begin(), tbd_inner_path.end()) != 0) {
+                if (path::compare(tbd_path.cbegin(), tbd_path.cend(), tbd_inner_path.cbegin(), tbd_inner_path.cend()) != 0) {
                     continue;
                 }
 
@@ -1524,7 +1524,7 @@ int main(int argc, const char *argv[]) {
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;
                 } else {
-                    output_path_front = path::find_last_slash(library_path.begin(), library_path.end()) - library_path.begin();
+                    output_path_front = path::find_last_slash(library_path.cbegin(), library_path.cend()) - library_path.cbegin();
                 }
 
                 auto output_path = library_path.substr(output_path_front);
@@ -1536,8 +1536,8 @@ int main(int argc, const char *argv[]) {
                 output_path.insert(0, tbd_output_path);
 
                 if (tbd_options & replace_path_extension) {
-                    auto output_path_end = output_path.end();
-                    auto path_extension = path::find_extension(output_path.begin(), output_path_end);
+                    auto output_path_end = output_path.cend();
+                    auto path_extension = path::find_extension(output_path.cbegin(), output_path_end);
 
                     if (path_extension != output_path_end) {
                         output_path.erase(path_extension, output_path_end);
@@ -1749,8 +1749,14 @@ int main(int argc, const char *argv[]) {
             auto recursive_directory_creation_ptr = (char *)nullptr;
 
             if (!tbd_output_path.empty()) {
-                recursive_directory_creation_ptr = recursively_create_directories_from_file_path_creating_last_as_file(tbd_output_path.data(), 0);
-                output_file = fopen(tbd_output_path.data(), "w");
+                auto last_file_descriptor = -1;
+                recursive_directory_creation_ptr = recursively_create_directories_from_file_path_creating_last_as_file(tbd_output_path.data(), 0, &last_file_descriptor);
+                
+                if (last_file_descriptor != -1) {
+                    output_file = fdopen(last_file_descriptor, "w");
+                } else {
+                    output_file = fopen(tbd_output_path.data(), "w");
+                }
 
                 if (!output_file) {
                     if (should_print_paths) {
