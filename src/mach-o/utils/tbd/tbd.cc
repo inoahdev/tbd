@@ -811,7 +811,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_symbols_iter != symbols_end) {
             dprintf(output, "%-4ssymbols:%12s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_symbols_iter->string, current_line_length);
 
             for (symbols_begin_symbols_iter++; symbols_begin_symbols_iter != symbols_end; symbols_begin_symbols_iter++) {
@@ -836,7 +836,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_objc_classes_iter != symbols_end) {
             dprintf(output, "%-4sobjc-classes:%7s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_objc_classes_iter->string, current_line_length);
 
             for (symbols_begin_objc_classes_iter++; symbols_begin_objc_classes_iter != symbols_end; symbols_begin_objc_classes_iter++) {
@@ -861,7 +861,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_objc_ivars_iter != symbols_end) {
             dprintf(output, "%-4sobjc-ivars:%9s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_objc_ivars_iter->string, current_line_length);
 
             for (symbols_begin_objc_ivars_iter++; symbols_begin_objc_ivars_iter != symbols_end; symbols_begin_objc_ivars_iter++) {
@@ -886,7 +886,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_weak_symbols_iter != symbols_end) {
             dprintf(output, "%-4sweak-def-symbols:%3s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_weak_symbols_iter->string, current_line_length);
 
             for (symbols_begin_weak_symbols_iter++; symbols_begin_weak_symbols_iter != symbols_end; symbols_begin_weak_symbols_iter++) {
@@ -1055,7 +1055,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_symbols_iter != symbols_end) {
             fprintf(output, "%-4ssymbols:%12s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_symbols_iter->string, current_line_length);
 
             for (symbols_begin_symbols_iter++; symbols_begin_symbols_iter != symbols_end; symbols_begin_symbols_iter++) {
@@ -1080,7 +1080,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_objc_classes_iter != symbols_end) {
             fprintf(output, "%-4sobjc-classes:%7s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_objc_classes_iter->string, current_line_length);
 
             for (symbols_begin_objc_classes_iter++; symbols_begin_objc_classes_iter != symbols_end; symbols_begin_objc_classes_iter++) {
@@ -1105,7 +1105,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_objc_ivars_iter != symbols_end) {
             fprintf(output, "%-4sobjc-ivars:%9s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_objc_ivars_iter->string, current_line_length);
 
             for (symbols_begin_objc_ivars_iter++; symbols_begin_objc_ivars_iter != symbols_end; symbols_begin_objc_ivars_iter++) {
@@ -1130,7 +1130,7 @@ namespace macho::utils::tbd {
         if (symbols_begin_weak_symbols_iter != symbols_end) {
             fprintf(output, "%-4sweak-def-symbols:%3s[ ", "", "");
 
-            auto current_line_length = size_t(0);
+            auto current_line_length = static_cast<size_t>(0);
             print_string_to_tbd_output_array(output, symbols_begin_weak_symbols_iter->string, current_line_length);
 
             for (symbols_begin_weak_symbols_iter++; symbols_begin_weak_symbols_iter != symbols_end; symbols_begin_weak_symbols_iter++) {
@@ -1174,7 +1174,7 @@ namespace macho::utils::tbd {
                     auto build_version_platform = build_version_command->platform;
 
                     if (container_is_big_endian) {
-                        swap_uint32(&build_version_platform);
+                        swap_uint32(build_version_platform);
                     }
 
                     auto build_version_parsed_platform = platform::none;
@@ -1217,7 +1217,7 @@ namespace macho::utils::tbd {
                     auto identification_dylib_installation_name_string_index = identification_dylib_command->name.offset;
 
                     if (container_is_big_endian) {
-                        swap_uint32(&identification_dylib_installation_name_string_index);
+                        swap_uint32(identification_dylib_installation_name_string_index);
                     }
 
                     if (identification_dylib_installation_name_string_index >= swapped->cmdsize) {
@@ -1246,8 +1246,8 @@ namespace macho::utils::tbd {
                     auto identification_dylib_compatibility_version = identification_dylib_command->compatibility_version;
 
                     if (container_is_big_endian) {
-                        swap_uint32(&identification_dylib_current_version);
-                        swap_uint32(&identification_dylib_compatibility_version);
+                        swap_uint32(identification_dylib_current_version);
+                        swap_uint32(identification_dylib_compatibility_version);
                     }
 
                     if (current_version != -1) {
@@ -1275,7 +1275,7 @@ namespace macho::utils::tbd {
                     auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
 
                     if (container_is_big_endian) {
-                        swap_uint32(&reexport_dylib_string_index);
+                        swap_uint32(reexport_dylib_string_index);
                     }
 
                     if (reexport_dylib_string_index > swapped->cmdsize) {
@@ -1321,114 +1321,123 @@ namespace macho::utils::tbd {
 
                     auto segment_sections_count = segment_command->nsects;
                     if (container_is_big_endian) {
-                        swap_uint32(&segment_sections_count);
+                        swap_uint32(segment_sections_count);
                     }
 
-                    auto segment_section = (segments::section *)(segment_command + sizeof(macho::segment_command));
+                    if (segment_sections_count != 0) {
+                        const auto segment_sections_size = sizeof(segments::section) * segment_sections_count;
+                        const auto expected_command_size_without_data = sizeof(macho::segment_command) + segment_sections_size;
 
-                    auto objc_image_info = objc::image_info();
-                    auto found_objc_image_info = false;
-
-                    while (segment_sections_count != 0) {
-                        if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
-                            segment_section = (segments::section *)((uint64_t)segment_section + sizeof(segments::section));
-                            segment_sections_count--;
-
-                            continue;
-                        }
-
-                        auto segment_section_data_offset = segment_section->offset;
-                        if (container_is_big_endian) {
-                            swap_uint32(&segment_section_data_offset);
-                        }
-
-                        if (segment_section_data_offset >= container_size) {
+                        if (segment_command->cmdsize < expected_command_size_without_data) {
                             failure_result = creation_result::invalid_segment;
                             return false;
                         }
 
-                        auto segment_section_data_size = segment_section->size;
-                        if (container_is_big_endian) {
-                            swap_uint32(&segment_section_data_offset);
+                        auto segment_section = reinterpret_cast<segments::section *>(&segment_command[1]);
+
+                        auto objc_image_info = objc::image_info();
+                        auto found_objc_image_info = false;
+
+                        const auto segment_sections_end = reinterpret_cast<segments::section *>((uint64_t)&segment_command[1] + segment_sections_size);
+                        while (segment_section != segment_sections_end) {
+                            if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
+                                segment_section = &segment_section[1];
+                                continue;
+                            }
+
+                            auto segment_section_data_offset = segment_section->offset;
+                            if (container_is_big_endian) {
+                                swap_uint32(segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_offset >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            auto segment_section_data_size = segment_section->size;
+                            if (container_is_big_endian) {
+                                swap_uint32(segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_size >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
+                            if (segment_section_data_end >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto library_container_stream_position = ftell(container_stream);
+
+                            if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            found_objc_image_info = true;
+                            break;
                         }
 
-                        if (segment_section_data_size >= container_size) {
-                            failure_result = creation_result::invalid_segment;
-                            return false;
+                        if (!found_objc_image_info) {
+                            break;
                         }
 
-                        const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
-                        if (segment_section_data_end >= container_size) {
-                            failure_result = creation_result::invalid_segment;
-                            return false;
+                        const auto &objc_image_info_flags = objc_image_info.flags;
+
+                        if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::gc) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::gc;
+                            }
+                        } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::retain_release_or_gc) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::retain_release_or_gc;
+                            }
+                        } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::retain_release_for_simulator) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::retain_release_for_simulator;
+                            }
+                        } else {
+                            constraint = objc_constraint::retain_release;
                         }
 
-                        const auto library_container_stream_position = ftell(container_stream);
-
-                        if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
-                            failure_result = creation_result::stream_seek_error;
-                            return false;
-                        }
-
-                        if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
-                            failure_result = creation_result::stream_seek_error;
-                            return false;
-                        }
-
-                        if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
-                            failure_result = creation_result::stream_seek_error;
-                            return false;
-                        }
-
-                        found_objc_image_info = true;
-                        break;
-                    }
-
-                    if (!found_objc_image_info) {
-                        break;
-                    }
-
-                    const auto &objc_image_info_flags = objc_image_info.flags;
-
-                    if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::gc) {
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
+                        if (swift_version != 0) {
+                            if (objc_image_info_flags_swift_version != swift_version) {
                                 failure_result = creation_result::contradictary_load_command_information;
                                 return false;
                             }
                         } else {
-                            constraint = objc_constraint::gc;
+                            swift_version = objc_image_info_flags_swift_version;
                         }
-                    } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::retain_release_or_gc) {
-                                failure_result = creation_result::contradictary_load_command_information;
-                                return false;
-                            }
-                        } else {
-                            constraint = objc_constraint::retain_release_or_gc;
-                        }
-                    } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::retain_release_for_simulator) {
-                                failure_result = creation_result::contradictary_load_command_information;
-                                return false;
-                            }
-                        } else {
-                            constraint = objc_constraint::retain_release_for_simulator;
-                        }
-                    } else {
-                        constraint = objc_constraint::retain_release;
-                    }
-
-                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                    if (swift_version != 0) {
-                        if (objc_image_info_flags_swift_version != swift_version) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
-                        }
-                    } else {
-                        swift_version = objc_image_info_flags_swift_version;
                     }
 
                     break;
@@ -1447,114 +1456,123 @@ namespace macho::utils::tbd {
 
                     auto segment_sections_count = segment_command->nsects;
                     if (container_is_big_endian) {
-                        swap_uint32(&segment_sections_count);
+                        swap_uint32(segment_sections_count);
                     }
 
-                    auto segment_section = (segments::section_64 *)((uint64_t)segment_command + sizeof(segment_command_64));
+                    if (segment_sections_count != 0) {
+                        const auto segment_sections_size = sizeof(segments::section_64) * segment_sections_count;
+                        const auto expected_command_size_without_data = sizeof(macho::segment_command) + segment_sections_size;
 
-                    auto objc_image_info = objc::image_info();
-                    auto found_objc_image_info = false;
-
-                    while (segment_sections_count != 0) {
-                        if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
-                            segment_section = (segments::section_64 *)((uint64_t)segment_section + sizeof(segments::section_64));
-                            segment_sections_count--;
-
-                            continue;
-                        }
-
-                        auto segment_section_data_offset = segment_section->offset;
-                        if (container_is_big_endian) {
-                            swap_uint32(&segment_section_data_offset);
-                        }
-
-                        if (segment_section_data_offset >= container_size) {
+                        if (segment_command->cmdsize < expected_command_size_without_data) {
                             failure_result = creation_result::invalid_segment;
                             return false;
                         }
 
-                        auto segment_section_data_size = segment_section->size;
-                        if (container_is_big_endian) {
-                            swap_uint32(&segment_section_data_offset);
+                        auto segment_section = reinterpret_cast<segments::section_64 *>(&segment_command[1]);
+
+                        auto objc_image_info = objc::image_info();
+                        auto found_objc_image_info = false;
+
+                        const auto segment_sections_end = reinterpret_cast<segments::section_64 *>((uint64_t)&segment_command[1] + segment_sections_size);
+                        while (segment_section != segment_sections_end) {
+                            if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
+                                segment_section = &segment_section[1];
+                                continue;
+                            }
+
+                            auto segment_section_data_offset = segment_section->offset;
+                            if (container_is_big_endian) {
+                                swap_uint32(segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_offset >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            auto segment_section_data_size = segment_section->size;
+                            if (container_is_big_endian) {
+                                swap_uint32(segment_section_data_offset);
+                            }
+
+                            if (segment_section_data_size >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
+                            if (segment_section_data_end >= container_size) {
+                                failure_result = creation_result::invalid_segment;
+                                return false;
+                            }
+
+                            const auto library_container_stream_position = ftell(container_stream);
+
+                            if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                                failure_result = creation_result::stream_seek_error;
+                                return false;
+                            }
+
+                            found_objc_image_info = true;
+                            break;
                         }
 
-                        if (segment_section_data_size >= container_size) {
-                            failure_result = creation_result::invalid_segment;
-                            return false;
+                        if (!found_objc_image_info) {
+                            break;
                         }
 
-                        const auto segment_section_data_end = segment_section_data_offset + segment_section_data_size;
-                        if (segment_section_data_end >= container_size) {
-                            failure_result = creation_result::invalid_segment;
-                            return false;
+                        const auto &objc_image_info_flags = objc_image_info.flags;
+
+                        if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::gc) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::gc;
+                            }
+                        } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::retain_release_or_gc) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::retain_release_or_gc;
+                            }
+                        } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                            if (constraint != objc_constraint::no_value) {
+                                if (constraint != objc_constraint::retain_release_for_simulator) {
+                                    failure_result = creation_result::contradictary_load_command_information;
+                                    return false;
+                                }
+                            } else {
+                                constraint = objc_constraint::retain_release_for_simulator;
+                            }
+                        } else {
+                            constraint = objc_constraint::retain_release;
                         }
 
-                        const auto library_container_stream_position = ftell(container_stream);
-
-                        if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
-                            failure_result = creation_result::stream_seek_error;
-                            return false;
-                        }
-
-                        if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
-                            failure_result = creation_result::stream_read_error;
-                            return false;
-                        }
-
-                        if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
-                            failure_result = creation_result::stream_seek_error;
-                            return false;
-                        }
-
-                        found_objc_image_info = true;
-                        break;
-                    }
-
-                    if (!found_objc_image_info) {
-                        break;
-                    }
-
-                    const auto &objc_image_info_flags = objc_image_info.flags;
-
-                    if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::gc) {
+                        auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
+                        if (swift_version != 0) {
+                            if (objc_image_info_flags_swift_version != swift_version) {
                                 failure_result = creation_result::contradictary_load_command_information;
                                 return false;
                             }
                         } else {
-                            constraint = objc_constraint::gc;
+                            swift_version = objc_image_info_flags_swift_version;
                         }
-                    } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::retain_release_or_gc) {
-                                failure_result = creation_result::contradictary_load_command_information;
-                                return false;
-                            }
-                        } else {
-                            constraint = objc_constraint::retain_release_or_gc;
-                        }
-                    } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
-                        if (constraint != objc_constraint::no_value) {
-                            if (constraint != objc_constraint::retain_release_for_simulator) {
-                                failure_result = creation_result::contradictary_load_command_information;
-                                return false;
-                            }
-                        } else {
-                            constraint = objc_constraint::retain_release_for_simulator;
-                        }
-                    } else {
-                        constraint = objc_constraint::retain_release;
-                    }
-
-                    auto objc_image_info_flags_swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                    if (swift_version != 0) {
-                        if (objc_image_info_flags_swift_version != swift_version) {
-                            failure_result = creation_result::contradictary_load_command_information;
-                            return false;
-                        }
-                    } else {
-                        swift_version = objc_image_info_flags_swift_version;
                     }
 
                     break;
@@ -1565,7 +1583,7 @@ namespace macho::utils::tbd {
 
                     auto sub_client_command_cmdsize = sub_client_command->cmdsize;
                     if (container_is_big_endian) {
-                        swap_uint32(&sub_client_command_cmdsize);
+                        swap_uint32(sub_client_command_cmdsize);
                     }
 
                     if (sub_client_command_cmdsize < sizeof(macho::sub_client_command)) {
@@ -1575,7 +1593,7 @@ namespace macho::utils::tbd {
 
                     auto sub_client_command_client_location = sub_client_command->client.offset;
                     if (container_is_big_endian) {
-                        swap_uint32(&sub_client_command_cmdsize);
+                        swap_uint32(sub_client_command_cmdsize);
                     }
 
                     if (sub_client_command_client_location < sizeof(macho::sub_client_command) || sub_client_command_client_location > sub_client_command_cmdsize) {
@@ -1644,7 +1662,7 @@ namespace macho::utils::tbd {
 
                     auto sub_umbrella_command_cmdsize = sub_umbrella_command->cmdsize;
                     if (container_is_big_endian) {
-                        swap_uint32(&sub_umbrella_command_cmdsize);
+                        swap_uint32(sub_umbrella_command_cmdsize);
                     }
 
                     if (sub_umbrella_command_cmdsize < sizeof(macho::sub_umbrella_command)) {
@@ -1950,11 +1968,11 @@ namespace macho::utils::tbd {
             const auto library_container_header_cpusubtype = library_container_header.cpusubtype;
 
             if (library_container.is_big_endian()) {
-                swap_uint32((uint32_t *)&library_container_header_filetype);
-                swap_uint32((uint32_t *)&library_container_header_flags);
+                swap_uint32(*(uint32_t *)&library_container_header_filetype);
+                swap_uint32(*(uint32_t *)&library_container_header_flags);
 
-                swap_uint32((uint32_t *)&library_container_header_cputype);
-                swap_uint32((uint32_t *)&library_container_header_cpusubtype);
+                swap_uint32(*(uint32_t *)&library_container_header_cputype);
+                swap_uint32(*(uint32_t *)&library_container_header_cpusubtype);
             }
 
             if (!filetype_is_dynamic_library(library_container_header_filetype)) {
@@ -2375,11 +2393,11 @@ namespace macho::utils::tbd {
         const auto header_cpusubtype = header.cpusubtype;
 
         if (container.is_big_endian()) {
-            swap_uint32((uint32_t *)&header_filetype);
-            swap_uint32((uint32_t *)&header_flags);
+            swap_uint32(*(uint32_t *)&header_filetype);
+            swap_uint32(*(uint32_t *)&header_flags);
 
-            swap_uint32((uint32_t *)&header_cputype);
-            swap_uint32((uint32_t *)&header_cpusubtype);
+            swap_uint32(*(uint32_t *)&header_cputype);
+            swap_uint32(*(uint32_t *)&header_cpusubtype);
         }
 
         if (!filetype_is_dynamic_library(header_filetype)) {
@@ -2604,11 +2622,11 @@ namespace macho::utils::tbd {
             const auto library_container_header_cpusubtype = library_container_header.cpusubtype;
 
             if (library_container.is_big_endian()) {
-                swap_uint32((uint32_t *)&library_container_header_filetype);
-                swap_uint32((uint32_t *)&library_container_header_flags);
+                swap_uint32(*(uint32_t *)&library_container_header_filetype);
+                swap_uint32(*(uint32_t *)&library_container_header_flags);
 
-                swap_uint32((uint32_t *)&library_container_header_cputype);
-                swap_uint32((uint32_t *)&library_container_header_cpusubtype);
+                swap_uint32(*(uint32_t *)&library_container_header_cputype);
+                swap_uint32(*(uint32_t *)&library_container_header_cpusubtype);
             }
 
             if (!filetype_is_dynamic_library(library_container_header_filetype)) {
@@ -3028,11 +3046,11 @@ namespace macho::utils::tbd {
         const auto header_flags = header.flags;
 
         if (container.is_big_endian()) {
-            swap_uint32((uint32_t *)&header_filetype);
-            swap_uint32((uint32_t *)&header_flags);
+            swap_uint32(*(uint32_t *)&header_filetype);
+            swap_uint32(*(uint32_t *)&header_flags);
 
-            swap_uint32((uint32_t *)&header_cputype);
-            swap_uint32((uint32_t *)&header_cpusubtype);
+            swap_uint32(*(uint32_t *)&header_cputype);
+            swap_uint32(*(uint32_t *)&header_cpusubtype);
         }
 
         if (!filetype_is_dynamic_library(header_filetype)) {
