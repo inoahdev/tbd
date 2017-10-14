@@ -98,7 +98,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             break;
         }
 
-        architectures |= (static_cast<uint64_t>(1) << architecture_info_table_index);
+        architectures |= (1ull << architecture_info_table_index);
         index++;
     }
 
@@ -904,7 +904,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            auto objc_constraint_integer = static_cast<uint64_t>(1);
+            auto objc_constraint_integer = 1ull;
             auto objc_constraint_string = macho::utils::tbd::objc_constraint_to_string(macho::utils::tbd::objc_constraint(objc_constraint_integer));
 
             while (objc_constraint_string != nullptr) {
@@ -1751,7 +1751,7 @@ int main(int argc, const char *argv[]) {
             if (!tbd_output_path.empty()) {
                 auto last_file_descriptor = -1;
                 recursive_directory_creation_ptr = recursively_create_directories_from_file_path_creating_last_as_file(tbd_output_path.data(), 0, &last_file_descriptor);
-                
+
                 if (last_file_descriptor != -1) {
                     output_file = fdopen(last_file_descriptor, "w");
                 } else {
