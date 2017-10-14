@@ -1473,7 +1473,7 @@ namespace macho::utils::tbd {
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
-                        const auto segment_sections_end = reinterpret_cast<segments::section_64 *>((uint64_t)&segment_command[1] + segment_sections_size);
+                        const auto segment_sections_end = reinterpret_cast<segments::section_64 *>((uint64_t)segment_section + segment_sections_size);
                         while (segment_section != segment_sections_end) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
                                 segment_section = &segment_section[1];
@@ -1610,9 +1610,9 @@ namespace macho::utils::tbd {
                             return false;
                         }
 
-                        auto sub_client_command_client_string = (char *)nullptr;
+                        auto sub_client_command_client_string = static_cast<char *>(nullptr);
                         if (sub_client_command_client_size > sizeof(char *)) {
-                            sub_client_command_client_string = (char *)malloc(sub_client_command_client_size);
+                            sub_client_command_client_string = static_cast<char *>(malloc(sub_client_command_client_size));
                             if (!sub_client_command_client_string) {
                                 failure_result = creation_result::failed_to_allocate_memory;
                                 return false;
@@ -1633,14 +1633,14 @@ namespace macho::utils::tbd {
                         if (sub_client_command_client_size > sizeof(char *)) {
                             sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), sub_client_command_client_string);
                         } else {
-                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), (char *)&sub_client_command_client_string);
+                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), reinterpret_cast<char *>(&sub_client_command_client_string));
                         }
 
                         if (sub_clients_iter == sub_clients.end()) {
                             if (sub_client_command_client_size > sizeof(char *)) {
                                 sub_clients.emplace_back(sub_client_command_client_string);
                             } else {
-                                sub_clients.emplace_back((char *)&sub_client_command_client_string);
+                                sub_clients.emplace_back(reinterpret_cast<char *>(&sub_client_command_client_string));
                             }
                         }
 
@@ -1687,7 +1687,7 @@ namespace macho::utils::tbd {
 
                         auto sub_umbrella_command_umbrella_string = (char *)nullptr;
                         if (sub_umbrella_command_umbrella_size > sizeof(char *)) {
-                            sub_umbrella_command_umbrella_string = (char *)malloc(sub_umbrella_command_umbrella_size);
+                            sub_umbrella_command_umbrella_string = static_cast<char *>(malloc(sub_umbrella_command_umbrella_size));
                             if (!sub_umbrella_command_umbrella_string) {
                                 failure_result = creation_result::failed_to_allocate_memory;
                                 return false;
@@ -1715,12 +1715,11 @@ namespace macho::utils::tbd {
                         }
 
                         if (sub_umbrella_command_umbrella_size > sizeof(char *)) {
-                            parent_umbrella = (char *)&sub_umbrella_command_umbrella_string;
+                            parent_umbrella = reinterpret_cast<char *>(&sub_umbrella_command_umbrella_string);
+                            free(sub_umbrella_command_umbrella_string);
                         } else {
                             parent_umbrella = sub_umbrella_command_umbrella_string;
                         }
-
-                        free(sub_umbrella_command_umbrella_string);
                     }
 
                     break;
@@ -1741,7 +1740,7 @@ namespace macho::utils::tbd {
                         break;
                     }
 
-                    uuid = (uint8_t *)&load_command_uuid;
+                    uuid = reinterpret_cast<uint8_t *>(&load_command_uuid);
                     break;
                 }
 
@@ -1837,7 +1836,7 @@ namespace macho::utils::tbd {
 
     creation_result get_symbols(container &container, uint64_t architecture_info_index, uint64_t containers_count, std::vector<symbol> &symbols, uint64_t options) {
         auto symbols_iteration_failure_result = creation_result::ok;
-        auto library_container_symbols_iteration_result = container.iterate_symbols([&](const nlist_64 &symbol_table_entry, const char *symbol_string) {
+        auto library_container_symbols_iteration_result = container.iterate_symbol_table([&](const nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
             if ((symbol_table_entry_type & symbol_table::flags::type) != symbol_table::type::section) {
                 return true;

@@ -432,7 +432,7 @@ namespace macho {
         return load_command_iteration_result::ok;
     }
 
-    container::symbols_iteration_result container::iterate_symbols(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {
+    container::symbols_iteration_result container::iterate_symbol_table(const std::function<bool (const struct nlist_64 &, const char *)> &callback) noexcept {
         const auto magic_is_big_endian = is_big_endian();
         const auto magic_is_64_bit = is_64_bit();
 

@@ -80,7 +80,7 @@ namespace macho {
             invalid_symbol_table_entry
         };
 
-        symbols_iteration_result iterate_symbols(const std::function<bool(const struct nlist_64 &, const char *)> &callback) noexcept;
+        symbols_iteration_result iterate_symbol_table(const std::function<bool(const struct nlist_64 &, const char *)> &callback) noexcept;
 
         inline const bool is_big_endian() const noexcept { return header.magic == magic::big_endian || header.magic == magic::bits64_big_endian; }
 
