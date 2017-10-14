@@ -12,7 +12,29 @@
 #include "recurse.h"
 
 namespace recurse {
-    void _macho_libraries_subdirectories(DIR *directory, const std::string &directory_path, uint64_t options, const std::function<void (std::string &, macho::file &)> &callback) {
+    macho::file::open_result _macho_open_file_as_filetype(const char *path, macho_file_type filetype, macho::file &macho_file) {
+        auto open_result = macho::file::open_result::ok;
+        switch (filetype) {
+            case macho_file_type::none:
+                open_result = macho_file.open(path);
+                break;
+
+            case macho_file_type::library:
+                open_result = macho_file.open_from_library(path);
+                break;
+
+            case macho_file_type::dynamic_library:
+                open_result = macho_file.open_from_dynamic_library(path);
+                break;
+
+            default:
+                break;
+        }
+
+        return open_result;
+    }
+
+    void _macho_files_subdirectories(DIR *directory, const std::string &directory_path, macho_file_type filetype, uint64_t options, const std::function<void (std::string &, macho::file &)> &callback) {
         auto directory_entry = readdir(directory);
         auto directory_path_length = directory_path.length();
 
@@ -47,7 +69,7 @@ namespace recurse {
 
                 const auto sub_directory = opendir(sub_directory_path.data());
                 if (sub_directory) {
-                    _macho_libraries_subdirectories(sub_directory, sub_directory_path, options, callback);
+                    _macho_files_subdirectories(sub_directory, sub_directory_path, filetype, options, callback);
                     closedir(sub_directory);
                 } else {
                     if (options & options::print_warnings) {
@@ -66,7 +88,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_library_file = macho::file();
-                    auto directory_entry_library_file_open_result = directory_entry_library_file.open_from_library(directory_entry_path.data());
+                    auto directory_entry_library_file_open_result = _macho_open_file_as_filetype(directory_entry_path.data(), filetype, directory_entry_library_file);
 
                     switch (directory_entry_library_file_open_result) {
                         case macho::file::open_result::ok:
@@ -90,7 +112,7 @@ namespace recurse {
         }
     }
 
-    operation_result macho_libraries(const char *directory_path, uint64_t options, const std::function<void (std::string &, macho::file &)> &callback) {
+    operation_result macho_files(const char *directory_path, macho_file_type filetype, uint64_t options, const std::function<void (std::string &, macho::file &)> &callback) {
         const auto directory = opendir(directory_path);
         if (!directory) {
             return operation_result::failed_to_open_directory;
@@ -131,7 +153,7 @@ namespace recurse {
 
                     const auto sub_directory = opendir(sub_directory_path.data());
                     if (sub_directory) {
-                        _macho_libraries_subdirectories(sub_directory, sub_directory_path, options, callback);
+                        _macho_files_subdirectories(sub_directory, sub_directory_path, filetype, options, callback);
                         closedir(sub_directory);
                     } else {
                         if (options & options::print_warnings) {
@@ -151,7 +173,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_library_file = macho::file();
-                    auto directory_entry_library_file_open_result = directory_entry_library_file.open_from_library(directory_entry_path.data());
+                    auto directory_entry_library_file_open_result = _macho_open_file_as_filetype(directory_entry_path.data(), filetype, directory_entry_library_file);
 
                     switch (directory_entry_library_file_open_result) {
                         case macho::file::open_result::ok:
@@ -178,7 +200,31 @@ namespace recurse {
         return operation_result::ok;
     }
 
-    void _macho_library_paths_subdirectories(DIR *directory, const std::string &directory_path, uint64_t options, const std::function<void(std::string &)> &callback) {
+    bool _macho_check_file_as_filetype(const char *path, macho_file_type filetype, macho::file::check_error &error) {
+        auto check_error = macho::file::check_error::ok;
+        auto result = false;
+
+        switch (filetype) {
+            case macho_file_type::none:
+                result = macho::file::is_valid_file(path, &check_error);
+                break;
+
+            case macho_file_type::library:
+                result = macho::file::is_valid_library(path, &check_error);
+                break;
+
+            case macho_file_type::dynamic_library:
+                result = macho::file::is_valid_dynamic_library(path, &check_error);
+                break;
+
+            default:
+                break;
+        }
+
+        return result;
+    }
+
+    void _macho_file_paths_subdirectories(DIR *directory, const std::string &directory_path, macho_file_type filetype, uint64_t options, const std::function<void(std::string &)> &callback) {
         auto directory_entry = readdir(directory);
         auto directory_path_length = directory_path.length();
 
@@ -213,7 +259,7 @@ namespace recurse {
 
                 const auto sub_directory = opendir(sub_directory_path.data());
                 if (sub_directory) {
-                    _macho_library_paths_subdirectories(sub_directory, sub_directory_path, options, callback);
+                    _macho_file_paths_subdirectories(sub_directory, sub_directory_path, filetype, options, callback);
                     closedir(sub_directory);
                 } else {
                     if (options & options::print_warnings) {
@@ -232,7 +278,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
-                    const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
+                    const auto directory_entry_path_is_valid_library = _macho_check_file_as_filetype(directory_entry_path.data(), filetype, directory_entry_path_is_valid_library_check_error);
 
                     switch (directory_entry_path_is_valid_library_check_error) {
                         case macho::file::check_error::failed_to_open_descriptor:
@@ -256,7 +302,7 @@ namespace recurse {
         }
     }
 
-    operation_result macho_library_paths(const char *directory_path, uint64_t options, const std::function<void (std::string &)> &callback) {
+    operation_result macho_file_paths(const char *directory_path, macho_file_type filetype, uint64_t options, const std::function<void (std::string &)> &callback) {
         const auto directory = opendir(directory_path);
         if (!directory) {
             return operation_result::failed_to_open_directory;
@@ -297,7 +343,7 @@ namespace recurse {
 
                     const auto sub_directory = opendir(sub_directory_path.data());
                     if (sub_directory) {
-                        _macho_library_paths_subdirectories(sub_directory, sub_directory_path, options, callback);
+                        _macho_file_paths_subdirectories(sub_directory, sub_directory_path, filetype, options, callback);
                         closedir(sub_directory);
                     } else {
                         if (options & options::print_warnings) {
@@ -317,7 +363,7 @@ namespace recurse {
                     directory_entry_path.append(directory_entry_name, directory_entry_name_length);
 
                     auto directory_entry_path_is_valid_library_check_error = macho::file::check_error::ok;
-                    const auto directory_entry_path_is_valid_library = macho::file::is_valid_library(directory_entry_path, &directory_entry_path_is_valid_library_check_error);
+                    const auto directory_entry_path_is_valid_library = _macho_check_file_as_filetype(directory_entry_path.data(), filetype, directory_entry_path_is_valid_library_check_error);
 
                     switch (directory_entry_path_is_valid_library_check_error) {
                         case macho::file::check_error::failed_to_open_descriptor:

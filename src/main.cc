@@ -799,7 +799,7 @@ int main(int argc, const char *argv[]) {
                             recurse_options |= recurse::options::recurse_subdirectories;
                         }
 
-                        auto recursion_result = recurse::macho_library_paths(path_data, recurse_options, [&](std::string &library_path) {
+                        auto recursion_result = recurse::macho_file_paths(path_data, recurse::macho_file_type::library, recurse_options, [&](std::string &library_path) {
                             found_libraries = true;
                             fprintf(stdout, "%s\n", library_path.data());
                         });
@@ -869,7 +869,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto found_libraries = false;
-                auto recursion_result = recurse::macho_library_paths(path, recurse::options::print_warnings | recurse::options::recurse_subdirectories, [&](std::string &library_path) {
+                auto recursion_result = recurse::macho_file_paths(path, recurse::macho_file_type::library, recurse::options::print_warnings | recurse::options::recurse_subdirectories, [&](std::string &library_path) {
                     found_libraries = true;
                     fprintf(stdout, "%s\n", library_path.data());
                 });
@@ -1510,7 +1510,7 @@ int main(int argc, const char *argv[]) {
                 recurse_options |= recurse::options::recurse_subdirectories;
             }
 
-            auto recursion_result = recurse::macho_libraries(tbd_path.data(), recurse_options, [&](std::string &library_path, macho::file &file) {
+            auto recursion_result = recurse::macho_files(tbd_path.data(), recurse::macho_file_type::dynamic_library, recurse_options, [&](std::string &library_path, macho::file &file) {
                 auto output_path_front = std::string::npos;
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;

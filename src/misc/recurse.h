@@ -7,7 +7,6 @@
 //
 
 #pragma once
-
 #include <dirent.h>
 
 #include <functional>
@@ -18,7 +17,8 @@
 namespace recurse {
     enum class options : uint64_t {
         recurse_subdirectories = 1 << 0,
-        print_warnings = 1 << 1
+        print_warnings = 1 << 1,
+        only_dynamic_libraries = 1 << 3
     };
 
     inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
@@ -44,13 +44,19 @@ namespace recurse {
         failed_to_open_directory
     };
 
-    operation_result macho_libraries(const char *directory_path, uint64_t options, const std::function<void(std::string &, macho::file &)> &callback);
-    inline operation_result macho_libraries(const char *directory_path, options options, const std::function<void(std::string &, macho::file &)> &callback) {
-        return macho_libraries(directory_path, static_cast<uint64_t>(options), callback);
+    enum class macho_file_type {
+        none,
+        library,
+        dynamic_library
+    };
+
+    operation_result macho_files(const char *directory_path, macho_file_type filetype, uint64_t options, const std::function<void(std::string &, macho::file &)> &callback);
+    inline operation_result macho_file(const char *directory_path, macho_file_type filetype, options options, const std::function<void(std::string &, macho::file &)> &callback) {
+        return macho_files(directory_path, filetype, static_cast<uint64_t>(options), callback);
     }
 
-    operation_result macho_library_paths(const char *directory_path, uint64_t options, const std::function<void(std::string &)> &callback);
-    inline operation_result macho_library_paths(const char *directory_path, options options, const std::function<void(std::string &)> &callback) {
-        return macho_library_paths(directory_path, static_cast<uint64_t>(options), callback);
+    operation_result macho_file_paths(const char *directory_path, macho_file_type filetype, uint64_t options, const std::function<void(std::string &)> &callback);
+    inline operation_result macho_file_paths(const char *directory_path, macho_file_type filetype, options options, const std::function<void(std::string &)> &callback) {
+        return macho_file_paths(directory_path, filetype, static_cast<uint64_t>(options), callback);
     }
 }
