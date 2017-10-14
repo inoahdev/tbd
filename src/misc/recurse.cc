@@ -7,6 +7,7 @@
 //
 
 #include <cerrno>
+#include <dirent.h>
 
 #include "../mach-o/file.h"
 #include "recurse.h"

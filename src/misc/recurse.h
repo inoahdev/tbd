@@ -7,8 +7,6 @@
 //
 
 #pragma once
-#include <dirent.h>
-
 #include <functional>
 #include <string>
 
@@ -18,7 +16,7 @@ namespace recurse {
     enum class options : uint64_t {
         recurse_subdirectories = 1 << 0,
         print_warnings = 1 << 1,
-        only_dynamic_libraries = 1 << 3
+        only_dynamic_libraries = 1 << 2
     };
 
     inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }

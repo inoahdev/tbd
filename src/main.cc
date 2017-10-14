@@ -422,6 +422,7 @@ void print_usage() {
     fputs("Miscellaneous options:\n", stdout);
     fputs("        --dont-print-warnings,    Don't print any warnings (both path and global option)\n", stdout);
     fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
+    fputs("        --only-dynamic-libraries, Option for `--list-macho-libraries` to only print dynamic-libraries\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
@@ -461,7 +462,8 @@ int main(int argc, const char *argv[]) {
         recurse_subdirectories = 1 << 9,
         maintain_directories   = 1 << 10,
         dont_print_warnings    = 1 << 11,
-        replace_path_extension = 1 << 12
+        replace_path_extension = 1 << 12,
+        only_dynamic_libraries = 1 << 13
     };
 
     typedef struct tbd_file {
@@ -715,6 +717,8 @@ int main(int argc, const char *argv[]) {
 
                         if (strcmp(option, "dont-print-warnings") == 0) {
                             options |= dont_print_warnings;
+                        } else if (strcmp(option, "only-dynamic-libraries") == 0) {
+                            options |= only_dynamic_libraries;
                         } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                             options |= recurse_directories | recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
@@ -789,8 +793,13 @@ int main(int argc, const char *argv[]) {
                         }
 
                         auto found_libraries = false;
-                        auto recurse_options = uint64_t();
+                        auto recurse_macho_file_type = recurse::macho_file_type::library;
 
+                        if (options & only_dynamic_libraries) {
+                            recurse_macho_file_type = recurse::macho_file_type::dynamic_library;
+                        }
+
+                        auto recurse_options = uint64_t();
                         if (!(options & dont_print_warnings)) {
                             recurse_options |= recurse::options::print_warnings;
                         }
