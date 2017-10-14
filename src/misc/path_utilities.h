@@ -280,13 +280,8 @@ namespace path {
         return result;
     }
 
-    template <typename T>
-    inline bool ends_with_slash(const T &begin, const T &end) {
-        const auto back = end[-1];
-        return back == '/' || back == '\\';
-    }
-
-    bool ends_with_slash(const char *string);
+    // component_compare strictly compares path-components, not
+    // skipping over '.' components like `compare()`
 
     template <typename T>
     int component_compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
@@ -421,6 +416,8 @@ namespace path {
             } else if (rhs_path_component_length > lhs_path_component_length) {
                 return *(lhs_path_component_begin + rhs_path_component_length);
             }
+
+            // Skip over '.' components
 
             if (lhs_path_component_length == 1) {
                 if (*lhs_path_component_begin == '.') {

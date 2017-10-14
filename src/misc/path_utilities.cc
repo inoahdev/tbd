@@ -72,13 +72,4 @@ namespace path {
 
         return iter;
     }
-
-    bool ends_with_slash(const char *string) {
-        while (*string != '\0') {
-            string++;
-        }
-
-        return string[-1] == '/';
-    }
-
 }
