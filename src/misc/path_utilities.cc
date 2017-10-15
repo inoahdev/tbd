@@ -11,11 +11,13 @@
 namespace path {
     char *find_next_slash(char *string) {
         auto iter = string;
-        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
-            iter++;
+        auto elmt = *iter;
+
+        while (elmt != '\0' && elmt != '/' && elmt != '\\') {
+            elmt = *(iter++);;
         }
 
-        if (!*iter) {
+        if (!elmt) {
             return nullptr;
         }
 
@@ -24,11 +26,13 @@ namespace path {
 
     const char *find_next_slash(const char *string) {
         auto iter = string;
-        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
-            iter++;
+        auto elmt = *iter;
+
+        while (elmt != '\0' && elmt != '/' && elmt != '\\') {
+            elmt = *(iter++);;
         }
 
-        if (!*iter) {
+        if (!elmt) {
             return nullptr;
         }
 
@@ -37,16 +41,19 @@ namespace path {
 
     char *find_next_unique_slash(char *string) {
         auto iter = string;
-        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
-            iter++;
+        auto elmt = *iter;
+
+        while (elmt != '\0' && elmt != '/' && elmt != '\\') {
+            elmt = *(iter++);;
         }
 
-        if (*iter != '\0') {
-            while (iter[1] != '\0' && (iter[1] == '/' || iter[1] == '\\')) {
-                iter++;
+        if (elmt != '\0') {
+            elmt = iter[1];
+            while (elmt != '\0' && (elmt == '/' || elmt == '\\')) {
+                elmt = *(iter++);;
             }
 
-            if (iter[1] == '\0') {
+            if (elmt == '\0') {
                 return nullptr;
             }
         }
@@ -56,16 +63,19 @@ namespace path {
 
     const char *find_next_unique_slash(const char *string) {
         auto iter = string;
-        while (*iter != '\0' && *iter != '/' && *iter != '\\') {
-            iter++;
+        auto elmt = *iter;
+
+        while (elmt != '\0' && elmt != '/' && elmt != '\\') {
+            elmt = *(iter++);;
         }
 
-        if (*iter != '\0') {
-            while (iter[1] != '\0' && (iter[1] == '/' || iter[1] == '\\')) {
-                iter++;
+        if (elmt != '\0') {
+            elmt = iter[1];
+            while (elmt != '\0' && (elmt == '/' || elmt == '\\')) {
+                elmt = *(iter++);;
             }
 
-            if (iter[1] == '\0') {
+            if (elmt == '\0') {
                 return nullptr;
             }
         }

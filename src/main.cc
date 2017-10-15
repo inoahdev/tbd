@@ -1429,15 +1429,15 @@ int main(int argc, const char *argv[]) {
             const auto &tbd_path = tbd.path;
 
             for (auto tbd_inner_iter = tbd_iter + 1; tbd_inner_iter != tbds.end();) {
-                const auto &tbd_inner = *tbd_inner_iter;
-                const auto &tbd_inner_path = tbd_inner.path;
+                const auto &tbd_inner_elmt = *tbd_inner_iter;
+                const auto &tbd_inner_path = tbd_inner_elmt.path;
 
                 if (path::compare(tbd_path.cbegin(), tbd_path.cend(), tbd_inner_path.cbegin(), tbd_inner_path.cend()) != 0) {
                     continue;
                 }
 
                 auto tbd_options = tbd.options;
-                auto tbd_inner_options = tbd_inner.options;
+                auto tbd_inner_options = tbd_inner_elmt.options;
 
                 if (tbd_inner_options & recurse_subdirectories) {
                     tbd_options |= recurse_subdirectories;

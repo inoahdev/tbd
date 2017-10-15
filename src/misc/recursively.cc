@@ -80,27 +80,28 @@ char *recursively_create_directories_from_file_path_ignoring_last(char *path, si
     // Move to front of terminating slashes
 
     auto path_reverse_iter = end;
-    if (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\') {
+    if (auto path_reverse_iter_elmt = *(path_reverse_iter - 1); path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\') {
         do {
             --path_reverse_iter;
-        } while (path_reverse_iter != begin && (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\'));
+            path_reverse_iter_elmt = *(path_reverse_iter - 1);
+        } while (path_reverse_iter != begin && (path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\'));
     }
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
         auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
-        auto path_component_end_char = *path_component_end;
+        auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
 
         if (access(path, F_OK) != 0) {
-            *path_component_end = path_component_end_char;
+            *path_component_end = path_component_end_elmt;
             recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, 0);
 
             return path_component_begin;
         }
 
-        *path_component_end = path_component_end_char;
+        *path_component_end = path_component_end_elmt;
         path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
@@ -118,27 +119,28 @@ char *recursively_create_directories_from_file_path_creating_last_as_file(char *
     // Move to front of terminating slashes
 
     auto path_reverse_iter = end;
-    if (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\') {
+    if (auto path_reverse_iter_elmt = *(path_reverse_iter - 1); path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\') {
         do {
             --path_reverse_iter;
-        } while (path_reverse_iter != begin && (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\'));
+            path_reverse_iter_elmt = *(path_reverse_iter - 1);
+        } while (path_reverse_iter != begin && (path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\'));
     }
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
         auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
-        auto path_component_end_char = *path_component_end;
+        auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
 
         if (access(path, F_OK) != 0) {
-            *path_component_end = path_component_end_char;
+            *path_component_end = path_component_end_elmt;
             recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as_file, last_descriptor);
 
             return path_component_begin;
         }
 
-        *path_component_end = path_component_end_char;
+        *path_component_end = path_component_end_elmt;
         path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
@@ -156,27 +158,28 @@ char *recursively_create_directories_from_file_path_creating_last_as_directory(c
     // Move to front of terminating slashes
 
     auto path_reverse_iter = end;
-    if (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\') {
+    if (auto path_reverse_iter_elmt = *(path_reverse_iter - 1); path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\') {
         do {
             --path_reverse_iter;
-        } while (path_reverse_iter != begin && (*(path_reverse_iter - 1) == '/' || *(path_reverse_iter - 1) == '\\'));
+            path_reverse_iter_elmt = *(path_reverse_iter - 1);
+        } while (path_reverse_iter != begin && (path_reverse_iter_elmt == '/' || path_reverse_iter_elmt == '\\'));
     }
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
         auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
-        auto path_component_end_char = *path_component_end;
+        auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
 
         if (access(path, F_OK) != 0) {
-            *path_component_end = path_component_end_char;
+            *path_component_end = path_component_end_elmt;
             recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as_directory);
 
             return path_component_begin;
         }
 
-        *path_component_end = path_component_end_char;
+        *path_component_end = path_component_end_elmt;
         path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
@@ -194,13 +197,14 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
     }
 
     auto path_component_end = end;
-    if (*(path_component_end - 1) == '/' || *(path_component_end - 1) == '\\') {
+    if (auto path_component_end_elmt = *(path_component_end - 1); path_component_end_elmt == '/' || path_component_end_elmt == '\\') {
         do {
             --path_component_end;
-        } while (path_component_end != begin && (*(path_component_end - 1) == '/' || *(path_component_end - 1) == '\\'));
+            path_component_end_elmt = *(path_component_end - 1);
+        } while (path_component_end != begin && (path_component_end_elmt == '/' || path_component_end_elmt == '\\'));
     }
 
-    auto path_component_end_char = *path_component_end;
+    auto path_component_end_elmt = *path_component_end;
     *path_component_end = '\0';
 
     if (access(path, F_OK) != 0) {
@@ -214,11 +218,11 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
 
     auto prev_path_component_end = path_component_end;
 
-    *path_component_end = path_component_end_char;
+    *path_component_end = path_component_end_elmt;
     path_component_end = path::find_last_slash(begin, path_component_end);
 
     while (path_component_end != prev_path_component_end) {
-        path_component_end_char = *path_component_end;
+        path_component_end_elmt = *path_component_end;
         *path_component_end = '\0';
 
         if (remove(path) != 0) {
@@ -226,7 +230,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
             exit(1);
         }
 
-        *path_component_end = path_component_end_char;
+        *path_component_end = path_component_end_elmt;
         prev_path_component_end = path_component_end;
 
         path_component_end = path::find_last_slash(begin, prev_path_component_end);
