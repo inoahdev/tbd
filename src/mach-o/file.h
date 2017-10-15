@@ -120,13 +120,13 @@ namespace macho {
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);
 
-        enum class file_type : uint64_t {
+        enum class type : uint64_t {
             none,
             library,
             dynamic_library
         };
-        
-        static bool is_valid_file_of_file_type(const char *path, file_type type, check_error *error = nullptr) noexcept;
-        open_result load_containers(file_type type = file_type::none) noexcept;
+
+        static bool is_valid_file_of_file_type(const char *path, type type, check_error *error = nullptr) noexcept;
+        open_result load_containers(type type = type::none) noexcept;
     };
 }
