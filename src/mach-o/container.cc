@@ -208,7 +208,7 @@ namespace macho {
             return 0;
         }
 
-        auto size = (size_t)ftell(stream);
+        auto size = static_cast<size_t>(ftell(stream));
         if (size < base) {
             result = open_result::invalid_range;
             return size;

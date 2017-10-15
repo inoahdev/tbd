@@ -2597,7 +2597,7 @@ namespace macho::utils::tbd {
         uint32_t library_swift_version = 0;
         uint32_t library_flags = 0;
 
-        auto library_installation_name = (const char *)nullptr;
+        auto library_installation_name = static_cast<const char *>(nullptr);
         auto library_objc_constraint = objc_constraint::no_value;
         auto library_parent_umbrella = std::string();
 
