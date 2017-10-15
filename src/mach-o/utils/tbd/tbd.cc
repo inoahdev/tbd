@@ -2342,7 +2342,9 @@ namespace macho::utils::tbd {
         }
 
         if (!(options & options::remove_objc_constraint)) {
-            dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+            if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
+                dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+            }
         }
 
         if (version == version::v2) {
@@ -2568,7 +2570,9 @@ namespace macho::utils::tbd {
         }
 
         if (!(options & options::remove_objc_constraint)) {
-            dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+            if (const auto objc_constraint_string = objc_constraint_to_string(objc_constraint); objc_constraint_string != nullptr) {
+                dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+            }
         }
 
         if (version == version::v2) {
@@ -2994,7 +2998,9 @@ namespace macho::utils::tbd {
         }
 
         if (!(options & options::remove_objc_constraint)) {
-            fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+            if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
+                fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+            }
         }
 
         if (version == version::v2) {
@@ -3220,7 +3226,9 @@ namespace macho::utils::tbd {
         }
 
         if (!(options & options::remove_objc_constraint)) {
-            fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+            if (const auto objc_constraint_string = objc_constraint_to_string(objc_constraint); objc_constraint_string != nullptr) {
+                fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_string);
+            }
         }
 
         if (version == version::v2) {
