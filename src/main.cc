@@ -827,7 +827,7 @@ int main(int argc, const char *argv[]) {
                             }
 
                             case recurse::operation_result::failed_to_open_directory:
-                                fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error: %s\n", path_data, strerror(errno));
+                                fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error: %s\n", path_data, strerror(errno));
                                 break;
                         }
 
@@ -1613,7 +1613,7 @@ int main(int argc, const char *argv[]) {
                     break;
 
                 case recurse::operation_result::failed_to_open_directory:
-                    fprintf(stderr, "Warning: Failed to open directory (at path %s) for recursing, failing with error: %s\n", tbd_path.data(), strerror(errno));
+                    fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error: %s\n", tbd_path.data(), strerror(errno));
                     break;
             }
         } else {
