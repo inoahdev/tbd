@@ -18,39 +18,46 @@
 #include "path_utilities.h"
 #include "recursively.h"
 
-enum recursively_create_directories_from_file_path_inner_options : uint64_t {
-    create_last_as_file      = 1 << 0,
-    create_last_as_directory = 1 << 1
+enum class create_last_as : uint64_t {
+    none,
+    file,
+    directory
 };
 
-char *recursively_create_directories_from_file_path_inner(char *path, char *begin, char *end, char *slash, uint64_t options, int *last_descriptor = nullptr) {
+char *recursively_create_directories_from_file_path_inner(char *path, char *begin, char *end, char *slash, create_last_as type, int *last_descriptor = nullptr) {
     auto path_component_begin = begin;
     auto path_component_end = slash;
 
     do {
         if (path_component_end == end) {
-            if (options & create_last_as_file) {
-                auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-                if (descriptor == -1) {
-                    fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", path, strerror(errno));
-                    exit(1);
+            switch (type) {
+                case create_last_as::none:
+                    break;
+
+                case create_last_as::file: {
+                    auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+                    if (descriptor == -1) {
+                        fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", path, strerror(errno));
+                        exit(1);
+                    }
+
+                    if (last_descriptor != nullptr) {
+                        *last_descriptor = descriptor;
+                    } else {
+                        close(descriptor);
+                    }
+
+                    break;
                 }
 
-                if (last_descriptor != nullptr) {
-                    *last_descriptor = descriptor;
-                } else {
-                    close(descriptor);
-                }
+                case create_last_as::directory:
+                    if (mkdir(path, 0755) != 0) {
+                        fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
+                        exit(1);
+                    }
+
+                    break;
             }
-
-            if (options & create_last_as_directory) {
-                if (mkdir(path, 0755) != 0) {
-                    fprintf(stderr, "Failed to create directory (at path %s) with mode (0755), failing with error: %s\n", path, strerror(errno));
-                    exit(1);
-                }
-            }
-
-            break;
         }
 
         *path_component_end = '\0';
@@ -96,7 +103,7 @@ char *recursively_create_directories_from_file_path_ignoring_last(char *path, si
 
         if (access(path, F_OK) != 0) {
             *path_component_end = path_component_end_elmt;
-            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, 0);
+            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as::none);
 
             return path_component_begin;
         }
@@ -135,7 +142,7 @@ char *recursively_create_directories_from_file_path_creating_last_as_file(char *
 
         if (access(path, F_OK) != 0) {
             *path_component_end = path_component_end_elmt;
-            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as_file, last_descriptor);
+            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as::file, last_descriptor);
 
             return path_component_begin;
         }
@@ -174,7 +181,7 @@ char *recursively_create_directories_from_file_path_creating_last_as_directory(c
 
         if (access(path, F_OK) != 0) {
             *path_component_end = path_component_end_elmt;
-            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as_directory);
+            recursively_create_directories_from_file_path_inner(path, path_component_begin, path_reverse_iter, path_component_end, create_last_as::directory);
 
             return path_component_begin;
         }
