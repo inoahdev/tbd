@@ -8,14 +8,12 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cstring>
-
 #include <utility>
+#include "string.h"
 
 namespace utils::path {
     template <typename T>
-    T find_next_slash(const T &begin, const T &end) {
+    T find_next_slash(const T &begin, const T &end) noexcept {
         auto iter = begin;
         while (iter != end) {
             if (const auto &elmt = *iter; elmt != '/' && elmt != '\\') {
@@ -33,7 +31,7 @@ namespace utils::path {
     const char *find_next_slash(const char *string);
 
     template <typename T>
-    T find_next_unique_slash(const T &begin, const T &end) {
+    T find_next_unique_slash(const T &begin, const T &end) noexcept {
         auto iter = begin;
         while (iter != end && *iter != '/' && *iter != '\\') {
             iter++;
@@ -60,7 +58,7 @@ namespace utils::path {
     const char *find_next_unique_slash(const char *string);
 
     template <typename T>
-    T find_last_slash(const T &begin, const T &end) {
+    T find_last_slash(const T &begin, const T &end) noexcept {
         auto iter = end - 1;
         while (iter != begin) {
             if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
@@ -77,16 +75,16 @@ namespace utils::path {
         return iter;
     }
 
-    inline char *find_last_slash(char *string) {
-        return find_last_slash(string, &string[strlen(string)]);
+    inline char *find_last_slash(char *string) noexcept {
+        return find_last_slash(string, string::find_end_of_null_terminated_string(string));
     }
 
-    inline const char *find_last_slash(const char *string) {
-        return find_last_slash(string, &string[strlen(string)]);
+    inline const char *find_last_slash(const char *string) noexcept {
+        return find_last_slash(string, string::find_end_of_null_terminated_string(string));
     }
 
     template <typename T>
-    T find_last_slash_in_front_of_pattern(const T &begin, const T &end) {
+    T find_last_slash_in_front_of_pattern(const T &begin, const T &end) noexcept {
         auto iter = end - 1;
         while (iter >= begin) {
             if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
@@ -111,8 +109,8 @@ namespace utils::path {
         return iter;
     }
 
-    inline char *find_last_slash_in_front_of_pattern(char *string) {
-        auto end = &string[strlen(string)];
+    inline char *find_last_slash_in_front_of_pattern(char *string) noexcept {
+        auto end = string::find_end_of_null_terminated_string(string);
         auto result = find_last_slash_in_front_of_pattern(string, end);
 
         if (result == end) {
@@ -123,7 +121,7 @@ namespace utils::path {
     }
 
     template <typename T>
-    T find_end_of_row_of_slashes(const T &begin, const T &end) {
+    T find_end_of_row_of_slashes(const T &begin, const T &end) noexcept {
         auto iter = begin;
         while (iter != end) {
             if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
@@ -137,8 +135,8 @@ namespace utils::path {
         return iter;
     }
 
-    inline char *find_end_of_row_of_slashes(char *string) {
-        auto end = &string[strlen(string)];
+    inline char *find_end_of_row_of_slashes(char *string) noexcept {
+        auto end = string::find_end_of_null_terminated_string(string);
         auto result = find_end_of_row_of_slashes(string, end);
 
         if (result == end) {
@@ -148,8 +146,8 @@ namespace utils::path {
         return result;
     }
 
-    inline const char *find_end_of_row_of_slashes(const char *string) {
-        auto end = &string[strlen(string)];
+    inline const char *find_end_of_row_of_slashes(const char *string) noexcept {
+        auto end = string::find_end_of_null_terminated_string(string);
         auto result = find_end_of_row_of_slashes(string, end);
 
         if (result == end) {
@@ -160,7 +158,7 @@ namespace utils::path {
     }
 
     template <typename T>
-    std::pair<T, T> find_next_component(const T &begin, const T &end) {
+    std::pair<T, T> find_next_component(const T &begin, const T &end) noexcept {
         auto begin_slash = begin;
         auto end_slash = begin_slash + 1;
 
@@ -185,7 +183,7 @@ namespace utils::path {
     }
 
     template <typename T>
-    std::pair<T, T> find_last_component(const T &begin, const T &end) {
+    std::pair<T, T> find_last_component(const T &begin, const T &end) noexcept {
         // Return an empty string if begin and
         // end are equal to each other
 
@@ -261,16 +259,16 @@ namespace utils::path {
         return std::make_pair(component_begin, end_slash);
     }
 
-    inline std::pair<char *, char *> find_last_component(char *string) {
-        return find_last_component(string, &string[strlen(string)]);
+    inline std::pair<char *, char *> find_last_component(char *string) noexcept {
+        return find_last_component(string, string::find_end_of_null_terminated_string(string));
     }
 
-    inline std::pair<const char *, const char *> find_last_component(const char *string) {
-        return find_last_component(string, &string[strlen(string)]);
+    inline std::pair<const char *, const char *> find_last_component(const char *string) noexcept {
+        return find_last_component(string, string::find_end_of_null_terminated_string(string));
     }
 
     template <typename T>
-    T find_extension(const T &begin, const T &end) {
+    T find_extension(const T &begin, const T &end) noexcept {
         auto iter = end - 1;
         auto elmt = *iter;
 
@@ -286,8 +284,8 @@ namespace utils::path {
         return iter;
     }
 
-    inline char *find_extension(char *string) {
-        auto end = &string[strlen(string)];
+    inline char *find_extension(char *string) noexcept {
+        auto end = string::find_end_of_null_terminated_string(string);
         auto result = find_extension(string, end);
 
         if (result == end) {
@@ -297,8 +295,8 @@ namespace utils::path {
         return result;
     }
 
-    inline const char *find_extension(const char *string) {
-        auto end = &string[strlen(string)];
+    inline const char *find_extension(const char *string) noexcept {
+        auto end = string::find_end_of_null_terminated_string(string);
         auto result = find_extension(string, end);
 
         if (result == end) {
@@ -312,7 +310,7 @@ namespace utils::path {
     // skipping over '.' components like `compare()`
 
     template <typename T>
-    int component_compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
+    int component_compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) noexcept {
         // Set end (for searching) to the front of terminating row of slashes
 
         auto lhs_reverse_iter = lhs_end;
@@ -398,7 +396,7 @@ namespace utils::path {
     }
 
     template <typename T>
-    int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) {
+    int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) noexcept {
         // Set end (for searching) to the front of terminating row of slashes
 
         auto lhs_reverse_iter = lhs_end;
@@ -497,7 +495,7 @@ namespace utils::path {
     }
 
     template <typename S, typename T>
-    S clean(const T &begin, const T &end) {
+    S clean(const T &begin, const T &end) noexcept {
         auto path = S();
         auto iter = begin;
 
@@ -532,7 +530,7 @@ namespace utils::path {
     }
 
     template <typename S>
-    S &clean(S &path) {
+    S &clean(S &path) noexcept {
         auto begin = path.begin();
         auto end = path.end();
 
