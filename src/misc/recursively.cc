@@ -59,6 +59,8 @@ char *recursively_create_directories_from_file_path_inner(char *path, char *begi
 
                     break;
             }
+
+            break;
         }
 
         *path_component_end = '\0';
