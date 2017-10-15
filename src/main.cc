@@ -11,7 +11,7 @@
 
 #include <unistd.h>
 
-#include "misc/path_utilities.h"
+#include "utils/path.h"
 #include "misc/recursively.h"
 #include "misc/recurse.h"
 
@@ -758,10 +758,10 @@ int main(int argc, const char *argv[]) {
                         path.append(current_directory);
                         path.append(argument);
 
-                        paths.emplace_back(std::move(path::clean(path)), options);
+                        paths.emplace_back(std::move(utils::path::clean(path)), options);
                     } else {
                         auto path = std::string(argument);
-                        paths.emplace_back(path::clean(path), options);
+                        paths.emplace_back(utils::path::clean(path), options);
                     }
 
                     options = 0;
@@ -984,7 +984,7 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argument);
                 if (path != "stdout") {
-                    path::clean(path);
+                    utils::path::clean(path);
 
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         // If the user-provided path-string does not begin with
@@ -1278,7 +1278,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
                 } else {
-                    path::clean(path);
+                    utils::path::clean(path);
 
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
                         path.insert(0, retrieve_current_directory());
@@ -1432,7 +1432,7 @@ int main(int argc, const char *argv[]) {
                 const auto &tbd_inner_elmt = *tbd_inner_iter;
                 const auto &tbd_inner_path = tbd_inner_elmt.path;
 
-                if (path::compare(tbd_path.cbegin(), tbd_path.cend(), tbd_inner_path.cbegin(), tbd_inner_path.cend()) != 0) {
+                if (utils::path::compare(tbd_path.cbegin(), tbd_path.cend(), tbd_inner_path.cbegin(), tbd_inner_path.cend()) != 0) {
                     continue;
                 }
 
@@ -1524,7 +1524,7 @@ int main(int argc, const char *argv[]) {
                 if (tbd_options & maintain_directories) {
                     output_path_front = tbd_path_length;
                 } else {
-                    output_path_front = path::find_last_slash(library_path.cbegin(), library_path.cend()) - library_path.cbegin();
+                    output_path_front = utils::path::find_last_slash(library_path.cbegin(), library_path.cend()) - library_path.cbegin();
                 }
 
                 auto output_path = library_path.substr(output_path_front);
@@ -1537,7 +1537,7 @@ int main(int argc, const char *argv[]) {
 
                 if (tbd_options & replace_path_extension) {
                     auto output_path_end = output_path.cend();
-                    auto path_extension = path::find_extension(output_path.cbegin(), output_path_end);
+                    auto path_extension = utils::path::find_extension(output_path.cbegin(), output_path_end);
 
                     if (path_extension != output_path_end) {
                         output_path.erase(path_extension, output_path_end);

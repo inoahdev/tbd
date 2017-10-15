@@ -1,14 +1,14 @@
 //
-//  src/misc/path_utilities.cc
+//  src/utils/path.cc
 //  tbd
 //
 //  Created by inoahdev on 9/9/17.
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
-#include "path_utilities.h"
+#include "path.h"
 
-namespace path {
+namespace utils::path {
     char *find_next_slash(char *string) {
         auto iter = string;
         auto elmt = *iter;
@@ -50,7 +50,7 @@ namespace path {
         if (elmt != '\0') {
             elmt = iter[1];
             while (elmt != '\0' && (elmt == '/' || elmt == '\\')) {
-                elmt = *(iter++);;
+                elmt = *(iter++);
             }
 
             if (elmt == '\0') {

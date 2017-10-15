@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "path_utilities.h"
+#include "../utils/path.h"
 #include "recursively.h"
 
 enum class create_last_as : uint64_t {
@@ -69,15 +69,15 @@ char *recursively_create_directories_from_file_path_inner(char *path, char *begi
 
         *path_component_end = '/';
 
-        path_component_begin = path::find_end_of_row_of_slashes(path_component_end, end);
-        path_component_end = path::find_next_slash(path_component_begin, end);
+        path_component_begin = utils::path::find_end_of_row_of_slashes(path_component_end, end);
+        path_component_end = utils::path::find_next_slash(path_component_begin, end);
     } while (true);
 
     return slash;
 }
 
 char *recursively_create_directories_from_file_path_ignoring_last(char *path, size_t index) {
-    auto begin = path::find_end_of_row_of_slashes(&path[index]);
+    auto begin = utils::path::find_end_of_row_of_slashes(&path[index]);
     auto end = &path[strlen(path)];
 
     if (begin == end) {
@@ -96,7 +96,7 @@ char *recursively_create_directories_from_file_path_ignoring_last(char *path, si
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
-        auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
+        auto path_component_end = utils::path::find_next_slash(path_component_begin, path_reverse_iter);
         auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
@@ -109,14 +109,14 @@ char *recursively_create_directories_from_file_path_ignoring_last(char *path, si
         }
 
         *path_component_end = path_component_end_elmt;
-        path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
+        path_component_begin = utils::path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
     return nullptr;
 }
 
 char *recursively_create_directories_from_file_path_creating_last_as_file(char *path, size_t index, int *last_descriptor) {
-    auto begin = path::find_end_of_row_of_slashes(&path[index]);
+    auto begin = utils::path::find_end_of_row_of_slashes(&path[index]);
     auto end = &path[strlen(path)];
 
     if (begin == end) {
@@ -135,7 +135,7 @@ char *recursively_create_directories_from_file_path_creating_last_as_file(char *
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
-        auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
+        auto path_component_end = utils::path::find_next_slash(path_component_begin, path_reverse_iter);
         auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
@@ -148,14 +148,14 @@ char *recursively_create_directories_from_file_path_creating_last_as_file(char *
         }
 
         *path_component_end = path_component_end_elmt;
-        path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
+        path_component_begin = utils::path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
     return nullptr;
 }
 
 char *recursively_create_directories_from_file_path_creating_last_as_directory(char *path, size_t index) {
-    auto begin = path::find_end_of_row_of_slashes(&path[index]);
+    auto begin = utils::path::find_end_of_row_of_slashes(&path[index]);
     auto end = &path[strlen(path)];
 
     if (begin == end) {
@@ -174,7 +174,7 @@ char *recursively_create_directories_from_file_path_creating_last_as_directory(c
 
     auto path_component_begin = begin;
     while (path_component_begin != path_reverse_iter) {
-        auto path_component_end = path::find_next_slash(path_component_begin, path_reverse_iter);
+        auto path_component_end = utils::path::find_next_slash(path_component_begin, path_reverse_iter);
         auto path_component_end_elmt = *path_component_end;
 
         *path_component_end = '\0';
@@ -187,7 +187,7 @@ char *recursively_create_directories_from_file_path_creating_last_as_directory(c
         }
 
         *path_component_end = path_component_end_elmt;
-        path_component_begin = path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
+        path_component_begin = utils::path::find_end_of_row_of_slashes(path_component_end, path_reverse_iter);
     }
 
     return nullptr;
@@ -226,7 +226,7 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
     auto prev_path_component_end = path_component_end;
 
     *path_component_end = path_component_end_elmt;
-    path_component_end = path::find_last_slash(begin, path_component_end);
+    path_component_end = utils::path::find_last_slash(begin, path_component_end);
 
     while (path_component_end != prev_path_component_end) {
         path_component_end_elmt = *path_component_end;
@@ -240,6 +240,6 @@ void recursively_remove_directories_from_file_path(char *path, char *begin, char
         *path_component_end = path_component_end_elmt;
         prev_path_component_end = path_component_end;
 
-        path_component_end = path::find_last_slash(begin, prev_path_component_end);
+        path_component_end = utils::path::find_last_slash(begin, prev_path_component_end);
     }
 }

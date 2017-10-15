@@ -1,5 +1,5 @@
 //
-//  src/misc/path_utilities.h
+//  src/utils/path.h
 //  tbd
 //
 //  Created by inoahdev on 9/9/17.
@@ -13,7 +13,7 @@
 
 #include <utility>
 
-namespace path {
+namespace utils::path {
     template <typename T>
     T find_next_slash(const T &begin, const T &end) {
         auto iter = begin;
