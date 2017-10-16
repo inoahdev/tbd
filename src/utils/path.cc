@@ -39,7 +39,7 @@ namespace utils::path {
         return iter;
     }
 
-    char *find_next_unique_slash(char *string) {
+    char *find_next_slash_at_back_of_pattern(char *string) {
         auto iter = string;
         auto elmt = *iter;
 
@@ -61,7 +61,7 @@ namespace utils::path {
         return iter;
     }
 
-    const char *find_next_unique_slash(const char *string) {
+    const char *find_next_slash_at_back_of_pattern(const char *string) {
         auto iter = string;
         auto elmt = *iter;
 

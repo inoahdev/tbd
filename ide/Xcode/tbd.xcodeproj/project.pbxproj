@@ -8,13 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		C31620AE1F50F575005A67A7 /* recurse.cc in Sources */ = {isa = PBXBuildFile; fileRef = C31620AC1F50F575005A67A7 /* recurse.cc */; };
-		C322B18A1F88C265009B10F9 /* recursively.cc in Sources */ = {isa = PBXBuildFile; fileRef = C322B1891F88C265009B10F9 /* recursively.cc */; };
 		C33131401F23D0680031B4BD /* swap.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331313F1F23D0680031B4BD /* swap.cc */; };
 		C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */ = {isa = PBXBuildFile; fileRef = C331314D1F23D0AD0031B4BD /* architecture_info.cc */; };
 		C33CE0C11F33423000E738EA /* cputype.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33CE0BA1F33423000E738EA /* cputype.cc */; };
 		C33DD9441F79C924003C1FFC /* tbd.cc in Sources */ = {isa = PBXBuildFile; fileRef = C33DD9431F79C924003C1FFC /* tbd.cc */; };
 		C34E38BA1F93DE630078F554 /* path.cc in Sources */ = {isa = PBXBuildFile; fileRef = C34E38B91F93DE620078F554 /* path.cc */; };
 		C3A8A7CF1F93ED99001510A2 /* string.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7CD1F93ED99001510A2 /* string.cc */; };
+		C3A8A7D31F941205001510A2 /* mkdir.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7D11F941205001510A2 /* mkdir.cc */; };
+		C3A8A7D91F9439F5001510A2 /* remove.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7D71F9439F5001510A2 /* remove.cc */; };
 		C3BA3CA81F131AC30049C652 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA71F131AC30049C652 /* main.cc */; };
 		C3BA3CAD1F131AD00049C652 /* container.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA91F131AD00049C652 /* container.cc */; };
 		C3BA3CAE1F131AD00049C652 /* file.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CAB1F131AD00049C652 /* file.cc */; };
@@ -36,8 +37,6 @@
 /* Begin PBXFileReference section */
 		C31620AC1F50F575005A67A7 /* recurse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recurse.cc; path = ../../src/misc/recurse.cc; sourceTree = "<group>"; };
 		C31620AD1F50F575005A67A7 /* recurse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recurse.h; path = ../../src/misc/recurse.h; sourceTree = "<group>"; };
-		C322B1891F88C265009B10F9 /* recursively.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recursively.cc; path = ../../src/misc/recursively.cc; sourceTree = "<group>"; };
-		C322B18B1F88C270009B10F9 /* recursively.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recursively.h; path = ../../src/misc/recursively.h; sourceTree = "<group>"; };
 		C32A7A9F1F10E5DA000BF14E /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C331313E1F23D0680031B4BD /* swap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swap.h; path = "../../src/mach-o/swap.h"; sourceTree = "<group>"; };
 		C331313F1F23D0680031B4BD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = "../../src/mach-o/swap.cc"; sourceTree = "<group>"; };
@@ -60,6 +59,10 @@
 		C3A45E4E1F804E4800FC649E /* compile_commands.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = compile_commands.json; path = ../../compile_commands.json; sourceTree = "<group>"; };
 		C3A8A7CD1F93ED99001510A2 /* string.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = string.cc; path = ../../src/utils/string.cc; sourceTree = "<group>"; };
 		C3A8A7CE1F93ED99001510A2 /* string.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = string.h; path = ../../src/utils/string.h; sourceTree = "<group>"; };
+		C3A8A7D11F941205001510A2 /* mkdir.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = mkdir.cc; path = ../../src/recursive/mkdir.cc; sourceTree = "<group>"; };
+		C3A8A7D21F941205001510A2 /* mkdir.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mkdir.h; path = ../../src/recursive/mkdir.h; sourceTree = "<group>"; };
+		C3A8A7D71F9439F5001510A2 /* remove.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = remove.cc; path = ../../src/recursive/remove.cc; sourceTree = "<group>"; };
+		C3A8A7D81F9439F5001510A2 /* remove.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = remove.h; path = ../../src/recursive/remove.h; sourceTree = "<group>"; };
 		C3BA3CA71F131AC30049C652 /* main.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cc; path = ../../src/main.cc; sourceTree = "<group>"; };
 		C3BA3CA91F131AD00049C652 /* container.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = container.cc; path = "../../src/mach-o/container.cc"; sourceTree = "<group>"; };
 		C3BA3CAB1F131AD00049C652 /* file.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = file.cc; path = "../../src/mach-o/file.cc"; sourceTree = "<group>"; };
@@ -108,6 +111,7 @@
 				C32A7AAC1F10E611000BF14E /* mach-o */,
 				C3E269DF1F3FA92F005ED144 /* misc */,
 				C3FB674A1F4338BC0025EB0A /* objc */,
+				C3A8A7D01F9411EE001510A2 /* recursive */,
 				C34E38B81F93DBF60078F554 /* utils */,
 				C3BA3CA71F131AC30049C652 /* main.cc */,
 			);
@@ -176,6 +180,17 @@
 			name = utils;
 			sourceTree = "<group>";
 		};
+		C3A8A7D01F9411EE001510A2 /* recursive */ = {
+			isa = PBXGroup;
+			children = (
+				C3A8A7D21F941205001510A2 /* mkdir.h */,
+				C3A8A7D11F941205001510A2 /* mkdir.cc */,
+				C3A8A7D81F9439F5001510A2 /* remove.h */,
+				C3A8A7D71F9439F5001510A2 /* remove.cc */,
+			);
+			name = recursive;
+			sourceTree = "<group>";
+		};
 		C3E269DF1F3FA92F005ED144 /* misc */ = {
 			isa = PBXGroup;
 			children = (
@@ -183,8 +198,6 @@
 				C3E4A8A31F801EAC00A6A4E4 /* bits.cc */,
 				C31620AD1F50F575005A67A7 /* recurse.h */,
 				C31620AC1F50F575005A67A7 /* recurse.cc */,
-				C322B18B1F88C270009B10F9 /* recursively.h */,
-				C322B1891F88C265009B10F9 /* recursively.cc */,
 			);
 			name = misc;
 			sourceTree = "<group>";
@@ -254,8 +267,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				C34E38BA1F93DE630078F554 /* path.cc in Sources */,
-				C322B18A1F88C265009B10F9 /* recursively.cc in Sources */,
 				C3E4A8A41F801EAC00A6A4E4 /* bits.cc in Sources */,
+				C3A8A7D91F9439F5001510A2 /* remove.cc in Sources */,
+				C3A8A7D31F941205001510A2 /* mkdir.cc in Sources */,
 				C33DD9441F79C924003C1FFC /* tbd.cc in Sources */,
 				C3BA3CAD1F131AD00049C652 /* container.cc in Sources */,
 				C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */,
