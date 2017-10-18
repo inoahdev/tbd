@@ -95,6 +95,7 @@ namespace macho::utils::tbd {
     __attribute__((unused)) version version_from_string(const char *version) noexcept;
 
     enum class options : uint64_t {
+        none,
         allow_all_private_symbols    = 1 << 0,
         allow_private_normal_symbols = 1 << 1,
         allow_private_weak_symbols   = 1 << 2,
@@ -154,9 +155,9 @@ namespace macho::utils::tbd {
         no_symbols_or_reexports
     };
 
-    __attribute__((unused)) creation_result create_from_macho_library(file &library, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
-    __attribute__((unused)) creation_result create_from_macho_library(container &container, int output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(file &library, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(container &container, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
 
-    __attribute__((unused)) creation_result create_from_macho_library(file &library, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
-    __attribute__((unused)) creation_result create_from_macho_library(container &container, FILE *output, uint64_t options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(file &library, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
+    __attribute__((unused)) creation_result create_from_macho_library(container &container, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides);
 }
