@@ -132,12 +132,12 @@ void print_platforms() {
 }
 
 enum creation_handling {
-    creation_handling_print_paths = 1 << 0,
+    creation_handling_print_paths                      = 1 << 0,
     creation_handling_ignore_no_provided_architectures = 1 << 1,
-    creation_handling_dont_print_warnings = 1 << 2
+    creation_handling_dont_print_warnings              = 1 << 2
 };
 
-bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, uint64_t options, macho::utils::tbd::flags flags, macho::utils::tbd::objc_constraint constraint, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
+bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, macho::utils::tbd::options options, macho::utils::tbd::flags flags, macho::utils::tbd::objc_constraint constraint, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
     auto result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, flags, constraint, platform, version, architectures, architecture_overrides);
     if (result == macho::utils::tbd::creation_result::platform_not_found || result == macho::utils::tbd::creation_result::platform_not_supported || result == macho::utils::tbd::creation_result::unrecognized_platform ||  result == macho::utils::tbd::creation_result::multiple_platforms) {
         switch (result) {
@@ -801,7 +801,7 @@ int main(int argc, const char *argv[]) {
                             recurse_macho_file_type = recurse::macho_file_type::dynamic_library;
                         }
 
-                        auto recurse_options = uint64_t();
+                        auto recurse_options = recurse::options::none;
                         if (!(options & dont_print_warnings)) {
                             recurse_options |= recurse::options::print_warnings;
                         }
@@ -1567,7 +1567,6 @@ int main(int argc, const char *argv[]) {
                 auto output_file_descriptor = -1;
 
                 auto mkdir_result = recursive::mkdir::create_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
-
                 if (mkdir_result != recursive::mkdir::result::ok) {
                     switch (mkdir_result) {
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -1625,7 +1624,7 @@ int main(int argc, const char *argv[]) {
                     tbd.architecture_overrides = architecture_overrides;
                 }
 
-                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, tbd_options & 0xff, tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, static_cast<macho::utils::tbd::options>(tbd_options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
                 if (!result) {
                     if (output_path_creation_terminator != nullptr) {
                         auto remove_result = recursive::remove::perform(output_path.data(), output_path_creation_terminator);
@@ -1878,7 +1877,7 @@ int main(int argc, const char *argv[]) {
                 tbd.architecture_overrides = architecture_overrides;
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, tbd_options & 0xff, tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, static_cast<macho::utils::tbd::options>(options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
             if (!tbd_output_path.empty()) {
                 if (!result) {
                     if (tbd_output_path_creation_terminator != nullptr) {
