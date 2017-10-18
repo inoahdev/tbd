@@ -1526,7 +1526,7 @@ int main(int argc, const char *argv[]) {
             const auto tbd_output_path_length = tbd_output_path.length();
 
             auto outputted_any_macho_libraries = false;
-            auto recurse_options = uint64_t();
+            auto recurse_options = recurse::options::none;
 
             if (!(tbd_options & dont_print_warnings)) {
                 recurse_options |= recurse::options::print_warnings;
@@ -1633,10 +1633,21 @@ int main(int argc, const char *argv[]) {
                             case recursive::remove::result::ok:
                                 break;
 
-                            case recursive::remove::result::failed:
+                            case recursive::remove::result::failed_to_remove_directory:
                                 *output_path_creation_terminator = '\0';
 
                                 fprintf(stderr, "Failed to remove created-directory at path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
+                                break;
+
+                            case recursive::remove::result::failed_to_remove_subdirectories:
+                                const auto &output_path_creation_terminator_character = *output_path_creation_terminator;
+                                *output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Failed to remove created sub-directory of path (%s)", output_path.data());
+
+                                *output_path_creation_terminator = output_path_creation_terminator_character;
+                                fprintf(stderr, ", full path being (%s), failing with error: %s\n", output_path.data(), strerror(errno));
+
                                 break;
                         }
                     }
@@ -1876,10 +1887,21 @@ int main(int argc, const char *argv[]) {
                             case recursive::remove::result::ok:
                                 break;
 
-                            case recursive::remove::result::failed:
+                            case recursive::remove::result::failed_to_remove_directory:
                                 *tbd_output_path_creation_terminator = '\0';
 
                                 fprintf(stderr, "Failed to remove created-directory at path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
+                                break;
+
+                            case recursive::remove::result::failed_to_remove_subdirectories:
+                                const auto &tbd_output_path_creation_terminator_character = *tbd_output_path_creation_terminator;
+                                *tbd_output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Failed to remove created sub-directory of path (%s)", tbd_output_path.data());
+
+                                *tbd_output_path_creation_terminator = tbd_output_path_creation_terminator_character;
+                                fprintf(stderr, ", full path being (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
+
                                 break;
                         }
                     }
