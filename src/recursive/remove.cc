@@ -29,15 +29,23 @@ namespace recursive::remove {
                 return result::ok;
             }
 
+            auto next_path_component_end = utils::path::find_last_slash_in_front_of_pattern(begin, path_component_end);
+            if (next_path_component_end == path_component_end) {
+                if (::remove(path) != 0) {
+                    return result::failed_to_remove_directory;
+                }
+
+                *path_component_end = path_component_end_elmt;
+                break;
+            }
+
             if (::remove(path) != 0) {
-                return result::failed;
+                return result::failed_to_remove_subdirectories;
             }
 
             *path_component_end = path_component_end_elmt;
-
-            end = path_component_end;
-            path_component_end = utils::path::find_last_slash_in_front_of_pattern(begin, path_component_end);
-        } while (path_component_end != end);
+            path_component_end = next_path_component_end;
+        } while (true);
 
         return result::ok;
     }

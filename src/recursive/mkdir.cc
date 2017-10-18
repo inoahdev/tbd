@@ -26,33 +26,41 @@ namespace recursive::mkdir {
         auto path_component_end = component_end;
 
         do {
-            if (path_component_end == end) {
-                switch (type) {
-                    case last_as::none:
-                        return result::ok;
-
-                    case last_as::file: {
-                        auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-                        if (descriptor == -1) {
-                            return result::failed_to_create_last_as_file;
-                        }
-
-                        if (last_descriptor != nullptr) {
-                            *last_descriptor = descriptor;
-                        } else {
-                            close(descriptor);
-                        }
-
-                        return result::ok;
-                    }
-
-                    case last_as::directory:
-                        break;
-                }
-            }
-
             auto path_component_end_elmt = *path_component_end;
             *path_component_end = '\0';
+
+            if (path_component_end == end) {
+                if constexpr (type == last_as::none) {
+                    *path_component_end = path_component_end_elmt;
+                    break;
+                }
+
+                if constexpr (type == last_as::file) {
+                    auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+                    *path_component_end = path_component_end_elmt;
+
+                    if (descriptor == -1) {
+                        return result::failed_to_create_last_as_file;
+                    }
+
+                    if (last_descriptor != nullptr) {
+                        *last_descriptor = descriptor;
+                    } else {
+                        close(descriptor);
+                    }
+
+                    break;
+                }
+
+                if constexpr (type == last_as::directory) {
+                    if (::mkdir(path, 0755) != 0) {
+                        return result::failed_to_create_last_as_directory;
+                    }
+
+                    *path_component_end = path_component_end_elmt;
+                    break;
+                }
+            }
 
             if (::mkdir(path, 0755) != 0) {
                 return result::failed_to_create_intermediate_directories;
@@ -72,13 +80,15 @@ namespace recursive::mkdir {
         }
 
         auto end = utils::string::find_end_of_null_terminated_string(path);
-        auto path_component_end = utils::path::find_last_slash_in_front_of_pattern(path, end);
+        auto back = end - 1;
 
-        if (path_component_end == end) {
-            return result::ok;
+        if (*back == '/') {
+            end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 
+        auto path_component_end = end;
         auto prev_path_component_end = end;
+
         while (path_component_end != path) {
             auto path_component_end_elmt = *path_component_end;
             *path_component_end = '\0';
