@@ -8,10 +8,10 @@ TARGET := build/tbd
 
 DEBUGFLAGS := -std=c++17 -stdlib=libc++ -Wall -g
 
-all:
+all: target-dir
 	@$(CXX) $(CXXFLAGS) $(SRCS) -o $(TARGET)
 
-debug:
+debug: target-dir
 	@$(CXX) $(DEBUGFLAGS) $(SRCS) -o $(TARGET)
 
 clean:
@@ -19,3 +19,6 @@ clean:
 
 install: all
 	@sudo mv $(TARGET) /usr/bin
+
+target-dir:
+	@mkdir -p $(dir $(TARGET))
