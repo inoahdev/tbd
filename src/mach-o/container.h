@@ -111,15 +111,14 @@ namespace macho {
 
             for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
                 auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
-                auto cmdsize = load_cmd->cmdsize;
+                auto swapped_load_command = *load_cmd;
 
+                if (magic_is_big_endian) {
+                    swap_load_command(swapped_load_command);
+                }
+
+                auto cmdsize = swapped_load_command.cmdsize;
                 if (created_cached_load_commands) {
-                    auto swapped_load_command = *load_cmd;
-                    if (magic_is_big_endian) {
-                        swap_load_command(swapped_load_command);
-                    }
-
-                    cmdsize = swapped_load_command.cmdsize;
                     if (cmdsize < sizeof(struct load_command)) {
                         return load_command_iteration_result::load_command_is_too_small;
                     }
@@ -128,18 +127,10 @@ namespace macho {
                     if (size_used > sizeofcmds || (size_used == sizeofcmds && i != ncmds - 1)) {
                         return load_command_iteration_result::load_command_is_too_large;
                     }
+                }
 
-                    if (should_callback) {
-                        should_callback = callback(load_command_base + cached_load_commands_index, &swapped_load_command, load_cmd);
-                    }
-                } else {
-                    if (should_callback) {
-                        should_callback = callback(load_command_base + cached_load_commands_index, load_cmd, load_cmd);
-                    }
-
-                    if (!should_callback) {
-                        break;
-                    }
+                if (should_callback) {
+                    should_callback = callback(load_command_base + cached_load_commands_index, &swapped_load_command, load_cmd);
                 }
 
                 cached_load_commands_index += cmdsize;
