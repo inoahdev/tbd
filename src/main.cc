@@ -1052,7 +1052,7 @@ int main(int argc, const char *argv[]) {
                         // If an output-directory does not exist, it is expected
                         // to be created.
 
-                        auto result = recursive::mkdir::create(path.data());
+                        auto result = recursive::mkdir::perform(path.data());
                         switch (result) {
                             case recursive::mkdir::result::ok:
                                 break;
@@ -1566,7 +1566,7 @@ int main(int argc, const char *argv[]) {
                 auto output_path_creation_terminator = static_cast<char *>(nullptr);
                 auto output_file_descriptor = -1;
 
-                auto mkdir_result = recursive::mkdir::create_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
+                auto mkdir_result = recursive::mkdir::perform_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
                 if (mkdir_result != recursive::mkdir::result::ok) {
                     switch (mkdir_result) {
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -1806,7 +1806,7 @@ int main(int argc, const char *argv[]) {
 
             if (!tbd_output_path.empty()) {
                 auto last_file_descriptor = -1;
-                auto result = recursive::mkdir::create_with_last_as_file(tbd_output_path.data(), &tbd_output_path_creation_terminator, &last_file_descriptor);
+                auto result = recursive::mkdir::perform_with_last_as_file(tbd_output_path.data(), &tbd_output_path_creation_terminator, &last_file_descriptor);
 
                 if (result != recursive::mkdir::result::ok) {
                     switch (result) {

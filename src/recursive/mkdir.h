@@ -20,8 +20,8 @@ namespace recursive::mkdir {
     // Writing a null-terminator at iter provides
     // the path first created by mkdir
 
-    result create(char *path, char **iter = nullptr);
+    result perform(char *path, char **iter = nullptr);
 
-    result create_ignorning_last(char *path, char **iter = nullptr);
-    result create_with_last_as_file(char *path, char **iter = nullptr, int *last_descriptor = nullptr);
+    result perform_ignorning_last(char *path, char **iter = nullptr);
+    result perform_with_last_as_file(char *path, char **iter = nullptr, int *last_descriptor = nullptr);
 }

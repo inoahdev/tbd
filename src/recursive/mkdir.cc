@@ -22,7 +22,7 @@ namespace recursive::mkdir {
     };
 
     template <last_as type>
-    result _create_without_check(char *path, char *end, char *component_end, int *last_descriptor = nullptr) {
+    result _perform_without_check(char *path, char *end, char *component_end, int *last_descriptor = nullptr) {
         auto path_component_end = component_end;
 
         do {
@@ -74,7 +74,7 @@ namespace recursive::mkdir {
     }
 
     template <last_as type>
-    inline result _create(char *path, char **iter, int *last_descriptor = nullptr) {
+    inline result _perform(char *path, char **iter, int *last_descriptor = nullptr) {
         if (access(path, F_OK) == 0) {
             return result::ok;
         }
@@ -99,7 +99,7 @@ namespace recursive::mkdir {
                 }
 
                 *path_component_end = path_component_end_elmt;
-                return _create_without_check<type>(path, end, prev_path_component_end, last_descriptor);
+                return _perform_without_check<type>(path, end, prev_path_component_end, last_descriptor);
             }
 
             prev_path_component_end = path_component_end;
@@ -111,15 +111,15 @@ namespace recursive::mkdir {
         return result::ok;
     }
 
-    result create(char *path, char **iter) {
-        return _create<last_as::directory>(path, iter);
+    result perform(char *path, char **iter) {
+        return _perform<last_as::directory>(path, iter);
     }
 
-    result create_ignorning_last(char *path, char **iter) {
-        return _create<last_as::none>(path, iter);
+    result perform_ignorning_last(char *path, char **iter) {
+        return _perform<last_as::none>(path, iter);
     }
 
-    result create_with_last_as_file(char *path, char **iter, int *last_descriptor) {
-        return _create<last_as::file>(path, iter, last_descriptor);
+    result perform_with_last_as_file(char *path, char **iter, int *last_descriptor) {
+        return _perform<last_as::file>(path, iter, last_descriptor);
     }
 }
