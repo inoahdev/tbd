@@ -310,8 +310,8 @@ namespace utils::path {
     // component_compare strictly compares path-components, not
     // skipping over '.' components like `compare()`
 
-    template <typename T>
-    int component_compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) noexcept {
+    template <typename T1, typename T2, typename T3, typename T4>
+    int component_compare(const T1 &lhs_begin, const T2 &lhs_end, const T3 &rhs_begin, const T4 &rhs_end) noexcept {
         // Set end (for searching) to the front of terminating row of slashes
 
         auto lhs_reverse_iter = lhs_end;
@@ -396,8 +396,8 @@ namespace utils::path {
         return 0;
     }
 
-    template <typename T>
-    int compare(const T &lhs_begin, const T &lhs_end, const T &rhs_begin, const T &rhs_end) noexcept {
+    template <typename T1, typename T2, typename T3, typename T4>
+    int compare(const T1 &lhs_begin, const T2 &lhs_end, const T3 &rhs_begin, const T4 &rhs_end) noexcept {
         // Set end (for searching) to the front of terminating row of slashes
 
         auto lhs_reverse_iter = lhs_end;
@@ -495,8 +495,8 @@ namespace utils::path {
         return 0;
     }
 
-    template <typename S, typename T>
-    S clean(const T &begin, const T &end) noexcept {
+    template <typename S, typename T1, typename T2>
+    S clean(const T1 &begin, const T2 &end) noexcept {
         auto path = S();
         auto iter = begin;
 
