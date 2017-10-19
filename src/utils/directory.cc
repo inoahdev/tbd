@@ -10,22 +10,24 @@
 
 namespace utils {
     directory::open_result directory::open(const char *path) {
-        dir = opendir(path);
+        this->path = path;
+        this->dir = opendir(path);
+
         if (!dir) {
             return open_result::failed_to_open_directory;
         }
 
-        this->path = path;
         return open_result::ok;
     }
 
     directory::open_result directory::open(const std::string &path) {
-        dir = opendir(path.data());
+        this->path = path;
+        this->dir = opendir(path.data());
+
         if (!dir) {
             return open_result::failed_to_open_directory;
         }
 
-        this->path = path;
         return open_result::ok;
     }
 
