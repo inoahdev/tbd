@@ -19,6 +19,8 @@ namespace recursive::remove {
 
     result perform(char *path, char *begin) {
         auto end = utils::string::find_end_of_null_terminated_string(path);
+        
+        auto prev_path_component_end = begin;
         auto path_component_end = end;
 
         do {
@@ -28,24 +30,20 @@ namespace recursive::remove {
             if (access(path, F_OK) != 0) {
                 return result::ok;
             }
-
-            auto next_path_component_end = utils::path::find_last_slash_in_front_of_pattern(begin, path_component_end);
-            if (next_path_component_end == path_component_end) {
-                if (::remove(path) != 0) {
+            
+            if (::remove(path) != 0) {
+                if (path_component_end == begin) {
                     return result::failed_to_remove_directory;
                 }
-
-                *path_component_end = path_component_end_elmt;
-                break;
-            }
-
-            if (::remove(path) != 0) {
-                return result::failed_to_remove_subdirectories;
+                
+                return result::failed_to_remove_directory;
             }
 
             *path_component_end = path_component_end_elmt;
-            path_component_end = next_path_component_end;
-        } while (true);
+            
+            prev_path_component_end = path_component_end;
+            path_component_end = utils::path::find_last_slash_in_front_of_pattern(begin, prev_path_component_end);
+        } while (prev_path_component_end != begin);
 
         return result::ok;
     }
