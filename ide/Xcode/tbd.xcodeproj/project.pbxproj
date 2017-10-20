@@ -39,6 +39,7 @@
 		C31620AC1F50F575005A67A7 /* recurse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recurse.cc; path = ../../src/misc/recurse.cc; sourceTree = "<group>"; };
 		C31620AD1F50F575005A67A7 /* recurse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recurse.h; path = ../../src/misc/recurse.h; sourceTree = "<group>"; };
 		C32A7A9F1F10E5DA000BF14E /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
+		C32D3C0A1F997E800092E0A0 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = LICENSE.md; path = ../../LICENSE.md; sourceTree = "<group>"; };
 		C331313E1F23D0680031B4BD /* swap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swap.h; path = "../../src/mach-o/swap.h"; sourceTree = "<group>"; };
 		C331313F1F23D0680031B4BD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = "../../src/mach-o/swap.cc"; sourceTree = "<group>"; };
 		C331314C1F23D0AD0031B4BD /* architecture_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = architecture_info.h; path = "../../src/mach-o/architecture_info.h"; sourceTree = "<group>"; };
@@ -93,8 +94,9 @@
 			isa = PBXGroup;
 			children = (
 				C32A7AA91F10E600000BF14E /* src */,
-				C38254B51F93CD820084CFCE /* Makefile */,
 				C3A45E4E1F804E4800FC649E /* compile_commands.json */,
+				C38254B51F93CD820084CFCE /* Makefile */,
+				C32D3C0A1F997E800092E0A0 /* LICENSE.md */,
 				C3D027021F1AE88100BAA510 /* README.md */,
 				C32A7AA01F10E5DA000BF14E /* Products */,
 			);
