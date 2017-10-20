@@ -113,8 +113,8 @@ namespace recurse {
             if ((options & options::print_warnings) != options::none) {
                 switch (warning) {
                     case utils::directory::recursion_warning::failed_to_open_subdirectory: {
-                        const auto &sub_directory = *(utils::directory *)data;
-                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory.path.data(), strerror(errno));
+                        const auto &sub_directory_path = *(std::string *)data;
+                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
 
                         break;
                     }
@@ -187,8 +187,8 @@ namespace recurse {
             if ((options & options::print_warnings) != options::none) {
                 switch (warning) {
                     case utils::directory::recursion_warning::failed_to_open_subdirectory: {
-                        const auto &sub_directory = *(utils::directory *)data;
-                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory.path.data(), strerror(errno));
+                        const auto &sub_directory_path = *(std::string *)data;
+                        fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
 
                         break;
                     }

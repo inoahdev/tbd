@@ -176,7 +176,7 @@ namespace utils {
                             }
 
                             case open_result::failed_to_open_directory:
-                                warning_callback(recursion_warning::failed_to_open_subdirectory, (const void *)&sub_directory);
+                                warning_callback(recursion_warning::failed_to_open_subdirectory, (const void *)&directory_entry_path);
                                 break;
                         }
                     }
