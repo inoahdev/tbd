@@ -177,7 +177,28 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
 
                 break;
 
-            default:
+            case macho::utils::tbd::creation_result::ok:
+            case macho::utils::tbd::creation_result::stream_seek_error:
+            case macho::utils::tbd::creation_result::stream_read_error:
+            case macho::utils::tbd::creation_result::unsupported_filetype:
+            case macho::utils::tbd::creation_result::inconsistent_flags:
+            case macho::utils::tbd::creation_result::invalid_subtype:
+            case macho::utils::tbd::creation_result::invalid_cputype:
+            case macho::utils::tbd::creation_result::invalid_load_command:
+            case macho::utils::tbd::creation_result::invalid_segment:
+            case macho::utils::tbd::creation_result::invalid_sub_client:
+            case macho::utils::tbd::creation_result::invalid_sub_umbrella:
+            case macho::utils::tbd::creation_result::failed_to_iterate_load_commands:
+            case macho::utils::tbd::creation_result::failed_to_iterate_symbols:
+            case macho::utils::tbd::creation_result::contradictary_load_command_information:
+            case macho::utils::tbd::creation_result::empty_installation_name:
+            case macho::utils::tbd::creation_result::uuid_is_not_unique:
+            case macho::utils::tbd::creation_result::not_a_library:
+            case macho::utils::tbd::creation_result::has_no_uuid:
+            case macho::utils::tbd::creation_result::contradictary_container_information:
+            case macho::utils::tbd::creation_result::no_provided_architectures:
+            case macho::utils::tbd::creation_result::failed_to_allocate_memory:
+            case macho::utils::tbd::creation_result::no_symbols_or_reexports:
                 break;
         }
 
@@ -1055,6 +1076,7 @@ int main(int argc, const char *argv[]) {
                         auto result = recursive::mkdir::perform(path.data());
                         switch (result) {
                             case recursive::mkdir::result::ok:
+                            case recursive::mkdir::result::failed_to_create_last_as_file:
                                 break;
 
                             case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -1064,9 +1086,6 @@ int main(int argc, const char *argv[]) {
                             case recursive::mkdir::result::failed_to_create_last_as_directory:
                                 fprintf(stderr, "Failed to create directory at path (%s), failing with error: %s\n", path.data(), strerror(errno));
                                 return 1;
-
-                            default:
-                                break;
                         }
                     }
                 }
@@ -1569,15 +1588,16 @@ int main(int argc, const char *argv[]) {
                 auto mkdir_result = recursive::mkdir::perform_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
                 if (mkdir_result != recursive::mkdir::result::ok) {
                     switch (mkdir_result) {
+                        case recursive::mkdir::result::ok:
+                        case recursive::mkdir::result::failed_to_create_last_as_directory:
+                            break;
+
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
                             fprintf(stderr, "Failed to create intermediate directories for output-path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
                             break;
 
-                        case recursive::mkdir::result::failed_to_create_last_as_directory:
-                            fprintf(stderr, "Failed to create directory at output-path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
-                            break;
-
-                        default:
+                        case recursive::mkdir::result::failed_to_create_last_as_file:
+                            fprintf(stderr, "Failed to create file at output-path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
                             break;
                     }
 
@@ -1642,7 +1662,7 @@ int main(int argc, const char *argv[]) {
                                 const auto &output_path_creation_terminator_character = *output_path_creation_terminator;
                                 *output_path_creation_terminator = '\0';
 
-                                fprintf(stderr, "Failed to remove created sub-directory of path (%s)", output_path.data());
+                                fprintf(stderr, "Failed to remove created sub-directories of path (%s)", output_path.data());
 
                                 *output_path_creation_terminator = output_path_creation_terminator_character;
                                 fprintf(stderr, ", full path being (%s), failing with error: %s\n", output_path.data(), strerror(errno));
@@ -1810,6 +1830,10 @@ int main(int argc, const char *argv[]) {
 
                 if (result != recursive::mkdir::result::ok) {
                     switch (result) {
+                        case recursive::mkdir::result::ok:
+                        case recursive::mkdir::result::failed_to_create_last_as_directory:
+                            break;
+
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
                             if (should_print_paths) {
                                 fprintf(stderr, "Failed to create intermediate directories for output-path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
@@ -1819,16 +1843,13 @@ int main(int argc, const char *argv[]) {
 
                             break;
 
-                        case recursive::mkdir::result::failed_to_create_last_as_directory:
+                        case recursive::mkdir::result::failed_to_create_last_as_file:
                             if (should_print_paths) {
-                                fprintf(stderr, "Failed to create directory at output-path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
+                                fprintf(stderr, "Failed to create file at output-path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
                             } else {
-                                fprintf(stderr, "Failed to create directory at provided output-path, failing with error: %s\n", strerror(errno));
+                                fprintf(stderr, "Failed to create file at provided output-path, failing with error: %s\n", strerror(errno));
                             }
 
-                            break;
-
-                        default:
                             break;
                     }
 
@@ -1896,7 +1917,7 @@ int main(int argc, const char *argv[]) {
                                 const auto &tbd_output_path_creation_terminator_character = *tbd_output_path_creation_terminator;
                                 *tbd_output_path_creation_terminator = '\0';
 
-                                fprintf(stderr, "Failed to remove created sub-directory of path (%s)", tbd_output_path.data());
+                                fprintf(stderr, "Failed to remove created sub-directories of path (%s)", tbd_output_path.data());
 
                                 *tbd_output_path_creation_terminator = tbd_output_path_creation_terminator_character;
                                 fprintf(stderr, ", full path being (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));

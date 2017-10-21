@@ -224,6 +224,9 @@ namespace macho::utils::tbd {
 
     const char *objc_constraint_to_string(const objc_constraint &constraint) noexcept {
         switch (constraint) {
+            case objc_constraint::no_value:
+                break;
+
             case objc_constraint::none:
                 return "none";
 
@@ -238,9 +241,6 @@ namespace macho::utils::tbd {
 
             case objc_constraint::gc:
                 return "gc";
-
-            default:
-                break;
         }
 
         return nullptr;
@@ -354,10 +354,9 @@ namespace macho::utils::tbd {
 
             case platform::windows:
                 return "windows";
-
-            default:
-                return nullptr;
         }
+
+        return nullptr;
     }
 
     enum platform platform_from_string(const char *platform) noexcept {

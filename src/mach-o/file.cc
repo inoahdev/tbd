@@ -139,8 +139,17 @@ namespace macho {
                 case container::open_result::ok:
                     break;
 
-                default:
+                case container::open_result::invalid_range:
+                case container::open_result::stream_seek_error:
+                case container::open_result::stream_read_error:
+                case container::open_result::fat_container:
+                case container::open_result::not_a_macho:
+                case container::open_result::invalid_macho:
                     return open_result::invalid_container;
+
+                case container::open_result::not_a_library:
+                case container::open_result::not_a_dynamic_library:
+                    break;
             }
 
             new_container.stream = stream;
@@ -180,8 +189,17 @@ namespace macho {
                 case container::open_result::ok:
                     break;
 
-                default:
+                case container::open_result::invalid_range:
+                case container::open_result::stream_seek_error:
+                case container::open_result::stream_read_error:
+                case container::open_result::fat_container:
+                case container::open_result::not_a_macho:
+                case container::open_result::invalid_macho:
                     return open_result::invalid_container;
+
+                case container::open_result::not_a_library:
+                case container::open_result::not_a_dynamic_library:
+                    break;
             }
 
             new_container.stream = stream;

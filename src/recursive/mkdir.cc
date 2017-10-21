@@ -22,7 +22,7 @@ namespace recursive::mkdir {
     };
 
     template <last_as type>
-    result _perform_without_check(char *path, char *end, char *component_end, int *last_descriptor = nullptr) {
+    inline result _perform_without_check(char *path, char *end, char *component_end, int *last_descriptor = nullptr) {
         auto path_component_end = component_end;
 
         do {
@@ -82,7 +82,7 @@ namespace recursive::mkdir {
         auto end = utils::string::find_end_of_null_terminated_string(path);
         auto back = end - 1;
 
-        if (*back == '/') {
+        if (*back == '/' || *back == '\\') {
             end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 

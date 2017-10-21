@@ -113,6 +113,10 @@ namespace utils {
             return recursion_result::directory_not_opened;
         }
 
+        if (options == recursion_options::none) {
+            return recursion_result::ok;
+        }
+
         auto directory_entry = readdir(dir);
         auto path_length = path.length();
 
@@ -143,14 +147,14 @@ namespace utils {
                     break;
 
                 case DT_DIR:
-                    if ((options & recursion_options::skip_current_directory) != recursion_options::none) {
-                        if (strncmp(directory_entry_name, ".", directory_entry_name_length) == 0) {
+                    if (strncmp(directory_entry_name, ".", directory_entry_name_length) == 0) {
+                        if ((options & recursion_options::skip_current_directory) != recursion_options::none) {
                             break;
                         }
                     }
 
-                    if ((options & recursion_options::skip_parent_directory) != recursion_options::none) {
-                        if (strncmp(directory_entry_name, "..", directory_entry_name_length) == 0) {
+                    if (strncmp(directory_entry_name, "..", directory_entry_name_length) == 0) {
+                        if ((options & recursion_options::skip_parent_directory) != recursion_options::none) {
                             break;
                         }
                     }
