@@ -434,7 +434,7 @@ namespace macho::utils::tbd {
             return version::v2;
         }
 
-        return (enum version)0;
+        return version::none;
     }
 
     const char *get_parsed_symbol_string(const char *string, bool is_weak, enum symbol::type *type) {
@@ -771,6 +771,9 @@ namespace macho::utils::tbd {
             auto clients_end = clients.end();
 
             switch (version) {
+                case none:
+                    break;
+
                 case version::v1:
                     dprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
                     break;
@@ -1015,6 +1018,9 @@ namespace macho::utils::tbd {
             auto clients_end = clients.end();
 
             switch (version) {
+                case none:
+                    break;
+
                 case version::v1:
                     fprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
                     break;

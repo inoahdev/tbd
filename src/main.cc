@@ -1141,7 +1141,7 @@ int main(int argc, const char *argv[]) {
             auto local_flags = macho::utils::tbd::flags::none;
             auto local_objc_constraint = macho::utils::tbd::objc_constraint::no_value;
             auto local_platform = macho::utils::tbd::platform::none;
-            auto local_tbd_version = (enum macho::utils::tbd::version)0;
+            auto local_tbd_version = macho::utils::tbd::version::none;
 
             for (i++; i < argc; i++) {
                 const auto &argument = argv[i];
@@ -1285,7 +1285,7 @@ int main(int argc, const char *argv[]) {
                         const auto &version_string = argv[i];
 
                         local_tbd_version = macho::utils::tbd::version_from_string(version_string);
-                        if (local_tbd_version == (enum macho::utils::tbd::version)0) {
+                        if (local_tbd_version == macho::utils::tbd::version::none) {
                             fprintf(stderr, "(%s) is not a valid tbd-version\n", version_string);
                             return 1;
                         }
@@ -1376,7 +1376,7 @@ int main(int argc, const char *argv[]) {
 
                 local_options = 0;
                 local_platform = macho::utils::tbd::platform::none;
-                local_tbd_version = (enum macho::utils::tbd::version)0;
+                local_tbd_version = macho::utils::tbd::version::none;
 
                 break;
             }
@@ -1385,7 +1385,7 @@ int main(int argc, const char *argv[]) {
             // not provided a path to a mach-o library path or to a
             // directory where some could be found
 
-            if (local_architectures != 0 || local_architecture_overrides != 0 || local_platform != macho::utils::tbd::platform::none || local_options != 0 || local_tbd_version != (enum macho::utils::tbd::version)0) {
+            if (local_architectures != 0 || local_architecture_overrides != 0 || local_platform != macho::utils::tbd::platform::none || local_options != 0 || local_tbd_version != macho::utils::tbd::version::none) {
                 fputs("Please provide a path to a mach-o library file or to a directory to recurse through\n", stderr);
                 return 1;
             }
@@ -1632,7 +1632,7 @@ int main(int argc, const char *argv[]) {
                     tbd.platform = platform;
                 }
 
-                if (tbd.version == (enum macho::utils::tbd::version)0) {
+                if (tbd.version == macho::utils::tbd::version::none) {
                     tbd.version = version;
                 }
 
@@ -1886,7 +1886,7 @@ int main(int argc, const char *argv[]) {
                 tbd.platform = platform;
             }
 
-            if (tbd.version == (enum macho::utils::tbd::version)0) {
+            if (tbd.version == macho::utils::tbd::version::none) {
                 tbd.version = version;
             }
 

@@ -88,7 +88,8 @@ namespace macho::utils::tbd {
     __attribute__((unused)) platform platform_from_string(const char *platform) noexcept;
 
     enum version {
-        v1 = 1,
+        none,
+        v1,
         v2
     };
 
