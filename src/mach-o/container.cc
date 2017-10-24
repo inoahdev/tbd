@@ -28,7 +28,7 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        return validate_and_load_data(validation_type::as_library);
+        return validate_and_load_data<validation_type::as_library>();
     }
 
     container::open_result container::open_from_dynamic_library(FILE *stream, long base, size_t size) noexcept {
@@ -37,7 +37,7 @@ namespace macho {
         this->base = base;
         this->size = size;
 
-        return validate_and_load_data(validation_type::as_dynamic_library);
+        return validate_and_load_data<validation_type::as_dynamic_library>();
     }
 
     container::open_result container::open_copy(const container &container) noexcept {
@@ -47,120 +47,6 @@ namespace macho {
         size = container.size;
 
         return validate_and_load_data();
-    }
-
-    container::open_result container::validate_and_load_data(container::validation_type type) noexcept {
-        auto &magic = header.magic;
-
-        const auto magic_is_big_endian = is_big_endian();
-        const auto stream_position = ftell(stream);
-
-        if (fseek(stream, base, SEEK_SET) != 0) {
-            return open_result::stream_seek_error;
-        }
-
-        if (fread(&magic, sizeof(magic), 1, stream) != 1) {
-            return open_result::stream_read_error;
-        }
-
-        const auto macho_stream_is_regular = magic_is_thin(magic);
-        if (macho_stream_is_regular) {
-            if (fread(&header.cputype, sizeof(header) - sizeof(header.magic), 1, stream) != 1) {
-                return open_result::stream_read_error;
-            }
-
-            if (magic_is_big_endian) {
-                swap_mach_header(header);
-            }
-        } else {
-            const auto macho_stream_is_fat = magic_is_fat(magic);
-            if (macho_stream_is_fat) {
-                return open_result::fat_container;
-            } else {
-                return open_result::not_a_macho;
-            }
-        }
-
-        if (fseek(stream, stream_position, SEEK_SET) != 0) {
-            return open_result::stream_seek_error;
-        }
-
-        auto file_size_calculation_result = open_result::ok;
-
-        const auto file_size = this->file_size(file_size_calculation_result);
-        const auto max_size = file_size - base;
-
-        if (file_size_calculation_result != open_result::ok) {
-            return file_size_calculation_result;
-        }
-
-        if (!size) {
-            size = max_size;
-        } else if (size > max_size) {
-            return open_result::invalid_range;
-        }
-
-        if (type == validation_type::as_library || type == validation_type::as_dynamic_library) {
-            auto filetype = header.filetype;
-            if (magic_is_big_endian) {
-                swap_uint32(*(uint32_t *)&filetype);
-            }
-
-            switch (type) {
-                case validation_type::none:
-                    break;
-
-                case validation_type::as_library:
-                    if (!filetype_is_library(filetype)) {
-                        return open_result::not_a_library;
-                    }
-
-                    break;
-
-                case validation_type::as_dynamic_library:
-                    if (!filetype_is_dynamic_library(filetype)) {
-                        return open_result::not_a_dynamic_library;
-                    }
-
-                    break;
-            }
-
-            auto iteration_result = load_command_iteration_result::ok;
-            auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
-
-            switch (iteration_result) {
-                case load_command_iteration_result::ok:
-                    break;
-
-                case load_command_iteration_result::no_load_commands:
-                    break;
-
-                case load_command_iteration_result::stream_seek_error:
-                    return open_result::stream_seek_error;
-
-                case load_command_iteration_result::stream_read_error:
-                    return open_result::stream_read_error;
-
-                case load_command_iteration_result::load_command_is_too_small:
-                case load_command_iteration_result::load_command_is_too_large:
-                    return open_result::invalid_macho;
-            }
-
-            if (!identification_dylib) {
-                return open_result::not_a_library;
-            }
-
-            auto identification_dylib_cmdsize = identification_dylib->cmdsize;
-            if (magic_is_big_endian) {
-                swap_uint32(identification_dylib_cmdsize);
-            }
-
-            if (identification_dylib_cmdsize < sizeof(dylib_command)) {
-                return open_result::not_a_library;
-            }
-        }
-
-        return open_result::ok;
     }
 
     container::container(container &&container) noexcept :
