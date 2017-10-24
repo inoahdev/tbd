@@ -444,8 +444,8 @@ void print_usage() {
     fputc('\n', stdout);
     fputs("Miscellaneous options:\n", stdout);
     fputs("        --dont-print-warnings,    Don't print any warnings (both path and global option)\n", stdout);
-    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
     fputs("        --only-dynamic-libraries, Option for `--list-macho-libraries` to only print dynamic-libraries\n", stdout);
+    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
@@ -458,10 +458,19 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("tbd field options: (Both path and global options)\n", stdout);
-    fputs("        --flags,                  Specify flags to add onto ones found in provided mach-o file(s)\n", stdout);
-    fputs("        --objc-constraint,        Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)\n", stdout);
-    fputs("        --remove-flags,           Remove flags field from outputted tbds\n", stdout);
-    fputs("        --remove-objc-constraint, Remove objc-constraint field from outputted tbds\n", stdout);
+    fputs("        --flags,                        Specify flags to add onto ones found in provided mach-o file(s)\n", stdout);
+    fputs("        --ignore-missing-exports,       Ignore if no symbols or reexpors to output are found in provided mach-o file(s)\n", stdout);
+    fputs("        --ignore-missing-uuids,         Ignore if uuids are not found in provided mach-o file(s)\n", stdout);
+    fputs("        --ignore-non-unique-uuids,      Ignore if uuids found in provided mach-o file(s) not unique\n", stdout);
+    fputs("        --objc-constraint,              Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)\n", stdout);
+    fputs("        --remove-current-version,       Remove current-version field from outputted tbds\n", stdout);
+    fputs("        --remove-compatibility-version, Remove compatibility-version field from outputted tbds\n", stdout);
+    fputs("        --remove-exports,               Remove exports field from outputted tbds\n", stdout);
+    fputs("        --remove-flags,                 Remove flags field from outputted tbds\n", stdout);
+    fputs("        --remove-objc-constraint,       Remove objc-constraint field from outputted tbds\n", stdout);
+    fputs("        --remove-parent-umbrella,       Remove parent-umbrella field from outputted tbds\n", stdout);
+    fputs("        --remove-swift-version,         Remove swift-version field from outputted tbds\n", stdout);
+    fputs("        --remove-uuids,                 Remove uuids field from outputted tbds\n", stdout);
 
     fputc('\n', stdout);
     fputs("List options:\n", stdout);
@@ -481,12 +490,12 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        recurse_directories    = 1 << 8, // Use second-byte to support native tbd options
-        recurse_subdirectories = 1 << 9,
-        maintain_directories   = 1 << 10,
-        dont_print_warnings    = 1 << 11,
-        replace_path_extension = 1 << 12,
-        only_dynamic_libraries = 1 << 13
+        recurse_directories    = 1 << 24, // Use second-byte to support native tbd options
+        recurse_subdirectories = 1 << 25,
+        maintain_directories   = 1 << 26,
+        dont_print_warnings    = 1 << 27,
+        replace_path_extension = 1 << 28,
+        only_dynamic_libraries = 1 << 29
     };
 
     typedef struct tbd_file {
@@ -608,6 +617,12 @@ int main(int argc, const char *argv[]) {
             }
 
             i = j;
+        } else if (strcmp(option, "ignore-missing-exports") == 0) {
+            options |= macho::utils::tbd::options::ignore_missing_exports;
+        } else if (strcmp(option, "ignore-missing-uuids") == 0) {
+            options |= macho::utils::tbd::options::ignore_missing_uuids;
+        } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
+            options |= macho::utils::tbd::options::ignore_non_unique_uuid;
         } else if (strcmp(option, "list-architectures") == 0) {
             if (!is_first_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
@@ -702,14 +717,6 @@ int main(int argc, const char *argv[]) {
                 fputc('\n', stdout);
             }
 
-            return 0;
-        } else if (strcmp(option, "list-tbd-flags") == 0) {
-            if (!is_first_argument || !is_last_argument) {
-                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
-                return 1;
-            }
-
-            fputs("flat_namespace\nnot_app_extension_safe\n", stdout);
             return 0;
         } else if (strcmp(option, "list-macho-libraries") == 0) {
             if (!is_first_argument) {
@@ -955,6 +962,14 @@ int main(int argc, const char *argv[]) {
             fputs("once, Recurse through all of a directory's files\n", stdout);
             fputs("all,  Recurse through all of a directory's files and sub-directories (default)\n", stdout);
 
+            return 0;
+        } else if (strcmp(option, "list-tbd-flags") == 0) {
+            if (!is_first_argument || !is_last_argument) {
+                fprintf(stderr, "Option (%s) should be run by itself\n", argument);
+                return 1;
+            }
+
+            fputs("flat_namespace\nnot_app_extension_safe\n", stdout);
             return 0;
         } else if (strcmp(option, "list-versions") == 0) {
             if (!is_first_argument || !is_last_argument) {
@@ -1270,8 +1285,26 @@ int main(int argc, const char *argv[]) {
                             fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
                             return 1;
                         }
+                    } else if (strcmp(option, "ignore-missing-exports") == 0) {
+                        options |= macho::utils::tbd::options::ignore_missing_exports;
+                    } else if (strcmp(option, "ignore-missing-uuids") == 0) {
+                        options |= macho::utils::tbd::options::ignore_missing_uuids;
+                    } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
+                        options |= macho::utils::tbd::options::ignore_non_unique_uuid;
+                    } else if (strcmp(option, "remove-current-version") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_current_version;
+                    } else if (strcmp(option, "remove-compatibility-version") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_compatibility_version;
+                    } else if (strcmp(option, "remove-exports") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_exports;
+                    } else if (strcmp(option, "remove-flags") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_flags;
                     } else if (strcmp(option, "remove-objc-constraint") == 0) {
-                        options |= macho::utils::tbd::options::remove_objc_constraint;
+                        local_options |= macho::utils::tbd::options::remove_objc_constraint;
+                    } else if (strcmp(option, "remove-swift-version") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_swift_version;
+                    } else if (strcmp(option, "remove-uuids") == 0) {
+                        local_options |= macho::utils::tbd::options::remove_uuids;
                     } else if (strcmp(option, "replace-path-extension") == 0) {
                         local_options |= replace_path_extension;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
@@ -1404,8 +1437,20 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "Platform-string (%s) is invalid\n", platform_string);
                 return 1;
             }
+        } else if (strcmp(option, "remove-current-version") == 0) {
+            options |= macho::utils::tbd::options::remove_current_version;
+        } else if (strcmp(option, "remove-compatibility-version") == 0) {
+            options |= macho::utils::tbd::options::remove_compatibility_version;
+        } else if (strcmp(option, "remove-exports") == 0) {
+            options |= macho::utils::tbd::options::remove_exports;
+        } else if (strcmp(option, "remove-flags") == 0) {
+            options |= macho::utils::tbd::options::remove_flags;
         } else if (strcmp(option, "remove-objc-constraint") == 0) {
             options |= macho::utils::tbd::options::remove_objc_constraint;
+        } else if (strcmp(option, "remove-swift-version") == 0) {
+            options |= macho::utils::tbd::options::remove_swift_version;
+        } else if (strcmp(option, "remove-uuids") == 0) {
+            options |= macho::utils::tbd::options::remove_uuids;
         } else if (strcmp(option, "replace-path-extension") == 0) {
             options |= replace_path_extension;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
@@ -1529,6 +1574,50 @@ int main(int argc, const char *argv[]) {
 
         if (options & dont_print_warnings) {
             tbd_options |= dont_print_warnings;
+        }
+
+        if (options & macho::utils::tbd::options::ignore_missing_exports) {
+            tbd_options |= macho::utils::tbd::options::ignore_missing_exports;
+        }
+
+        if (options & macho::utils::tbd::options::ignore_missing_uuids) {
+            tbd_options |= macho::utils::tbd::options::ignore_missing_uuids;
+        }
+
+        if (options & macho::utils::tbd::options::ignore_non_unique_uuid) {
+            tbd_options |= macho::utils::tbd::options::ignore_non_unique_uuid;
+        }
+
+        if (options & macho::utils::tbd::options::remove_current_version) {
+            tbd_options |= macho::utils::tbd::options::remove_current_version;
+        }
+
+        if (options & macho::utils::tbd::options::remove_compatibility_version) {
+            tbd_options |= macho::utils::tbd::options::remove_compatibility_version;
+        }
+
+        if (options & macho::utils::tbd::options::remove_exports) {
+            tbd_options |= macho::utils::tbd::options::remove_exports;
+        }
+
+        if (options & macho::utils::tbd::options::remove_flags) {
+            tbd_options |= macho::utils::tbd::options::remove_flags;
+        }
+
+        if (options & macho::utils::tbd::options::remove_objc_constraint) {
+            tbd_options |= macho::utils::tbd::options::remove_current_version;
+        }
+
+        if (options & macho::utils::tbd::options::remove_parent_umbrella) {
+            tbd_options |= macho::utils::tbd::options::remove_current_version;
+        }
+
+        if (options & macho::utils::tbd::options::remove_swift_version) {
+            tbd_options |= macho::utils::tbd::options::remove_current_version;
+        }
+
+        if (options & macho::utils::tbd::options::remove_uuids) {
+            tbd_options |= macho::utils::tbd::options::remove_current_version;
         }
 
         if (tbd_options & recurse_directories) {

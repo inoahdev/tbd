@@ -2051,7 +2051,7 @@ namespace macho::utils::tbd {
                 return creation_result::platform_not_found;
             }
 
-            if (local_current_version == -1 || local_compatibility_version == -1 || !local_installation_name) {
+            if (!local_installation_name) {
                 return creation_result::not_a_library;
             }
 
@@ -2063,28 +2063,34 @@ namespace macho::utils::tbd {
                 library_installation_name = local_installation_name;
             }
 
-            if (library_current_version != -1) {
-                if (local_current_version != library_current_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_current_version) == options::none) {
+                if (library_current_version != -1) {
+                    if (local_current_version != library_current_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_current_version = local_current_version;
                 }
-            } else {
-                library_current_version = local_current_version;
             }
 
-            if (library_compatibility_version != -1) {
-                if (library_compatibility_version != local_compatibility_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_compatibility_version) == options::none) {
+                if (library_compatibility_version != -1) {
+                    if (library_compatibility_version != local_compatibility_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_compatibility_version = local_compatibility_version;
                 }
-            } else {
-                library_compatibility_version = local_compatibility_version;
             }
 
-            if (library_swift_version != 0) {
-                if (library_swift_version != local_swift_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_swift_version) == options::none) {
+                if (library_swift_version != 0) {
+                    if (library_swift_version != local_swift_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_swift_version = local_swift_version;
                 }
-            } else {
-                library_swift_version = local_swift_version;
             }
 
             if ((options & options::remove_objc_constraint) == options::none) {
@@ -2098,34 +2104,42 @@ namespace macho::utils::tbd {
             }
 
             if (version == version::v2) {
-                if (!library_parent_umbrella.empty()) {
-                    if (library_parent_umbrella != local_parent_umbrella) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else if (!local_parent_umbrella.empty()) {
-                    // In the scenario where one container had no (or empty) parent-umbrella
-                    // and another container did not
+                if ((options & options::remove_parent_umbrella) == options::none) {
+                    if (!library_parent_umbrella.empty()) {
+                        if (library_parent_umbrella != local_parent_umbrella) {
+                            return creation_result::contradictary_container_information;
+                        }
+                    } else if (!local_parent_umbrella.empty()) {
+                        // In the scenario where one container had no (or empty) parent-umbrella
+                        // and another container did not
 
-                    if (library_containers_index != 0) {
-                        return creation_result::contradictary_container_information;
-                    }
+                        if (library_containers_index != 0) {
+                            return creation_result::contradictary_container_information;
+                        }
 
-                    library_parent_umbrella = std::move(local_parent_umbrella);
+                        library_parent_umbrella = std::move(local_parent_umbrella);
+                    }
                 }
 
-                if (!local_uuid) {
-                    return creation_result::has_no_uuid;
-                } else {
-                    const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const std::pair<uint64_t, const uint8_t *> &rhs) {
-                        return memcmp(local_uuid, rhs.second, 16) == 0;
-                    });
+                if ((options & options::remove_uuids) == options::none) {
+                    if (!local_uuid) {
+                        if ((options & options::ignore_missing_uuids) == options::none) {
+                            return creation_result::has_no_uuid;
+                        }
+                    } else {
+                        if ((options & options::ignore_non_unique_uuid) == options::none) {
+                            const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const std::pair<uint64_t, const uint8_t *> &rhs) {
+                                return memcmp(local_uuid, rhs.second, 16) == 0;
+                            });
 
-                    const auto &uuids_end = library_uuids.end();
-                    if (library_uuids_iter != uuids_end) {
-                        return creation_result::uuid_is_not_unique;
+                            const auto &uuids_end = library_uuids.end();
+                            if (library_uuids_iter != uuids_end) {
+                                return creation_result::uuid_is_not_unique;
+                            }
+                        }
+
+                        library_uuids.emplace_back(library_container_architecture_info_table_index, local_uuid);
                     }
-
-                    library_uuids.emplace_back(library_container_architecture_info_table_index, local_uuid);
                 }
             }
 
@@ -2143,8 +2157,10 @@ namespace macho::utils::tbd {
             }
         }
 
-        if (library_reexports.empty() && library_symbols.empty()) {
-            return creation_result::no_symbols_or_reexports;
+        if ((options & options::ignore_missing_exports) == options::none) {
+            if (library_reexports.empty() && library_symbols.empty()) {
+                return creation_result::no_symbols_or_reexports;
+            }
         }
 
         std::sort(library_reexports.begin(), library_reexports.end(), [](const reexport &lhs, const reexport &rhs) {
@@ -2233,29 +2249,31 @@ namespace macho::utils::tbd {
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
-                const auto library_uuids_size = library_uuids.size();
-                if (library_uuids_size) {
-                    dprintf(output, "uuids:%-17s[ ", "");
+                if ((options & options::remove_uuids) == options::none) {
+                    const auto library_uuids_size = library_uuids.size();
+                    if (library_uuids_size) {
+                        dprintf(output, "uuids:%-17s[ ", "");
 
-                    const auto architecture_info_table = get_architecture_info_table();
-                    for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
-                        const auto &library_uuid_pair = library_uuids.at(library_uuids_index);
+                        const auto architecture_info_table = get_architecture_info_table();
+                        for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
+                            const auto &library_uuid_pair = library_uuids.at(library_uuids_index);
 
-                        const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
-                        const auto &library_uuid = library_uuid_pair.second;
+                            const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
+                            const auto &library_uuid = library_uuid_pair.second;
 
-                        dprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                            dprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
-                        if (library_uuids_index != library_uuids_size - 1) {
-                            dprintf(output, ", ");
+                            if (library_uuids_index != library_uuids_size - 1) {
+                                dprintf(output, ", ");
 
-                            if (library_uuids_index % 2 != 0) {
-                                dprintf(output, "%-26s", "\n");
+                                if (library_uuids_index % 2 != 0) {
+                                    dprintf(output, "%-26s", "\n");
+                                }
                             }
                         }
-                    }
 
-                    dprintf(output, " ]\n");
+                        dprintf(output, " ]\n");
+                    }
                 }
             }
         }
@@ -2292,57 +2310,65 @@ namespace macho::utils::tbd {
 
         dprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
 
-        auto library_current_version_major = library_current_version >> 16;
-        auto library_current_version_minor = (library_current_version >> 8) & 0xff;
-        auto library_current_version_revision = library_current_version & 0xff;
+        if ((options & options::remove_current_version) == options::none) {
+            auto library_current_version_major = library_current_version >> 16;
+            auto library_current_version_minor = (library_current_version >> 8) & 0xff;
+            auto library_current_version_revision = library_current_version & 0xff;
 
-        dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
 
-        if (library_current_version_minor != 0) {
-            dprintf(output, ".%u", library_current_version_minor);
-        }
-
-        if (library_current_version_revision != 0) {
-            if (library_current_version_minor == 0) {
-                dprintf(output, ".0");
+            if (library_current_version_minor != 0) {
+                dprintf(output, ".%u", library_current_version_minor);
             }
 
-            dprintf(output, ".%u", library_current_version_revision);
-        }
+            if (library_current_version_revision != 0) {
+                if (library_current_version_minor == 0) {
+                    dprintf(output, ".0");
+                }
 
-        auto library_compatibility_version_major = library_compatibility_version >> 16;
-        auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
-        auto library_compatibility_version_revision = library_compatibility_version & 0xff;
-
-        dprintf(output, "\ncompatibility-version: %u", library_compatibility_version_major);
-
-        if (library_compatibility_version_minor != 0) {
-            dprintf(output, ".%u", library_compatibility_version_minor);
-        }
-
-        if (library_compatibility_version_revision != 0) {
-            if (library_compatibility_version_minor == 0) {
-                dprintf(output, ".0");
+                dprintf(output, ".%u", library_current_version_revision);
             }
 
-            dprintf(output, ".%u", library_compatibility_version_revision);
+            dprintf(output, "\n");
         }
 
-        dprintf(output, "\n");
+        if ((options & options::remove_compatibility_version) == options::none) {
+            auto library_compatibility_version_major = library_compatibility_version >> 16;
+            auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
+            auto library_compatibility_version_revision = library_compatibility_version & 0xff;
 
-        if (library_swift_version != 0) {
-            switch (library_swift_version) {
-                case 1:
-                    dprintf(output, "swift-version:%-9s1\n", "");
-                    break;
+            dprintf(output, "compatibility-version: %u", library_compatibility_version_major);
 
-                case 2:
-                    dprintf(output, "swift-version:%-9s1.2\n", "");
-                    break;
+            if (library_compatibility_version_minor != 0) {
+                dprintf(output, ".%u", library_compatibility_version_minor);
+            }
 
-                default:
-                    dprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
-                    break;
+            if (library_compatibility_version_revision != 0) {
+                if (library_compatibility_version_minor == 0) {
+                    dprintf(output, ".0");
+                }
+
+                dprintf(output, ".%u", library_compatibility_version_revision);
+            }
+
+            dprintf(output, "\n");
+        }
+
+        if ((options & options::remove_swift_version) == options::none) {
+            if (library_swift_version != 0) {
+                switch (library_swift_version) {
+                    case 1:
+                        dprintf(output, "swift-version:%-9s1\n", "");
+                        break;
+
+                    case 2:
+                        dprintf(output, "swift-version:%-9s1.2\n", "");
+                        break;
+
+                    default:
+                        dprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
+                        break;
+                }
             }
         }
 
@@ -2353,8 +2379,10 @@ namespace macho::utils::tbd {
         }
 
         if (version == version::v2) {
-            if (!library_parent_umbrella.empty()) {
-                dprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+            if ((options & options::remove_parent_umbrella) == options::none) {
+                if (!library_parent_umbrella.empty()) {
+                    dprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+                }
             }
         }
 
@@ -2439,12 +2467,16 @@ namespace macho::utils::tbd {
             return creation_result::platform_not_found;
         }
 
-        if (current_version == -1 || compatibility_version == -1 || !installation_name) {
+        if (!installation_name) {
             return creation_result::not_a_library;
         }
 
-        if (version == version::v2 && !uuid) {
-            return creation_result::has_no_uuid;
+        if (version == version::v2) {
+            if ((options & options::remove_uuids) == options::none || (options & options::ignore_missing_uuids) == options::none) {
+                if (!uuid) {
+                    return creation_result::has_no_uuid;
+                }
+            }
         }
 
         const auto symbols_iteration_failure_result = get_symbols(container, 1ull << architecture_info_table_index, architecture_info_table_index, symbols, options);
@@ -2452,8 +2484,10 @@ namespace macho::utils::tbd {
             return symbols_iteration_failure_result;
         }
 
-        if (reexports.empty() && symbols.empty()) {
-            return creation_result::no_symbols_or_reexports;
+        if ((options & options::ignore_missing_exports) == options::none) {
+            if (reexports.empty() && symbols.empty()) {
+                return creation_result::no_symbols_or_reexports;
+            }
         }
 
         std::sort(reexports.begin(), reexports.end(), [](const reexport &lhs, const reexport &rhs) {
@@ -2480,10 +2514,12 @@ namespace macho::utils::tbd {
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
-                const auto architecture_info_table = get_architecture_info_table();
-                const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
+                if ((options & options::remove_uuids) == options::none) {
+                    const auto architecture_info_table = get_architecture_info_table();
+                    const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
 
-                dprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                    dprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                }
             }
         }
 
@@ -2520,57 +2556,65 @@ namespace macho::utils::tbd {
 
         dprintf(output, "install-name:%-10s%s\n", "", installation_name);
 
-        auto library_current_version_major = current_version >> 16;
-        auto library_current_version_minor = (current_version >> 8) & 0xff;
-        auto library_current_version_revision = current_version & 0xff;
+        if ((options & options::remove_current_version) == options::none) {
+            auto library_current_version_major = current_version >> 16;
+            auto library_current_version_minor = (current_version >> 8) & 0xff;
+            auto library_current_version_revision = current_version & 0xff;
 
-        dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
 
-        if (library_current_version_minor != 0) {
-            dprintf(output, ".%u", library_current_version_minor);
-        }
-
-        if (library_current_version_revision != 0) {
-            if (library_current_version_minor == 0) {
-                dprintf(output, ".0");
+            if (library_current_version_minor != 0) {
+                dprintf(output, ".%u", library_current_version_minor);
             }
 
-            dprintf(output, ".%u", library_current_version_revision);
-        }
+            if (library_current_version_revision != 0) {
+                if (library_current_version_minor == 0) {
+                    dprintf(output, ".0");
+                }
 
-        auto compatibility_version_major = compatibility_version >> 16;
-        auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
-        auto compatibility_version_revision = compatibility_version & 0xff;
-
-        dprintf(output, "\ncompatibility-version: %u", compatibility_version_major);
-
-        if (compatibility_version_minor != 0) {
-            dprintf(output, ".%u", compatibility_version_minor);
-        }
-
-        if (compatibility_version_revision != 0) {
-            if (compatibility_version_minor == 0) {
-                dprintf(output, ".0");
+                dprintf(output, ".%u", library_current_version_revision);
             }
 
-            dprintf(output, ".%u", compatibility_version_revision);
+            dprintf(output, "\n");
         }
 
-        dprintf(output, "\n");
+        if ((options & options::remove_compatibility_version) == options::none) {
+            auto compatibility_version_major = compatibility_version >> 16;
+            auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
+            auto compatibility_version_revision = compatibility_version & 0xff;
 
-        if (swift_version != 0) {
-            switch (swift_version) {
-                case 1:
-                    dprintf(output, "swift-version:%-9s1\n", "");
-                    break;
+            dprintf(output, "compatibility-version: %u", compatibility_version_major);
 
-                case 2:
-                    dprintf(output, "swift-version:%-9s1.2\n", "");
-                    break;
+            if (compatibility_version_minor != 0) {
+                dprintf(output, ".%u", compatibility_version_minor);
+            }
 
-                default:
-                    dprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
-                    break;
+            if (compatibility_version_revision != 0) {
+                if (compatibility_version_minor == 0) {
+                    dprintf(output, ".0");
+                }
+
+                dprintf(output, ".%u", compatibility_version_revision);
+            }
+
+            dprintf(output, "\n");
+        }
+
+        if ((options & options::remove_swift_version) == options::none) {
+            if (swift_version != 0) {
+                switch (swift_version) {
+                    case 1:
+                        dprintf(output, "swift-version:%-9s1\n", "");
+                        break;
+
+                    case 2:
+                        dprintf(output, "swift-version:%-9s1.2\n", "");
+                        break;
+
+                    default:
+                        dprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
+                        break;
+                }
             }
         }
 
@@ -2581,8 +2625,10 @@ namespace macho::utils::tbd {
         }
 
         if (version == version::v2) {
-            if (!parent_umbrella.empty()) {
-                dprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+            if ((options & options::remove_parent_umbrella) == options::none) {
+                if (!parent_umbrella.empty()) {
+                    dprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+                }
             }
         }
 
@@ -2707,7 +2753,7 @@ namespace macho::utils::tbd {
                 return creation_result::platform_not_found;
             }
 
-            if (local_current_version == -1 || local_compatibility_version == -1 || !local_installation_name) {
+            if (!local_installation_name) {
                 return creation_result::not_a_library;
             }
 
@@ -2719,28 +2765,34 @@ namespace macho::utils::tbd {
                 library_installation_name = local_installation_name;
             }
 
-            if (library_current_version != -1) {
-                if (local_current_version != library_current_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_current_version) == options::none) {
+                if (library_current_version != -1) {
+                    if (local_current_version != library_current_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_current_version = local_current_version;
                 }
-            } else {
-                library_current_version = local_current_version;
             }
 
-            if (library_compatibility_version != -1) {
-                if (library_compatibility_version != local_compatibility_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_compatibility_version) == options::none) {
+                if (library_compatibility_version != -1) {
+                    if (library_compatibility_version != local_compatibility_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_compatibility_version = local_compatibility_version;
                 }
-            } else {
-                library_compatibility_version = local_compatibility_version;
             }
 
-            if (library_swift_version != 0) {
-                if (library_swift_version != local_swift_version) {
-                    return creation_result::contradictary_container_information;
+            if ((options & options::remove_swift_version) == options::none) {
+                if (library_swift_version != 0) {
+                    if (library_swift_version != local_swift_version) {
+                        return creation_result::contradictary_container_information;
+                    }
+                } else {
+                    library_swift_version = local_swift_version;
                 }
-            } else {
-                library_swift_version = local_swift_version;
             }
 
             if ((options & options::remove_objc_constraint) == options::none) {
@@ -2754,34 +2806,42 @@ namespace macho::utils::tbd {
             }
 
             if (version == version::v2) {
-                if (!library_parent_umbrella.empty()) {
-                    if (library_parent_umbrella != local_parent_umbrella) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else if (!local_parent_umbrella.empty()) {
-                    // In the scenario where one container had no (or empty) parent-umbrella
-                    // and another container did not
+                if ((options & options::remove_parent_umbrella) == options::none) {
+                    if (!library_parent_umbrella.empty()) {
+                        if (library_parent_umbrella != local_parent_umbrella) {
+                            return creation_result::contradictary_container_information;
+                        }
+                    } else if (!local_parent_umbrella.empty()) {
+                        // In the scenario where one container had no (or empty) parent-umbrella
+                        // and another container did not
 
-                    if (library_containers_index != 0) {
-                        return creation_result::contradictary_container_information;
-                    }
+                        if (library_containers_index != 0) {
+                            return creation_result::contradictary_container_information;
+                        }
 
-                    library_parent_umbrella = std::move(local_parent_umbrella);
+                        library_parent_umbrella = std::move(local_parent_umbrella);
+                    }
                 }
 
-                if (!local_uuid) {
-                    return creation_result::has_no_uuid;
-                } else {
-                    const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const std::pair<uint64_t, const uint8_t *> &rhs) {
-                        return memcmp(local_uuid, rhs.second, 16) == 0;
-                    });
+                if ((options & options::remove_uuids) == options::none) {
+                    if (!local_uuid) {
+                        if ((options & options::ignore_missing_uuids) == options::none) {
+                            return creation_result::has_no_uuid;
+                        }
+                    } else {
+                        if ((options & options::ignore_non_unique_uuid) == options::none) {
+                            const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const std::pair<uint64_t, const uint8_t *> &rhs) {
+                                return memcmp(local_uuid, rhs.second, 16) == 0;
+                            });
 
-                    const auto &uuids_end = library_uuids.end();
-                    if (library_uuids_iter != uuids_end) {
-                        return creation_result::uuid_is_not_unique;
+                            const auto &uuids_end = library_uuids.end();
+                            if (library_uuids_iter != uuids_end) {
+                                return creation_result::uuid_is_not_unique;
+                            }
+                        }
+
+                        library_uuids.emplace_back(library_container_architecture_info_table_index, local_uuid);
                     }
-
-                    library_uuids.emplace_back(library_container_architecture_info_table_index, local_uuid);
                 }
             }
 
@@ -2799,8 +2859,10 @@ namespace macho::utils::tbd {
             }
         }
 
-        if (library_reexports.empty() && library_symbols.empty()) {
-            return creation_result::no_symbols_or_reexports;
+        if ((options & options::ignore_missing_exports) == options::none) {
+            if (library_reexports.empty() && library_symbols.empty()) {
+                return creation_result::no_symbols_or_reexports;
+            }
         }
 
         std::sort(library_reexports.begin(), library_reexports.end(), [](const reexport &lhs, const reexport &rhs) {
@@ -2889,29 +2951,31 @@ namespace macho::utils::tbd {
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
-                const auto library_uuids_size = library_uuids.size();
-                if (library_uuids_size) {
-                    fprintf(output, "uuids:%-17s[ ", "");
+                if ((options & options::remove_uuids) == options::none) {
+                    const auto library_uuids_size = library_uuids.size();
+                    if (library_uuids_size) {
+                        fprintf(output, "uuids:%-17s[ ", "");
 
-                    const auto architecture_info_table = get_architecture_info_table();
-                    for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
-                        const auto &library_uuid_pair = library_uuids.at(library_uuids_index);
+                        const auto architecture_info_table = get_architecture_info_table();
+                        for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
+                            const auto &library_uuid_pair = library_uuids.at(library_uuids_index);
 
-                        const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
-                        const auto &library_uuid = library_uuid_pair.second;
+                            const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
+                            const auto &library_uuid = library_uuid_pair.second;
 
-                        fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                            fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
-                        if (library_uuids_index != library_uuids_size - 1) {
-                            fputs(", ", output);
+                            if (library_uuids_index != library_uuids_size - 1) {
+                                fputs(", ", output);
 
-                            if (library_uuids_index % 2 != 0) {
-                                fprintf(output, "%-26s", "\n");
+                                if (library_uuids_index % 2 != 0) {
+                                    fprintf(output, "%-26s", "\n");
+                                }
                             }
                         }
-                    }
 
-                    fputs(" ]\n", output);
+                        fputs(" ]\n", output);
+                    }
                 }
             }
         }
@@ -2948,57 +3012,65 @@ namespace macho::utils::tbd {
 
         fprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
 
-        auto library_current_version_major = library_current_version >> 16;
-        auto library_current_version_minor = (library_current_version >> 8) & 0xff;
-        auto library_current_version_revision = library_current_version & 0xff;
+        if ((options & options::remove_current_version) == options::none) {
+            auto library_current_version_major = library_current_version >> 16;
+            auto library_current_version_minor = (library_current_version >> 8) & 0xff;
+            auto library_current_version_revision = library_current_version & 0xff;
 
-        fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
 
-        if (library_current_version_minor != 0) {
-            fprintf(output, ".%u", library_current_version_minor);
-        }
-
-        if (library_current_version_revision != 0) {
-            if (library_current_version_minor == 0) {
-                fputs(".0", output);
+            if (library_current_version_minor != 0) {
+                fprintf(output, ".%u", library_current_version_minor);
             }
 
-            fprintf(output, ".%u", library_current_version_revision);
-        }
+            if (library_current_version_revision != 0) {
+                if (library_current_version_minor == 0) {
+                    fputs(".0", output);
+                }
 
-        auto library_compatibility_version_major = library_compatibility_version >> 16;
-        auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
-        auto library_compatibility_version_revision = library_compatibility_version & 0xff;
-
-        fprintf(output, "\ncompatibility-version: %u", library_compatibility_version_major);
-
-        if (library_compatibility_version_minor != 0) {
-            fprintf(output, ".%u", library_compatibility_version_minor);
-        }
-
-        if (library_compatibility_version_revision != 0) {
-            if (library_compatibility_version_minor == 0) {
-                fputs(".0", output);
+                fprintf(output, ".%u", library_current_version_revision);
             }
 
-            fprintf(output, ".%u", library_compatibility_version_revision);
+            fputc('\n', output);
         }
 
-        fputs("\n", output);
+        if ((options & options::remove_compatibility_version) == options::none) {
+            auto library_compatibility_version_major = library_compatibility_version >> 16;
+            auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
+            auto library_compatibility_version_revision = library_compatibility_version & 0xff;
 
-        if (library_swift_version != 0) {
-            switch (library_swift_version) {
-                case 1:
-                    fprintf(output, "swift-version:%-9s1\n", "");
-                    break;
+            fprintf(output, "compatibility-version: %u", library_compatibility_version_major);
 
-                case 2:
-                    fprintf(output, "swift-version:%-9s1.2\n", "");
-                    break;
+            if (library_compatibility_version_minor != 0) {
+                fprintf(output, ".%u", library_compatibility_version_minor);
+            }
 
-                default:
-                    fprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
-                    break;
+            if (library_compatibility_version_revision != 0) {
+                if (library_compatibility_version_minor == 0) {
+                    fputs(".0", output);
+                }
+
+                fprintf(output, ".%u", library_compatibility_version_revision);
+            }
+
+            fputc('\n', output);
+        }
+
+        if ((options & options::remove_swift_version) == options::none) {
+            if (library_swift_version != 0) {
+                switch (library_swift_version) {
+                    case 1:
+                        fprintf(output, "swift-version:%-9s1\n", "");
+                        break;
+
+                    case 2:
+                        fprintf(output, "swift-version:%-9s1.2\n", "");
+                        break;
+
+                    default:
+                        fprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
+                        break;
+                }
             }
         }
 
@@ -3009,8 +3081,10 @@ namespace macho::utils::tbd {
         }
 
         if (version == version::v2) {
-            if (!library_parent_umbrella.empty()) {
-                fprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+            if ((options & options::remove_parent_umbrella) == options::none) {
+                if (!library_parent_umbrella.empty()) {
+                    fprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+                }
             }
         }
 
@@ -3095,12 +3169,16 @@ namespace macho::utils::tbd {
             return creation_result::platform_not_found;
         }
 
-        if (current_version == -1 || compatibility_version == -1 || !installation_name) {
+        if (!installation_name) {
             return creation_result::not_a_library;
         }
 
-        if (version == version::v2 && !uuid) {
-            return creation_result::has_no_uuid;
+        if (version == version::v2) {
+            if ((options & options::remove_uuids) == options::none || (options & options::ignore_missing_uuids) == options::none) {
+                if (!uuid) {
+                    return creation_result::has_no_uuid;
+                }
+            }
         }
 
         const auto symbols_iteration_failure_result = get_symbols(container, 1ull << architecture_info_table_index, architecture_info_table_index, symbols, options);
@@ -3108,8 +3186,10 @@ namespace macho::utils::tbd {
             return symbols_iteration_failure_result;
         }
 
-        if (reexports.empty() && symbols.empty()) {
-            return creation_result::no_symbols_or_reexports;
+        if ((options & options::ignore_missing_exports) == options::none) {
+            if (reexports.empty() && symbols.empty()) {
+                return creation_result::no_symbols_or_reexports;
+            }
         }
 
         std::sort(reexports.begin(), reexports.end(), [](const reexport &lhs, const reexport &rhs) {
@@ -3136,10 +3216,12 @@ namespace macho::utils::tbd {
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
-                const auto architecture_info_table = get_architecture_info_table();
-                const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
+                if ((options & options::remove_uuids) == options::none) {
+                    const auto architecture_info_table = get_architecture_info_table();
+                    const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
 
-                fprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                    fprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                }
             }
         }
 
@@ -3176,57 +3258,65 @@ namespace macho::utils::tbd {
 
         fprintf(output, "install-name:%-10s%s\n", "", installation_name);
 
-        auto library_current_version_major = current_version >> 16;
-        auto library_current_version_minor = (current_version >> 8) & 0xff;
-        auto library_current_version_revision = current_version & 0xff;
+        if ((options & options::remove_current_version) == options::none) {
+            auto library_current_version_major = current_version >> 16;
+            auto library_current_version_minor = (current_version >> 8) & 0xff;
+            auto library_current_version_revision = current_version & 0xff;
 
-        fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
 
-        if (library_current_version_minor != 0) {
-            fprintf(output, ".%u", library_current_version_minor);
-        }
-
-        if (library_current_version_revision != 0) {
-            if (library_current_version_minor == 0) {
-                fputs(".0", output);
+            if (library_current_version_minor != 0) {
+                fprintf(output, ".%u", library_current_version_minor);
             }
 
-            fprintf(output, ".%u", library_current_version_revision);
-        }
+            if (library_current_version_revision != 0) {
+                if (library_current_version_minor == 0) {
+                    fputs(".0", output);
+                }
 
-        auto compatibility_version_major = compatibility_version >> 16;
-        auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
-        auto compatibility_version_revision = compatibility_version & 0xff;
-
-        fprintf(output, "\ncompatibility-version: %u", compatibility_version_major);
-
-        if (compatibility_version_minor != 0) {
-            fprintf(output, ".%u", compatibility_version_minor);
-        }
-
-        if (compatibility_version_revision != 0) {
-            if (compatibility_version_minor == 0) {
-                fputs(".0", output);
+                fprintf(output, ".%u", library_current_version_revision);
             }
 
-            fprintf(output, ".%u", compatibility_version_revision);
+            fputc('\n', output);
         }
 
-        fputc('\n', output);
+        if ((options & options::remove_compatibility_version) == options::none) {
+            auto compatibility_version_major = compatibility_version >> 16;
+            auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
+            auto compatibility_version_revision = compatibility_version & 0xff;
 
-        if (swift_version != 0) {
-            switch (swift_version) {
-                case 1:
-                    fprintf(output, "swift-version:%-9s1\n", "");
-                    break;
+            fprintf(output, "compatibility-version: %u", compatibility_version_major);
 
-                case 2:
-                    fprintf(output, "swift-version:%-9s1.2\n", "");
-                    break;
+            if (compatibility_version_minor != 0) {
+                fprintf(output, ".%u", compatibility_version_minor);
+            }
 
-                default:
-                    fprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
-                    break;
+            if (compatibility_version_revision != 0) {
+                if (compatibility_version_minor == 0) {
+                    fputs(".0", output);
+                }
+
+                fprintf(output, ".%u", compatibility_version_revision);
+            }
+
+            fputc('\n', output);
+        }
+
+        if ((options & options::remove_swift_version) == options::none) {
+            if (swift_version != 0) {
+                switch (swift_version) {
+                    case 1:
+                        fprintf(output, "swift-version:%-9s1\n", "");
+                        break;
+
+                    case 2:
+                        fprintf(output, "swift-version:%-9s1.2\n", "");
+                        break;
+
+                    default:
+                        fprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
+                        break;
+                }
             }
         }
 
@@ -3238,7 +3328,9 @@ namespace macho::utils::tbd {
 
         if (version == version::v2) {
             if (!parent_umbrella.empty()) {
-                fprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+                if ((options & options::remove_parent_umbrella) == options::none) {
+                    fprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+                }
             }
         }
 

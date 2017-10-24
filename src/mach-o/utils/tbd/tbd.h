@@ -103,8 +103,19 @@ namespace macho::utils::tbd {
         allow_private_objc_symbols   = 1 << 3,
         allow_private_objc_classes   = 1 << 4,
         allow_private_objc_ivars     = 1 << 5,
-        remove_objc_constraint       = 1 << 6,
-        remove_flags                 = 1 << 7,
+
+        remove_current_version       = 1 << 6,
+        remove_compatibility_version = 1 << 7,
+        remove_exports               = 1 << 8,
+        remove_flags                 = 1 << 9,
+        remove_objc_constraint       = 1 << 10,
+        remove_parent_umbrella       = 1 << 11,
+        remove_swift_version         = 1 << 12,
+        remove_uuids                 = 1 << 13,
+
+        ignore_missing_exports       = 1 << 14,
+        ignore_missing_uuids         = 1 << 15,
+        ignore_non_unique_uuid       = 1 << 16
     };
 
     inline uint64_t operator|(const uint64_t &lhs, const options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
