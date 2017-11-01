@@ -24,6 +24,7 @@ namespace macho {
 
     const size_t get_architecture_info_table_size();
 
+    const architecture_info *architecture_info_from_index(size_t index);
     const architecture_info *architecture_info_from_name(const char *name);
     const architecture_info *architecture_info_from_cputype(cputype cputype, subtype subtype);
 

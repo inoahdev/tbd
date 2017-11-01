@@ -81,9 +81,9 @@ namespace utils::string {
         }
 
         auto lhs_iter = lhs_begin;
-        const auto lhs_real_end = lhs_end - rhs_length;
+        const auto lhs_search_end = lhs_end - rhs_length;
 
-        for (; lhs_iter != lhs_real_end; lhs_iter++) {
+        for (; lhs_iter != lhs_search_end; lhs_iter++) {
             auto lhs_search_iter = lhs_iter;
             auto lhs_search_elmt = *lhs_search_iter;
 
@@ -133,9 +133,9 @@ namespace utils::string {
         }
 
         auto lhs_iter = lhs_end;
-        const auto lhs_real_begin = lhs_begin + rhs_length;
+        const auto lhs_search_begin = lhs_begin + rhs_length;
 
-        for (; lhs_iter != lhs_real_begin; lhs_iter--) {
+        for (; lhs_iter != lhs_search_begin; lhs_iter--) {
             auto lhs_search_iter = lhs_iter - rhs_length;
             auto lhs_search_elmt = *lhs_search_iter;
 

@@ -11,13 +11,13 @@
 
 namespace macho {
     enum class magic : uint32_t {
-        normal = 0xfeedface,
-        big_endian = 0xcefaefde,
-        bits64 = 0xfeedfacf,
+        normal            = 0xfeedface,
+        big_endian        = 0xcefaefde,
+        bits64            = 0xfeedfacf,
         bits64_big_endian = 0xcffeedfe,
-        fat = 0xcafebabe,
-        fat_big_endian = 0xbebafeca,
-        fat_64 = 0xcafebabf,
+        fat               = 0xcafebabe,
+        fat_big_endian    = 0xbebafeca,
+        fat_64            = 0xcafebabf,
         fat_64_big_endian = 0xbfbafeca
     };
 

@@ -11,6 +11,8 @@
 #include <dirent.h>
 #include <string>
 
+#include "path.h"
+
 namespace utils {
     class directory {
     public:
@@ -55,7 +57,7 @@ namespace utils {
         };
 
         enum class recursion_warning {
-            failed_to_open_subdirectory
+            failed_to_open_sub_directory
         };
 
         enum class recursion_result {
@@ -134,7 +136,7 @@ namespace utils {
             switch (directory_entry->d_type) {
                 case DT_FIFO:
                     if ((filetypes & recursion_filetypes::pipe) != recursion_filetypes::none) {
-                        callback(*this, path);
+                        callback(*this, directory_entry_path);
                     }
 
                     break;
@@ -146,17 +148,24 @@ namespace utils {
 
                     break;
 
-                case DT_DIR:
+                case DT_DIR: {
+                    auto is_current_directory = false;
+                    auto is_parent_directory = false;
+
                     if (strncmp(directory_entry_name, ".", directory_entry_name_length) == 0) {
                         if ((options & recursion_options::skip_current_directory) != recursion_options::none) {
                             break;
                         }
+
+                        is_current_directory = true;
                     }
 
                     if (strncmp(directory_entry_name, "..", directory_entry_name_length) == 0) {
                         if ((options & recursion_options::skip_parent_directory) != recursion_options::none) {
                             break;
                         }
+
+                        is_parent_directory = true;
                     }
 
                     if ((filetypes & recursion_filetypes::directory) != recursion_filetypes::none) {
@@ -164,6 +173,10 @@ namespace utils {
                     }
 
                     if ((options & recursion_options::recurse_subdirectories) != recursion_options::none) {
+                        if (is_current_directory || is_parent_directory) {
+                            break;
+                        }
+
                         directory_entry_path.append(1, '/');
 
                         auto sub_directory = directory();
@@ -180,12 +193,13 @@ namespace utils {
                             }
 
                             case open_result::failed_to_open_directory:
-                                warning_callback(recursion_warning::failed_to_open_subdirectory, (const void *)&directory_entry_path);
+                                warning_callback(recursion_warning::failed_to_open_sub_directory, (const void *)&directory_entry_path);
                                 break;
                         }
                     }
 
                     break;
+                }
 
                 case DT_BLK:
                     if ((filetypes & recursion_filetypes::block_device) != recursion_filetypes::none) {

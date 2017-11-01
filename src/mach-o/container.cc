@@ -185,19 +185,15 @@ namespace macho {
 
         auto size_used = uint32_t();
         for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-            auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+            auto load_command = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+            auto swapped_load_command = *load_command;
 
-            auto load_cmd_cmd = load_cmd->cmd;
-            auto load_cmd_cmdsize = load_cmd->cmdsize;
+            if (magic_is_big_endian) {
+                swap_load_command(swapped_load_command);
+            }
 
             if (created_cached_load_commands) {
-                auto swapped_load_command = *load_cmd;
-                if (magic_is_big_endian) {
-                    swap_load_command(swapped_load_command);
-                }
-
-                load_cmd_cmdsize = swapped_load_command.cmdsize;
-                if (load_cmd_cmdsize < sizeof(struct load_command)) {
+                if (swapped_load_command.cmdsize < sizeof(struct load_command)) {
                     if (result != nullptr) {
                         *result = load_command_iteration_result::load_command_is_too_small;
                     }
@@ -205,7 +201,7 @@ namespace macho {
                     return nullptr;
                 }
 
-                size_used += load_cmd_cmdsize;
+                size_used += swapped_load_command.cmdsize;
                 if (size_used > sizeofcmds || (size_used == sizeofcmds && i != ncmds - 1)) {
                     if (result != nullptr) {
                         *result = load_command_iteration_result::load_command_is_too_large;
@@ -213,19 +209,17 @@ namespace macho {
 
                     return nullptr;
                 }
-
-                load_cmd_cmd = swapped_load_command.cmd;
             }
 
-            if (load_cmd_cmd == cmd) {
+            if (swapped_load_command.cmd == cmd) {
                 if (result != nullptr) {
                     *result = load_command_iteration_result::ok;
                 }
 
-                return load_cmd;
+                return load_command;
             }
 
-            cached_load_commands_index += load_cmd_cmdsize;
+            cached_load_commands_index += swapped_load_command.cmdsize;
         }
 
         if (result != nullptr) {

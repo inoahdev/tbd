@@ -76,7 +76,7 @@ namespace macho {
         { cputype::x86_64, subtype::x86_64h,     "x86_64h" },
         { cputype::x86_64, subtype::x86_64_all,  "x86_64"  },
 
-        { cputype::none, subtype::none, nullptr },
+        { cputype::none, subtype::none, nullptr }
     };
 
     const architecture_info *get_architecture_info_table() {
@@ -85,6 +85,10 @@ namespace macho {
 
     const size_t get_architecture_info_table_size() {
         return sizeof(architecture_info_table) / sizeof(architecture_info);
+    }
+
+    const architecture_info *architecture_info_from_index(size_t index) {
+        return &architecture_info_table[index];
     }
 
     const architecture_info *architecture_info_from_name(const char *name) {

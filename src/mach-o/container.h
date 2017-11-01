@@ -130,7 +130,7 @@ namespace macho {
                 }
 
                 if (should_callback) {
-                    should_callback = callback(load_command_base + cached_load_commands_index, &swapped_load_command, load_cmd);
+                    should_callback = callback(load_command_base + cached_load_commands_index, swapped_load_command, load_cmd);
                 }
 
                 cached_load_commands_index += cmdsize;

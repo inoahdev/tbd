@@ -113,7 +113,6 @@ namespace macho::utils::tbd {
             symbol.type = type::symbols;
 
             symbol.weak = false;
-
             return *this;
         }
 
@@ -467,72 +466,76 @@ namespace macho::utils::tbd {
         return string;
     }
 
+    template <typename T>
+    struct stream_helper;
+
+    template <>
+    struct stream_helper<int> {
+        int descriptor = 0;
+        explicit stream_helper(int descriptor) : descriptor(descriptor) {}
+
+        __attribute__((format(printf, 2, 3))) inline auto print(const char *str, ...) const noexcept {
+            va_list list;
+
+            va_start(list, str);
+            vdprintf(descriptor, str, list);
+            va_end(list);
+        }
+
+        inline auto print(const char &ch) const noexcept {
+            print("%c", ch);
+        }
+    };
+
+    template <>
+    struct stream_helper<FILE *> {
+        FILE *file = nullptr;
+        explicit stream_helper(FILE *file) : file(file) {}
+
+        inline auto print(const char &ch) const noexcept {
+            fputc(ch, file);
+        }
+
+        __attribute__((format(printf, 2, 3))) inline auto print(const char *str, ...) const noexcept {
+            va_list list;
+
+            va_start(list, str);
+            vfprintf(file, str, list);
+            va_end(list);
+        }
+    };
+
     static inline constexpr const auto line_length_max = 105;
 
-    void print_string_to_tbd_output_array(int output, const char *string, unsigned long &current_line_length) {
+    template <typename T>
+    inline void print_string_to_tbd_output_array(const stream_helper<T> &helper, const char *string, unsigned long &current_line_length) {
         const auto string_length = strlen(string);
 
         auto new_line_length = string_length + 2;
         auto new_current_line_length = current_line_length + new_line_length;
 
-        // A line that is printed is allowed to go up to a line_length_max. An exception
-        // is made when one reexport-string is longer than line_length_max. When calculating
-        // additional line length for a reexport-string, in addition to the reexport-string-length,
-        // 2 is added for the comma and the space behind it.
-
-        if (current_line_length >= line_length_max || (new_current_line_length != new_line_length && new_current_line_length > line_length_max)) {
-            dprintf(output, ",\n%-26s", "");
-            new_current_line_length = new_line_length;
-        } else {
-            dprintf(output, ", ");
-            new_current_line_length++;
-        }
-
-        auto needs_quotes = strncmp(string, "$ld", 3) == 0;
-        if (needs_quotes) {
-            dprintf(output, "\'");
-        }
-
-        dprintf(output, "%s", string);
-
-        if (needs_quotes) {
-            dprintf(output, "\'");
-        }
-
-        current_line_length = new_current_line_length;
-    }
-
-    void print_string_to_tbd_output_array(FILE *output, const char *string, unsigned long &current_line_length) {
-        const auto string_length = strlen(string);
-
-        auto new_line_length = string_length + 2;
-        auto new_current_line_length = current_line_length + new_line_length;
-
-        // A string that is printed is allowed to go up to a line_length_max. An exception
+        // A line that is printed is allowed to go upto line_length_max. An exception
         // is made when one string is longer than line_length_max. When calculating
         // additional line length for a string, in addition to the string-length,
         // 2 is added for the comma and the space behind it.
 
-        if (current_line_length >= line_length_max || (current_line_length == 0 && new_line_length > line_length_max)) {
-            fprintf(output, ",\n%-26s", "");
+        if (current_line_length >= line_length_max || (current_line_length != 0 && new_current_line_length > line_length_max)) {
+            helper.print(",\n%-26s", "");
             new_current_line_length = new_line_length;
-        } else {
-            if (current_line_length != 0) {
-                fprintf(output, ", ");
-            }
-
-            new_current_line_length++;
+        } else if (current_line_length != 0) {
+            helper.print(", ");
+            new_current_line_length += 2;
         }
 
         auto needs_quotes = strncmp(string, "$ld", 3) == 0;
         if (needs_quotes) {
-            fputc('\'', output);
+            helper.print('\'');
         }
 
-        fputs(string, output);
+        helper.print("%s", string);
 
         if (needs_quotes) {
-            fputc('\'', output);
+            helper.print('\'');
         }
 
         current_line_length = new_current_line_length;
@@ -542,7 +545,8 @@ namespace macho::utils::tbd {
         print_architectures_array_to_tbd_output_option_with_dash = 1 << 0
     };
 
-    void print_architectures_array_to_tbd_output(int output, uint64_t architectures, uint64_t architecture_overrides, int options = 0) {
+    template <typename T>
+    inline void print_architectures_array_to_tbd_output(const stream_helper<T> &helper, uint64_t architectures, uint64_t architecture_overrides, int options = 0) {
         const auto architecture_info_table = get_architecture_info_table();
         const auto architecture_info_table_size = get_architecture_info_table_size();
 
@@ -554,9 +558,9 @@ namespace macho::utils::tbd {
                 }
 
                 if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    dprintf(output, "  - archs:%-14s[ %s", "", architecture_info_table[index].name);
+                    helper.print("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
                 } else {
-                    dprintf(output, "archs:%-17s[ %s", "", architecture_info_table[index].name);
+                    helper.print("archs:%-17s[ %s", "", architecture_info_table[index].name);
                 }
 
                 break;
@@ -568,10 +572,10 @@ namespace macho::utils::tbd {
                         continue;
                     }
 
-                    dprintf(output, ", %s", architecture_info_table[index].name);
+                    helper.print(", %s", architecture_info_table[index].name);
                 }
 
-                dprintf(output, " ]\n");
+                helper.print(" ]\n");
             }
         } else {
             auto index = uint64_t();
@@ -581,9 +585,9 @@ namespace macho::utils::tbd {
                 }
 
                 if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    dprintf(output, "  - archs:%-14s[ %s", "", architecture_info_table[index].name);
+                    helper.print("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
                 } else {
-                    dprintf(output, "archs:%-17s[ %s", "", architecture_info_table[index].name);
+                    helper.print("archs:%-17s[ %s", "", architecture_info_table[index].name);
                 }
 
                 break;
@@ -595,76 +599,16 @@ namespace macho::utils::tbd {
                         continue;
                     }
 
-                    dprintf(output, ", %s", architecture_info_table[index].name);
+                    helper.print(", %s", architecture_info_table[index].name);
                 }
 
-                dprintf(output, " ]\n");
+                helper.print(" ]\n");
             }
         }
     }
 
-    void print_architectures_array_to_tbd_output(FILE *output, uint64_t architectures, uint64_t architecture_overrides, int options = 0) {
-        const auto architecture_info_table = get_architecture_info_table();
-        const auto architecture_info_table_size = get_architecture_info_table_size();
-
-        if (architecture_overrides != 0) {
-            auto index = uint64_t();
-            for (; index < architecture_info_table_size; index++) {
-                if (!(architecture_overrides & (1ull << index))) {
-                    continue;
-                }
-
-                if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    fprintf(output, "  - archs:%-14s[ %s", "", architecture_info_table[index].name);
-                } else {
-                    fprintf(output, "archs:%-17s[ %s", "", architecture_info_table[index].name);
-                }
-
-                break;
-            }
-
-            if (index != architecture_info_table_size) {
-                for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architecture_overrides & (1ull << index))) {
-                        continue;
-                    }
-
-                    fprintf(output, ", %s", architecture_info_table[index].name);
-                }
-
-                fputs(" ]\n", output);
-            }
-        } else {
-            auto index = uint64_t();
-            for (; index < architecture_info_table_size; index++) {
-                if (!(architectures & (1ull << index))) {
-                    continue;
-                }
-
-                if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    fprintf(output, "  - archs:%-14s[ %s", "", architecture_info_table[index].name);
-                } else {
-                    fprintf(output, "archs:%-17s[ %s", "", architecture_info_table[index].name);
-                }
-
-                break;
-            }
-
-            if (index != architecture_info_table_size) {
-                for (index++; index < architecture_info_table_size; index++) {
-                    if (!(architectures & (1ull << index))) {
-                        continue;
-                    }
-
-                    fprintf(output, ", %s", architecture_info_table[index].name);
-                }
-
-                fputs(" ]\n", output);
-            }
-        }
-    }
-
-    void print_export_group_to_tbd_output(int output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
+    template <typename T>
+    inline void print_export_group_to_tbd_output(const stream_helper<T> &helper, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
         const auto should_check_bits = bits.was_created();
 
         auto reexports_end = reexports.end();
@@ -764,7 +708,7 @@ namespace macho::utils::tbd {
             return;
         }
 
-        print_architectures_array_to_tbd_output(output, architectures, architecture_overrides, print_architectures_array_to_tbd_output_option_with_dash);
+        print_architectures_array_to_tbd_output(helper, architectures, architecture_overrides, print_architectures_array_to_tbd_output_option_with_dash);
 
         if (!clients.empty()) {
             auto clients_begin = clients.begin();
@@ -775,23 +719,23 @@ namespace macho::utils::tbd {
                     break;
 
                 case version::v1:
-                    dprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
+                    helper.print("%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
                     break;
 
                 case version::v2:
-                    dprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
+                    helper.print("%-4sallowable-clients: [ %s", "", clients_begin->data());
                     break;
             }
 
             for (clients_begin++; clients_begin != clients_end; clients_begin++) {
-                dprintf(output, ", %s", clients_begin->data());
+                helper.print(", %s", clients_begin->data());
             }
 
-            dprintf(output, " ]\n");
+            helper.print(" ]\n");
         }
 
         if (reexports_begin != reexports_end) {
-            dprintf(output, "%-4sre-exports:%9s[ %s", "", "", reexports_begin->string);
+            helper.print("%-4sre-exports:%9s[ %s", "", "", reexports_begin->string);
 
             auto current_line_length = strlen(reexports_begin->string);
             for (auto reexports_iter = reexports_begin + 1; reexports_iter != reexports_end; reexports_iter++) {
@@ -804,17 +748,17 @@ namespace macho::utils::tbd {
                     }
                 }
 
-                print_string_to_tbd_output_array(output, reexport.string, current_line_length);
+                print_string_to_tbd_output_array(helper, reexport.string, current_line_length);
             }
 
-            dprintf(output, " ]\n");
+            helper.print(" ]\n");
         }
 
         if (symbols_begin_symbols_iter != symbols_end) {
-            dprintf(output, "%-4ssymbols:%12s[ ", "", "");
+            helper.print("%-4ssymbols:%12s[ ", "", "");
 
             auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_symbols_iter->string, current_line_length);
+            print_string_to_tbd_output_array(helper, symbols_begin_symbols_iter->string, current_line_length);
 
             for (symbols_begin_symbols_iter++; symbols_begin_symbols_iter != symbols_end; symbols_begin_symbols_iter++) {
                 const auto &symbol = *symbols_begin_symbols_iter;
@@ -829,17 +773,17 @@ namespace macho::utils::tbd {
                     }
                 }
 
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
+                print_string_to_tbd_output_array(helper, symbol.string, current_line_length);
             }
 
-            dprintf(output, " ]\n");
+            helper.print(" ]\n");
         }
 
         if (symbols_begin_objc_classes_iter != symbols_end) {
-            dprintf(output, "%-4sobjc-classes:%7s[ ", "", "");
+            helper.print("%-4sobjc-classes:%7s[ ", "", "");
 
             auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_objc_classes_iter->string, current_line_length);
+            print_string_to_tbd_output_array(helper, symbols_begin_objc_classes_iter->string, current_line_length);
 
             for (symbols_begin_objc_classes_iter++; symbols_begin_objc_classes_iter != symbols_end; symbols_begin_objc_classes_iter++) {
                 const auto &symbol = *symbols_begin_objc_classes_iter;
@@ -854,17 +798,17 @@ namespace macho::utils::tbd {
                     }
                 }
 
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
+                print_string_to_tbd_output_array(helper, symbol.string, current_line_length);
             }
 
-            dprintf(output, " ]\n");
+            helper.print(" ]\n");
         }
 
         if (symbols_begin_objc_ivars_iter != symbols_end) {
-            dprintf(output, "%-4sobjc-ivars:%9s[ ", "", "");
+            helper.print("%-4sobjc-ivars:%9s[ ", "", "");
 
             auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_objc_ivars_iter->string, current_line_length);
+            print_string_to_tbd_output_array(helper, symbols_begin_objc_ivars_iter->string, current_line_length);
 
             for (symbols_begin_objc_ivars_iter++; symbols_begin_objc_ivars_iter != symbols_end; symbols_begin_objc_ivars_iter++) {
                 const auto &symbol = *symbols_begin_objc_ivars_iter;
@@ -879,17 +823,17 @@ namespace macho::utils::tbd {
                     }
                 }
 
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
+                print_string_to_tbd_output_array(helper, symbol.string, current_line_length);
             }
 
-            dprintf(output, " ]\n");
+            helper.print(" ]\n");
         }
 
         if (symbols_begin_weak_symbols_iter != symbols_end) {
-            dprintf(output, "%-4sweak-def-symbols:%3s[ ", "", "");
+            helper.print("%-4sweak-def-symbols:%3s[ ", "", "");
 
             auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_weak_symbols_iter->string, current_line_length);
+            print_string_to_tbd_output_array(helper, symbols_begin_weak_symbols_iter->string, current_line_length);
 
             for (symbols_begin_weak_symbols_iter++; symbols_begin_weak_symbols_iter != symbols_end; symbols_begin_weak_symbols_iter++) {
                 const auto &symbol = *symbols_begin_weak_symbols_iter;
@@ -904,257 +848,10 @@ namespace macho::utils::tbd {
                     }
                 }
 
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
+                print_string_to_tbd_output_array(helper, symbol.string, current_line_length);
             }
 
-            dprintf(output, " ]\n");
-        }
-    }
-
-    void print_export_group_to_tbd_output(FILE *output, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
-        const auto should_check_bits = bits.was_created();
-
-        auto reexports_end = reexports.end();
-        auto reexports_begin = reexports_end;
-
-        if (!reexports.empty()) {
-            reexports_begin = reexports.begin();
-
-            if (should_check_bits) {
-                for (; reexports_begin != reexports_end; reexports_begin++) {
-                    const auto &reexport = *reexports_begin;
-                    const auto &reexport_bits = reexport.bits;
-
-                    if (reexport_bits != bits) {
-                        continue;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        const auto symbols_end = symbols.end();
-
-        auto symbols_begin_symbols_iter = symbols.begin();
-        auto symbols_begin_objc_classes_iter = symbols_begin_symbols_iter;
-        auto symbols_begin_objc_ivars_iter = symbols_begin_symbols_iter;
-        auto symbols_begin_weak_symbols_iter = symbols_begin_symbols_iter;
-
-        if (!symbols.empty()) {
-            for (; symbols_begin_symbols_iter != symbols_end; symbols_begin_symbols_iter++) {
-                const auto &symbol = *symbols_begin_symbols_iter;
-                if (symbol.type != symbol::type::symbols) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                break;
-            }
-
-            for (; symbols_begin_objc_classes_iter != symbols_end; symbols_begin_objc_classes_iter++) {
-                const auto &symbol = *symbols_begin_objc_classes_iter;
-                if (symbol.type != symbol::type::objc_classes) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                break;
-            }
-
-            for (; symbols_begin_objc_ivars_iter != symbols_end; symbols_begin_objc_ivars_iter++) {
-                const auto &symbol = *symbols_begin_objc_ivars_iter;
-                if (symbol.type != symbol::type::objc_ivars) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                break;
-            }
-
-            for (; symbols_begin_weak_symbols_iter != symbols_end; symbols_begin_weak_symbols_iter++) {
-                const auto &symbol = *symbols_begin_weak_symbols_iter;
-                if (symbol.type != symbol::type::weak_symbols) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                break;
-            }
-        }
-
-        if (clients.empty() && symbols_begin_symbols_iter == symbols_end && symbols_begin_objc_classes_iter == symbols_end && symbols_begin_objc_ivars_iter == symbols_end && symbols_begin_weak_symbols_iter == symbols_end) {
-            return;
-        }
-
-        print_architectures_array_to_tbd_output(output, architectures, architecture_overrides, print_architectures_array_to_tbd_output_option_with_dash);
-
-        if (!clients.empty()) {
-            auto clients_begin = clients.begin();
-            auto clients_end = clients.end();
-
-            switch (version) {
-                case none:
-                    break;
-
-                case version::v1:
-                    fprintf(output, "%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
-                    break;
-
-                case version::v2:
-                    fprintf(output, "%-4sallowable-clients: [ %s", "", clients_begin->data());
-                    break;
-            }
-
-            for (clients_begin++; clients_begin != clients_end; clients_begin++) {
-                fprintf(output, ", %s", clients_begin->data());
-            }
-
-            fputs(" ]\n", output);
-        }
-
-        if (reexports_begin != reexports_end) {
-            fprintf(output, "%-4sre-exports:%9s[ %s", "", "", reexports_begin->string);
-
-            auto current_line_length = strlen(reexports_begin->string);
-            for (auto reexports_iter = reexports_begin + 1; reexports_iter != reexports_end; reexports_iter++) {
-                const auto &reexport = *reexports_iter;
-                const auto &reexport_bits = reexport.bits;
-
-                if (should_check_bits) {
-                    if (reexport_bits != bits) {
-                        continue;
-                    }
-                }
-
-                print_string_to_tbd_output_array(output, reexport.string, current_line_length);
-            }
-
-            fputs(" ]\n", output);
-        }
-
-        if (symbols_begin_symbols_iter != symbols_end) {
-            fprintf(output, "%-4ssymbols:%12s[ ", "", "");
-
-            auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_symbols_iter->string, current_line_length);
-
-            for (symbols_begin_symbols_iter++; symbols_begin_symbols_iter != symbols_end; symbols_begin_symbols_iter++) {
-                const auto &symbol = *symbols_begin_symbols_iter;
-                if (symbol.type != symbol::type::symbols) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
-            }
-
-            fputs(" ]\n", output);
-        }
-
-        if (symbols_begin_objc_classes_iter != symbols_end) {
-            fprintf(output, "%-4sobjc-classes:%7s[ ", "", "");
-
-            auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_objc_classes_iter->string, current_line_length);
-
-            for (symbols_begin_objc_classes_iter++; symbols_begin_objc_classes_iter != symbols_end; symbols_begin_objc_classes_iter++) {
-                const auto &symbol = *symbols_begin_objc_classes_iter;
-                if (symbol.type != symbol::type::objc_classes) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
-            }
-
-            fputs(" ]\n", output);
-        }
-
-        if (symbols_begin_objc_ivars_iter != symbols_end) {
-            fprintf(output, "%-4sobjc-ivars:%9s[ ", "", "");
-
-            auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_objc_ivars_iter->string, current_line_length);
-
-            for (symbols_begin_objc_ivars_iter++; symbols_begin_objc_ivars_iter != symbols_end; symbols_begin_objc_ivars_iter++) {
-                const auto &symbol = *symbols_begin_objc_ivars_iter;
-                if (symbol.type != symbol::type::objc_ivars) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
-            }
-
-            fputs(" ]\n", output);
-        }
-
-        if (symbols_begin_weak_symbols_iter != symbols_end) {
-            fprintf(output, "%-4sweak-def-symbols:%3s[ ", "", "");
-
-            auto current_line_length = size_t();
-            print_string_to_tbd_output_array(output, symbols_begin_weak_symbols_iter->string, current_line_length);
-
-            for (symbols_begin_weak_symbols_iter++; symbols_begin_weak_symbols_iter != symbols_end; symbols_begin_weak_symbols_iter++) {
-                const auto &symbol = *symbols_begin_weak_symbols_iter;
-                if (symbol.type != symbol::type::weak_symbols) {
-                    continue;
-                }
-
-                if (should_check_bits) {
-                    const auto &symbol_bits = symbol.bits;
-                    if (symbol_bits != bits) {
-                        continue;
-                    }
-                }
-
-                print_string_to_tbd_output_array(output, symbol.string, current_line_length);
-            }
-
-            fputs(" ]\n", output);
+            helper.print(" ]\n");
         }
     }
 
@@ -1168,8 +865,8 @@ namespace macho::utils::tbd {
         const auto container_size = container.size;
 
         auto container_stream = container.stream;
-        auto container_load_command_iteration_result = container.iterate_load_commands([&](long location, const load_command *swapped, const load_command *load_command) {
-            switch (swapped->cmd) {
+        auto container_load_command_iteration_result = container.iterate_load_commands([&](long location, const load_command swapped, const load_command *load_command) {
+            switch (swapped.cmd) {
                 case load_commands::build_version: {
                     if (!should_find_library_platform) {
                         break;
@@ -1225,7 +922,7 @@ namespace macho::utils::tbd {
                         swap_uint32(identification_dylib_installation_name_string_index);
                     }
 
-                    if (identification_dylib_installation_name_string_index >= swapped->cmdsize) {
+                    if (identification_dylib_installation_name_string_index >= swapped.cmdsize) {
                         failure_result = creation_result::invalid_load_command;
                         return false;
                     }
@@ -1233,7 +930,7 @@ namespace macho::utils::tbd {
                     const auto &identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
                     const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[strlen(identification_dylib_installation_name_string)];
 
-                    if (*identification_dylib_installation_name_string == '\0' || std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
+                    if (std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
                         failure_result = creation_result::empty_installation_name;
                         return false;
                     }
@@ -1283,7 +980,7 @@ namespace macho::utils::tbd {
                         swap_uint32(reexport_dylib_string_index);
                     }
 
-                    if (reexport_dylib_string_index > swapped->cmdsize) {
+                    if (reexport_dylib_string_index > swapped.cmdsize) {
                         failure_result = creation_result::invalid_load_command;
                         return false;
                     }
@@ -1634,14 +1331,16 @@ namespace macho::utils::tbd {
                             }
                         }
 
-                        auto sub_clients_iter = sub_clients.end();
+                        auto sub_clients_end = sub_clients.cend();
+                        auto sub_clients_iter = sub_clients_end;
+
                         if (sub_client_command_client_size > sizeof(char *)) {
-                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), sub_client_command_client_string);
+                            sub_clients_iter = std::find(sub_clients.cbegin(), sub_clients_end, sub_client_command_client_string);
                         } else {
-                            sub_clients_iter = std::find(sub_clients.begin(), sub_clients.end(), reinterpret_cast<char *>(&sub_client_command_client_string));
+                            sub_clients_iter = std::find(sub_clients.cbegin(), sub_clients_end, reinterpret_cast<char *>(&sub_client_command_client_string));
                         }
 
-                        if (sub_clients_iter == sub_clients.end()) {
+                        if (sub_clients_iter == sub_clients_end) {
                             if (sub_client_command_client_size > sizeof(char *)) {
                                 sub_clients.emplace_back(sub_client_command_client_string);
                             } else {
@@ -1690,7 +1389,7 @@ namespace macho::utils::tbd {
                             return false;
                         }
 
-                        auto sub_umbrella_command_umbrella_string = (char *)nullptr;
+                        auto sub_umbrella_command_umbrella_string = static_cast<char *>(nullptr);
                         if (sub_umbrella_command_umbrella_size > sizeof(char *)) {
                             sub_umbrella_command_umbrella_string = static_cast<char *>(malloc(sub_umbrella_command_umbrella_size));
                             if (!sub_umbrella_command_umbrella_string) {
@@ -1839,7 +1538,7 @@ namespace macho::utils::tbd {
         return failure_result;
     }
 
-    creation_result get_symbols(container &container, uint64_t architecture_info_index, uint64_t containers_count, std::vector<symbol> &symbols, options options) {
+    creation_result get_symbols(container &container, uint64_t architecture_info_index, std::vector<symbol> &symbols, options options) {
         auto symbols_iteration_failure_result = creation_result::ok;
         auto library_container_symbols_iteration_result = container.iterate_symbol_table([&](const nlist_64 &symbol_table_entry, const char *symbol_string) {
             const auto &symbol_table_entry_type = symbol_table_entry.n_type;
@@ -1935,7 +1634,8 @@ namespace macho::utils::tbd {
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(file &library, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    template <typename T>
+    inline creation_result create_from_macho_library(file &library, const stream_helper<T> &helper, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -2143,7 +1843,7 @@ namespace macho::utils::tbd {
                 }
             }
 
-            const auto symbols_iteration_failure_result = get_symbols(library_container, library_container_architecture_info_table_index, library_container_architecture_info_table_index, library_symbols, options);
+            const auto symbols_iteration_failure_result = get_symbols(library_container, library_container_architecture_info_table_index, library_symbols, options);
             if (symbols_iteration_failure_result != creation_result::ok) {
                 return symbols_iteration_failure_result;
             }
@@ -2239,20 +1939,20 @@ namespace macho::utils::tbd {
             });
         }
 
-        dprintf(output, "---");
+        helper.print("---");
         if (version == version::v2) {
-            dprintf(output, " !tapi-tbd-v2");
+            helper.print(" !tapi-tbd-v2");
         }
 
-        dprintf(output, "\n");
-        print_architectures_array_to_tbd_output(output, library_container_architectures, architecture_overrides);
+        helper.print('\n');
+        print_architectures_array_to_tbd_output(helper, library_container_architectures, architecture_overrides);
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
                 if ((options & options::remove_uuids) == options::none) {
                     const auto library_uuids_size = library_uuids.size();
                     if (library_uuids_size) {
-                        dprintf(output, "uuids:%-17s[ ", "");
+                        helper.print("uuids:%-17s[ ", "");
 
                         const auto architecture_info_table = get_architecture_info_table();
                         for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
@@ -2261,24 +1961,24 @@ namespace macho::utils::tbd {
                             const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
                             const auto &library_uuid = library_uuid_pair.second;
 
-                            dprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                            helper.print("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
                             if (library_uuids_index != library_uuids_size - 1) {
-                                dprintf(output, ", ");
+                                helper.print(", ");
 
                                 if (library_uuids_index % 2 != 0) {
-                                    dprintf(output, "%-26s", "\n");
+                                    helper.print("%-26s", "\n");
                                 }
                             }
                         }
 
-                        dprintf(output, " ]\n");
+                        helper.print(" ]\n");
                     }
                 }
             }
         }
 
-        dprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
+        helper.print("platform:%-14s%s\n", "", platform_to_string(platform));
 
         if ((options & options::remove_flags) == options::none || flags != flags::none) {
             if (flags != flags::none) {
@@ -2292,44 +1992,44 @@ namespace macho::utils::tbd {
             }
 
             if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
-                dprintf(output, "flags:%-17s[ ", "");
+                helper.print("flags:%-17s[ ", "");
 
                 if (library_flags & macho::flags::two_level_namespaces) {
-                    dprintf(output, "flat_namespace");
+                    helper.print("flat_namespace");
 
                     if (!(library_flags & macho::flags::app_extension_safe)) {
-                        dprintf(output, ", not_app_extension_safe");
+                        helper.print(", not_app_extension_safe");
                     }
                 } else if (!(library_flags & macho::flags::app_extension_safe)) {
-                    dprintf(output, "not_app_extension_safe");
+                    helper.print("not_app_extension_safe");
                 }
 
-                dprintf(output, " ]\n");
+                helper.print(" ]\n");
             }
         }
 
-        dprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
+        helper.print("install-name:%-10s%s\n", "", library_installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = library_current_version >> 16;
             auto library_current_version_minor = (library_current_version >> 8) & 0xff;
             auto library_current_version_revision = library_current_version & 0xff;
 
-            dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            helper.print("current-version:%-7s%u", "", library_current_version_major);
 
             if (library_current_version_minor != 0) {
-                dprintf(output, ".%u", library_current_version_minor);
+                helper.print(".%u", library_current_version_minor);
             }
 
             if (library_current_version_revision != 0) {
                 if (library_current_version_minor == 0) {
-                    dprintf(output, ".0");
+                    helper.print(".0");
                 }
 
-                dprintf(output, ".%u", library_current_version_revision);
+                helper.print(".%u", library_current_version_revision);
             }
 
-            dprintf(output, "\n");
+            helper.print('\n');
         }
 
         if ((options & options::remove_compatibility_version) == options::none) {
@@ -2337,36 +2037,36 @@ namespace macho::utils::tbd {
             auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
             auto library_compatibility_version_revision = library_compatibility_version & 0xff;
 
-            dprintf(output, "compatibility-version: %u", library_compatibility_version_major);
+            helper.print("compatibility-version: %u", library_compatibility_version_major);
 
             if (library_compatibility_version_minor != 0) {
-                dprintf(output, ".%u", library_compatibility_version_minor);
+                helper.print(".%u", library_compatibility_version_minor);
             }
 
             if (library_compatibility_version_revision != 0) {
                 if (library_compatibility_version_minor == 0) {
-                    dprintf(output, ".0");
+                    helper.print(".0");
                 }
 
-                dprintf(output, ".%u", library_compatibility_version_revision);
+                helper.print(".%u", library_compatibility_version_revision);
             }
 
-            dprintf(output, "\n");
+            helper.print('\n');
         }
 
         if ((options & options::remove_swift_version) == options::none) {
             if (library_swift_version != 0) {
                 switch (library_swift_version) {
                     case 1:
-                        dprintf(output, "swift-version:%-9s1\n", "");
+                        helper.print("swift-version:%-9s1\n", "");
                         break;
 
                     case 2:
-                        dprintf(output, "swift-version:%-9s1.2\n", "");
+                        helper.print("swift-version:%-9s1.2\n", "");
                         break;
 
                     default:
-                        dprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
+                        helper.print("swift-version:%-9s%u\n", "", library_swift_version - 1);
                         break;
                 }
             }
@@ -2374,33 +2074,34 @@ namespace macho::utils::tbd {
 
         if ((options & options::remove_objc_constraint) == options::none) {
             if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
-                dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+                helper.print("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
             }
         }
 
         if (version == version::v2) {
             if ((options & options::remove_parent_umbrella) == options::none) {
                 if (!library_parent_umbrella.empty()) {
-                    dprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+                    helper.print("parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
                 }
             }
         }
 
-        dprintf(output, "exports:\n");
+        helper.print("exports:\n");
 
         if (has_architecture_overrides) {
-            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
+            print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
         } else {
             for (const auto &group : groups) {
-                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
+                print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
             }
         }
 
-        dprintf(output, "...\n");
+        helper.print("...\n");
         return creation_result::ok;
     }
 
-    creation_result create_from_macho_library(container &container, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+    template <typename T>
+    inline creation_result create_from_macho_library(container &container, const stream_helper<T> &helper, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
         const auto has_provided_architectures = architectures != 0;
         const auto has_architecture_overrides = architecture_overrides != 0;
 
@@ -2408,7 +2109,7 @@ namespace macho::utils::tbd {
         uint32_t compatibility_version = -1;
         uint32_t swift_version = 0;
 
-        auto installation_name = (const char *)nullptr;
+        auto installation_name = static_cast<const char *>(nullptr);
         auto objc_constraint = objc_constraint::no_value;
         auto parent_umbrella = std::string();
 
@@ -2479,7 +2180,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        const auto symbols_iteration_failure_result = get_symbols(container, 1ull << architecture_info_table_index, architecture_info_table_index, symbols, options);
+        const auto symbols_iteration_failure_result = get_symbols(container, architecture_info_table_index, symbols, options);
         if (symbols_iteration_failure_result != creation_result::ok) {
             return symbols_iteration_failure_result;
         }
@@ -2504,13 +2205,13 @@ namespace macho::utils::tbd {
             return strcmp(lhs_string, rhs_string) < 0;
         });
 
-        dprintf(output, "---");
+        helper.print("---");
         if (version == version::v2) {
-            dprintf(output, " !tapi-tbd-v2");
+            helper.print(" !tapi-tbd-v2");
         }
 
-        dprintf(output, "\n");
-        print_architectures_array_to_tbd_output(output, 1ull << architecture_info_table_index, architecture_overrides);
+        helper.print('\n');
+        print_architectures_array_to_tbd_output(helper, 1ull << architecture_info_table_index, architecture_overrides);
 
         if (!has_architecture_overrides) {
             if (version == version::v2) {
@@ -2518,12 +2219,12 @@ namespace macho::utils::tbd {
                     const auto architecture_info_table = get_architecture_info_table();
                     const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
 
-                    dprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                    helper.print("uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 }
             }
         }
 
-        dprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
+        helper.print("platform:%-14s%s\n", "", platform_to_string(platform));
 
         if ((options & options::remove_flags) == options::none || flags != flags::none) {
             auto container_flags = header_flags;
@@ -2538,44 +2239,44 @@ namespace macho::utils::tbd {
             }
 
             if (container_flags & macho::flags::two_level_namespaces || !(container_flags & macho::flags::app_extension_safe)) {
-                dprintf(output, "flags:%-17s[ ", "");
+                helper.print("flags:%-17s[ ", "");
 
                 if (header_flags & macho::flags::two_level_namespaces) {
-                    dprintf(output, "flat_namespace");
+                    helper.print("flat_namespace");
 
                     if (!(header_flags & macho::flags::app_extension_safe)) {
-                        dprintf(output, ", not_app_extension_safe");
+                        helper.print(", not_app_extension_safe");
                     }
                 } else if (!(header_flags & macho::flags::app_extension_safe)) {
-                    dprintf(output, "not_app_extension_safe");
+                    helper.print("not_app_extension_safe");
                 }
 
-                dprintf(output, " ]\n");
+                helper.print(" ]\n");
             }
         }
 
-        dprintf(output, "install-name:%-10s%s\n", "", installation_name);
+        helper.print("install-name:%-10s%s\n", "", installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = current_version >> 16;
             auto library_current_version_minor = (current_version >> 8) & 0xff;
             auto library_current_version_revision = current_version & 0xff;
 
-            dprintf(output, "current-version:%-7s%u", "", library_current_version_major);
+            helper.print("current-version:%-7s%u", "", library_current_version_major);
 
             if (library_current_version_minor != 0) {
-                dprintf(output, ".%u", library_current_version_minor);
+                helper.print(".%u", library_current_version_minor);
             }
 
             if (library_current_version_revision != 0) {
                 if (library_current_version_minor == 0) {
-                    dprintf(output, ".0");
+                    helper.print(".0");
                 }
 
-                dprintf(output, ".%u", library_current_version_revision);
+                helper.print(".%u", library_current_version_revision);
             }
 
-            dprintf(output, "\n");
+            helper.print('\n');
         }
 
         if ((options & options::remove_compatibility_version) == options::none) {
@@ -2583,36 +2284,36 @@ namespace macho::utils::tbd {
             auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
             auto compatibility_version_revision = compatibility_version & 0xff;
 
-            dprintf(output, "compatibility-version: %u", compatibility_version_major);
+            helper.print("compatibility-version: %u", compatibility_version_major);
 
             if (compatibility_version_minor != 0) {
-                dprintf(output, ".%u", compatibility_version_minor);
+                helper.print(".%u", compatibility_version_minor);
             }
 
             if (compatibility_version_revision != 0) {
                 if (compatibility_version_minor == 0) {
-                    dprintf(output, ".0");
+                    helper.print(".0");
                 }
 
-                dprintf(output, ".%u", compatibility_version_revision);
+                helper.print(".%u", compatibility_version_revision);
             }
 
-            dprintf(output, "\n");
+            helper.print('\n');
         }
 
         if ((options & options::remove_swift_version) == options::none) {
             if (swift_version != 0) {
                 switch (swift_version) {
                     case 1:
-                        dprintf(output, "swift-version:%-9s1\n", "");
+                        helper.print("swift-version:%-9s1\n", "");
                         break;
 
                     case 2:
-                        dprintf(output, "swift-version:%-9s1.2\n", "");
+                        helper.print("swift-version:%-9s1.2\n", "");
                         break;
 
                     default:
-                        dprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
+                        helper.print("swift-version:%-9s%u\n", "", swift_version - 1);
                         break;
                 }
             }
@@ -2620,724 +2321,38 @@ namespace macho::utils::tbd {
 
         if ((options & options::remove_objc_constraint) == options::none) {
             if (const auto objc_constraint_string = objc_constraint_to_string(objc_constraint); objc_constraint_string != nullptr) {
-                dprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+                helper.print("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
             }
         }
 
         if (version == version::v2) {
             if ((options & options::remove_parent_umbrella) == options::none) {
                 if (!parent_umbrella.empty()) {
-                    dprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+                    helper.print("parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
                 }
             }
         }
 
-        dprintf(output, "exports:\n");
-        print_export_group_to_tbd_output(output, 1ull << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
+        helper.print("exports:\n");
+        print_export_group_to_tbd_output(helper, 1ull << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
 
-        dprintf(output, "...\n");
+        helper.print("...\n");
         return creation_result::ok;
+    }
+
+    creation_result create_from_macho_library(file &library, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+        return create_from_macho_library(library, stream_helper<int>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
+    }
+
+    creation_result create_from_macho_library(container &container, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
+        return create_from_macho_library(container, stream_helper<int>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     creation_result create_from_macho_library(file &library, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        const auto has_provided_architectures = architectures != 0;
-        const auto has_architecture_overrides = architecture_overrides != 0;
-
-        uint32_t library_current_version = -1;
-        uint32_t library_compatibility_version = -1;
-        uint32_t library_swift_version = 0;
-        uint32_t library_flags = 0;
-
-        auto library_installation_name = static_cast<const char *>(nullptr);
-        auto library_objc_constraint = objc_constraint::no_value;
-        auto library_parent_umbrella = std::string();
-
-        auto library_reexports = std::vector<reexport>();
-        auto library_symbols = std::vector<symbol>();
-
-        auto &library_containers = library.containers;
-        auto library_containers_index = 0;
-
-        const auto library_containers_size = library_containers.size();
-
-        auto library_uuids = std::vector<std::pair<uint64_t, const uint8_t *>>();
-        auto library_container_architectures = uint64_t();
-
-        library_uuids.reserve(library_containers_size);
-
-        auto has_found_architectures_provided = false;
-        for (auto &library_container : library_containers) {
-            const auto &library_container_header = library_container.header;
-
-            const auto library_container_header_filetype = library_container_header.filetype;
-            const auto library_container_header_flags = library_container_header.flags;
-
-            const auto library_container_header_cputype = library_container_header.cputype;
-            const auto library_container_header_cpusubtype = library_container_header.cpusubtype;
-
-            if (library_container.is_big_endian()) {
-                swap_uint32(*(uint32_t *)&library_container_header_filetype);
-                swap_uint32(*(uint32_t *)&library_container_header_flags);
-
-                swap_uint32(*(uint32_t *)&library_container_header_cputype);
-                swap_uint32(*(uint32_t *)&library_container_header_cpusubtype);
-            }
-
-            if (!filetype_is_dynamic_library(library_container_header_filetype)) {
-                return creation_result::unsupported_filetype;
-            }
-
-            if (library_container_header_flags & macho::flags::two_level_namespaces) {
-                if (!(library_flags & macho::flags::two_level_namespaces)) {
-                    if (library_containers_index != 0) {
-                        return creation_result::inconsistent_flags;
-                    }
-
-                    library_flags |= macho::flags::two_level_namespaces;
-                }
-            }
-
-            if (!(library_container_header_flags & macho::flags::app_extension_safe)) {
-                if (library_flags & macho::flags::app_extension_safe) {
-                    if (library_containers_index != 0) {
-                        return creation_result::inconsistent_flags;
-                    }
-
-                    library_flags &= ~macho::flags::app_extension_safe;
-                }
-            }
-
-            const auto library_container_header_subtype = subtype_from_cputype(library_container_header_cputype, library_container_header.cpusubtype);
-            if (library_container_header_subtype == subtype::none) {
-                return creation_result::invalid_subtype;
-            }
-
-            const auto library_container_architecture_info_table_index = architecture_info_index_from_cputype(library_container_header_cputype, library_container_header_subtype);
-            if (library_container_architecture_info_table_index == -1) {
-                return creation_result::invalid_cputype;
-            }
-
-            if (has_provided_architectures) {
-                // any is the first architecture info and if set is stored in the LSB
-                if (!(architectures & 1)) {
-                    if (!(architectures & (1ull << library_container_architecture_info_table_index))) {
-                        continue;
-                    }
-                }
-
-                has_found_architectures_provided = true;
-            }
-
-            if (!has_architecture_overrides) {
-                library_container_architectures |= 1ull << library_container_architecture_info_table_index;
-            }
-
-            uint32_t local_current_version = -1;
-            uint32_t local_compatibility_version = -1;
-            uint32_t local_swift_version = 0;
-
-            auto local_installation_name = (const char *)nullptr;
-            auto local_objc_constraint = objc_constraint::no_value;
-            auto local_parent_umbrella = std::string();
-
-            auto local_sub_clients = std::vector<std::string>();
-            auto local_uuid = (uint8_t *)nullptr;
-
-            const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_parent_umbrella, local_uuid);
-
-            if (failure_result != creation_result::ok) {
-                return failure_result;
-            }
-
-            if (platform == platform::none) {
-                return creation_result::platform_not_found;
-            }
-
-            if (!local_installation_name) {
-                return creation_result::not_a_library;
-            }
-
-            if (library_installation_name != nullptr) {
-                if (strcmp(library_installation_name, local_installation_name) != 0) {
-                    return creation_result::contradictary_container_information;
-                }
-            } else {
-                library_installation_name = local_installation_name;
-            }
-
-            if ((options & options::remove_current_version) == options::none) {
-                if (library_current_version != -1) {
-                    if (local_current_version != library_current_version) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else {
-                    library_current_version = local_current_version;
-                }
-            }
-
-            if ((options & options::remove_compatibility_version) == options::none) {
-                if (library_compatibility_version != -1) {
-                    if (library_compatibility_version != local_compatibility_version) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else {
-                    library_compatibility_version = local_compatibility_version;
-                }
-            }
-
-            if ((options & options::remove_swift_version) == options::none) {
-                if (library_swift_version != 0) {
-                    if (library_swift_version != local_swift_version) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else {
-                    library_swift_version = local_swift_version;
-                }
-            }
-
-            if ((options & options::remove_objc_constraint) == options::none) {
-                if (library_objc_constraint != objc_constraint::no_value) {
-                    if (library_objc_constraint != local_objc_constraint) {
-                        return creation_result::contradictary_container_information;
-                    }
-                } else {
-                    library_objc_constraint = local_objc_constraint;
-                }
-            }
-
-            if (version == version::v2) {
-                if ((options & options::remove_parent_umbrella) == options::none) {
-                    if (!library_parent_umbrella.empty()) {
-                        if (library_parent_umbrella != local_parent_umbrella) {
-                            return creation_result::contradictary_container_information;
-                        }
-                    } else if (!local_parent_umbrella.empty()) {
-                        // In the scenario where one container had no (or empty) parent-umbrella
-                        // and another container did not
-
-                        if (library_containers_index != 0) {
-                            return creation_result::contradictary_container_information;
-                        }
-
-                        library_parent_umbrella = std::move(local_parent_umbrella);
-                    }
-                }
-
-                if ((options & options::remove_uuids) == options::none) {
-                    if (!local_uuid) {
-                        if ((options & options::ignore_missing_uuids) == options::none) {
-                            return creation_result::has_no_uuid;
-                        }
-                    } else {
-                        if ((options & options::ignore_non_unique_uuid) == options::none) {
-                            const auto library_uuids_iter = std::find_if(library_uuids.begin(), library_uuids.end(), [&](const std::pair<uint64_t, const uint8_t *> &rhs) {
-                                return memcmp(local_uuid, rhs.second, 16) == 0;
-                            });
-
-                            const auto &uuids_end = library_uuids.end();
-                            if (library_uuids_iter != uuids_end) {
-                                return creation_result::uuid_is_not_unique;
-                            }
-                        }
-
-                        library_uuids.emplace_back(library_container_architecture_info_table_index, local_uuid);
-                    }
-                }
-            }
-
-            const auto symbols_iteration_failure_result = get_symbols(library_container, library_container_architecture_info_table_index, library_container_architecture_info_table_index, library_symbols, options);
-            if (symbols_iteration_failure_result != creation_result::ok) {
-                return symbols_iteration_failure_result;
-            }
-
-            library_containers_index++;
-        }
-
-        if (has_provided_architectures) {
-            if (!has_found_architectures_provided) {
-                return creation_result::no_provided_architectures;
-            }
-        }
-
-        if ((options & options::ignore_missing_exports) == options::none) {
-            if (library_reexports.empty() && library_symbols.empty()) {
-                return creation_result::no_symbols_or_reexports;
-            }
-        }
-
-        std::sort(library_reexports.begin(), library_reexports.end(), [](const reexport &lhs, const reexport &rhs) {
-            const auto lhs_string = lhs.string;
-            const auto rhs_string = rhs.string;
-
-            return strcmp(lhs_string, rhs_string) < 0;
-        });
-
-        std::sort(library_symbols.begin(), library_symbols.end(), [](const symbol &lhs, const symbol &rhs) {
-            const auto lhs_string = lhs.string;
-            const auto rhs_string = rhs.string;
-
-            return strcmp(lhs_string, rhs_string) < 0;
-        });
-
-        auto groups = std::vector<group>();
-        if (has_architecture_overrides) {
-            groups.emplace_back();
-        } else {
-            for (const auto &library_reexport : library_reexports) {
-                const auto &library_reexport_bits = library_reexport.bits;
-                const auto group_iter = std::find_if(groups.begin(), groups.end(), [&](const group &lhs) {
-                    return lhs.bits == library_reexport_bits;
-                });
-
-                if (group_iter != groups.end()) {
-                    group_iter->reexports_count++;
-                } else {
-                    auto group = tbd::group();
-                    auto group_creation_result = group.create(library_reexport_bits);
-
-                    switch (group_creation_result) {
-                        case group::creation_result::ok:
-                            break;
-
-                        case group::creation_result::failed_to_allocate_memory:
-                            return creation_result::failed_to_allocate_memory;
-                    }
-
-                    group.reexports_count++;
-                    groups.emplace_back(std::move(group));
-                }
-            }
-
-            for (const auto &library_symbol : library_symbols) {
-                const auto &library_symbol_bits = library_symbol.bits;
-                const auto group_iter = std::find_if(groups.begin(), groups.end(), [&](const group &lhs) {
-                    return lhs.bits == library_symbol_bits;
-                });
-
-                if (group_iter != groups.end()) {
-                    group_iter->symbols_count++;
-                } else {
-                    auto group = tbd::group();
-                    auto group_creation_result = group.create(library_symbol_bits);
-
-                    switch (group_creation_result) {
-                        case group::creation_result::ok:
-                            break;
-
-                        case group::creation_result::failed_to_allocate_memory:
-                            return creation_result::failed_to_allocate_memory;
-                    }
-
-                    group.symbols_count++;
-                    groups.emplace_back(std::move(group));
-                }
-            }
-
-            std::sort(groups.begin(), groups.end(), [](const group &lhs, const group &rhs) {
-                const auto lhs_symbols_count = lhs.symbols_count;
-                const auto rhs_symbols_count = rhs.symbols_count;
-
-                return lhs_symbols_count < rhs_symbols_count;
-            });
-        }
-
-        fputs("---", output);
-        if (version == version::v2) {
-            fputs(" !tapi-tbd-v2", output);
-        }
-
-        fputc('\n', output);
-        print_architectures_array_to_tbd_output(output, library_container_architectures, architecture_overrides);
-
-        if (!has_architecture_overrides) {
-            if (version == version::v2) {
-                if ((options & options::remove_uuids) == options::none) {
-                    const auto library_uuids_size = library_uuids.size();
-                    if (library_uuids_size) {
-                        fprintf(output, "uuids:%-17s[ ", "");
-
-                        const auto architecture_info_table = get_architecture_info_table();
-                        for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
-                            const auto &library_uuid_pair = library_uuids.at(library_uuids_index);
-
-                            const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
-                            const auto &library_uuid = library_uuid_pair.second;
-
-                            fprintf(output, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
-
-                            if (library_uuids_index != library_uuids_size - 1) {
-                                fputs(", ", output);
-
-                                if (library_uuids_index % 2 != 0) {
-                                    fprintf(output, "%-26s", "\n");
-                                }
-                            }
-                        }
-
-                        fputs(" ]\n", output);
-                    }
-                }
-            }
-        }
-
-        fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
-
-        if ((options & options::remove_flags) == options::none || flags != flags::none) {
-            if (flags != flags::none) {
-                if ((flags & flags::flat_namespace) != flags::none) {
-                    library_flags |= macho::flags::two_level_namespaces;
-                }
-
-                if ((flags & flags::not_app_extension_safe) != flags::none) {
-                    library_flags &= ~macho::flags::two_level_namespaces;
-                }
-            }
-
-            if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
-                fprintf(output, "flags:%-17s[ ", "");
-
-                if (library_flags & macho::flags::two_level_namespaces) {
-                    fputs("flat_namespace", output);
-
-                    if (!(library_flags & macho::flags::app_extension_safe)) {
-                        fputs(", not_app_extension_safe", output);
-                    }
-                } else if (!(library_flags & macho::flags::app_extension_safe)) {
-                    fputs("not_app_extension_safe", output);
-                }
-
-                fputs(" ]\n", output);
-            }
-        }
-
-        fprintf(output, "install-name:%-10s%s\n", "", library_installation_name);
-
-        if ((options & options::remove_current_version) == options::none) {
-            auto library_current_version_major = library_current_version >> 16;
-            auto library_current_version_minor = (library_current_version >> 8) & 0xff;
-            auto library_current_version_revision = library_current_version & 0xff;
-
-            fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
-
-            if (library_current_version_minor != 0) {
-                fprintf(output, ".%u", library_current_version_minor);
-            }
-
-            if (library_current_version_revision != 0) {
-                if (library_current_version_minor == 0) {
-                    fputs(".0", output);
-                }
-
-                fprintf(output, ".%u", library_current_version_revision);
-            }
-
-            fputc('\n', output);
-        }
-
-        if ((options & options::remove_compatibility_version) == options::none) {
-            auto library_compatibility_version_major = library_compatibility_version >> 16;
-            auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
-            auto library_compatibility_version_revision = library_compatibility_version & 0xff;
-
-            fprintf(output, "compatibility-version: %u", library_compatibility_version_major);
-
-            if (library_compatibility_version_minor != 0) {
-                fprintf(output, ".%u", library_compatibility_version_minor);
-            }
-
-            if (library_compatibility_version_revision != 0) {
-                if (library_compatibility_version_minor == 0) {
-                    fputs(".0", output);
-                }
-
-                fprintf(output, ".%u", library_compatibility_version_revision);
-            }
-
-            fputc('\n', output);
-        }
-
-        if ((options & options::remove_swift_version) == options::none) {
-            if (library_swift_version != 0) {
-                switch (library_swift_version) {
-                    case 1:
-                        fprintf(output, "swift-version:%-9s1\n", "");
-                        break;
-
-                    case 2:
-                        fprintf(output, "swift-version:%-9s1.2\n", "");
-                        break;
-
-                    default:
-                        fprintf(output, "swift-version:%-9s%u\n", "", library_swift_version - 1);
-                        break;
-                }
-            }
-        }
-
-        if ((options & options::remove_objc_constraint) == options::none) {
-            if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
-                fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
-            }
-        }
-
-        if (version == version::v2) {
-            if ((options & options::remove_parent_umbrella) == options::none) {
-                if (!library_parent_umbrella.empty()) {
-                    fprintf(output, "parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
-                }
-            }
-        }
-
-        fputs("exports:\n", output);
-
-        if (has_architecture_overrides) {
-            print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
-        } else {
-            for (const auto &group : groups) {
-                print_export_group_to_tbd_output(output, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
-            }
-        }
-
-        fputs("...\n", output);
-        return creation_result::ok;
+        return create_from_macho_library(library, stream_helper<FILE *>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     creation_result create_from_macho_library(container &container, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        const auto has_provided_architectures = architectures != 0;
-        const auto has_architecture_overrides = architecture_overrides != 0;
-
-        uint32_t current_version = -1;
-        uint32_t compatibility_version = -1;
-        uint32_t swift_version = 0;
-
-        auto objc_constraint = objc_constraint::no_value;
-        auto installation_name = (const char *)nullptr;
-        auto parent_umbrella = std::string();
-
-        auto sub_clients = std::vector<std::string>();
-
-        auto reexports = std::vector<reexport>();
-        auto symbols = std::vector<symbol>();
-
-        auto uuid = (uint8_t *)nullptr;
-
-        const auto &header = container.header;
-
-        const auto header_cputype = header.cputype;
-        const auto header_cpusubtype = header.cpusubtype;
-
-        const auto header_filetype = header.filetype;
-        const auto header_flags = header.flags;
-
-        if (container.is_big_endian()) {
-            swap_uint32(*(uint32_t *)&header_filetype);
-            swap_uint32(*(uint32_t *)&header_flags);
-
-            swap_uint32(*(uint32_t *)&header_cputype);
-            swap_uint32(*(uint32_t *)&header_cpusubtype);
-        }
-
-        if (!filetype_is_dynamic_library(header_filetype)) {
-            return creation_result::unsupported_filetype;
-        }
-
-        const auto header_subtype = subtype_from_cputype(header_cputype, header_cpusubtype);
-        if (header_subtype == subtype::none) {
-            return creation_result::invalid_subtype;
-        }
-
-        const auto architecture_info_table_index = architecture_info_index_from_cputype(header_cputype, header_subtype);
-        if (architecture_info_table_index == -1) {
-            return creation_result::invalid_cputype;
-        }
-
-        if (has_provided_architectures) {
-            // any is the first architecture info and if set is stored in the LSB
-            if (!(architectures & 1)) {
-                if (!(architectures & (1ull << architecture_info_table_index))) {
-                    return creation_result::no_provided_architectures;
-                }
-            }
-        }
-
-        const auto failure_result = get_required_load_command_data(container, architecture_info_table_index, current_version, compatibility_version, swift_version, installation_name, platform, objc_constraint, reexports, sub_clients, parent_umbrella, uuid);
-        if (failure_result != creation_result::ok) {
-            return failure_result;
-        }
-
-        if (platform == platform::none) {
-            return creation_result::platform_not_found;
-        }
-
-        if (!installation_name) {
-            return creation_result::not_a_library;
-        }
-
-        if (version == version::v2) {
-            if ((options & options::remove_uuids) == options::none || (options & options::ignore_missing_uuids) == options::none) {
-                if (!uuid) {
-                    return creation_result::has_no_uuid;
-                }
-            }
-        }
-
-        const auto symbols_iteration_failure_result = get_symbols(container, 1ull << architecture_info_table_index, architecture_info_table_index, symbols, options);
-        if (symbols_iteration_failure_result != creation_result::ok) {
-            return symbols_iteration_failure_result;
-        }
-
-        if ((options & options::ignore_missing_exports) == options::none) {
-            if (reexports.empty() && symbols.empty()) {
-                return creation_result::no_symbols_or_reexports;
-            }
-        }
-
-        std::sort(reexports.begin(), reexports.end(), [](const reexport &lhs, const reexport &rhs) {
-            const auto lhs_string = lhs.string;
-            const auto rhs_string = rhs.string;
-
-            return strcmp(lhs_string, rhs_string) < 0;
-        });
-
-        std::sort(symbols.begin(), symbols.end(), [](const symbol &lhs, const symbol &rhs) {
-            const auto lhs_string = lhs.string;
-            const auto rhs_string = rhs.string;
-
-            return strcmp(lhs_string, rhs_string) < 0;
-        });
-
-        fputs("---", output);
-        if (version == version::v2) {
-            fputs(" !tapi-tbd-v2", output);
-        }
-
-        fputc('\n', output);
-        print_architectures_array_to_tbd_output(output, 1ull << architecture_info_table_index, architecture_overrides);
-
-        if (!has_architecture_overrides) {
-            if (version == version::v2) {
-                if ((options & options::remove_uuids) == options::none) {
-                    const auto architecture_info_table = get_architecture_info_table();
-                    const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
-
-                    fprintf(output, "uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-                }
-            }
-        }
-
-        fprintf(output, "platform:%-14s%s\n", "", platform_to_string(platform));
-
-        if ((options & options::remove_flags) == options::none || flags != flags::none) {
-            auto tbd_flags = header_flags;
-            if (flags != flags::none) {
-                if ((flags & flags::flat_namespace) != flags::none) {
-                    tbd_flags |= macho::flags::two_level_namespaces;
-                }
-
-                if ((flags & flags::not_app_extension_safe) != flags::none) {
-                    tbd_flags &= ~macho::flags::two_level_namespaces;
-                }
-            }
-
-            if (tbd_flags & macho::flags::two_level_namespaces || !(tbd_flags & macho::flags::app_extension_safe)) {
-                fprintf(output, "flags:%-17s[ ", "");
-
-                if (tbd_flags & macho::flags::two_level_namespaces) {
-                    fputs("flat_namespace", output);
-
-                    if (!(header_flags & macho::flags::app_extension_safe)) {
-                        fputs(", not_app_extension_safe", output);
-                    }
-                } else if (!(tbd_flags & macho::flags::app_extension_safe)) {
-                    fputs("not_app_extension_safe", output);
-                }
-
-                fputs(" ]\n", output);
-            }
-        }
-
-        fprintf(output, "install-name:%-10s%s\n", "", installation_name);
-
-        if ((options & options::remove_current_version) == options::none) {
-            auto library_current_version_major = current_version >> 16;
-            auto library_current_version_minor = (current_version >> 8) & 0xff;
-            auto library_current_version_revision = current_version & 0xff;
-
-            fprintf(output, "current-version:%-7s%u", "", library_current_version_major);
-
-            if (library_current_version_minor != 0) {
-                fprintf(output, ".%u", library_current_version_minor);
-            }
-
-            if (library_current_version_revision != 0) {
-                if (library_current_version_minor == 0) {
-                    fputs(".0", output);
-                }
-
-                fprintf(output, ".%u", library_current_version_revision);
-            }
-
-            fputc('\n', output);
-        }
-
-        if ((options & options::remove_compatibility_version) == options::none) {
-            auto compatibility_version_major = compatibility_version >> 16;
-            auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
-            auto compatibility_version_revision = compatibility_version & 0xff;
-
-            fprintf(output, "compatibility-version: %u", compatibility_version_major);
-
-            if (compatibility_version_minor != 0) {
-                fprintf(output, ".%u", compatibility_version_minor);
-            }
-
-            if (compatibility_version_revision != 0) {
-                if (compatibility_version_minor == 0) {
-                    fputs(".0", output);
-                }
-
-                fprintf(output, ".%u", compatibility_version_revision);
-            }
-
-            fputc('\n', output);
-        }
-
-        if ((options & options::remove_swift_version) == options::none) {
-            if (swift_version != 0) {
-                switch (swift_version) {
-                    case 1:
-                        fprintf(output, "swift-version:%-9s1\n", "");
-                        break;
-
-                    case 2:
-                        fprintf(output, "swift-version:%-9s1.2\n", "");
-                        break;
-
-                    default:
-                        fprintf(output, "swift-version:%-9s%u\n", "", swift_version - 1);
-                        break;
-                }
-            }
-        }
-
-        if ((options & options::remove_objc_constraint) == options::none) {
-            if (const auto objc_constraint_string = objc_constraint_to_string(objc_constraint); objc_constraint_string != nullptr) {
-                fprintf(output, "objc-constraint:%-7s%s\n", "", objc_constraint_string);
-            }
-        }
-
-        if (version == version::v2) {
-            if (!parent_umbrella.empty()) {
-                if ((options & options::remove_parent_umbrella) == options::none) {
-                    fprintf(output, "parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
-                }
-            }
-        }
-
-        fputs("exports:\n", output);
-        print_export_group_to_tbd_output(output, 1ull << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
-
-        fputs("...\n", output);
-        return creation_result::ok;
+        return create_from_macho_library(container, stream_helper<FILE *>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 }

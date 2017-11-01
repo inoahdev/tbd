@@ -47,7 +47,8 @@ namespace recurse {
 
     enum class operation_result {
         ok,
-        failed_to_open_directory
+        failed_to_open_directory,
+        found_no_matching_files
     };
 
     enum class macho_file_type {
@@ -56,7 +57,7 @@ namespace recurse {
         dynamic_library
     };
 
-    macho::file::open_result _macho_open_file_as_filetype(const char *path, macho_file_type filetype, macho::file &macho_file);
+    macho::file::open_result _macho_open_file_as_filetype(macho::file &macho_file, const char *path, macho_file_type filetype);
     bool _macho_check_file_as_filetype(const char *path, macho_file_type filetype, macho::file::check_error &error);
 
     template <typename T>
@@ -77,13 +78,16 @@ namespace recurse {
             recursion_options |= utils::directory::recursion_options::recurse_subdirectories;
         }
 
+        auto found_valid_files = false;
         auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](utils::directory &directory, std::string &path) {
             auto macho_file = macho::file();
-            auto macho_file_open_result = _macho_open_file_as_filetype(path.data(), filetype, macho_file);;
+            auto macho_file_open_result = _macho_open_file_as_filetype(macho_file, path.data(), filetype);
 
             switch (macho_file_open_result) {
                 case macho::file::open_result::ok:
+                    found_valid_files = true;
                     callback(path, macho_file);
+
                     break;
 
                 case macho::file::open_result::failed_to_open_stream:
@@ -112,7 +116,7 @@ namespace recurse {
         }, [&](utils::directory::recursion_warning warning, const void *data) {
             if ((options & options::print_warnings) != options::none) {
                 switch (warning) {
-                    case utils::directory::recursion_warning::failed_to_open_subdirectory: {
+                    case utils::directory::recursion_warning::failed_to_open_sub_directory: {
                         const auto &sub_directory_path = *(std::string *)data;
                         fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
 
@@ -126,6 +130,10 @@ namespace recurse {
             case utils::directory::recursion_result::ok:
             case utils::directory::recursion_result::directory_not_opened:
                 break;
+        }
+
+        if (!found_valid_files) {
+            return operation_result::found_no_matching_files;
         }
 
         return operation_result::ok;
@@ -149,9 +157,10 @@ namespace recurse {
             recursion_options |= utils::directory::recursion_options::recurse_subdirectories;
         }
 
+        auto found_valid_files = false;
         auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](utils::directory &directory, std::string &path) {
             auto check_error = macho::file::check_error::ok;
-            auto is_valid_library = _macho_check_file_as_filetype(path.data(), filetype, check_error);
+            auto is_valid_macho = _macho_check_file_as_filetype(path.data(), filetype, check_error);
 
             switch (check_error) {
                 case macho::file::check_error::ok:
@@ -177,13 +186,14 @@ namespace recurse {
                     break;
             }
 
-            if (is_valid_library) {
+            if (is_valid_macho) {
+                found_valid_files = true;
                 callback(path);
             }
         }, [&](utils::directory::recursion_warning warning, const void *data) {
             if ((options & options::print_warnings) != options::none) {
                 switch (warning) {
-                    case utils::directory::recursion_warning::failed_to_open_subdirectory: {
+                    case utils::directory::recursion_warning::failed_to_open_sub_directory: {
                         const auto &sub_directory_path = *(std::string *)data;
                         fprintf(stderr, "Warning: Failed to open sub-directory (at path %s), failing with error: %s\n", sub_directory_path.data(), strerror(errno));
 
@@ -197,6 +207,10 @@ namespace recurse {
             case utils::directory::recursion_result::ok:
             case utils::directory::recursion_result::directory_not_opened:
                 break;
+        }
+
+        if (!found_valid_files) {
+            return operation_result::found_no_matching_files;
         }
 
         return operation_result::ok;

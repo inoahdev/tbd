@@ -21,7 +21,7 @@ namespace objc {
             optimized_by_dyld    = 1 << 3,
             corrected_synthesize = 1 << 4,
             is_simulated         = 1 << 5,
-            has_category_class_properties = 1 << 6,
+            has_category_class_properties = 1 << 6
         };
 
         enum class swift_version : uint32_t {
