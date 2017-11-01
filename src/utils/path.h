@@ -161,9 +161,12 @@ namespace utils::path {
     template <typename T>
     std::pair<T, T> find_next_component(const T &begin, const T &end) noexcept {
         auto begin_slash = begin;
-        auto end_slash = begin_slash + 1;
+        if (begin_slash == end) {
+            return std::make_pair(begin, end);
+        }
 
-        if (begin_slash == end || end_slash == end) {
+        auto end_slash = begin_slash + 1;
+        if (end_slash == end) {
             return std::make_pair(begin, end);
         }
 
@@ -516,7 +519,7 @@ namespace utils::path {
             // Don't add '.' path-components
 
             auto next_path_component_begin = find_end_of_row_of_slashes(path_component_end, end);
-            if (*path_component_begin != '.' || path_component_end != (path_component_begin + 1)) {
+            if (*path_component_begin != '.' || (path_component_end - path_component_begin) != 1) {
                 path.append(path_component_begin, path_component_end);
 
                 if (next_path_component_begin != path_component_end) {
@@ -543,10 +546,11 @@ namespace utils::path {
                 slash_row_end = find_end_of_row_of_slashes(slash_row_begin, end);
 
                 if (slash_row_begin != slash_row_end) {
-                    if (*slash_row_begin == '\\') {
-                        *slash_row_begin = '/';
+                    auto &slash_row_begin_elmt = *slash_row_begin;
+                    if (slash_row_begin_elmt == '\\') {
+                        slash_row_begin_elmt = '/';
                         slash_row_begin++;
-                    } else if (*slash_row_begin == '/') {
+                    } else if (slash_row_begin_elmt == '/') {
                         slash_row_begin++;
                     }
                 }
@@ -556,9 +560,9 @@ namespace utils::path {
                 auto path_component_begin = slash_row_begin;
                 if (*path_component_begin == '.') {
                     auto path_component_end = find_next_slash(path_component_begin, end);
-                    auto path_component_expected_end = path_component_begin + 1;
+                    auto path_component_expected_length = path_component_end - path_component_begin;
 
-                    if (path_component_end == path_component_expected_end) {
+                    if (path_component_expected_length == 1) {
                         slash_row_begin = path.erase(path_component_begin, path_component_end);
                         end = path.end();
                     }
