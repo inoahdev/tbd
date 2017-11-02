@@ -88,6 +88,10 @@ namespace macho {
     }
 
     const architecture_info *architecture_info_from_index(size_t index) {
+        if (index >= get_architecture_info_table_size()) {
+            return nullptr;
+        }
+
         return &architecture_info_table[index];
     }
 
