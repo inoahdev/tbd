@@ -93,7 +93,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             // being provided.
 
             if (!architectures) {
-                fprintf(stderr, "Unrecognized architecture with name (%s)\n", macho::architecture_info_from_index(architecture_info_table_index)->name);
+                fprintf(stderr, "Unrecognized architecture with name: %s\n", macho::architecture_info_from_index(architecture_info_table_index)->name);
                 exit(1);
             }
 
@@ -227,9 +227,9 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::stream_seek_error:
             case macho::utils::tbd::creation_result::stream_read_error:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error (%s)\n", macho_file_path, strerror(ferror(file.stream)));
+                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error: %s\n", macho_file_path, strerror(ferror(file.stream)));
                 } else {
-                    fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error (%s)\n", strerror(ferror(file.stream)));
+                    fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error: %s\n", strerror(ferror(file.stream)));
                 }
 
                 break;
@@ -657,6 +657,17 @@ int main(int argc, const char *argv[]) {
                     path.insert(0, retrieve_current_directory());
                 }
 
+                struct stat sbuf;
+                if (stat(path.data(), &sbuf) != 0) {
+                    fprintf(stderr, "Failed to retrieve information on object (at path %s), failing with error: %s\n", path.data(), strerror(errno));
+                    return 1;
+                }
+
+                if (!S_ISREG(sbuf.st_mode)) {
+                    fprintf(stderr, "Object at path (%s) is not a regular file\n", path.data());
+                    return 1;
+                }
+
                 auto macho_file = macho::file();
                 auto macho_file_open_result = macho_file.open(path);
 
@@ -798,7 +809,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (paths.empty()) {
-                    fprintf(stderr, "Please provide a path for option (%s)\n", argument);
+                    fprintf(stderr, "Please provide a path for option: %s\n", argument);
                     return 1;
                 }
 
@@ -813,11 +824,9 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    const auto path_is_directory = S_ISDIR(sbuf.st_mode);
                     const auto &options = pair.second;
-
                     if (options & recurse_directories) {
-                        if (!path_is_directory) {
+                        if (!S_ISDIR(sbuf.st_mode)) {
                             fprintf(stderr, "Cannot recurse file (at path %s)\n", path_data);
                             return 1;
                         }
@@ -851,9 +860,9 @@ int main(int argc, const char *argv[]) {
 
                             case recurse::operation_result::found_no_matching_files:
                                 if (options & recurse_subdirectories) {
-                                    fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path_data);
+                                    fprintf(stderr, "No mach-o library files were found while recursing through path (%s) and its sub-directories\n", path_data);
                                 } else {
-                                    fprintf(stderr, "No mach-o library files were found while recursing once through path (%s)\n", path_data);
+                                    fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path_data);
                                 }
 
                                 break;
@@ -867,7 +876,7 @@ int main(int argc, const char *argv[]) {
                             fputc('\n', stdout);
                         }
                     } else {
-                        if (path_is_directory) {
+                        if (S_ISDIR(sbuf.st_mode)) {
                             fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r (or -r=) to recurse the directory\n", path_data);
                             return 1;
                         }
@@ -875,21 +884,26 @@ int main(int argc, const char *argv[]) {
                         auto path_is_library_check_error = macho::file::check_error::ok;
                         const auto path_is_library = macho::file::is_valid_library(path, &path_is_library_check_error);
 
-                        if (path_is_library_check_error == macho::file::check_error::failed_to_open_descriptor) {
-                            // Instead of ignoring this failure, it is better to inform the user of the open
-                            // failure to so they are aware of why a file may not have been parsed
+                        switch (path_is_library_check_error) {
+                            case macho::file::check_error::failed_to_open_descriptor:
+                                // Instead of ignoring this failure, it is better to inform the user of the open
+                                // failure to so they are aware of why a file may not have been parsed
 
-                            fprintf(stderr, "Failed to open file (at path %s), failing with error: %s\n", path.data(), strerror(errno));
-                        } else {
-                            // As the user provided only one path to a specific mach-o library file,
-                            // --list-macho-libraries is expected to explicitly print out whether or
-                            // not the provided mach-o library file is valid.
+                                fprintf(stderr, "Failed to open file (at path %s), failing with error: %s\n", path.data(), strerror(errno));
+                                break;
 
-                            if (path_is_library) {
-                                fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
-                            } else {
-                                fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
-                            }
+                            default:
+                                // As the user provided only one path to a specific mach-o library file,
+                                // --list-macho-libraries is expected to explicitly print out whether or
+                                // not the provided mach-o library file is valid.
+
+                                if (path_is_library) {
+                                    fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
+                                } else {
+                                    fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
+                                }
+
+                                break;
                         }
                     }
                 }
@@ -902,6 +916,11 @@ int main(int argc, const char *argv[]) {
                 struct stat sbuf;
                 if (stat(path, &sbuf) != 0) {
                     fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error: %s\n", path, strerror(errno));
+                    return 1;
+                }
+
+                if (!S_ISDIR(sbuf.st_mode)) {
+                    fprintf(stderr, "Object at path (%s) is not a directory\n", path);
                     return 1;
                 }
 
@@ -918,7 +937,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
 
                     case recurse::operation_result::found_no_matching_files:
-                        fprintf(stderr, "No mach-o library files were found while recursing through path (%s)\n", path);
+                        fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path);
                 }
             }
 
@@ -1055,8 +1074,7 @@ int main(int argc, const char *argv[]) {
 
                 struct stat sbuf;
                 if (stat(path.data(), &sbuf) == 0) {
-                    const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                    if (path_is_directory) {
+                    if (S_ISDIR(sbuf.st_mode)) {
                         if (!(tbd_options & recurse_directories)) {
                             fprintf(stderr, "Cannot output a .tbd to directory (at path %s), please provide a path to a file to output to\n", path.data());
                             return 1;
@@ -1066,8 +1084,7 @@ int main(int argc, const char *argv[]) {
                             path.append(1, '/');
                         }
                     } else {
-                        const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
-                        if (path_is_regular_file) {
+                        if (S_ISREG(sbuf.st_mode)) {
                             if (tbd_options & recurse_directories) {
                                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output .tbd files to\n", tbd.path.data(), path.data());
                                 return 1;
@@ -1127,7 +1144,7 @@ int main(int argc, const char *argv[]) {
             const auto objc_constraint_inner = macho::utils::tbd::objc_constraint_from_string(objc_constraint_string);
 
             if (objc_constraint_inner == macho::utils::tbd::objc_constraint::no_value) {
-                fprintf(stderr, "Unrecognized objc-constraint value provided (%s)\n", objc_constraint_string);
+                fprintf(stderr, "Unrecognized objc-constraint value: %s\n", objc_constraint_string);
                 return 1;
             }
 
@@ -1238,13 +1255,13 @@ int main(int argc, const char *argv[]) {
                         const auto objc_constraint_inner = macho::utils::tbd::objc_constraint_from_string(objc_constraint_string);
 
                         if (objc_constraint_inner == macho::utils::tbd::objc_constraint::no_value) {
-                            fprintf(stderr, "Unrecognized objc-constraint value provided (%s)\n", objc_constraint_string);
+                            fprintf(stderr, "Unrecognized objc-constraint value: %s\n", objc_constraint_string);
                             return 1;
                         }
 
                         local_objc_constraint = objc_constraint_inner;
                     } else if (strcmp(option, "p") == 0) {
-                        fprintf(stderr, "Please provide a path for option (%s)\n", argument);
+                        fprintf(stderr, "Please provide a path for option: %s\n", argument);
                         return 1;
                     } else if (strcmp(option, "platform") == 0) {
                         if (is_last_argument) {
@@ -1277,7 +1294,7 @@ int main(int argc, const char *argv[]) {
                         if (strcmp(recurse_type_string, "all") == 0) {
                             local_options |= recurse_subdirectories;
                         } else if (strcmp(recurse_type_string, "once") != 0) {
-                            fprintf(stderr, "Unrecognized recurse-type (%s)\n", recurse_type_string);
+                            fprintf(stderr, "Unrecognized recurse-type: %s\n", recurse_type_string);
                             return 1;
                         }
                     } else if (strcmp(option, "ignore-missing-exports") == 0) {
@@ -1354,8 +1371,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    const auto path_is_directory = S_ISDIR(sbuf.st_mode);
-                    if (path_is_directory) {
+                    if (S_ISDIR(sbuf.st_mode)) {
                         if (!(local_options & recurse_directories)) {
                             fprintf(stderr, "Cannot open directory (at path %s) as a macho-file, use -r to recurse the directory\n", path.data());
                             return 1;
@@ -1366,8 +1382,7 @@ int main(int argc, const char *argv[]) {
                             path.append(1, '/');
                         }
                     } else {
-                        const auto path_is_regular_file = S_ISREG(sbuf.st_mode);
-                        if (path_is_regular_file) {
+                        if (S_ISREG(sbuf.st_mode)) {
                             if (local_options & recurse_directories) {
                                 fprintf(stderr, "Cannot recurse file (at path %s)\n", path.data());
                                 return 1;
@@ -1764,9 +1779,9 @@ int main(int argc, const char *argv[]) {
                 case recurse::operation_result::ok:
                     if (!outputted_any_macho_libraries) {
                         if (tbd_options & recurse_subdirectories) {
-                            fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
+                            fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s) and its sub-directories\n", tbd_path.data());
                         } else {
-                            fprintf(stderr, "No mach-o files were found for outputting while recursing once through directory (at path %s)\n", tbd_path.data());
+                            fprintf(stderr, "No mach-o files were found for outputting while recursing through directory (at path %s)\n", tbd_path.data());
                         }
                     }
 
@@ -1778,9 +1793,9 @@ int main(int argc, const char *argv[]) {
 
                 case recurse::operation_result::found_no_matching_files:
                     if (tbd_options & recurse_subdirectories) {
-                        fprintf(stderr, "No mach-o dynamic library files were found while recursing through directory (at path %s)\n", tbd_path.data());
+                        fprintf(stderr, "No mach-o dynamic library files were found while recursing through directory (at path %s) and its sub-directories\n", tbd_path.data());
                     } else {
-                        fprintf(stderr, "No mach-o dynamic library files were found while recursing once through directory (at path %s)\n", tbd_path.data());
+                        fprintf(stderr, "No mach-o dynamic library files were found while recursing through directory (at path %s)\n", tbd_path.data());
                     }
 
                     break;
