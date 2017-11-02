@@ -17,11 +17,11 @@ namespace recursive::mkdir {
         failed_to_create_last_as_file
     };
 
-    // Writing a null-terminator at iter provides
+    // Writing a null-terminator at terminator provides
     // the path first created by mkdir
 
-    result perform(char *path, char **iter = nullptr);
+    result perform(char *path, char **terminator = nullptr) noexcept;
 
-    result perform_ignorning_last(char *path, char **iter = nullptr);
-    result perform_with_last_as_file(char *path, char **iter = nullptr, int *last_descriptor = nullptr);
+    result perform_ignorning_last(char *path, char **terminator = nullptr) noexcept;
+    result perform_with_last_as_file(char *path, char **terminator = nullptr, int *last_descriptor = nullptr) noexcept;
 }

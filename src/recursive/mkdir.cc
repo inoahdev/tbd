@@ -15,67 +15,38 @@
 #include "mkdir.h"
 
 namespace recursive::mkdir {
-    enum class last_as {
-        none,
-        file,
-        directory
-    };
+    inline bool _create_directory(char *path) noexcept {
+        return ::mkdir(path, 0755) == 0;
+    }
 
-    template <last_as type>
-    inline result _perform_without_check(char *path, char *end, char *component_end, int *last_descriptor = nullptr) {
-        auto path_component_end = component_end;
+    inline result _create_directories_ignoring_last(char *path, char *path_end, char *begin) noexcept {
+        auto path_component_end = begin;
 
         do {
+            if (path_component_end == path_end) {
+                break;
+            }
+
             auto path_component_end_elmt = *path_component_end;
             *path_component_end = '\0';
 
-            if (path_component_end == end) {
-                if constexpr (type == last_as::none) {
-                    *path_component_end = path_component_end_elmt;
-                    break;
-                }
-
-                if constexpr (type == last_as::file) {
-                    auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-                    *path_component_end = path_component_end_elmt;
-
-                    if (descriptor == -1) {
-                        return result::failed_to_create_last_as_file;
-                    }
-
-                    if (last_descriptor != nullptr) {
-                        *last_descriptor = descriptor;
-                    } else {
-                        close(descriptor);
-                    }
-
-                    break;
-                }
-
-                if constexpr (type == last_as::directory) {
-                    if (::mkdir(path, 0755) != 0) {
-                        return result::failed_to_create_last_as_directory;
-                    }
-
-                    *path_component_end = path_component_end_elmt;
-                    break;
-                }
-            }
-
-            if (::mkdir(path, 0755) != 0) {
+            if (!_create_directory(path)) {
                 return result::failed_to_create_intermediate_directories;
             }
 
             *path_component_end = path_component_end_elmt;
-            path_component_end = utils::path::find_next_slash_at_back_of_pattern(&path_component_end[1], end);
+            path_component_end = utils::path::find_next_slash_at_back_of_pattern(&path_component_end[1], path_end);
         } while (true);
 
         return result::ok;
     }
 
-    template <last_as type>
-    inline result _perform(char *path, char **iter, int *last_descriptor = nullptr) {
+    result _create_directories_if_missing_ignoring_last(char *path, char **terminator, bool *path_already_exists = nullptr) noexcept {
         if (access(path, F_OK) == 0) {
+            if (path_already_exists != nullptr) {
+                *path_already_exists = true;
+            }
+
             return result::ok;
         }
 
@@ -94,12 +65,12 @@ namespace recursive::mkdir {
             *path_component_end = '\0';
 
             if (access(path, F_OK) == 0) {
-                if (iter != nullptr) {
-                    *iter = prev_path_component_end;
+                if (terminator != nullptr) {
+                    *terminator = prev_path_component_end;
                 }
 
                 *path_component_end = path_component_end_elmt;
-                return _perform_without_check<type>(path, end, prev_path_component_end, last_descriptor);
+                return _create_directories_ignoring_last(path, end, prev_path_component_end);
             }
 
             prev_path_component_end = path_component_end;
@@ -111,15 +82,40 @@ namespace recursive::mkdir {
         return result::ok;
     }
 
-    result perform(char *path, char **iter) {
-        return _perform<last_as::directory>(path, iter);
+    result perform(char *path, char **terminator) noexcept {
+        auto path_already_exists = false;
+        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator, &path_already_exists); path_already_exists) {
+            return result;
+        }
+
+        if (!_create_directory(path)) {
+            return result::failed_to_create_last_as_directory;
+        }
+
+        return result::ok;
     }
 
-    result perform_ignorning_last(char *path, char **iter) {
-        return _perform<last_as::none>(path, iter);
+    result perform_ignorning_last(char *path, char **terminator) noexcept {
+        return _create_directories_if_missing_ignoring_last(path, terminator);
     }
 
-    result perform_with_last_as_file(char *path, char **iter, int *last_descriptor) {
-        return _perform<last_as::file>(path, iter, last_descriptor);
+    result perform_with_last_as_file(char *path, char **terminator, int *last_descriptor) noexcept {
+        auto path_already_exists = false;
+        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator, &path_already_exists); path_already_exists) {
+            return result;
+        }
+
+        const auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+        if (descriptor == -1) {
+            return result::failed_to_create_last_as_file;
+        }
+
+        if (last_descriptor != nullptr) {
+            *last_descriptor = descriptor;
+        } else {
+            close(descriptor);
+        }
+
+        return result::ok;
     }
 }
