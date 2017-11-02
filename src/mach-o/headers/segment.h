@@ -12,10 +12,10 @@
 namespace macho {
     namespace segments {
         enum class flags : uint32_t {
-            high_vm = 1,
-            fixed_vm_library,
-            no_relocations = 4,
-            protected_version_1 = 8
+            high_vm             = 1 << 0,
+            fixed_vm_library    = 1 << 1,
+            no_relocations      = 1 << 2,
+            protected_version_1 = 1 << 3
         };
 
         inline uint32_t operator|(const uint32_t &lhs, const flags &rhs) noexcept { return lhs | static_cast<uint32_t>(rhs); }
