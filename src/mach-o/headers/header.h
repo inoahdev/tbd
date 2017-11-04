@@ -23,7 +23,7 @@ namespace macho {
         uint32_t flags;
     } header;
 
-    typedef struct fat {
+    typedef struct fat_header {
         magic magic;
         uint32_t nfat_arch;
     } fat;

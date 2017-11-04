@@ -104,9 +104,17 @@ namespace recurse {
 
                     break;
 
+                case macho::file::open_result::failed_to_retrieve_information:
+                    if ((options & options::print_warnings) != options::none) {
+                        fprintf(stderr, "Warning: Failed to retrieve information necessary to process file (at path %s), failing with error: %s\n", path.data(), strerror(errno));
+                    }
+
+                    break;
+
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
                 case macho::file::open_result::zero_architectures:
+                case macho::file::open_result::architectures_goes_past_end_of_file:
                 case macho::file::open_result::invalid_container:
                 case macho::file::open_result::not_a_macho:
                 case macho::file::open_result::not_a_library:

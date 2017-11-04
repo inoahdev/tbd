@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <sys/stat.h>
+
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -39,13 +41,15 @@ namespace macho {
 
             failed_to_open_stream,
             failed_to_allocate_memory,
+            failed_to_retrieve_information,
 
             stream_seek_error,
             stream_read_error,
 
             zero_architectures,
-            invalid_container,
+            architectures_goes_past_end_of_file,
 
+            invalid_container,
             not_a_macho,
 
             not_a_library,
@@ -459,12 +463,55 @@ namespace macho {
 
         template <type type = type::none>
         inline open_result load_containers() noexcept {
+            struct stat information;
+            if (fstat(stream->_file, &information) != 0) {
+                return open_result::failed_to_retrieve_information;
+            }
+
+            const auto remaining_size = [&](size_t size) noexcept {
+                auto pos = ftell(stream);
+                if (pos == -1L) {
+                    return -1uL;
+                }
+
+                auto remaining_space = information.st_size - pos;
+                if (size > remaining_space) {
+                    return -1uL;
+                }
+
+                return static_cast<unsigned long>(size - remaining_space);
+            };
+
             if (fread(&magic, sizeof(magic), 1, stream) != 1) {
                 return open_result::stream_read_error;
             }
 
             const auto magic_is_fat = macho::magic_is_fat(magic);
             if (magic_is_fat) {
+                struct range {
+                    uint64_t location;
+                    uint64_t size;
+                };
+
+                auto ranges = std::vector<range>();
+                const auto find_range = [&](uint64_t location, uint64_t size) {
+                    for (const auto &range : ranges) {
+                        const auto range_end = range.location + range.size;
+                        if (location >= range.location && location < range_end) {
+                            return true;
+                        }
+
+                        auto end = location + size;
+                        if (end >= range.location && end < range_end) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                };
+
+                ranges.emplace_back(range({ 0, sizeof(macho::fat_header) }));
+
                 auto nfat_arch = uint32_t();
                 if (fread(&nfat_arch, sizeof(nfat_arch), 1, stream) != 1) {
                     return open_result::stream_read_error;
@@ -474,7 +521,7 @@ namespace macho {
                     return open_result::zero_architectures;
                 }
 
-                auto magic_is_big_endian = macho::magic_is_big_endian(magic);
+                const auto magic_is_big_endian = macho::magic_is_big_endian(magic);
                 if (magic_is_big_endian) {
                     swap_uint32(nfat_arch);
                 }
@@ -484,12 +531,16 @@ namespace macho {
                 const auto magic_is_fat_64 = macho::magic_is_fat_64(magic);
                 if (magic_is_fat_64) {
                     const auto architectures_size = sizeof(architecture_64) * nfat_arch;
-                    const auto architectures = (architecture_64 *)malloc(architectures_size);
+                    if (remaining_size(architectures_size) <= 0) {
+                        return open_result::architectures_goes_past_end_of_file;
+                    }
 
+                    const auto architectures = (architecture_64 *)malloc(architectures_size);
                     if (!architectures) {
                         return open_result::failed_to_allocate_memory;
                     }
 
+                    ranges.emplace_back(range({ sizeof(macho::fat_header), architectures_size }));
                     if (fread(architectures, architectures_size, 1, stream) != 1) {
                         free(architectures);
                         return open_result::stream_read_error;
@@ -505,6 +556,13 @@ namespace macho {
                         auto container = macho::container();
                         auto container_open_result = container::open_result::ok;
 
+                        if (remaining_size(architecture.size) <= 0) {
+                            return open_result::invalid_container;
+                        }
+
+                        if (find_range(architecture.offset, architecture.size)) {
+                            return open_result::invalid_container;
+                        }
 
                         if constexpr (type == type::none) {
                             container_open_result = container.open(stream);
@@ -560,8 +618,11 @@ namespace macho {
                     free(architectures);
                 } else {
                     const auto architectures_size = sizeof(architecture) * nfat_arch;
-                    const auto architectures = (architecture *)malloc(architectures_size);
+                    if (remaining_size(architectures_size) <= 0) {
+                        return open_result::architectures_goes_past_end_of_file;
+                    }
 
+                    const auto architectures = (architecture *)malloc(architectures_size);
                     if (!architectures) {
                         return open_result::failed_to_allocate_memory;
                     }
@@ -580,6 +641,14 @@ namespace macho {
 
                         auto container = macho::container();
                         auto container_open_result = container::open_result::ok;
+
+                        if (remaining_size(architecture.size) <= 0) {
+                            return open_result::invalid_container;
+                        }
+
+                        if (find_range(architecture.offset, architecture.size)) {
+                            return open_result::invalid_container;
+                        }
 
                         if constexpr (type == type::none) {
                             container_open_result = container.open(stream);

@@ -683,6 +683,10 @@ int main(int argc, const char *argv[]) {
                         fputs("Failed to allocate memory necessary for operating on file at provided path\n", stderr);
                         return 1;
 
+                    case macho::file::open_result::failed_to_retrieve_information:
+                        fprintf(stderr, "Warning: Failed to retrieve information necessary to process file at provided path, failing with error: %s\n", strerror(errno));
+                        return 1;
+
                     case macho::file::open_result::stream_seek_error:
                     case macho::file::open_result::stream_read_error:
                         fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(macho_file.stream)));
@@ -690,6 +694,10 @@ int main(int argc, const char *argv[]) {
 
                     case macho::file::open_result::zero_architectures:
                         fputs("Fat mach-o file at provided path does not have any architectures\n", stderr);
+                        return 1;
+
+                    case macho::file::open_result::architectures_goes_past_end_of_file:
+                        fputs("Fat mach-o file at provided path has more architectures than its file-size can hold\n", stderr);
                         return 1;
 
                     case macho::file::open_result::invalid_container:
@@ -1076,7 +1084,7 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.data(), &sbuf) == 0) {
                     if (S_ISDIR(sbuf.st_mode)) {
                         if (!(tbd_options & recurse_directories)) {
-                            fprintf(stderr, "Cannot output a .tbd to directory (at path %s), please provide a path to a file to output to\n", path.data());
+                            fprintf(stderr, "Cannot output a tbd-file to directory (at path %s), please provide a path to a file to output to\n", path.data());
                             return 1;
                         }
 
@@ -1378,7 +1386,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         const auto &path_back = path.back();
-                        if (path_back != '/' && path_back != '\\') {
+                        if (path_back != '/') {
                             path.append(1, '/');
                         }
                     } else {
@@ -1684,7 +1692,7 @@ int main(int argc, const char *argv[]) {
                 auto output_path_creation_terminator = static_cast<char *>(nullptr);
                 auto output_file_descriptor = -1;
 
-                auto mkdir_result = recursive::mkdir::perform_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
+                const auto mkdir_result = recursive::mkdir::perform_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
                 if (mkdir_result != recursive::mkdir::result::ok) {
                     switch (mkdir_result) {
                         case recursive::mkdir::result::ok:
@@ -1746,7 +1754,7 @@ int main(int argc, const char *argv[]) {
                 const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, static_cast<macho::utils::tbd::options>(tbd_options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
                 if (!result) {
                     if (output_path_creation_terminator != nullptr) {
-                        auto remove_result = recursive::remove::perform(output_path.data(), output_path_creation_terminator);
+                        const auto remove_result = recursive::remove::perform(output_path.data(), output_path_creation_terminator);
                         switch (remove_result) {
                             case recursive::remove::result::ok:
                                 break;
@@ -1827,6 +1835,19 @@ int main(int argc, const char *argv[]) {
 
                     break;
 
+                case macho::file::open_result::failed_to_retrieve_information:
+                    if (should_print_paths) {
+                        if (tbd_path == "stdin") {
+                            fprintf(stderr, "Failed to retrieve information necessary for processing file (in stdin), failing with error: %s\n", strerror(errno));
+                        } else {
+                            fprintf(stderr, "Failed to retrieve information necessary for processing file (at path %s), failing with error: %s\n", tbd_path.data(), strerror(errno));
+                        }
+                    } else {
+                        fprintf(stderr, "Failed to retrieve information necessary for processing file at provided path, failing with error: %s\n", strerror(errno));
+                    }
+
+                    break;
+
                 case macho::file::open_result::failed_to_allocate_memory:
                     if (should_print_paths) {
                         if (tbd_path == "stdin") {
@@ -1863,6 +1884,20 @@ int main(int argc, const char *argv[]) {
                         }
                     } else {
                         fputs("Fat mach-o file at provided path does not have any architectures\n", stderr);
+                    }
+
+                    break;
+                }
+
+                case macho::file::open_result::architectures_goes_past_end_of_file: {
+                    if (should_print_paths) {
+                        if (tbd_path == "stdin") {
+                            fputs("Fat mach-o file (in stdin) has more architectures than it can physically contain\n", stderr);
+                        } else {
+                            fprintf(stderr, "Fat mach-o file (at path %s) has more architectures than it can physically contain\n", tbd_path.data());
+                        }
+                    } else {
+                        fputs("Fat mach-o file at provided path has more architectures than it can physically contain\n", stderr);
                     }
 
                     break;
@@ -2010,7 +2045,7 @@ int main(int argc, const char *argv[]) {
             if (!tbd_output_path.empty()) {
                 if (!result) {
                     if (tbd_output_path_creation_terminator != nullptr) {
-                        auto remove_result = recursive::remove::perform(tbd_output_path.data(), tbd_output_path_creation_terminator);
+                        const auto remove_result = recursive::remove::perform(tbd_output_path.data(), tbd_output_path_creation_terminator);
                         switch (remove_result) {
                             case recursive::remove::result::ok:
                                 break;
