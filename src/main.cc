@@ -113,13 +113,13 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
 
 void print_platforms() {
     auto platform_number = 1;
-    auto platform = macho::utils::tbd::platform_to_string((enum macho::utils::tbd::platform)platform_number);
+    auto platform = macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(platform_number));
 
     fputs(platform, stdout);
 
     while (true) {
         platform_number++;
-        platform = macho::utils::tbd::platform_to_string((enum macho::utils::tbd::platform)platform_number);
+        platform = macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(platform_number));
 
         if (!platform) {
             break;
