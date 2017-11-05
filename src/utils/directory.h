@@ -131,7 +131,8 @@ namespace utils {
 
             directory_entry_path.reserve(directory_entry_path_length);
             directory_entry_path.append(path);
-            directory_entry_path.append(directory_entry_name, directory_entry_name_length);
+
+            utils::path::add_component(directory_entry_path, directory_entry_name, &directory_entry_name[directory_entry_name_length]);
 
             switch (directory_entry->d_type) {
                 case DT_FIFO:

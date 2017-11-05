@@ -310,8 +310,7 @@ namespace utils::path {
         return result;
     }
 
-    // component_compare strictly compares path-components, not
-    // skipping over '.' components like `compare()`
+    // component_compare strictly compares path-components
 
     template <typename T1, typename T2, typename T3, typename T4>
     int component_compare(const T1 &lhs_begin, const T2 &lhs_end, const T3 &rhs_begin, const T4 &rhs_end) noexcept {
@@ -351,9 +350,6 @@ namespace utils::path {
         auto rhs_path_component_end = rhs_reverse_iter;
 
         while (lhs_path_component_begin != lhs_reverse_iter && rhs_path_component_begin != rhs_reverse_iter) {
-            // Skip over the "unique" slash to the front of the
-            // path component
-
             lhs_path_component_end = find_next_slash(lhs_path_component_begin, lhs_reverse_iter);
             rhs_path_component_end = find_next_slash(rhs_path_component_begin, rhs_reverse_iter);
 
@@ -381,6 +377,8 @@ namespace utils::path {
 
                 return lhs_path_component_elmt - rhs_path_component_elmt;
             }
+
+            // Skip over rows of slashes to the beginning of the path-component
 
             lhs_path_component_begin = find_end_of_row_of_slashes(lhs_path_component_end, lhs_reverse_iter);
             rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
@@ -437,9 +435,6 @@ namespace utils::path {
         auto rhs_path_component_end = rhs_reverse_iter;
 
         while (lhs_path_component_begin != lhs_reverse_iter && rhs_path_component_begin != rhs_reverse_iter) {
-            // Skip over the "unique" slash to the front of the
-            // path component
-
             lhs_path_component_end = find_next_slash(lhs_path_component_begin, lhs_reverse_iter);
             rhs_path_component_end = find_next_slash(rhs_path_component_begin, rhs_reverse_iter);
 
@@ -481,6 +476,8 @@ namespace utils::path {
                 return lhs_path_component_elmt - rhs_path_component_elmt;
             }
 
+            // Skip over rows of slashes to the beginning of the path-component
+
             lhs_path_component_begin = find_end_of_row_of_slashes(lhs_path_component_end, lhs_reverse_iter);
             rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
         }
@@ -506,7 +503,7 @@ namespace utils::path {
         if (iter == end) {
             return path;
         }
-        
+
         if (const auto &elmt = *iter; elmt == '/' || elmt == '\\') {
             path.append(1, '/');
             iter = find_end_of_row_of_slashes(begin, end);
@@ -522,7 +519,7 @@ namespace utils::path {
 
             auto next_path_component_begin = find_end_of_row_of_slashes(path_component_end, end);
             auto path_component_length = path_component_end - path_component_begin;
-            
+
             if (*path_component_begin != '.' || path_component_length != 1) {
                 path.append(path_component_begin, path_component_end);
 
@@ -551,32 +548,32 @@ namespace utils::path {
 
             auto slash_row_end = find_end_of_row_of_slashes(slash_row_begin, end);
             if (slash_row_begin != slash_row_end) {
-               // Change backward-slashes into forward-slashes
-                
+                // Change backward-slashes into forward-slashes
+
                 auto &slash_row_begin_elmt = *slash_row_begin;
                 if (slash_row_begin_elmt == '\\') {
                     slash_row_begin_elmt = '/';
                 }
-                
+
                 slash_row_begin++;
             }
-            
+
             // Remove './' path-components
-            
+
             auto path_component_begin = slash_row_begin;
             if (*path_component_begin == '.') {
                 auto path_component_end = find_next_slash(path_component_begin, end);
-                auto path_component_expected_length = path_component_end - path_component_begin;
-                
-                if (path_component_expected_length == 1) {
+                auto path_component_length = path_component_end - path_component_begin;
+
+                if (path_component_length == 1) {
                     slash_row_begin = path.erase(path_component_begin, path_component_end);
                     end = path.end();
                 }
             }
-            
+
             if (slash_row_begin != end) {
                 slash_row_begin = path.erase(slash_row_begin, slash_row_end);
-                
+
                 end = path.end();
                 slash_row_begin = find_next_slash(slash_row_begin, end);
             }
@@ -674,5 +671,19 @@ namespace utils::path {
         }
 
         return rhs_path_component_begin == rhs_reverse_iter;
+    }
+
+    template <typename S, typename T1, typename T2>
+    S &add_component(S &path, const T1 &component_begin, const T2 &component_end) {
+        const auto &back = path.back();
+        if (back != '/' && back != '\\') {
+            path.append(1, '/');
+        }
+
+        for (auto iter = component_begin; iter != component_end; iter++) {
+            path.append(1, *iter);
+        }
+
+        return path;
     }
 }
