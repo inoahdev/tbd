@@ -1796,10 +1796,11 @@ int main(int argc, const char *argv[]) {
                             }
                         }
                     }
+                } else {
+                    outputted_any_macho_libraries = true;
                 }
 
                 fclose(output_file);
-                outputted_any_macho_libraries = true;
             });
 
             switch (recursion_result) {
