@@ -28,7 +28,11 @@ namespace recursive::remove {
             *path_component_end = '\0';
 
             if (access(path, F_OK) != 0) {
-                return result::ok;
+                if (path_component_end == begin) {
+                    return result::directory_doesnt_exist;
+                }
+
+                return result::sub_directory_doesnt_exist;
             }
 
             if (::remove(path) != 0) {

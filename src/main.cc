@@ -1765,7 +1765,7 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, "Failed to remove created-directory at path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
                                 break;
 
-                            case recursive::remove::result::failed_to_remove_subdirectories:
+                            case recursive::remove::result::failed_to_remove_subdirectories: {
                                 const auto &output_path_creation_terminator_character = *output_path_creation_terminator;
                                 *output_path_creation_terminator = '\0';
 
@@ -1775,6 +1775,25 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, ", full path being (%s), failing with error: %s\n", output_path.data(), strerror(errno));
 
                                 break;
+                            }
+
+                            case recursive::remove::result::directory_doesnt_exist: {
+                                *output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Internal Error: Failed to remove created directory at path (%s) as directory at path has already been removed/never created", output_path.data());
+                                break;
+                            }
+
+                            case recursive::remove::result::sub_directory_doesnt_exist: {
+                                const auto &output_path_creation_terminator_character = *output_path_creation_terminator;
+                                *output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Internal Error: Failed to remove created sub-directories at path (%s)", output_path.data());
+                                *output_path_creation_terminator = output_path_creation_terminator_character;
+
+                                fprintf(stderr, ", full path being (%s), as directory at path has already removed/never existed ", output_path.data());
+                                break;
+                            }
                         }
                     }
                 }
@@ -1992,8 +2011,6 @@ int main(int argc, const char *argv[]) {
                             } else {
                                 fprintf(stderr, "Failed to create file at provided output-path, failing with error: %s\n", strerror(errno));
                             }
-
-                            break;
                     }
 
                     continue;
@@ -2056,7 +2073,7 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, "Failed to remove created-directory at path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
                                 break;
 
-                            case recursive::remove::result::failed_to_remove_subdirectories:
+                            case recursive::remove::result::failed_to_remove_subdirectories: {
                                 const auto &tbd_output_path_creation_terminator_character = *tbd_output_path_creation_terminator;
                                 *tbd_output_path_creation_terminator = '\0';
 
@@ -2066,6 +2083,25 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, ", full path being (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
 
                                 break;
+                            }
+
+                            case recursive::remove::result::directory_doesnt_exist: {
+                                *tbd_output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Internal Error: Failed to remove created directory at path (%s) as directory at path has already been removed/never created", tbd_output_path.data());
+                                break;
+                            }
+
+                            case recursive::remove::result::sub_directory_doesnt_exist: {
+                                const auto &tbd_output_path_creation_terminator_character = *tbd_output_path_creation_terminator;
+                                *tbd_output_path_creation_terminator = '\0';
+
+                                fprintf(stderr, "Internal Error: Failed to remove created sub-directories at path (%s)", tbd_output_path.data());
+                                *tbd_output_path_creation_terminator = tbd_output_path_creation_terminator_character;
+
+                                fprintf(stderr, ", full path being (%s), as directory at path has already removed/never existed ", tbd_output_path.data());
+                                break;
+                            }
                         }
                     }
                 }

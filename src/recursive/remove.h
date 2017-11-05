@@ -12,7 +12,10 @@ namespace recursive::remove {
     enum class result {
         ok,
         failed_to_remove_directory,
-        failed_to_remove_subdirectories
+        failed_to_remove_subdirectories,
+
+        directory_doesnt_exist,
+        sub_directory_doesnt_exist
     };
 
     result perform(char *path);
