@@ -457,6 +457,9 @@ namespace utils::path {
 
                     lhs_path_component_begin = find_end_of_row_of_slashes(lhs_path_component_end, lhs_reverse_iter);
                     continue;
+                } else if (const auto &rhs_path_component_begin_char = *rhs_path_component_begin; rhs_path_component_begin_char == '.') {
+                    rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
+                    continue;
                 }
             }
 
