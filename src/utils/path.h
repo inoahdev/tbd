@@ -683,10 +683,7 @@ namespace utils::path {
             path.append(1, '/');
         }
 
-        for (auto iter = component_begin; iter != component_end; iter++) {
-            path.append(1, *iter);
-        }
-
+        path.append(component_begin, component_end);
         return path;
     }
 }
