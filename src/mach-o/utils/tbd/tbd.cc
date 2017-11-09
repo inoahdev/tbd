@@ -474,16 +474,21 @@ namespace macho::utils::tbd {
         int descriptor = 0;
         explicit stream_helper(int descriptor) : descriptor(descriptor) {}
 
-        __attribute__((format(printf, 2, 3))) inline auto print(const char *str, ...) const noexcept {
+        inline auto print(const char *str) const noexcept {
+            dprintf(descriptor, "%s", str);
+        }
+        
+        __attribute__((format(printf, 2, 3))) inline auto printf(const char *str, ...) const noexcept {
             va_list list;
 
             va_start(list, str);
             vdprintf(descriptor, str, list);
             va_end(list);
+            
         }
 
         inline auto print(const char &ch) const noexcept {
-            print("%c", ch);
+            printf("%c", ch);
         }
     };
 
@@ -496,7 +501,11 @@ namespace macho::utils::tbd {
             fputc(ch, file);
         }
 
-        __attribute__((format(printf, 2, 3))) inline auto print(const char *str, ...) const noexcept {
+        inline auto print(const char *str) const noexcept {
+            fputs(str, file);
+        }
+        
+        __attribute__((format(printf, 2, 3))) inline auto printf(const char *str, ...) const noexcept {
             va_list list;
 
             va_start(list, str);
@@ -520,7 +529,7 @@ namespace macho::utils::tbd {
         // 2 is added for the comma and the space behind it.
 
         if (current_line_length >= line_length_max || (current_line_length != 0 && new_current_line_length > line_length_max)) {
-            helper.print(",\n%-26s", "");
+            helper.printf(",\n%-26s", "");
             new_current_line_length = new_line_length;
         } else if (current_line_length != 0) {
             helper.print(", ");
@@ -532,7 +541,7 @@ namespace macho::utils::tbd {
             helper.print('\'');
         }
 
-        helper.print("%s", string);
+        helper.print(string);
 
         if (needs_quotes) {
             helper.print('\'');
@@ -558,9 +567,9 @@ namespace macho::utils::tbd {
                 }
 
                 if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    helper.print("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
+                    helper.printf("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
                 } else {
-                    helper.print("archs:%-17s[ %s", "", architecture_info_table[index].name);
+                    helper.printf("archs:%-17s[ %s", "", architecture_info_table[index].name);
                 }
 
                 break;
@@ -572,7 +581,7 @@ namespace macho::utils::tbd {
                         continue;
                     }
 
-                    helper.print(", %s", architecture_info_table[index].name);
+                    helper.printf(", %s", architecture_info_table[index].name);
                 }
 
                 helper.print(" ]\n");
@@ -585,9 +594,9 @@ namespace macho::utils::tbd {
                 }
 
                 if (options & print_architectures_array_to_tbd_output_option_with_dash) {
-                    helper.print("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
+                    helper.printf("  - archs:%-14s[ %s", "", architecture_info_table[index].name);
                 } else {
-                    helper.print("archs:%-17s[ %s", "", architecture_info_table[index].name);
+                    helper.printf("archs:%-17s[ %s", "", architecture_info_table[index].name);
                 }
 
                 break;
@@ -599,7 +608,7 @@ namespace macho::utils::tbd {
                         continue;
                     }
 
-                    helper.print(", %s", architecture_info_table[index].name);
+                    helper.printf(", %s", architecture_info_table[index].name);
                 }
 
                 helper.print(" ]\n");
@@ -719,23 +728,23 @@ namespace macho::utils::tbd {
                     break;
 
                 case version::v1:
-                    helper.print("%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
+                    helper.printf("%-4sallowed-clients:%-3s[ %s", "",  "", clients_begin->data());
                     break;
 
                 case version::v2:
-                    helper.print("%-4sallowable-clients: [ %s", "", clients_begin->data());
+                    helper.printf("%-4sallowable-clients: [ %s", "", clients_begin->data());
                     break;
             }
 
             for (clients_begin++; clients_begin != clients_end; clients_begin++) {
-                helper.print(", %s", clients_begin->data());
+                helper.printf(", %s", clients_begin->data());
             }
 
             helper.print(" ]\n");
         }
 
         if (reexports_begin != reexports_end) {
-            helper.print("%-4sre-exports:%9s[ %s", "", "", reexports_begin->string);
+            helper.printf("%-4sre-exports:%9s[ %s", "", "", reexports_begin->string);
 
             auto current_line_length = strlen(reexports_begin->string);
             for (auto reexports_iter = reexports_begin + 1; reexports_iter != reexports_end; reexports_iter++) {
@@ -755,7 +764,7 @@ namespace macho::utils::tbd {
         }
 
         if (symbols_begin_symbols_iter != symbols_end) {
-            helper.print("%-4ssymbols:%12s[ ", "", "");
+            helper.printf("%-4ssymbols:%12s[ ", "", "");
 
             auto current_line_length = size_t();
             print_string_to_tbd_output_array(helper, symbols_begin_symbols_iter->string, current_line_length);
@@ -780,7 +789,7 @@ namespace macho::utils::tbd {
         }
 
         if (symbols_begin_objc_classes_iter != symbols_end) {
-            helper.print("%-4sobjc-classes:%7s[ ", "", "");
+            helper.printf("%-4sobjc-classes:%7s[ ", "", "");
 
             auto current_line_length = size_t();
             print_string_to_tbd_output_array(helper, symbols_begin_objc_classes_iter->string, current_line_length);
@@ -805,7 +814,7 @@ namespace macho::utils::tbd {
         }
 
         if (symbols_begin_objc_ivars_iter != symbols_end) {
-            helper.print("%-4sobjc-ivars:%9s[ ", "", "");
+            helper.printf("%-4sobjc-ivars:%9s[ ", "", "");
 
             auto current_line_length = size_t();
             print_string_to_tbd_output_array(helper, symbols_begin_objc_ivars_iter->string, current_line_length);
@@ -830,7 +839,7 @@ namespace macho::utils::tbd {
         }
 
         if (symbols_begin_weak_symbols_iter != symbols_end) {
-            helper.print("%-4sweak-def-symbols:%3s[ ", "", "");
+            helper.printf("%-4sweak-def-symbols:%3s[ ", "", "");
 
             auto current_line_length = size_t();
             print_string_to_tbd_output_array(helper, symbols_begin_weak_symbols_iter->string, current_line_length);
@@ -1636,15 +1645,12 @@ namespace macho::utils::tbd {
 
     template <typename T>
     inline creation_result create_from_macho_library(file &library, const stream_helper<T> &helper, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        const auto has_provided_architectures = architectures != 0;
-        const auto has_architecture_overrides = architecture_overrides != 0;
-
         uint32_t library_current_version = -1;
         uint32_t library_compatibility_version = -1;
         uint32_t library_swift_version = 0;
         uint32_t library_flags = 0;
 
-        auto library_installation_name = (const char *)nullptr;
+        auto library_installation_name = static_cast<const char *>(nullptr);
         auto library_objc_constraint = objc_constraint::no_value;
         auto library_parent_umbrella = std::string();
 
@@ -1715,7 +1721,7 @@ namespace macho::utils::tbd {
                 return creation_result::invalid_cputype;
             }
 
-            if (has_provided_architectures) {
+            if (architectures != 0) {
                 // any is the first architecture info and if set is stored in the LSB
                 if (!(architectures & 1)) {
                     if (!(architectures & (1ull << library_container_architecture_info_table_index))) {
@@ -1726,7 +1732,7 @@ namespace macho::utils::tbd {
                 has_found_architectures_provided = true;
             }
 
-            if (!has_architecture_overrides) {
+            if (architecture_overrides == 0) {
                 library_container_architectures |= 1ull << library_container_architecture_info_table_index;
             }
 
@@ -1734,12 +1740,12 @@ namespace macho::utils::tbd {
             uint32_t local_compatibility_version = -1;
             uint32_t local_swift_version = 0;
 
-            auto local_installation_name = (const char *)nullptr;
+            auto local_installation_name = static_cast<const char *>(nullptr);
             auto local_objc_constraint = objc_constraint::no_value;
             auto local_parent_umbrella = std::string();
 
             auto local_sub_clients = std::vector<std::string>();
-            auto local_uuid = (uint8_t *)nullptr;
+            auto local_uuid = static_cast<uint8_t *>(nullptr);
 
             const auto failure_result = get_required_load_command_data(library_container, library_container_architecture_info_table_index, local_current_version, local_compatibility_version, local_swift_version, local_installation_name, platform, local_objc_constraint, library_reexports, local_sub_clients, local_parent_umbrella, local_uuid);
 
@@ -1851,7 +1857,7 @@ namespace macho::utils::tbd {
             library_containers_index++;
         }
 
-        if (has_provided_architectures) {
+        if (architectures != 0) {
             if (!has_found_architectures_provided) {
                 return creation_result::no_provided_architectures;
             }
@@ -1878,7 +1884,7 @@ namespace macho::utils::tbd {
         });
 
         auto groups = std::vector<group>();
-        if (has_architecture_overrides) {
+        if (architecture_overrides != 0) {
             groups.emplace_back();
         } else {
             for (const auto &library_reexport : library_reexports) {
@@ -1947,12 +1953,12 @@ namespace macho::utils::tbd {
         helper.print('\n');
         print_architectures_array_to_tbd_output(helper, library_container_architectures, architecture_overrides);
 
-        if (!has_architecture_overrides) {
+        if (architecture_overrides == 0) {
             if (version == version::v2) {
                 if ((options & options::remove_uuids) == options::none) {
                     const auto library_uuids_size = library_uuids.size();
                     if (library_uuids_size) {
-                        helper.print("uuids:%-17s[ ", "");
+                        helper.printf("uuids:%-17s[ ", "");
 
                         const auto architecture_info_table = get_architecture_info_table();
                         for (auto library_uuids_index = 0; library_uuids_index != library_uuids_size; library_uuids_index++) {
@@ -1961,13 +1967,13 @@ namespace macho::utils::tbd {
                             const auto &library_container_architecture_arch_info = architecture_info_table[library_uuid_pair.first];
                             const auto &library_uuid = library_uuid_pair.second;
 
-                            helper.print("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
+                            helper.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", library_container_architecture_arch_info.name, library_uuid[0], library_uuid[1], library_uuid[2], library_uuid[3], library_uuid[4], library_uuid[5], library_uuid[6], library_uuid[7], library_uuid[8], library_uuid[9], library_uuid[10], library_uuid[11], library_uuid[12], library_uuid[13], library_uuid[14], library_uuid[15]);
 
                             if (library_uuids_index != library_uuids_size - 1) {
                                 helper.print(", ");
 
                                 if (library_uuids_index % 2 != 0) {
-                                    helper.print("%-26s", "\n");
+                                    helper.printf("%-26s", "\n");
                                 }
                             }
                         }
@@ -1978,7 +1984,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        helper.print("platform:%-14s%s\n", "", platform_to_string(platform));
+        helper.printf("platform:%-14s%s\n", "", platform_to_string(platform));
 
         if ((options & options::remove_flags) == options::none || flags != flags::none) {
             if (flags != flags::none) {
@@ -1992,7 +1998,7 @@ namespace macho::utils::tbd {
             }
 
             if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
-                helper.print("flags:%-17s[ ", "");
+                helper.printf("flags:%-17s[ ", "");
 
                 if (library_flags & macho::flags::two_level_namespaces) {
                     helper.print("flat_namespace");
@@ -2008,17 +2014,17 @@ namespace macho::utils::tbd {
             }
         }
 
-        helper.print("install-name:%-10s%s\n", "", library_installation_name);
+        helper.printf("install-name:%-10s%s\n", "", library_installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = library_current_version >> 16;
             auto library_current_version_minor = (library_current_version >> 8) & 0xff;
             auto library_current_version_revision = library_current_version & 0xff;
 
-            helper.print("current-version:%-7s%u", "", library_current_version_major);
+            helper.printf("current-version:%-7s%u", "", library_current_version_major);
 
             if (library_current_version_minor != 0) {
-                helper.print(".%u", library_current_version_minor);
+                helper.printf(".%u", library_current_version_minor);
             }
 
             if (library_current_version_revision != 0) {
@@ -2026,7 +2032,7 @@ namespace macho::utils::tbd {
                     helper.print(".0");
                 }
 
-                helper.print(".%u", library_current_version_revision);
+                helper.printf(".%u", library_current_version_revision);
             }
 
             helper.print('\n');
@@ -2037,10 +2043,10 @@ namespace macho::utils::tbd {
             auto library_compatibility_version_minor = (library_compatibility_version >> 8) & 0xff;
             auto library_compatibility_version_revision = library_compatibility_version & 0xff;
 
-            helper.print("compatibility-version: %u", library_compatibility_version_major);
+            helper.printf("compatibility-version: %u", library_compatibility_version_major);
 
             if (library_compatibility_version_minor != 0) {
-                helper.print(".%u", library_compatibility_version_minor);
+                helper.printf(".%u", library_compatibility_version_minor);
             }
 
             if (library_compatibility_version_revision != 0) {
@@ -2048,7 +2054,7 @@ namespace macho::utils::tbd {
                     helper.print(".0");
                 }
 
-                helper.print(".%u", library_compatibility_version_revision);
+                helper.printf(".%u", library_compatibility_version_revision);
             }
 
             helper.print('\n');
@@ -2058,15 +2064,15 @@ namespace macho::utils::tbd {
             if (library_swift_version != 0) {
                 switch (library_swift_version) {
                     case 1:
-                        helper.print("swift-version:%-9s1\n", "");
+                        helper.printf("swift-version:%-9s1\n", "");
                         break;
 
                     case 2:
-                        helper.print("swift-version:%-9s1.2\n", "");
+                        helper.printf("swift-version:%-9s1.2\n", "");
                         break;
 
                     default:
-                        helper.print("swift-version:%-9s%u\n", "", library_swift_version - 1);
+                        helper.printf("swift-version:%-9s%u\n", "", library_swift_version - 1);
                         break;
                 }
             }
@@ -2074,21 +2080,21 @@ namespace macho::utils::tbd {
 
         if ((options & options::remove_objc_constraint) == options::none) {
             if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
-                helper.print("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+                helper.printf("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
             }
         }
 
         if (version == version::v2) {
             if ((options & options::remove_parent_umbrella) == options::none) {
                 if (!library_parent_umbrella.empty()) {
-                    helper.print("parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
+                    helper.printf("parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
                 }
             }
         }
 
         helper.print("exports:\n");
 
-        if (has_architecture_overrides) {
+        if (architecture_overrides != 0) {
             print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
         } else {
             for (const auto &group : groups) {
@@ -2102,9 +2108,6 @@ namespace macho::utils::tbd {
 
     template <typename T>
     inline creation_result create_from_macho_library(container &container, const stream_helper<T> &helper, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        const auto has_provided_architectures = architectures != 0;
-        const auto has_architecture_overrides = architecture_overrides != 0;
-
         uint32_t current_version = -1;
         uint32_t compatibility_version = -1;
         uint32_t swift_version = 0;
@@ -2117,7 +2120,7 @@ namespace macho::utils::tbd {
         auto symbols = std::vector<symbol>();
 
         auto sub_clients = std::vector<std::string>();
-        auto uuid = (uint8_t *)nullptr;
+        auto uuid = static_cast<uint8_t *>(nullptr);
 
         const auto &header = container.header;
 
@@ -2150,7 +2153,7 @@ namespace macho::utils::tbd {
         }
 
         const auto architecture_info_table_index = architecture_info_index_from_cputype(header_cputype, header_subtype);
-        if (has_provided_architectures) {
+        if (architectures != 0) {
             // any is the first architecture info and if set is stored in the LSB
             if (!(architectures & 1)) {
                 if (!(architectures & (1ull << architecture_info_table_index))) {
@@ -2213,18 +2216,18 @@ namespace macho::utils::tbd {
         helper.print('\n');
         print_architectures_array_to_tbd_output(helper, 1ull << architecture_info_table_index, architecture_overrides);
 
-        if (!has_architecture_overrides) {
+        if (architecture_overrides == 0) {
             if (version == version::v2) {
                 if ((options & options::remove_uuids) == options::none) {
                     const auto architecture_info_table = get_architecture_info_table();
                     const auto architecture_info_name = architecture_info_table[architecture_info_table_index].name;
 
-                    helper.print("uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                    helper.printf("uuids:%-17s[ '%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X' ]\n", "", architecture_info_name, uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 }
             }
         }
 
-        helper.print("platform:%-14s%s\n", "", platform_to_string(platform));
+        helper.printf("platform:%-14s%s\n", "", platform_to_string(platform));
 
         if ((options & options::remove_flags) == options::none || flags != flags::none) {
             auto container_flags = header_flags;
@@ -2239,7 +2242,7 @@ namespace macho::utils::tbd {
             }
 
             if (container_flags & macho::flags::two_level_namespaces || !(container_flags & macho::flags::app_extension_safe)) {
-                helper.print("flags:%-17s[ ", "");
+                helper.printf("flags:%-17s[ ", "");
 
                 if (header_flags & macho::flags::two_level_namespaces) {
                     helper.print("flat_namespace");
@@ -2255,17 +2258,17 @@ namespace macho::utils::tbd {
             }
         }
 
-        helper.print("install-name:%-10s%s\n", "", installation_name);
+        helper.printf("install-name:%-10s%s\n", "", installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = current_version >> 16;
             auto library_current_version_minor = (current_version >> 8) & 0xff;
             auto library_current_version_revision = current_version & 0xff;
 
-            helper.print("current-version:%-7s%u", "", library_current_version_major);
+            helper.printf("current-version:%-7s%u", "", library_current_version_major);
 
             if (library_current_version_minor != 0) {
-                helper.print(".%u", library_current_version_minor);
+                helper.printf(".%u", library_current_version_minor);
             }
 
             if (library_current_version_revision != 0) {
@@ -2273,7 +2276,7 @@ namespace macho::utils::tbd {
                     helper.print(".0");
                 }
 
-                helper.print(".%u", library_current_version_revision);
+                helper.printf(".%u", library_current_version_revision);
             }
 
             helper.print('\n');
@@ -2284,10 +2287,10 @@ namespace macho::utils::tbd {
             auto compatibility_version_minor = (compatibility_version >> 8) & 0xff;
             auto compatibility_version_revision = compatibility_version & 0xff;
 
-            helper.print("compatibility-version: %u", compatibility_version_major);
+            helper.printf("compatibility-version: %u", compatibility_version_major);
 
             if (compatibility_version_minor != 0) {
-                helper.print(".%u", compatibility_version_minor);
+                helper.printf(".%u", compatibility_version_minor);
             }
 
             if (compatibility_version_revision != 0) {
@@ -2295,7 +2298,7 @@ namespace macho::utils::tbd {
                     helper.print(".0");
                 }
 
-                helper.print(".%u", compatibility_version_revision);
+                helper.printf(".%u", compatibility_version_revision);
             }
 
             helper.print('\n');
@@ -2305,15 +2308,15 @@ namespace macho::utils::tbd {
             if (swift_version != 0) {
                 switch (swift_version) {
                     case 1:
-                        helper.print("swift-version:%-9s1\n", "");
+                        helper.printf("swift-version:%-9s1\n", "");
                         break;
 
                     case 2:
-                        helper.print("swift-version:%-9s1.2\n", "");
+                        helper.printf("swift-version:%-9s1.2\n", "");
                         break;
 
                     default:
-                        helper.print("swift-version:%-9s%u\n", "", swift_version - 1);
+                        helper.printf("swift-version:%-9s%u\n", "", swift_version - 1);
                         break;
                 }
             }
@@ -2321,14 +2324,14 @@ namespace macho::utils::tbd {
 
         if ((options & options::remove_objc_constraint) == options::none) {
             if (const auto objc_constraint_string = objc_constraint_to_string(objc_constraint); objc_constraint_string != nullptr) {
-                helper.print("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
+                helper.printf("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(objc_constraint));
             }
         }
 
         if (version == version::v2) {
             if ((options & options::remove_parent_umbrella) == options::none) {
                 if (!parent_umbrella.empty()) {
-                    helper.print("parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
+                    helper.printf("parent-umbrella:%-7s%s\n", "", parent_umbrella.data());
                 }
             }
         }
