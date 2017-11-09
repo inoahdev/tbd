@@ -166,7 +166,7 @@ namespace recurse {
         }
 
         auto found_valid_files = false;
-        auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](utils::directory &directory, std::string &path) {
+        auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](const utils::directory &directory, std::string &path) {
             auto check_error = macho::file::check_error::ok;
             auto is_valid_macho = _macho_check_file_as_filetype(path.data(), filetype, check_error);
 
@@ -198,7 +198,7 @@ namespace recurse {
                 found_valid_files = true;
                 callback(path);
             }
-        }, [&](utils::directory::recursion_warning warning, const void *data) {
+        }, [&](const utils::directory::recursion_warning &warning, const void *data) {
             if ((options & options::print_warnings) != options::none) {
                 switch (warning) {
                     case utils::directory::recursion_warning::failed_to_open_sub_directory: {
