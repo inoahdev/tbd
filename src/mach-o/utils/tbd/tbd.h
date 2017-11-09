@@ -159,7 +159,7 @@ namespace macho::utils::tbd {
         platform_not_supported,
         unrecognized_platform,
         multiple_platforms,
-        not_a_library,
+        not_a_dynamic_library,
         has_no_uuid,
         contradictary_container_information,
         no_provided_architectures,

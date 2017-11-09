@@ -936,9 +936,11 @@ namespace macho::utils::tbd {
                         return false;
                     }
 
-                    const auto &identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
-                    const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[strlen(identification_dylib_installation_name_string)];
-
+                    const auto identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
+                    
+                    const auto identification_dylib_installation_name_string_length = strlen(identification_dylib_installation_name_string);
+                    const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[identification_dylib_installation_name_string_length];
+                    
                     if (std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
                         failure_result = creation_result::empty_installation_name;
                         return false;
@@ -1758,7 +1760,7 @@ namespace macho::utils::tbd {
             }
 
             if (!local_installation_name) {
-                return creation_result::not_a_library;
+                return creation_result::not_a_dynamic_library;
             }
 
             if (library_installation_name != nullptr) {
@@ -2172,7 +2174,7 @@ namespace macho::utils::tbd {
         }
 
         if (!installation_name) {
-            return creation_result::not_a_library;
+            return creation_result::not_a_dynamic_library;
         }
 
         if (version == version::v2) {
