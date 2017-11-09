@@ -477,14 +477,14 @@ namespace macho::utils::tbd {
         inline auto print(const char *str) const noexcept {
             dprintf(descriptor, "%s", str);
         }
-        
+
         __attribute__((format(printf, 2, 3))) inline auto printf(const char *str, ...) const noexcept {
             va_list list;
 
             va_start(list, str);
             vdprintf(descriptor, str, list);
             va_end(list);
-            
+
         }
 
         inline auto print(const char &ch) const noexcept {
@@ -504,7 +504,7 @@ namespace macho::utils::tbd {
         inline auto print(const char *str) const noexcept {
             fputs(str, file);
         }
-        
+
         __attribute__((format(printf, 2, 3))) inline auto printf(const char *str, ...) const noexcept {
             va_list list;
 
@@ -874,7 +874,7 @@ namespace macho::utils::tbd {
         const auto container_size = container.size;
 
         auto container_stream = container.stream;
-        auto container_load_command_iteration_result = container.iterate_load_commands([&](long location, const load_command swapped, const load_command *load_command) {
+        auto container_load_command_iteration_result = container.iterate_load_commands([&](long location, const load_command &swapped, const load_command *load_command) {
             switch (swapped.cmd) {
                 case load_commands::build_version: {
                     if (!should_find_library_platform) {
@@ -937,10 +937,10 @@ namespace macho::utils::tbd {
                     }
 
                     const auto identification_dylib_installation_name_string = &((char *)identification_dylib_command)[identification_dylib_installation_name_string_index];
-                    
+
                     const auto identification_dylib_installation_name_string_length = strlen(identification_dylib_installation_name_string);
                     const auto identification_dylib_installation_name_string_end = &identification_dylib_installation_name_string[identification_dylib_installation_name_string_length];
-                    
+
                     if (std::all_of(identification_dylib_installation_name_string, identification_dylib_installation_name_string_end, isspace)) {
                         failure_result = creation_result::empty_installation_name;
                         return false;

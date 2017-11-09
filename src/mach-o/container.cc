@@ -212,18 +212,10 @@ namespace macho {
             }
 
             if (swapped_load_command.cmd == cmd) {
-                if (result != nullptr) {
-                    *result = load_command_iteration_result::ok;
-                }
-
                 return load_command;
             }
 
             cached_load_commands_index += swapped_load_command.cmdsize;
-        }
-
-        if (result != nullptr) {
-            *result = load_command_iteration_result::ok;
         }
 
         return nullptr;
