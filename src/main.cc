@@ -23,7 +23,7 @@ const char *retrieve_current_directory() {
     // Store current-directory as a static variable to avoid
     // calling getcwd more times than necessary.
 
-    static auto current_directory = (const char *)nullptr;
+    static auto current_directory = static_cast<const char *>(nullptr);
     if (!current_directory) {
         // getcwd(nullptr, 0) will return a dynamically
         // allocated buffer just large enough to store
@@ -35,26 +35,7 @@ const char *retrieve_current_directory() {
             exit(1);
         }
 
-        const auto current_directory_length = strlen(current_directory_string);
-        const auto &current_directory_back = current_directory_string[current_directory_length - 1];
-
-        if (current_directory_back != '/' && current_directory_back != '\\') {
-            // As current_directory is a path to a directory,
-            // the caller of this function expects to have a
-            // path ending with a forward slash.
-
-            auto new_current_directory_string = (char *)malloc(current_directory_length + 2);
-
-            strncpy(new_current_directory_string, current_directory_string, current_directory_length);
-            free(current_directory_string);
-
-            new_current_directory_string[current_directory_length] = '/';
-            new_current_directory_string[current_directory_length + 1] = '\0';
-
-            current_directory = new_current_directory_string;
-        } else {
-            current_directory = current_directory_string;
-        }
+        current_directory = current_directory_string;
     }
 
     return current_directory;
@@ -113,13 +94,13 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
 
 void print_platforms() {
     auto platform_number = 1;
-    auto platform = macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(platform_number));
+    auto platform = macho::utils::tbd::platform_to_string(macho::utils::tbd::platform(platform_number));
 
     fputs(platform, stdout);
 
     while (true) {
         platform_number++;
-        platform = macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(platform_number));
+        platform = macho::utils::tbd::platform_to_string(macho::utils::tbd::platform(platform_number));
 
         if (!platform) {
             break;
@@ -193,7 +174,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::contradictary_load_command_information:
             case macho::utils::tbd::creation_result::empty_installation_name:
             case macho::utils::tbd::creation_result::uuid_is_not_unique:
-            case macho::utils::tbd::creation_result::not_a_library:
+            case macho::utils::tbd::creation_result::not_a_dynamic_library:
             case macho::utils::tbd::creation_result::has_no_uuid:
             case macho::utils::tbd::creation_result::contradictary_container_information:
             case macho::utils::tbd::creation_result::no_provided_architectures:
@@ -349,7 +330,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::multiple_platforms:
                 break;
 
-            case macho::utils::tbd::creation_result::not_a_library:
+            case macho::utils::tbd::creation_result::not_a_dynamic_library:
                 if (creation_handling_options & creation_handling_print_paths) {
                     fprintf(stderr, "Mach-o file (at path %s), or one of its architectures, is not a mach-o library\n", macho_file_path);
                 } else {
@@ -505,10 +486,10 @@ int main(int argc, const char *argv[]) {
         uint64_t architectures;
         uint64_t architecture_overrides;
 
-        enum macho::utils::tbd::flags flags;
-        enum macho::utils::tbd::objc_constraint constraint;
-        enum macho::utils::tbd::platform platform;
-        enum macho::utils::tbd::version version;
+        macho::utils::tbd::flags flags;
+        macho::utils::tbd::objc_constraint constraint;
+        macho::utils::tbd::platform platform;
+        macho::utils::tbd::version version;
 
         uint64_t options;
     } tbd_file;
@@ -654,7 +635,14 @@ int main(int argc, const char *argv[]) {
 
                 auto path = std::string(argv[i]);
                 if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
-                    path.insert(0, retrieve_current_directory());
+                    const auto current_directory = retrieve_current_directory();
+                    const auto current_directory_length = strlen(current_directory);
+
+                    if (const auto &back = current_directory[current_directory_length]; back != '/' && back != '\\') {
+                        path.insert(0, 1, '/');
+                    }
+
+                    path.insert(0, current_directory);
                 }
 
                 struct stat sbuf;
@@ -684,7 +672,7 @@ int main(int argc, const char *argv[]) {
                         return 1;
 
                     case macho::file::open_result::failed_to_retrieve_information:
-                        fprintf(stderr, "Warning: Failed to retrieve information necessary to process file at provided path, failing with error: %s\n", strerror(errno));
+                        fprintf(stderr, "Failed to retrieve information necessary to process file at provided path, failing with error: %s\n", strerror(errno));
                         return 1;
 
                     case macho::file::open_result::stream_seek_error:
@@ -801,16 +789,25 @@ int main(int argc, const char *argv[]) {
 
                         const auto argument_length = strlen(argument);
                         const auto current_directory_length = strlen(current_directory);
-                        const auto path_length = argument_length + current_directory_length;
+                        const auto current_directory_back = current_directory[current_directory_length];
+
+                        auto path_length = argument_length + current_directory_length;
+                        if (current_directory_back != '/' && current_directory_back != '\\') {
+                            path_length++;
+                        }
 
                         path.reserve(path_length);
                         path.append(current_directory);
-                        path.append(argument);
 
+                        if (current_directory_back != '/' && current_directory_back != '\\') {
+                            path.append(1, '/');
+                        }
+
+                        path.append(argument);
                         paths.emplace_back(std::move(utils::path::clean(path)), options);
                     } else {
                         auto path = std::string(argument);
-                        paths.emplace_back(utils::path::clean(path), options);
+                        paths.emplace_back(std::move(utils::path::clean(path)), options);
                     }
 
                     options = 0;
@@ -853,7 +850,7 @@ int main(int argc, const char *argv[]) {
                             recurse_options |= recurse::options::recurse_subdirectories;
                         }
 
-                        auto recursion_result = recurse::macho_file_paths(path_data, recurse::macho_file_type::library, recurse_options, [&](std::string &library_path) {
+                        const auto recursion_result = recurse::macho_file_paths(path_data, recurse::macho_file_type::library, recurse_options, [&](std::string &library_path) {
                             fprintf(stdout, "%s\n", library_path.data());
                         });
 
@@ -919,20 +916,23 @@ int main(int argc, const char *argv[]) {
                 // If a path was not provided, --list-macho-libraries is
                 // expected to instead recurse the current-directory.
 
-                const auto path = retrieve_current_directory();
+                auto path = std::string(retrieve_current_directory());
+                if (const auto &back = path.back(); back != '/' && back != '\\') {
+                    path.append(1, '/');
+                }
 
                 struct stat sbuf;
-                if (stat(path, &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error: %s\n", path, strerror(errno));
+                if (stat(path.data(), &sbuf) != 0) {
+                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error: %s\n", path.data(), strerror(errno));
                     return 1;
                 }
 
                 if (!S_ISDIR(sbuf.st_mode)) {
-                    fprintf(stderr, "Object at path (%s) is not a directory\n", path);
+                    fprintf(stderr, "Object at path (%s) is not a directory\n", path.data());
                     return 1;
                 }
 
-                auto recursion_result = recurse::macho_file_paths(path, recurse::macho_file_type::library, recurse::options::print_warnings | recurse::options::recurse_subdirectories, [&](std::string &library_path) {
+                const auto recursion_result = recurse::macho_file_paths(path.data(), recurse::macho_file_type::library, recurse::options::print_warnings | recurse::options::recurse_subdirectories, [&](std::string &library_path) {
                     fprintf(stdout, "%s\n", library_path.data());
                 });
 
@@ -941,11 +941,11 @@ int main(int argc, const char *argv[]) {
                         break;
 
                     case recurse::operation_result::failed_to_open_directory:
-                        fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error: %s\n", path, strerror(errno));
+                        fprintf(stderr, "Failed to open directory (at path %s) for recursing, failing with error: %s\n", path.data(), strerror(errno));
                         return 1;
 
                     case recurse::operation_result::found_no_matching_files:
-                        fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path);
+                        fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path.data());
                 }
             }
 
@@ -1051,7 +1051,14 @@ int main(int argc, const char *argv[]) {
                         // a forward slash, it is assumed that the path exists
                         // in the current-directory.
 
-                        path.insert(0, retrieve_current_directory());
+                        const auto current_directory = retrieve_current_directory();
+                        const auto current_directory_length = strlen(current_directory);
+
+                        if (const auto &back = current_directory[current_directory_length]; back != '/' && back != '\\') {
+                            path.insert(0, 1, '/');
+                        }
+
+                        path.insert(0, current_directory);
                     }
                 }
 
@@ -1370,7 +1377,14 @@ int main(int argc, const char *argv[]) {
                     utils::path::clean(path);
 
                     if (const auto &path_front = path.front(); path_front != '/' && path_front != '\\') {
-                        path.insert(0, retrieve_current_directory());
+                        const auto current_directory = retrieve_current_directory();
+                        const auto current_directory_length = strlen(current_directory);
+
+                        if (const auto &back = current_directory[current_directory_length]; back != '/' && back != '\\') {
+                            path.insert(0, 1, '/');
+                        }
+
+                        path.insert(0, current_directory);
                     }
 
                     struct stat sbuf;
@@ -1751,7 +1765,7 @@ int main(int argc, const char *argv[]) {
                     tbd.architecture_overrides = architecture_overrides;
                 }
 
-                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, static_cast<macho::utils::tbd::options>(tbd_options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
+                const auto result = create_tbd_file(library_path.data(), file, output_path.data(), output_file, macho::utils::tbd::options(tbd_options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
                 if (!result) {
                     if (output_path_creation_terminator != nullptr) {
                         const auto remove_result = recursive::remove::perform(output_path.data(), output_path_creation_terminator);
@@ -2059,7 +2073,7 @@ int main(int argc, const char *argv[]) {
                 tbd.architecture_overrides = architecture_overrides;
             }
 
-            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, static_cast<macho::utils::tbd::options>(options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
+            const auto result = create_tbd_file(tbd_path.data(), library_file, tbd_output_path.data(), output_file, macho::utils::tbd::options(options & 0xff), tbd.flags, tbd.constraint, tbd.platform, tbd.version, tbd.architectures, tbd.architecture_overrides, tbd_creation_options);
             if (!tbd_output_path.empty()) {
                 if (!result) {
                     if (tbd_output_path_creation_terminator != nullptr) {
