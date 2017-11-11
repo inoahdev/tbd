@@ -59,6 +59,7 @@
 		C33DD9451F79C934003C1FFC /* tbd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = "../../src/mach-o/utils/tbd/tbd.h"; sourceTree = "<group>"; };
 		C34E38B91F93DE620078F554 /* path.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = path.cc; path = ../../src/utils/path.cc; sourceTree = "<group>"; };
 		C34E38BB1F93DE6C0078F554 /* path.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = path.h; path = ../../src/utils/path.h; sourceTree = "<group>"; };
+		C353AB8D1FB7C518006964CE /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../.gitignore; sourceTree = "<group>"; };
 		C36E92B01F96E326008CC57F /* directory.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = directory.cc; path = ../../src/utils/directory.cc; sourceTree = "<group>"; };
 		C36E92B11F96E326008CC57F /* directory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = directory.h; path = ../../src/utils/directory.h; sourceTree = "<group>"; };
 		C38254B51F93CD820084CFCE /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../Makefile; sourceTree = "<group>"; };
@@ -103,6 +104,7 @@
 				C32A7AA91F10E600000BF14E /* src */,
 				C3A45E4E1F804E4800FC649E /* compile_commands.json */,
 				C38254B51F93CD820084CFCE /* Makefile */,
+				C353AB8D1FB7C518006964CE /* .gitignore */,
 				C32D3C0A1F997E800092E0A0 /* LICENSE.md */,
 				C3D027021F1AE88100BAA510 /* README.md */,
 				C32A7AA01F10E5DA000BF14E /* Products */,
