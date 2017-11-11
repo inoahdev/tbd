@@ -208,9 +208,9 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::stream_seek_error:
             case macho::utils::tbd::creation_result::stream_read_error:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error: %s\n", macho_file_path, strerror(ferror(file.stream)));
+                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error: %s\n", macho_file_path, strerror(file.stream.error()));
                 } else {
-                    fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error: %s\n", strerror(ferror(file.stream)));
+                    fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error: %s\n", strerror(file.stream.error()));
                 }
 
                 break;
@@ -677,7 +677,7 @@ int main(int argc, const char *argv[]) {
 
                     case macho::file::open_result::stream_seek_error:
                     case macho::file::open_result::stream_read_error:
-                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(macho_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(macho_file.stream.error()));
                         return 1;
 
                     case macho::file::open_result::zero_architectures:
@@ -1899,12 +1899,12 @@ int main(int argc, const char *argv[]) {
                 case macho::file::open_result::stream_read_error:
                     if (should_print_paths) {
                         if (tbd_path == "stdin") {
-                            fprintf(stderr, "Encountered an error while reading through file (in stdin), likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(library_file.stream)));
+                            fprintf(stderr, "Encountered an error while reading through file (in stdin), likely not a valid mach-o. Reading failed with error: %s\n", strerror(library_file.stream.error()));
                         } else {
-                            fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error: %s\n", tbd_path.data(), strerror(ferror(library_file.stream)));
+                            fprintf(stderr, "Encountered an error while reading through file (at path %s), likely not a valid mach-o. Reading failed with error: %s\n", tbd_path.data(), strerror(library_file.stream.error()));
                         }
                     } else {
-                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(ferror(library_file.stream)));
+                        fprintf(stderr, "Encountered an error while reading through file at provided path, likely not a valid mach-o. Reading failed with error: %s\n", strerror(library_file.stream.error()));
                     }
 
                     break;

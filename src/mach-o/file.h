@@ -23,18 +23,10 @@ namespace macho {
     public:
         explicit file() = default;
 
-        FILE *stream = nullptr;
+        stream::file::shared stream;
         magic magic = magic::normal;
 
         std::vector<container> containers = std::vector<container>();
-
-        explicit file(const file &) = delete;
-        explicit file(file &&) noexcept;
-
-        file &operator=(const file &) = delete;
-        file &operator=(file &&) noexcept;
-
-        ~file() noexcept;
 
         enum class open_result {
             ok,
@@ -66,7 +58,7 @@ namespace macho {
             return open(path.data(), mode);
         }
 
-        open_result open(FILE *file, const char *mode = "r") noexcept;
+        open_result open(FILE *file) noexcept;
 
         open_result open_from_library(const char *path) noexcept;
         inline open_result open_from_library(const std::string &path) noexcept {
@@ -122,8 +114,6 @@ namespace macho {
         }
 
     private:
-        const char *mode_ = nullptr; // for copies
-
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);
 
@@ -464,12 +454,12 @@ namespace macho {
         template <type type = type::none>
         inline open_result load_containers() noexcept {
             struct stat information;
-            if (fstat(stream->_file, &information) != 0) {
+            if (fstat(stream.stream()->_file, &information) != 0) {
                 return open_result::failed_to_retrieve_information;
             }
 
             const auto remaining_size = [&](size_t size) noexcept {
-                auto pos = ftell(stream);
+                auto pos = stream.position();
                 if (pos == -1L) {
                     return -1uL;
                 }
@@ -482,7 +472,7 @@ namespace macho {
                 return static_cast<unsigned long>(size - remaining_space);
             };
 
-            if (fread(&magic, sizeof(magic), 1, stream) != 1) {
+            if (!stream.read(&magic, sizeof(magic))) {
                 return open_result::stream_read_error;
             }
 
@@ -513,7 +503,7 @@ namespace macho {
                 ranges.emplace_back(range({ 0, sizeof(macho::fat_header) }));
 
                 auto nfat_arch = uint32_t();
-                if (fread(&nfat_arch, sizeof(nfat_arch), 1, stream) != 1) {
+                if (!stream.read(&nfat_arch, sizeof(nfat_arch))) {
                     return open_result::stream_read_error;
                 }
 
@@ -541,7 +531,7 @@ namespace macho {
                     }
 
                     ranges.emplace_back(range({ sizeof(macho::fat_header), architectures_size }));
-                    if (fread(architectures, architectures_size, 1, stream) != 1) {
+                    if (!stream.read(architectures, architectures_size)) {
                         free(architectures);
                         return open_result::stream_read_error;
                     }
@@ -627,7 +617,7 @@ namespace macho {
                         return open_result::failed_to_allocate_memory;
                     }
 
-                    if (fread(architectures, architectures_size, 1, stream) != 1) {
+                    if (!stream.read(architectures, architectures_size)) {
                         free(architectures);
                         return open_result::stream_read_error;
                     }

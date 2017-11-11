@@ -1051,7 +1051,7 @@ namespace macho::utils::tbd {
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
-                        const auto segment_sections_end = reinterpret_cast<segments::section *>((uint64_t)&segment_command[1] + segment_sections_size);
+                        const auto segment_sections_end = &segment_section[segment_sections_count];
                         while (segment_section != segment_sections_end) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
                                 segment_section = &segment_section[1];
@@ -1084,19 +1084,19 @@ namespace macho::utils::tbd {
                                 return false;
                             }
 
-                            const auto library_container_stream_position = ftell(container_stream);
+                            const auto library_container_stream_position = container_stream.position();
 
-                            if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
+                            if (!container_stream.seek(container_base + segment_section_data_offset, stream::file::seek_type::beginning)) {
                                 failure_result = creation_result::stream_seek_error;
                                 return false;
                             }
 
-                            if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
-                                failure_result = creation_result::stream_seek_error;
+                            if (!container_stream.read(&objc_image_info, sizeof(objc_image_info))) {
+                                failure_result = creation_result::stream_read_error;
                                 return false;
                             }
 
-                            if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                            if (!container_stream.seek(library_container_stream_position, stream::file::seek_type::beginning)) {
                                 failure_result = creation_result::stream_seek_error;
                                 return false;
                             }
@@ -1168,6 +1168,7 @@ namespace macho::utils::tbd {
                     }
 
                     auto segment_sections_count = segment_command->nsects;
+
                     if (container_is_big_endian) {
                         swap_uint32(segment_sections_count);
                     }
@@ -1186,7 +1187,7 @@ namespace macho::utils::tbd {
                         auto objc_image_info = objc::image_info();
                         auto found_objc_image_info = false;
 
-                        const auto segment_sections_end = reinterpret_cast<segments::section_64 *>((uint64_t)segment_section + segment_sections_size);
+                        const auto segment_sections_end = &segment_section[segment_sections_count];
                         while (segment_section != segment_sections_end) {
                             if (strncmp(segment_section->sectname, "__objc_imageinfo", 16) != 0 && strncmp(segment_section->sectname, "__image_info", 16) != 0) {
                                 segment_section = &segment_section[1];
@@ -1219,19 +1220,19 @@ namespace macho::utils::tbd {
                                 return false;
                             }
 
-                            const auto library_container_stream_position = ftell(container_stream);
+                            const auto library_container_stream_position = container_stream.position();
 
-                            if (fseek(container_stream, container_base + segment_section_data_offset, SEEK_SET) != 0) {
+                            if (!container_stream.seek(container_base + segment_section_data_offset, stream::file::seek_type::beginning)) {
                                 failure_result = creation_result::stream_seek_error;
                                 return false;
                             }
 
-                            if (fread(&objc_image_info, sizeof(objc_image_info), 1, container_stream) != 1) {
-                                failure_result = creation_result::stream_seek_error;
+                            if (!container_stream.read(&objc_image_info, sizeof(objc_image_info))) {
+                                failure_result = creation_result::stream_read_error;
                                 return false;
                             }
 
-                            if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                            if (!container_stream.seek(library_container_stream_position, stream::file::seek_type::beginning)) {
                                 failure_result = creation_result::stream_seek_error;
                                 return false;
                             }
@@ -1316,9 +1317,9 @@ namespace macho::utils::tbd {
 
                     const auto sub_client_command_client_size = sub_client_command_cmdsize - sub_client_command_client_location;
                     if (sub_client_command_client_size != 0) {
-                        const auto library_container_stream_position = ftell(container_stream);
+                        const auto library_container_stream_position = container_stream.position();
 
-                        if (fseek(container_stream, location + sub_client_command_client_location, SEEK_SET) != 0) {
+                        if (!container_stream.seek(location + sub_client_command_client_location, stream::file::seek_type::beginning)) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }
@@ -1331,12 +1332,12 @@ namespace macho::utils::tbd {
                                 return false;
                             }
 
-                            if (fread(sub_client_command_client_string, sub_client_command_client_size, 1, container_stream) != 1) {
+                            if (!container_stream.read(sub_client_command_client_string, sub_client_command_client_size)) {
                                 failure_result = creation_result::stream_read_error;
                                 return false;
                             }
                         } else {
-                            if (fread(&sub_client_command_client_string, sub_client_command_client_size, 1, container_stream) != 1) {
+                            if (!container_stream.read(&sub_client_command_client_string, sub_client_command_client_size)) {
                                 failure_result = creation_result::stream_read_error;
                                 return false;
                             }
@@ -1363,7 +1364,7 @@ namespace macho::utils::tbd {
                             free(sub_client_command_client_string);
                         }
 
-                        if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                        if (!container_stream.seek(library_container_stream_position, stream::file::seek_type::beginning)) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }
@@ -1393,9 +1394,9 @@ namespace macho::utils::tbd {
 
                     const auto sub_umbrella_command_umbrella_size = sub_umbrella_command_cmdsize - sub_umbrella_command_umbrella_location;
                     if (sub_umbrella_command_umbrella_size != 0) {
-                        const auto library_container_stream_position = ftell(container_stream);
+                        const auto library_container_stream_position = container_stream.position();
 
-                        if (fseek(container_stream, location + sub_umbrella_command_umbrella_location, SEEK_SET) != 0) {
+                        if (!container_stream.seek(location + sub_umbrella_command_umbrella_location, stream::file::seek_type::beginning)) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }
@@ -1408,18 +1409,18 @@ namespace macho::utils::tbd {
                                 return false;
                             }
 
-                            if (fread(sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size, 1, container_stream) != 1) {
+                            if (!container_stream.read(sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size)) {
                                 failure_result = creation_result::stream_read_error;
                                 return false;
                             }
                         } else {
-                            if (fread(&sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size, 1, container_stream) != 1) {
+                            if (!container_stream.read(&sub_umbrella_command_umbrella_string, sub_umbrella_command_umbrella_size)) {
                                 failure_result = creation_result::stream_read_error;
                                 return false;
                             }
                         }
 
-                        if (fseek(container_stream, library_container_stream_position, SEEK_SET) != 0) {
+                        if (!container_stream.seek(library_container_stream_position, stream::file::seek_type::beginning)) {
                             failure_result = creation_result::stream_seek_error;
                             return false;
                         }

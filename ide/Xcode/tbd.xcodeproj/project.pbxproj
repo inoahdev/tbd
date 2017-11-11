@@ -17,6 +17,8 @@
 		C3A8A7CF1F93ED99001510A2 /* string.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7CD1F93ED99001510A2 /* string.cc */; };
 		C3A8A7D31F941205001510A2 /* mkdir.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7D11F941205001510A2 /* mkdir.cc */; };
 		C3A8A7D91F9439F5001510A2 /* remove.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3A8A7D71F9439F5001510A2 /* remove.cc */; };
+		C3B918691FB66E9200311727 /* shared.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3B918671FB66E9200311727 /* shared.cc */; };
+		C3B9186C1FB670DC00311727 /* unique.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3B9186A1FB670DC00311727 /* unique.cc */; };
 		C3BA3CA81F131AC30049C652 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA71F131AC30049C652 /* main.cc */; };
 		C3BA3CAD1F131AD00049C652 /* container.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA91F131AD00049C652 /* container.cc */; };
 		C3BA3CAE1F131AD00049C652 /* file.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CAB1F131AD00049C652 /* file.cc */; };
@@ -67,6 +69,11 @@
 		C3A8A7D21F941205001510A2 /* mkdir.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mkdir.h; path = ../../src/recursive/mkdir.h; sourceTree = "<group>"; };
 		C3A8A7D71F9439F5001510A2 /* remove.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = remove.cc; path = ../../src/recursive/remove.cc; sourceTree = "<group>"; };
 		C3A8A7D81F9439F5001510A2 /* remove.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = remove.h; path = ../../src/recursive/remove.h; sourceTree = "<group>"; };
+		C3B918671FB66E9200311727 /* shared.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = shared.cc; path = ../../src/stream/file/shared.cc; sourceTree = "<group>"; };
+		C3B918681FB66E9200311727 /* shared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shared.h; path = ../../src/stream/file/shared.h; sourceTree = "<group>"; };
+		C3B9186A1FB670DC00311727 /* unique.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = unique.cc; path = ../../src/stream/file/unique.cc; sourceTree = "<group>"; };
+		C3B9186B1FB670DC00311727 /* unique.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = unique.h; path = ../../src/stream/file/unique.h; sourceTree = "<group>"; };
+		C3B9186D1FB694AE00311727 /* seek_type.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = seek_type.h; path = ../../src/stream/file/seek_type.h; sourceTree = "<group>"; };
 		C3BA3CA71F131AC30049C652 /* main.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cc; path = ../../src/main.cc; sourceTree = "<group>"; };
 		C3BA3CA91F131AD00049C652 /* container.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = container.cc; path = "../../src/mach-o/container.cc"; sourceTree = "<group>"; };
 		C3BA3CAB1F131AD00049C652 /* file.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = file.cc; path = "../../src/mach-o/file.cc"; sourceTree = "<group>"; };
@@ -117,6 +124,7 @@
 				C3E269DF1F3FA92F005ED144 /* misc */,
 				C3FB674A1F4338BC0025EB0A /* objc */,
 				C3A8A7D01F9411EE001510A2 /* recursive */,
+				C3B918661FB66E6600311727 /* stream */,
 				C34E38B81F93DBF60078F554 /* utils */,
 				C3BA3CA71F131AC30049C652 /* main.cc */,
 			);
@@ -196,6 +204,26 @@
 				C3A8A7D71F9439F5001510A2 /* remove.cc */,
 			);
 			name = recursive;
+			sourceTree = "<group>";
+		};
+		C3B918661FB66E6600311727 /* stream */ = {
+			isa = PBXGroup;
+			children = (
+				C3B9186E1FB694BD00311727 /* file */,
+			);
+			name = stream;
+			sourceTree = "<group>";
+		};
+		C3B9186E1FB694BD00311727 /* file */ = {
+			isa = PBXGroup;
+			children = (
+				C3B9186D1FB694AE00311727 /* seek_type.h */,
+				C3B918681FB66E9200311727 /* shared.h */,
+				C3B918671FB66E9200311727 /* shared.cc */,
+				C3B9186B1FB670DC00311727 /* unique.h */,
+				C3B9186A1FB670DC00311727 /* unique.cc */,
+			);
+			name = file;
 			sourceTree = "<group>";
 		};
 		C3E269DF1F3FA92F005ED144 /* misc */ = {
@@ -279,8 +307,10 @@
 				C36E92B21F96E326008CC57F /* directory.cc in Sources */,
 				C3A8A7D31F941205001510A2 /* mkdir.cc in Sources */,
 				C33DD9441F79C924003C1FFC /* tbd.cc in Sources */,
+				C3B9186C1FB670DC00311727 /* unique.cc in Sources */,
 				C3BA3CAD1F131AD00049C652 /* container.cc in Sources */,
 				C331314E1F23D0AD0031B4BD /* architecture_info.cc in Sources */,
+				C3B918691FB66E9200311727 /* shared.cc in Sources */,
 				C3A8A7CF1F93ED99001510A2 /* string.cc in Sources */,
 				C3BA3CAE1F131AD00049C652 /* file.cc in Sources */,
 				C3BA3CA81F131AC30049C652 /* main.cc in Sources */,

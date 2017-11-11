@@ -10,46 +10,36 @@
 #include "file.h"
 
 namespace macho {
-    file::file(file &&file) noexcept :
-    stream(file.stream), magic(file.magic), containers(std::move(file.containers)) {
-        file.stream = nullptr;
-        file.magic = magic::normal;
-    }
-
     file::open_result file::open(const char *path) noexcept {
-        mode_ = "r";
-        stream = fopen(path, mode_);
-
-        if (!stream) {
-            return open_result::failed_to_open_stream;
+        const auto result = stream.open(path, "r");
+        if (result != stream::file::shared::open_result::ok) {
+            return open_result::failed_to_open_stream;;
         }
 
         return load_containers();
     }
 
     file::open_result file::open(const char *path, const char *mode) noexcept {
-        mode_ = mode;
-        stream = fopen(path, mode);
-
-        if (!stream) {
+        const auto result = stream.open(path, mode);
+        if (result != stream::file::shared::open_result::ok) {
             return open_result::failed_to_open_stream;
         }
 
         return load_containers();
     }
 
-    file::open_result file::open(FILE *file, const char *mode) noexcept {
-        mode_ = mode;
-        stream = file;
+    file::open_result file::open(FILE *file) noexcept {
+        const auto result = stream.open(file);
+        if (result != stream::file::shared::open_result::ok) {
+            return open_result::failed_to_open_stream;
+        }
 
         return load_containers();
     }
 
     file::open_result file::open_from_library(const char *path) noexcept {
-        mode_ = "r";
-        stream = fopen(path, mode_);
-
-        if (!stream) {
+        const auto result = stream.open(path, "r");
+        if (result != stream::file::shared::open_result::ok) {
             return open_result::failed_to_open_stream;
         }
 
@@ -57,10 +47,8 @@ namespace macho {
     }
 
     file::open_result file::open_from_library(const char *path, const char *mode) noexcept {
-        mode_ = mode;
-        stream = fopen(path, mode);
-
-        if (!stream) {
+        const auto result = stream.open(path, mode);
+        if (result != stream::file::shared::open_result::ok) {
             return open_result::failed_to_open_stream;
         }
 
@@ -68,17 +56,17 @@ namespace macho {
     }
 
     file::open_result file::open_from_library(FILE *file, const char *mode) noexcept {
-        mode_ = mode;
-        stream = file;
+        const auto result = stream.open(file);
+        if (result != stream::file::shared::open_result::ok) {
+            return open_result::failed_to_open_stream;
+        }
 
         return load_containers<type::library>();
     }
 
     file::open_result file::open_from_dynamic_library(const char *path) noexcept {
-        mode_ = "r";
-        stream = fopen(path, mode_);
-
-        if (!stream) {
+        const auto result = stream.open(path, "r");
+        if (result != stream::file::shared::open_result::ok) {
             return open_result::failed_to_open_stream;
         }
 
@@ -86,10 +74,8 @@ namespace macho {
     }
 
     file::open_result file::open_from_dynamic_library(const char *path, const char *mode) noexcept {
-        mode_ = mode;
-        stream = fopen(path, mode);
-
-        if (!stream) {
+        const auto result = stream.open(path, mode);
+        if (result != stream::file::shared::open_result::ok) {
             return open_result::failed_to_open_stream;
         }
 
@@ -97,132 +83,12 @@ namespace macho {
     }
 
     file::open_result file::open_from_dynamic_library(FILE *file, const char *mode) noexcept {
-        mode_ = mode;
-        stream = file;
+        const auto result = stream.open(file);
+        if (result != stream::file::shared::open_result::ok) {
+            return open_result::failed_to_open_stream;
+        }
 
         return load_containers<type::dynamic_library>();
-    }
-
-    file::open_result file::open_copy(const file &file) {
-        if (!file.stream) {
-            if (stream != nullptr) {
-                fclose(stream);
-                stream = nullptr;
-            }
-
-            magic = magic::normal;
-            containers.clear();
-
-            // Copied an empty file object
-            return open_result::ok;
-        }
-
-        mode_ = file.mode_;
-        stream = freopen(nullptr, mode_, file.stream);
-
-        if (!stream) {
-            return open_result::failed_to_open_stream;
-        }
-
-        magic = file.magic;
-        containers.reserve(file.containers.size());
-
-        for (auto &container : file.containers) {
-            auto new_container = macho::container();
-            auto new_container_open_result = new_container.open_copy(container);
-
-            switch (new_container_open_result) {
-                case container::open_result::ok:
-                    break;
-
-                case container::open_result::invalid_range:
-                case container::open_result::stream_seek_error:
-                case container::open_result::stream_read_error:
-                case container::open_result::fat_container:
-                case container::open_result::not_a_macho:
-                case container::open_result::invalid_macho:
-                    return open_result::invalid_container;
-
-                case container::open_result::not_a_library:
-                case container::open_result::not_a_dynamic_library:
-                    break;
-            }
-
-            new_container.stream = stream;
-            containers.emplace_back(std::move(new_container));
-        }
-
-        return open_result::ok;
-    }
-
-    file::open_result file::open_copy(const file &file, const char *mode) {
-        if (!file.stream) {
-            if (stream != nullptr) {
-                fclose(stream);
-                stream = nullptr;
-            }
-
-            magic = magic::normal;
-            containers.clear();
-
-            // Copied an empty file object
-            return open_result::ok;
-        }
-
-        stream = freopen(nullptr, mode, file.stream);
-        if (!stream) {
-            return open_result::failed_to_open_stream;
-        }
-
-        magic = file.magic;
-        containers.reserve(file.containers.size());
-
-        for (auto &container : file.containers) {
-            auto new_container = macho::container();
-            auto new_container_open_result = new_container.open_copy(container);
-
-            switch (new_container_open_result) {
-                case container::open_result::ok:
-                    break;
-
-                case container::open_result::invalid_range:
-                case container::open_result::stream_seek_error:
-                case container::open_result::stream_read_error:
-                case container::open_result::fat_container:
-                case container::open_result::not_a_macho:
-                case container::open_result::invalid_macho:
-                    return open_result::invalid_container;
-
-                case container::open_result::not_a_library:
-                case container::open_result::not_a_dynamic_library:
-                    break;
-            }
-
-            new_container.stream = stream;
-            containers.emplace_back(std::move(new_container));
-        }
-
-        return open_result::ok;
-    }
-
-    file &file::operator=(file &&file) noexcept {
-        stream = file.stream;
-        magic = file.magic;
-
-        containers = std::move(file.containers);
-
-        stream = nullptr;
-        magic = file.magic;
-
-        return *this;
-    }
-
-    file::~file() noexcept {
-        if (stream != nullptr) {
-            fclose(stream);
-        }
-
-        containers.clear();
     }
 
     bool file::is_valid_file(const char *path, check_error *error) noexcept {

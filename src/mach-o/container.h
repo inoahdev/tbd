@@ -9,6 +9,8 @@
 #pragma once
 
 #include <cstdio>
+
+#include "../stream/file/shared.h"
 #include "swap.h"
 
 namespace macho {
@@ -16,15 +18,15 @@ namespace macho {
     public:
         explicit container() = default;
 
-        explicit container(const container &) = delete;
-        explicit container(container &&) noexcept;
+        explicit container(const container &container) noexcept;
+        explicit container(container &&container) noexcept;
 
-        container &operator=(const container &) = delete;
-        container &operator=(container &&) noexcept;
+        container &operator=(const container &container) noexcept;
+        container &operator=(container &&container) noexcept;
 
-        ~container();
+        ~container() noexcept;
 
-        FILE *stream = nullptr;
+        stream::file::shared stream;
 
         long base = 0;
         size_t size = 0;
@@ -47,9 +49,9 @@ namespace macho {
             not_a_dynamic_library
         };
 
-        open_result open(FILE *stream, long base = 0, size_t size = 0) noexcept;
-        open_result open_from_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
-        open_result open_from_dynamic_library(FILE *stream, long base = 0, size_t size = 0) noexcept;
+        open_result open(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
+        open_result open_from_library(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
+        open_result open_from_dynamic_library(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
 
         open_result open_copy(const container &container) noexcept;
 
@@ -86,22 +88,22 @@ namespace macho {
             }
 
             if (!cached_load_commands) {
-                const auto position = ftell(stream);
+                const auto position = stream.position();
 
-                if (fseek(stream, load_command_base, SEEK_SET) != 0) {
+                if (!stream.seek(load_command_base, stream::file::seek_type::beginning)) {
                     return load_command_iteration_result::stream_seek_error;
                 }
 
                 cached_load_commands = new uint8_t[sizeofcmds];
 
-                if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
+                if (!stream.read(cached_load_commands, sizeofcmds)) {
                     delete[] cached_load_commands;
                     cached_load_commands = nullptr;
 
                     return load_command_iteration_result::stream_read_error;
                 }
 
-                if (fseek(stream, position, SEEK_SET) != 0) {
+                if (!stream.seek(position, stream::file::seek_type::beginning)) {
                     return load_command_iteration_result::stream_seek_error;
                 }
             }
@@ -157,7 +159,7 @@ namespace macho {
             const auto magic_is_big_endian = is_big_endian();
             const auto magic_is_64_bit = is_64_bit();
 
-            const auto position = ftell(stream);
+            const auto position = stream.position();
             const auto symbol_table = (symtab_command *)find_first_of_load_command(load_commands::symbol_table);
 
             if (!symbol_table) {
@@ -202,13 +204,13 @@ namespace macho {
                     return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
-                if (fseek(stream, base + string_table_location, SEEK_SET) != 0) {
+                if (!stream.seek(base + string_table_location, stream::file::seek_type::beginning)) {
                     return symbols_iteration_result::stream_seek_error;
                 }
 
                 cached_string_table = new char[string_table_size];
 
-                if (fread(cached_string_table, string_table_size, 1, stream) != 1) {
+                if (!stream.read(cached_string_table, string_table_size)) {
                     delete[] cached_string_table;
                     cached_string_table = nullptr;
 
@@ -238,7 +240,7 @@ namespace macho {
                     return symbols_iteration_result::invalid_symbol_table_load_command;
                 }
 
-                if (fseek(stream, base + symbol_table_location, SEEK_SET) != 0) {
+                if (!stream.seek(base + symbol_table_location, stream::file::seek_type::beginning)) {
                     return symbols_iteration_result::stream_seek_error;
                 }
 
@@ -255,7 +257,7 @@ namespace macho {
 
                     cached_symbol_table = new uint8_t[symbol_table_size];
 
-                    if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    if (!stream.read(cached_symbol_table, symbol_table_size)) {
                         delete[] cached_symbol_table;
                         cached_symbol_table = nullptr;
 
@@ -263,7 +265,7 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_nlists_64((struct nlist_64 *)cached_symbol_table, symbol_table_count);
+                        swap_nlists_64(reinterpret_cast<struct nlist_64 *>(cached_symbol_table), symbol_table_count);
                     }
                 } else {
                     const auto symbol_table_size = sizeof(struct nlist) * symbol_table_count;
@@ -278,7 +280,7 @@ namespace macho {
 
                     cached_symbol_table = new uint8_t[symbol_table_size];
 
-                    if (fread(cached_symbol_table, symbol_table_size, 1, stream) != 1) {
+                    if (!stream.read(cached_symbol_table, symbol_table_size)) {
                         delete[] cached_symbol_table;
                         cached_symbol_table = nullptr;
 
@@ -286,11 +288,11 @@ namespace macho {
                     }
 
                     if (magic_is_big_endian) {
-                        swap_nlists((struct nlist *)cached_symbol_table, symbol_table_count);
+                        swap_nlists(reinterpret_cast<struct nlist *>(cached_symbol_table), symbol_table_count);
                     }
                 }
 
-                if (fseek(stream, position, SEEK_SET) != 0) {
+                if (!stream.seek(position, stream::file::seek_type::beginning)) {
                     return symbols_iteration_result::stream_seek_error;
                 }
             }
@@ -361,19 +363,19 @@ namespace macho {
             auto &magic = header.magic;
 
             const auto magic_is_big_endian = is_big_endian();
-            const auto stream_position = ftell(stream);
+            const auto stream_position = stream.position();
 
-            if (fseek(stream, base, SEEK_SET) != 0) {
+            if (!stream.seek(base, stream::file::seek_type::beginning)) {
                 return open_result::stream_seek_error;
             }
 
-            if (fread(&magic, sizeof(magic), 1, stream) != 1) {
+            if (!stream.read(&magic, sizeof(magic))) {
                 return open_result::stream_read_error;
             }
 
             const auto macho_stream_is_regular = magic_is_thin(magic);
             if (macho_stream_is_regular) {
-                if (fread(&header.cputype, sizeof(header) - sizeof(header.magic), 1, stream) != 1) {
+                if (!stream.read(&header.cputype, sizeof(header) - sizeof(header.magic))) {
                     return open_result::stream_read_error;
                 }
 
@@ -389,7 +391,7 @@ namespace macho {
                 }
             }
 
-            if (fseek(stream, stream_position, SEEK_SET) != 0) {
+            if (!stream.seek(stream_position, stream::file::seek_type::beginning)) {
                 return open_result::stream_seek_error;
             }
 

@@ -13,7 +13,47 @@
 #include "container.h"
 
 namespace macho {
-    container::open_result container::open(FILE *stream, long base, size_t size) noexcept {
+    container::container(const container &container) noexcept :
+    stream(container.stream), base(container.base), size(container.size), header(container.header) {}
+
+    container::container(container &&container) noexcept :
+    stream(container.stream), base(container.base), size(container.size), header(container.header),
+    cached_load_commands_(container.cached_load_commands_), cached_symbol_table_(container.cached_symbol_table_), cached_string_table_(container.cached_string_table_) {
+        container.cached_load_commands_ = nullptr;
+        container.cached_symbol_table_ = nullptr;
+        container.cached_string_table_ = nullptr;
+    }
+
+    container &container::operator=(const container &container) noexcept {
+        stream = container.stream;
+
+        base = container.base;
+        size = container.size;
+
+        header = container.header;
+        return *this;
+    }
+
+    container &container::operator=(container &&container) noexcept {
+        stream = std::move(container.stream);
+
+        base = container.base;
+        size = container.size;
+
+        header = container.header;
+
+        cached_load_commands_ = container.cached_load_commands_;
+        cached_symbol_table_ = container.cached_symbol_table_;
+        cached_string_table_ = container.cached_string_table_;
+
+        container.cached_load_commands_ = nullptr;
+        container.cached_symbol_table_ = nullptr;
+        container.cached_string_table_ = nullptr;
+        
+        return *this;
+    }
+
+    container::open_result container::open(const stream::file::shared &stream, long base, size_t size) noexcept {
         this->stream = stream;
 
         this->base = base;
@@ -22,7 +62,7 @@ namespace macho {
         return validate_and_load_data();
     }
 
-    container::open_result container::open_from_library(FILE *stream, long base, size_t size) noexcept {
+    container::open_result container::open_from_library(const stream::file::shared &stream, long base, size_t size) noexcept {
         this->stream = stream;
 
         this->base = base;
@@ -31,7 +71,7 @@ namespace macho {
         return validate_and_load_data<validation_type::as_library>();
     }
 
-    container::open_result container::open_from_dynamic_library(FILE *stream, long base, size_t size) noexcept {
+    container::open_result container::open_from_dynamic_library(const stream::file::shared &stream, long base, size_t size) noexcept {
         this->stream = stream;
 
         this->base = base;
@@ -49,81 +89,40 @@ namespace macho {
         return validate_and_load_data();
     }
 
-    container::container(container &&container) noexcept :
-    stream(container.stream), base(container.base), size(container.size), header(container.header), cached_load_commands_(container.cached_load_commands_),
-    cached_symbol_table_(container.cached_symbol_table_), cached_string_table_(container.cached_string_table_) {
-        container.base = 0;
-        container.size = 0;
+    container::~container() noexcept {
+        if (cached_load_commands_ != nullptr) {
+            delete[] cached_load_commands_;
+        }
 
-        container.header = {};
-        container.cached_load_commands_ = nullptr;
+        if (cached_symbol_table_ != nullptr) {
+            delete[] cached_symbol_table_;
+        }
 
-        container.cached_string_table_ = nullptr;
-        container.cached_symbol_table_ = nullptr;
-    }
-
-    container &container::operator=(container &&container) noexcept {
-        stream = container.stream;
-
-        base = container.base;
-        size = container.size;
-
-        header = container.header;
-        cached_load_commands_ = container.cached_load_commands_;
-
-        cached_string_table_ = container.cached_string_table_;
-        cached_symbol_table_ = container.cached_symbol_table_;
-
-        container.stream = nullptr;
-        container.base = 0;
-        container.size = 0;
-
-        container.header = {};
-        container.cached_load_commands_ = nullptr;
-
-        container.cached_string_table_ = nullptr;
-        container.cached_symbol_table_ = nullptr;
-
-        return *this;
+        if (cached_string_table_ != nullptr) {
+            delete[] cached_string_table_;
+        }
     }
 
     size_t container::file_size(container::open_result &result) noexcept {
-        const auto position = ftell(stream);
-        if (fseek(stream, 0, SEEK_END) != 0) {
+        const auto position = stream.position();
+        if (!stream.seek(0, stream::file::seek_type::end)) {
             result = open_result::stream_seek_error;
             return 0;
         }
 
-        auto size = static_cast<size_t>(ftell(stream));
+        auto size = static_cast<size_t>(stream.position());
         if (size < base) {
             result = open_result::invalid_range;
             return size;
         }
 
-        if (fseek(stream, position, SEEK_SET) != 0) {
+        if (!stream.seek(position, stream::file::seek_type::beginning)) {
             result = open_result::stream_seek_error;
             return size;
         }
 
         result = open_result::ok;
         return size;
-    }
-
-    container::~container() {
-        auto &cached_load_commands = cached_load_commands_;
-        if (cached_load_commands != nullptr) {
-            delete[] cached_load_commands;
-        }
-
-        auto &cached_symbol_table = cached_symbol_table_;
-        if (cached_symbol_table != nullptr) {
-            delete[] cached_symbol_table;
-        }
-
-        auto &cached_string_table = cached_string_table_;
-        if (cached_string_table != nullptr) {
-            delete[] cached_string_table;
-        }
     }
 
     struct load_command *container::find_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
@@ -151,9 +150,9 @@ namespace macho {
         }
 
         if (!cached_load_commands) {
-            const auto position = ftell(stream);
+            const auto position = stream.position();
 
-            if (fseek(stream, load_command_base, SEEK_SET) != 0) {
+            if (!stream.seek(load_command_base, stream::file::seek_type::beginning)) {
                 if (result != nullptr) {
                     *result = load_command_iteration_result::stream_seek_error;
                 }
@@ -163,7 +162,7 @@ namespace macho {
 
             cached_load_commands = new uint8_t[sizeofcmds];
 
-            if (fread(cached_load_commands, sizeofcmds, 1, stream) != 1) {
+            if (!stream.read(cached_load_commands, sizeofcmds)) {
                 delete[] cached_load_commands;
                 cached_load_commands = nullptr;
 
@@ -174,7 +173,7 @@ namespace macho {
                 return nullptr;
             }
 
-            if (fseek(stream, position, SEEK_SET) != 0) {
+            if (!stream.seek(position, stream::file::seek_type::beginning)) {
                 if (result != nullptr) {
                     *result = load_command_iteration_result::stream_seek_error;
                 }
