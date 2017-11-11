@@ -397,8 +397,8 @@ void print_usage() {
     fputs("Usage: tbd [-p file-paths] [-o/-output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
-    fputs("    -o, --output,   Path(s) to output file(s) to write converted .tbd. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
-    fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a .tbd. Can also provide \"stdin\" to use stdin\n", stdout);
+    fputs("    -o, --output,   Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
+    fputs("    -p, --path,     Path(s) to mach-o file(s) to convert to a tbd file. Can also provide \"stdin\" to use stdin\n", stdout);
     fputs("    -u, --usage,    Print this message\n", stdout);
 
     fputc('\n', stdout);
@@ -455,13 +455,13 @@ void print_usage() {
 
     fputc('\n', stdout);
     fputs("List options:\n", stdout);
-    fputs("        --list-architectures,    List all valid architectures for .tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
-    fputs("        --list-tbd-flags,        List all valid flags for .tbd files\n", stdout);
+    fputs("        --list-architectures,    List all valid architectures for tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
+    fputs("        --list-tbd-flags,        List all valid flags for tbd files\n", stdout);
     fputs("        --list-macho-libraries,  List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
-    fputs("        --list-objc-constraints, List all valid objc-constraint options for .tbd files\n", stdout);
+    fputs("        --list-objc-constraints, List all valid objc-constraint options for tbd files\n", stdout);
     fputs("        --list-platform,         List all valid platforms\n", stdout);
     fputs("        --list-recurse,          List all valid recurse options for parsing directories\n", stdout);
-    fputs("        --list-versions,         List all valid versions for .tbd files\n", stdout);
+    fputs("        --list-versions,         List all valid versions for tbd files\n", stdout);
 }
 
 int main(int argc, const char *argv[]) {
@@ -1091,7 +1091,7 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.data(), &sbuf) == 0) {
                     if (S_ISDIR(sbuf.st_mode)) {
                         if (!(tbd_options & recurse_directories)) {
-                            fprintf(stderr, "Cannot output a tbd-file to directory (at path %s), please provide a path to a file to output to\n", path.data());
+                            fprintf(stderr, "Cannot output a tbd file to directory (at path %s), please provide a path to a file to output to\n", path.data());
                             return 1;
                         }
 
@@ -1101,7 +1101,7 @@ int main(int argc, const char *argv[]) {
                     } else {
                         if (S_ISREG(sbuf.st_mode)) {
                             if (tbd_options & recurse_directories) {
-                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output .tbd files to\n", tbd.path.data(), path.data());
+                                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to file (at path %s). Please provide a directory to output tbd files to\n", tbd.path.data(), path.data());
                                 return 1;
                             }
                         }
@@ -1659,7 +1659,7 @@ int main(int argc, const char *argv[]) {
 
         if (tbd_options & recurse_directories) {
             if (tbd_output_path.empty()) {
-                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output .tbd files to\n", tbd_path.data());
+                fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd files to\n", tbd_path.data());
                 return 1;
             }
 
