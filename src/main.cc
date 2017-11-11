@@ -1119,6 +1119,7 @@ int main(int argc, const char *argv[]) {
                         switch (result) {
                             case recursive::mkdir::result::ok:
                             case recursive::mkdir::result::failed_to_create_last_as_file:
+                            case recursive::mkdir::result::last_already_exists_not_as_file:
                                 break;
 
                             case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -1127,6 +1128,10 @@ int main(int argc, const char *argv[]) {
 
                             case recursive::mkdir::result::failed_to_create_last_as_directory:
                                 fprintf(stderr, "Failed to create directory at path (%s), failing with error: %s\n", path.data(), strerror(errno));
+                                return 1;
+
+                            case recursive::mkdir::result::last_already_exists_not_as_directory:
+                                fprintf(stderr, "Failed to create directory at path (%s), as object (not of type directory) already exists\n", path.data());
                                 return 1;
                         }
                     }
@@ -1711,6 +1716,7 @@ int main(int argc, const char *argv[]) {
                     switch (mkdir_result) {
                         case recursive::mkdir::result::ok:
                         case recursive::mkdir::result::failed_to_create_last_as_directory:
+                        case recursive::mkdir::result::last_already_exists_not_as_directory:
                             break;
 
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -1719,6 +1725,10 @@ int main(int argc, const char *argv[]) {
 
                         case recursive::mkdir::result::failed_to_create_last_as_file:
                             fprintf(stderr, "Failed to create file at output-path (%s), failing with error: %s\n", output_path.data(), strerror(errno));
+                            break;
+
+                        case recursive::mkdir::result::last_already_exists_not_as_file:
+                            fprintf(stderr, "Failed to create file at output-path (%s), as object (not of type file) already exists\n", output_path.data());
                             break;
                     }
 
@@ -2009,6 +2019,7 @@ int main(int argc, const char *argv[]) {
                     switch (result) {
                         case recursive::mkdir::result::ok:
                         case recursive::mkdir::result::failed_to_create_last_as_directory:
+                        case recursive::mkdir::result::last_already_exists_not_as_directory:
                             break;
 
                         case recursive::mkdir::result::failed_to_create_intermediate_directories:
@@ -2025,6 +2036,13 @@ int main(int argc, const char *argv[]) {
                                 fprintf(stderr, "Failed to create file at output-path (%s), failing with error: %s\n", tbd_output_path.data(), strerror(errno));
                             } else {
                                 fprintf(stderr, "Failed to create file at provided output-path, failing with error: %s\n", strerror(errno));
+                            }
+
+                        case recursive::mkdir::result::last_already_exists_not_as_file:
+                            if (should_print_paths) {
+                                fprintf(stderr, "Failed to create file at output-path (%s), as object (not of type file) already exists\n", tbd_output_path.data());
+                            } else {
+                                fputs("Failed to create file at provided output-path, as object (not of type file) already exists\n", stderr);
                             }
                     }
 

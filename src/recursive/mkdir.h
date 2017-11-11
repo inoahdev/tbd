@@ -14,7 +14,10 @@ namespace recursive::mkdir {
         failed_to_create_intermediate_directories,
 
         failed_to_create_last_as_directory,
-        failed_to_create_last_as_file
+        failed_to_create_last_as_file,
+
+        last_already_exists_not_as_file,
+        last_already_exists_not_as_directory
     };
 
     // Writing a null-terminator at terminator provides

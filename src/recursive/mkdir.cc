@@ -41,15 +41,7 @@ namespace recursive::mkdir {
         return result::ok;
     }
 
-    result _create_directories_if_missing_ignoring_last(char *path, char **terminator, bool *path_already_exists = nullptr) noexcept {
-        if (access(path, F_OK) == 0) {
-            if (path_already_exists != nullptr) {
-                *path_already_exists = true;
-            }
-
-            return result::ok;
-        }
-
+    result _create_directories_if_missing_ignoring_last(char *path, char **terminator) noexcept {
         auto end = utils::string::find_end_of_null_terminated_string(path);
         auto back = end - 1;
 
@@ -57,7 +49,7 @@ namespace recursive::mkdir {
             end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 
-        auto path_component_end = end;
+        auto path_component_end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         auto prev_path_component_end = end;
 
         while (path_component_end != path) {
@@ -83,8 +75,16 @@ namespace recursive::mkdir {
     }
 
     result perform(char *path, char **terminator) noexcept {
-        auto path_already_exists = false;
-        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator, &path_already_exists); path_already_exists) {
+        struct stat sbuf;
+        if (stat(path, &sbuf) == 0) {
+            if (!S_ISDIR(sbuf.st_mode)) {
+                return result::last_already_exists_not_as_directory;
+            }
+
+            return result::ok;
+        }
+
+        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
@@ -100,8 +100,16 @@ namespace recursive::mkdir {
     }
 
     result perform_with_last_as_file(char *path, char **terminator, int *last_descriptor) noexcept {
-        auto path_already_exists = false;
-        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator, &path_already_exists); path_already_exists) {
+        struct stat sbuf;
+        if (stat(path, &sbuf) == 0) {
+            if (!S_ISREG(sbuf.st_mode)) {
+                return result::last_already_exists_not_as_file;
+            }
+
+            return result::ok;
+        }
+
+        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
