@@ -124,8 +124,12 @@ namespace macho {
         const auto load_commands_size = header->sizeofcmds;
         const auto &load_commands_count = header->ncmds;
 
+        if (!load_commands_count || load_commands_size < sizeof(load_command)) {
+            return false;
+        }
 
-        if (!load_commands_size || !load_commands_count) {
+        const auto load_commands_minimum_size = sizeof(load_command) * load_commands_count;
+        if (load_commands_size < load_commands_minimum_size) {
             return false;
         }
 
@@ -152,13 +156,13 @@ namespace macho {
         const auto header_magic_is_big_endian = header->magic == magic::big_endian || header->magic == magic::bits64_big_endian;
 
         for (auto i = uint32_t(); i < load_commands_count; i++) {
-            auto &load_cmd = *reinterpret_cast<struct load_command *>(&load_commands[index]);
+            auto &load_cmd = *reinterpret_cast<load_command *>(&load_commands[index]);
             if (header_magic_is_big_endian) {
                 swap_load_command(load_cmd);
             }
 
-            auto cmdsize = load_cmd.cmdsize;
-            if (cmdsize < sizeof(struct load_command)) {
+            const auto cmdsize = load_cmd.cmdsize;
+            if (cmdsize < sizeof(load_command)) {
                 return false;
             }
 

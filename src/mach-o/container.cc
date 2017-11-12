@@ -139,8 +139,7 @@ namespace macho {
             return nullptr;
         }
 
-        auto &cached_load_commands = cached_load_commands_;
-        const auto created_cached_load_commands = !cached_load_commands;
+        const auto created_cached_load_commands = !cached_load_commands_;
 
         auto load_command_base = base + sizeof(header);
         auto magic_is_64_bit = is_64_bit();
@@ -149,7 +148,7 @@ namespace macho {
             load_command_base += sizeof(uint32_t);
         }
 
-        if (!cached_load_commands) {
+        if (!cached_load_commands_) {
             const auto position = stream.position();
 
             if (!stream.seek(load_command_base, stream::file::seek_type::beginning)) {
@@ -160,8 +159,8 @@ namespace macho {
                 return nullptr;
             }
 
-            cached_load_commands = static_cast<uint8_t *>(malloc(sizeofcmds));
-            if (!cached_load_commands) {
+            cached_load_commands_ = static_cast<uint8_t *>(malloc(sizeofcmds));
+            if (!cached_load_commands_) {
                 if (result != nullptr) {
                     *result = load_command_iteration_result::failed_to_allocate_memory;
                 }
@@ -169,9 +168,9 @@ namespace macho {
                 return nullptr;
             }
 
-            if (!stream.read(cached_load_commands, sizeofcmds)) {
-                delete[] cached_load_commands;
-                cached_load_commands = nullptr;
+            if (!stream.read(cached_load_commands_, sizeofcmds)) {
+                delete[] cached_load_commands_;
+                cached_load_commands_ = nullptr;
 
                 if (result != nullptr) {
                     *result = load_command_iteration_result::stream_read_error;
@@ -191,7 +190,7 @@ namespace macho {
 
         auto size_used = uint32_t();
         for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-            auto load_command = reinterpret_cast<struct load_command *>(&cached_load_commands[cached_load_commands_index]);
+            auto load_command = reinterpret_cast<struct load_command *>(&cached_load_commands_[cached_load_commands_index]);
             auto swapped_load_command = *load_command;
 
             if (magic_is_big_endian) {

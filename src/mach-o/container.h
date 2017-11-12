@@ -57,9 +57,10 @@ namespace macho {
 
         enum class load_command_iteration_result {
             ok,
-
             failed_to_allocate_memory,
+
             no_load_commands,
+            load_commands_area_is_too_small,
 
             stream_seek_error,
             stream_read_error,
@@ -77,12 +78,16 @@ namespace macho {
             const auto &ncmds = header.ncmds;
             const auto &sizeofcmds = header.sizeofcmds;
 
-            if (!ncmds || !sizeofcmds) {
+            if (!ncmds || sizeofcmds < sizeof(load_command)) {
                 return load_command_iteration_result::no_load_commands;
             }
 
-            auto &cached_load_commands = cached_load_commands_;
-            const auto created_cached_load_commands = !cached_load_commands;
+            const auto load_commands_minimum_size = sizeof(load_command) * ncmds;
+            if (sizeofcmds < load_commands_minimum_size) {
+                return load_command_iteration_result::load_commands_area_is_too_small;
+            }
+
+            const auto created_cached_load_commands = !cached_load_commands_;
 
             auto load_command_base = base + sizeof(header);
             auto magic_is_64_bit = is_64_bit();
@@ -91,21 +96,21 @@ namespace macho {
                 load_command_base += sizeof(uint32_t);
             }
 
-            if (!cached_load_commands) {
+            if (!cached_load_commands_) {
                 const auto position = stream.position();
 
                 if (!stream.seek(load_command_base, stream::file::seek_type::beginning)) {
                     return load_command_iteration_result::stream_seek_error;
                 }
 
-                cached_load_commands = static_cast<uint8_t *>(malloc(sizeofcmds));
-                if (!cached_load_commands) {
+                cached_load_commands_ = static_cast<uint8_t *>(malloc(sizeofcmds));
+                if (!cached_load_commands_) {
                     return load_command_iteration_result::failed_to_allocate_memory;
                 }
 
-                if (!stream.read(cached_load_commands, sizeofcmds)) {
-                    delete[] cached_load_commands;
-                    cached_load_commands = nullptr;
+                if (!stream.read(cached_load_commands_, sizeofcmds)) {
+                    delete[] cached_load_commands_;
+                    cached_load_commands_ = nullptr;
 
                     return load_command_iteration_result::stream_read_error;
                 }
@@ -119,7 +124,7 @@ namespace macho {
             auto should_callback = true;
 
             for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-                auto load_cmd = reinterpret_cast<struct load_command *>(&cached_load_commands[cached_load_commands_index]);
+                auto load_cmd = reinterpret_cast<load_command *>(&cached_load_commands_[cached_load_commands_index]);
                 auto swapped_load_command = *load_cmd;
 
                 if (magic_is_big_endian) {
@@ -128,7 +133,7 @@ namespace macho {
 
                 auto cmdsize = swapped_load_command.cmdsize;
                 if (created_cached_load_commands) {
-                    if (cmdsize < sizeof(struct load_command)) {
+                    if (cmdsize < sizeof(load_command)) {
                         return load_command_iteration_result::load_command_is_too_small;
                     }
 
@@ -168,7 +173,7 @@ namespace macho {
             const auto magic_is_64_bit = is_64_bit();
 
             const auto position = stream.position();
-            const auto symbol_table = (symtab_command *)find_first_of_load_command(load_commands::symbol_table);
+            const auto symbol_table = static_cast<symtab_command *>(find_first_of_load_command(load_commands::symbol_table));
 
             if (!symbol_table) {
                 return symbols_iteration_result::no_symbol_table_load_command;
@@ -461,6 +466,7 @@ namespace macho {
                     case load_command_iteration_result::stream_read_error:
                         return open_result::stream_read_error;
 
+                    case load_command_iteration_result::load_commands_area_is_too_small:
                     case load_command_iteration_result::load_command_is_too_small:
                     case load_command_iteration_result::load_command_is_too_large:
                         return open_result::invalid_macho;

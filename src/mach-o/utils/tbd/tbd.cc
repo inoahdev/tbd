@@ -1540,6 +1540,7 @@ namespace macho::utils::tbd {
                 break;
 
             case container::load_command_iteration_result::no_load_commands:
+            case container::load_command_iteration_result::load_commands_area_is_too_small:
             case container::load_command_iteration_result::failed_to_allocate_memory:
             case container::load_command_iteration_result::stream_seek_error:
             case container::load_command_iteration_result::stream_read_error:
