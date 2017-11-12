@@ -850,7 +850,7 @@ int main(int argc, const char *argv[]) {
                             recurse_options |= recurse::options::recurse_subdirectories;
                         }
 
-                        const auto recursion_result = recurse::macho_file_paths(path_data, recurse::macho_file_type::library, recurse_options, [&](std::string &library_path) {
+                        const auto recursion_result = recurse::macho_file_paths(path_data, recurse_macho_file_type, recurse_options, [&](std::string &library_path) {
                             fprintf(stdout, "%s\n", library_path.data());
                         });
 
