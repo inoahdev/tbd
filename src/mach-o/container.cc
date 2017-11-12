@@ -17,7 +17,7 @@ namespace macho {
     stream(container.stream), base(container.base), size(container.size), header(container.header) {}
 
     container::container(container &&container) noexcept :
-    stream(container.stream), base(container.base), size(container.size), header(container.header),
+    stream(std::move(container.stream)), base(container.base), size(container.size), header(container.header),
     cached_load_commands_(container.cached_load_commands_), cached_symbol_table_(container.cached_symbol_table_), cached_string_table_(container.cached_string_table_) {
         container.cached_load_commands_ = nullptr;
         container.cached_symbol_table_ = nullptr;
@@ -49,7 +49,7 @@ namespace macho {
         container.cached_load_commands_ = nullptr;
         container.cached_symbol_table_ = nullptr;
         container.cached_string_table_ = nullptr;
-        
+
         return *this;
     }
 
@@ -160,7 +160,14 @@ namespace macho {
                 return nullptr;
             }
 
-            cached_load_commands = new uint8_t[sizeofcmds];
+            cached_load_commands = static_cast<uint8_t *>(malloc(sizeofcmds));
+            if (!cached_load_commands) {
+                if (result != nullptr) {
+                    *result = load_command_iteration_result::failed_to_allocate_memory;
+                }
+
+                return nullptr;
+            }
 
             if (!stream.read(cached_load_commands, sizeofcmds)) {
                 delete[] cached_load_commands;
@@ -184,7 +191,7 @@ namespace macho {
 
         auto size_used = uint32_t();
         for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-            auto load_command = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+            auto load_command = reinterpret_cast<struct load_command *>(&cached_load_commands[cached_load_commands_index]);
             auto swapped_load_command = *load_command;
 
             if (magic_is_big_endian) {

@@ -129,7 +129,7 @@ namespace macho {
             return false;
         }
 
-        const auto load_commands = (uint8_t *)malloc(load_commands_size);
+        const auto load_commands = static_cast<uint8_t *>(malloc(load_commands_size));
         if (!load_commands) {
             if (error != nullptr) {
                 *error = check_error::failed_to_allocate_memory;
@@ -152,7 +152,7 @@ namespace macho {
         const auto header_magic_is_big_endian = header->magic == magic::big_endian || header->magic == magic::bits64_big_endian;
 
         for (auto i = uint32_t(); i < load_commands_count; i++) {
-            auto &load_cmd = *(struct load_command *)&load_commands[index];
+            auto &load_cmd = *reinterpret_cast<struct load_command *>(&load_commands[index]);
             if (header_magic_is_big_endian) {
                 swap_load_command(load_cmd);
             }

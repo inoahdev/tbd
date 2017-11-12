@@ -1540,6 +1540,7 @@ namespace macho::utils::tbd {
                 break;
 
             case container::load_command_iteration_result::no_load_commands:
+            case container::load_command_iteration_result::failed_to_allocate_memory:
             case container::load_command_iteration_result::stream_seek_error:
             case container::load_command_iteration_result::stream_read_error:
             case container::load_command_iteration_result::load_command_is_too_small:
@@ -1636,6 +1637,7 @@ namespace macho::utils::tbd {
             case container::symbols_iteration_result::no_symbol_table_load_command:
                 break;
 
+            case container::symbols_iteration_result::failed_to_allocate_memory:
             case container::symbols_iteration_result::stream_seek_error:
             case container::symbols_iteration_result::stream_read_error:
             case container::symbols_iteration_result::invalid_symbol_table_load_command:

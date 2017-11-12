@@ -45,10 +45,10 @@ bits::creation_result bits::create_copy(const bits &bits) {
 
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
-        auto size = (size_t)((double)length / (double)bit_size) + 1;
+        auto size = static_cast<size_t>((static_cast<double>(length) / static_cast<double>(bit_size)) + 1);
         auto allocation_size = sizeof(bits_integer_t) * size;
 
-        data.pointer = (bits_integer_t *)malloc(allocation_size);
+        data.pointer = static_cast<bits_integer_t *>(malloc(allocation_size));
         if (!data.pointer) {
             return creation_result::failed_to_allocate_memory;
         }
@@ -76,8 +76,8 @@ bits::~bits() {
 void bits::cast(bits_integer_t index, bool flag) noexcept {
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
-        auto location = (bits_integer_t)((double)(index + 1) / (double)bit_size);
-        auto pointer = (bits_integer_t *)((bits_integer_t)data.pointer + (sizeof(bits_integer_t) * location));
+        auto location = static_cast<bits_integer_t>(static_cast<double>(index + 1) / static_cast<double>(bit_size));
+        auto pointer = reinterpret_cast<bits_integer_t *>(reinterpret_cast<bits_integer_t>(data.pointer) + (sizeof(bits_integer_t) * location));
 
         index -= bit_size * location;
 
@@ -100,8 +100,8 @@ bool bits::at(bits_integer_t index) const noexcept {
     const auto bit_size = this->bit_size();
 
     if (length > bit_size) {
-        auto location = (bits_integer_t)((double)(index + 1) / (double)bit_size);
-        auto pointer = (bits_integer_t *)((bits_integer_t)data.pointer + (sizeof(bits_integer_t) * location));
+        auto location = static_cast<bits_integer_t>(static_cast<double>(index + 1) / static_cast<double>(bit_size));
+        auto pointer = reinterpret_cast<bits_integer_t *>(reinterpret_cast<bits_integer_t>(data.pointer) + (sizeof(bits_integer_t) * location));
 
         index -= bit_size * location;
         bits = *pointer;
@@ -117,7 +117,7 @@ bool bits::operator==(const bits &bits) const noexcept {
 
     auto bit_size = this->bit_size();
     if (length > bit_size) {
-        auto size = (bits_integer_t)((double)length / bit_size) + 1;
+        auto size = static_cast<bits_integer_t>(static_cast<double>(length) / bit_size) + 1;
         return memcmp(data.pointer, bits.data.pointer, sizeof(bits_integer_t) * size) == 0;
     }
 

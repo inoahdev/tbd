@@ -57,9 +57,13 @@ namespace macho {
 
         enum class load_command_iteration_result {
             ok,
+
+            failed_to_allocate_memory,
             no_load_commands,
+
             stream_seek_error,
             stream_read_error,
+
             load_command_is_too_small,
             load_command_is_too_large
         };
@@ -94,7 +98,10 @@ namespace macho {
                     return load_command_iteration_result::stream_seek_error;
                 }
 
-                cached_load_commands = new uint8_t[sizeofcmds];
+                cached_load_commands = static_cast<uint8_t *>(malloc(sizeofcmds));
+                if (!cached_load_commands) {
+                    return load_command_iteration_result::failed_to_allocate_memory;
+                }
 
                 if (!stream.read(cached_load_commands, sizeofcmds)) {
                     delete[] cached_load_commands;
@@ -112,7 +119,7 @@ namespace macho {
             auto should_callback = true;
 
             for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-                auto load_cmd = (struct load_command *)&cached_load_commands[cached_load_commands_index];
+                auto load_cmd = reinterpret_cast<struct load_command *>(&cached_load_commands[cached_load_commands_index]);
                 auto swapped_load_command = *load_cmd;
 
                 if (magic_is_big_endian) {
@@ -143,6 +150,7 @@ namespace macho {
 
         enum class symbols_iteration_result {
             ok,
+            failed_to_allocate_memory,
 
             stream_seek_error,
             stream_read_error,
@@ -208,7 +216,10 @@ namespace macho {
                     return symbols_iteration_result::stream_seek_error;
                 }
 
-                cached_string_table = new char[string_table_size];
+                cached_string_table = static_cast<char *>(malloc(string_table_size));
+                if (!cached_string_table) {
+                    return symbols_iteration_result::failed_to_allocate_memory;
+                }
 
                 if (!stream.read(cached_string_table, string_table_size)) {
                     delete[] cached_string_table;
@@ -255,7 +266,10 @@ namespace macho {
                         return symbols_iteration_result::invalid_symbol_table_load_command;
                     }
 
-                    cached_symbol_table = new uint8_t[symbol_table_size];
+                    cached_symbol_table = static_cast<uint8_t *>(malloc(symbol_table_size));
+                    if (!cached_symbol_table) {
+                        return symbols_iteration_result::failed_to_allocate_memory;
+                    }
 
                     if (!stream.read(cached_symbol_table, symbol_table_size)) {
                         delete[] cached_symbol_table;
@@ -278,7 +292,10 @@ namespace macho {
                         return symbols_iteration_result::invalid_symbol_table_load_command;
                     }
 
-                    cached_symbol_table = new uint8_t[symbol_table_size];
+                    cached_symbol_table = static_cast<uint8_t *>(malloc(symbol_table_size));
+                    if (!cached_symbol_table) {
+                        return symbols_iteration_result::failed_to_allocate_memory;
+                    }
 
                     if (!stream.read(cached_symbol_table, symbol_table_size)) {
                         delete[] cached_symbol_table;
@@ -413,7 +430,7 @@ namespace macho {
             if constexpr (type == validation_type::as_library || type == validation_type::as_dynamic_library) {
                 auto filetype = header.filetype;
                 if (magic_is_big_endian) {
-                    swap_uint32(*(uint32_t *)&filetype);
+                    swap_uint32(*reinterpret_cast<uint32_t *>(&filetype));
                 }
 
 
@@ -430,12 +447,11 @@ namespace macho {
                 }
 
                 auto iteration_result = load_command_iteration_result::ok;
-                auto identification_dylib = (dylib_command *)find_first_of_load_command(load_commands::identification_dylib, &iteration_result);
+                auto identification_dylib = static_cast<dylib_command *>(find_first_of_load_command(load_commands::identification_dylib, &iteration_result));
 
                 switch (iteration_result) {
                     case load_command_iteration_result::ok:
-                        break;
-
+                    case load_command_iteration_result::failed_to_allocate_memory:
                     case load_command_iteration_result::no_load_commands:
                         break;
 
