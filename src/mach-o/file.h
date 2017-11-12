@@ -169,7 +169,7 @@ namespace macho {
                 const auto magic_is_fat_64 = magic == magic::fat_64 || magic == magic::fat_64_big_endian;
                 if (magic_is_fat_64) {
                     const auto architectures_size = sizeof(architecture_64) * nfat_arch;
-                    const auto architectures = (architecture_64 *)malloc(architectures_size);
+                    const auto architectures = static_cast<architecture_64 *>(malloc(architectures_size));
 
                     if (!architectures) {
                         if (error != nullptr) {
@@ -277,7 +277,7 @@ namespace macho {
                     free(architectures);
                 } else {
                     const auto architectures_size = sizeof(architecture) * nfat_arch;
-                    const auto architectures = (architecture *)malloc(architectures_size);
+                    const auto architectures = static_cast<architecture *>(malloc(architectures_size));
 
                     if (!architectures) {
                         if (error != nullptr) {
@@ -458,6 +458,10 @@ namespace macho {
                 return open_result::failed_to_retrieve_information;
             }
 
+            if (information.st_size < sizeof(header)) {
+                return open_result::not_a_macho;
+            }
+
             const auto remaining_size = [&](size_t size) noexcept {
                 auto pos = stream.position();
                 if (pos == -1L) {
@@ -525,7 +529,7 @@ namespace macho {
                         return open_result::architectures_goes_past_end_of_file;
                     }
 
-                    const auto architectures = (architecture_64 *)malloc(architectures_size);
+                    const auto architectures = static_cast<architecture_64 *>(malloc(architectures_size));
                     if (!architectures) {
                         return open_result::failed_to_allocate_memory;
                     }
@@ -612,7 +616,7 @@ namespace macho {
                         return open_result::architectures_goes_past_end_of_file;
                     }
 
-                    const auto architectures = (architecture *)malloc(architectures_size);
+                    const auto architectures = static_cast<architecture *>(malloc(architectures_size));
                     if (!architectures) {
                         return open_result::failed_to_allocate_memory;
                     }
