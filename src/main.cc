@@ -747,7 +747,7 @@ int main(int argc, const char *argv[]) {
                     const auto container_arch_info = macho::architecture_info_from_cputype(container.header.cputype, container_subtype);
 
                     if (!container_arch_info) {
-                        fputs("Mach-o file at provided path has unknown architecture\n", stderr);
+                        fputs("Mach-o file at provided path is of an unknown architecture\n", stderr);
                         return 1;
                     }
 
@@ -964,17 +964,6 @@ int main(int argc, const char *argv[]) {
                 auto path = std::string(retrieve_current_directory());
                 if (const auto &back = path.back(); back != '/' && back != '\\') {
                     path.append(1, '/');
-                }
-
-                struct stat sbuf;
-                if (stat(path.data(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on current-directory (at path %s), failing with error: %s\n", path.data(), strerror(errno));
-                    return 1;
-                }
-
-                if (!S_ISDIR(sbuf.st_mode)) {
-                    fprintf(stderr, "Object at path (%s) is not a directory\n", path.data());
-                    return 1;
                 }
 
                 const auto recursion_result = recurse::macho_file_paths(path.data(), recurse::macho_file_type::library, recurse::options::print_warnings | recurse::options::recurse_subdirectories, [&](std::string &library_path) {
@@ -1680,9 +1669,17 @@ int main(int argc, const char *argv[]) {
         }
 
         if (tbd_options & recurse_directories) {
+            // Although checks for any errors are supposed to occur during
+            // argument-parsing, it is not possible to check earlier when
+            // output-path has not been provided (user did not provide -o
+            // argument)
+
+            // Prefer continuing after printing error to continue work on
+            // other tbd operations
+
             if (tbd_output_path.empty()) {
                 fprintf(stderr, "Cannot output mach-o files found while recursing directory (at path %s) to stdout. Please provide a directory to output tbd files to\n", tbd_path.data());
-                return 1;
+                continue;
             }
 
             if (options & replace_path_extension) {
@@ -1733,6 +1730,9 @@ int main(int argc, const char *argv[]) {
                 auto output_path_creation_terminator = static_cast<char *>(nullptr);
                 auto output_file_descriptor = -1;
 
+                // should_print_paths is always true for recursing,
+                // so a checks here are unnecessary
+
                 const auto mkdir_result = recursive::mkdir::perform_with_last_as_file(output_path.data(), &output_path_creation_terminator, &output_file_descriptor);
                 if (mkdir_result != recursive::mkdir::result::ok) {
                     switch (mkdir_result) {
@@ -1765,9 +1765,6 @@ int main(int argc, const char *argv[]) {
                 }
 
                 if (!output_file) {
-                    // should_print_paths is always true for recursing,
-                    // so a check here is unnecessary
-
                     fprintf(stderr, "Failed to open file (at path %s) for writing, failing with error: %s\n", output_path.data(), strerror(errno));
                     return;
                 }
