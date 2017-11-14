@@ -69,7 +69,7 @@ namespace macho {
             load_command_is_too_large
         };
 
-        struct load_command *find_first_of_load_command(load_commands cmd, load_command_iteration_result *result = nullptr);
+        load_command *find_first_of_load_command(load_commands cmd, load_command_iteration_result *result = nullptr);
 
         template <typename T>
         load_command_iteration_result iterate_load_commands(T &&callback) noexcept { // <bool(long, const struct load_command *, const struct load_command *)>
@@ -325,15 +325,15 @@ namespace macho {
             const auto string_table_max_index = string_table_size - 1;
             if (magic_is_64_bit) {
                 for (auto i = uint32_t(); i < symbol_table_count; i++) {
-                    const auto &symbol_table_entry = &((struct nlist_64 *)cached_symbol_table)[i];
-                    const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
+                    const auto &symbol_table_entry = reinterpret_cast<struct nlist_64 *>(cached_symbol_table)[i];
+                    const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
                     if (symbol_table_entry_string_table_index > string_table_max_index) {
                         return symbols_iteration_result::invalid_symbol_table_entry;
                     }
 
                     const auto symbol_table_string_table_string = &cached_string_table[symbol_table_entry_string_table_index];
-                    const auto result = callback(*symbol_table_entry, symbol_table_string_table_string);
+                    const auto result = callback(symbol_table_entry, symbol_table_string_table_string);
 
                     if (!result) {
                         break;
@@ -341,14 +341,14 @@ namespace macho {
                 }
             } else {
                 for (auto i = uint32_t(); i < symbol_table_count; i++) {
-                    const auto &symbol_table_entry = &((struct nlist *)cached_symbol_table)[i];
-                    const auto &symbol_table_entry_string_table_index = symbol_table_entry->n_un.n_strx;
+                    const auto &symbol_table_entry = reinterpret_cast<struct nlist *>(cached_symbol_table)[i];
+                    const auto &symbol_table_entry_string_table_index = symbol_table_entry.n_un.n_strx;
 
                     if (symbol_table_entry_string_table_index > string_table_max_index) {
                         return symbols_iteration_result::invalid_symbol_table_entry;
                     }
 
-                    const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry->n_un.n_strx }, symbol_table_entry->n_type, symbol_table_entry->n_sect, static_cast<uint16_t>(symbol_table_entry->n_desc), symbol_table_entry->n_value };
+                    const struct nlist_64 symbol_table_entry_64 = { { symbol_table_entry.n_un.n_strx }, symbol_table_entry.n_type, symbol_table_entry.n_sect, static_cast<uint16_t>(symbol_table_entry.n_desc), symbol_table_entry.n_value };
 
                     const auto symbol_table_string_table_string = &cached_string_table[symbol_table_entry_string_table_index];
                     const auto result = callback(symbol_table_entry_64, symbol_table_string_table_string);
