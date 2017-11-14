@@ -118,9 +118,12 @@ enum creation_handling {
     creation_handling_dont_print_warnings              = 1 << 2
 };
 
-bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd_file, macho::utils::tbd::options options, macho::utils::tbd::flags flags, macho::utils::tbd::objc_constraint constraint, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
-    auto result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, flags, constraint, platform, version, architectures, architecture_overrides);
+bool create_tbd_file(const char *macho_file_path, macho::file &file, const char *tbd_file_path, FILE *tbd, macho::utils::tbd::options options, macho::utils::tbd::flags flags, macho::utils::tbd::objc_constraint constraint, macho::utils::tbd::platform platform, macho::utils::tbd::version version, uint64_t architectures, uint64_t architecture_overrides, uint64_t creation_handling_options) {
+    auto result = macho::utils::tbd::create_from_macho_library(file, tbd, options, flags, constraint, platform, version, architectures, architecture_overrides);
     if (result == macho::utils::tbd::creation_result::platform_not_found || result == macho::utils::tbd::creation_result::platform_not_supported || result == macho::utils::tbd::creation_result::unrecognized_platform ||  result == macho::utils::tbd::creation_result::multiple_platforms) {
+        // Allow the user, in the case where tbd failed to find a platform-indicator inside
+        // the provided file, to provide a platform
+        
         switch (result) {
             case macho::utils::tbd::creation_result::platform_not_found:
                 if (creation_handling_options & creation_handling_print_paths) {
@@ -197,7 +200,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             }
         } while (new_platform == macho::utils::tbd::platform::none);
 
-        result = macho::utils::tbd::create_from_macho_library(file, tbd_file, options, flags, constraint, platform, version, architectures, architecture_overrides);
+        result = macho::utils::tbd::create_from_macho_library(file, tbd, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     if (!(creation_handling_options & creation_handling_dont_print_warnings)) {
@@ -471,10 +474,10 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        recurse_directories    = 1 << 24, // Use third-byte to support native tbd options
+        recurse_directories	   = 1 << 24, // Use third-byte to support native tbd options
         recurse_subdirectories = 1 << 25,
         maintain_directories   = 1 << 26,
-        dont_print_warnings    = 1 << 27,
+        dont_print_warnings	   = 1 << 27,
         replace_path_extension = 1 << 28,
         only_dynamic_libraries = 1 << 29
     };
@@ -587,10 +590,17 @@ int main(int argc, const char *argv[]) {
                 } else if (strcmp(argument, "not_app_extension_safe") == 0) {
                     flags |= macho::utils::tbd::flags::not_app_extension_safe;
                 } else {
+                    // Error out if the user simply provided "-flags" 
+                    // without any extra arguments, 
+
                     if (j == i) {
                         fputs("Please provide a list of flags to add onto ones found in provided mach-o file(s)\n", stderr);
                         return 1;
                     }
+
+                    // Otherwise break out, and decrement j as 
+                    // i is set to j and then incremented skipping
+                    // over the current argument
 
                     j--;
                     break;
@@ -627,6 +637,9 @@ int main(int argc, const char *argv[]) {
                 fputc('\n', stdout);
             } else {
                 i++;
+
+                // Option "--list-architectures" allows only one optional
+                // path-argument to be provided
 
                 if (i + 2 <= argc) {
                     fprintf(stderr, "Unrecognized argument: %s\n", argv[i + 1]);
@@ -701,24 +714,44 @@ int main(int argc, const char *argv[]) {
                         break;
                 }
 
-                auto architecture_names = std::vector<const char *>();
-                architecture_names.reserve(macho_file.containers.size());
+                // Store architectures into a vector before printing to
+                // not error out if an architecture for a container present
+                // is unrecognized in the middle of printing architectures
+                // of the other containers
 
-                for (const auto &container : macho_file.containers) {
+                const auto containers_size = macho_file.containers.size();
+                if (containers_size >= 2) {
+                    auto architecture_names = std::vector<const char *>();
+                    architecture_names.reserve(containers_size);
+
+                    for (const auto &container : macho_file.containers) {
+                        const auto container_subtype = macho::subtype_from_cputype(container.header.cputype, container.header.cpusubtype);
+                        const auto container_arch_info = macho::architecture_info_from_cputype(container.header.cputype, container_subtype);
+
+                        if (!container_arch_info) {
+                            fputs("Mach-o file at provided path has unknown architectures\n", stderr);
+                            return 1;
+                        }
+
+                        architecture_names.emplace_back(container_arch_info->name);
+                    }
+
+                    fputs(architecture_names.front(), stdout);
+                    for (auto architecture_names_iter = architecture_names.cbegin() + 1; architecture_names_iter != architecture_names.cend(); architecture_names_iter++) {
+                        fprintf(stdout, ", %s", *architecture_names_iter);
+                    }
+                } else {
+                    const auto &container = macho_file.containers.front();
+
                     const auto container_subtype = macho::subtype_from_cputype(container.header.cputype, container.header.cpusubtype);
                     const auto container_arch_info = macho::architecture_info_from_cputype(container.header.cputype, container_subtype);
 
                     if (!container_arch_info) {
-                        fputs("Mach-o file at provided path has unknown architectures\n", stderr);
+                        fputs("Mach-o file at provided path has unknown architecture\n", stderr);
                         return 1;
                     }
 
-                    architecture_names.emplace_back(container_arch_info->name);
-                }
-
-                fputs(architecture_names.front(), stdout);
-                for (auto architecture_names_iter = architecture_names.cbegin() + 1; architecture_names_iter != architecture_names.cend(); architecture_names_iter++) {
-                    fprintf(stdout, ", %s", *architecture_names_iter);
+                    fputs(container_arch_info->name, stdout);
                 }
 
                 fputc('\n', stdout);
@@ -864,10 +897,22 @@ int main(int argc, const char *argv[]) {
                                 break;
 
                             case recurse::operation_result::found_no_matching_files:
+                                // Rather than exiting leaving the user empty-handed, it is 
+                                // better to acknowledge that no mach-o files of the relevant
+                                // type were found
+                                
                                 if (options & recurse_subdirectories) {
-                                    fprintf(stderr, "No mach-o library files were found while recursing through path (%s) and its sub-directories\n", path_data);
+                                    if (options & only_dynamic_libraries) {
+                                        fprintf(stderr, "No mach-o dynamic library files were found while recursing through path (%s) and its sub-directories\n", path_data);
+                                    } else {
+                                        fprintf(stderr, "No mach-o library files were found while recursing through path (%s) and its sub-directories\n", path_data);
+                                    }
                                 } else {
-                                    fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path_data);
+                                    if (options & only_dynamic_libraries) {
+                                        fprintf(stderr, "No mach-o dynamic library files were found while recursing through path: %s\n", path_data);
+                                    } else {
+                                        fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path_data);
+                                    }
                                 }
 
                                 break;
@@ -1110,29 +1155,6 @@ int main(int argc, const char *argv[]) {
                     if (tbd_options & recurse_directories) {
                         if (const auto &path_back = path.back(); path_back != '/' && path_back != '\\') {
                             path.append(1, '/');
-                        }
-
-                        // If an output-directory does not exist, it is expected
-                        // to be created.
-
-                        const auto result = recursive::mkdir::perform(path.data());
-                        switch (result) {
-                            case recursive::mkdir::result::ok:
-                            case recursive::mkdir::result::failed_to_create_last_as_file:
-                            case recursive::mkdir::result::last_already_exists_not_as_file:
-                                break;
-
-                            case recursive::mkdir::result::failed_to_create_intermediate_directories:
-                                fprintf(stderr, "Failed to create intermediate directories in path (%s), failing with error: %s\n", path.data(), strerror(errno));
-                                return 1;
-
-                            case recursive::mkdir::result::failed_to_create_last_as_directory:
-                                fprintf(stderr, "Failed to create directory at path (%s), failing with error: %s\n", path.data(), strerror(errno));
-                                return 1;
-
-                            case recursive::mkdir::result::last_already_exists_not_as_directory:
-                                fprintf(stderr, "Failed to create directory at path (%s), as object (not of type directory) already exists\n", path.data());
-                                return 1;
                         }
                     }
                 }
