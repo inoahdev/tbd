@@ -1,5 +1,0 @@
-[
-  {
-    "command" : "clang++ -std=c++17 -stdlib=libc++ src/mach-o/architecture_info.cc src/mach-o/container.cc src/mach-o/file.cc src/mach-o/headers/cputype.cc src/mach-o/swap.cc src/mach-o/utils/tbd/tbd.cc src/main.cc src/misc/bits.cc src/misc/recurse.cc src/recursive/mkdir.cc src/recursive/remove.cc src/utils/directory.cc src/utils/path.cc src/utils/string.cc",
-  }
-]

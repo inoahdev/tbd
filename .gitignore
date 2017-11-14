@@ -2,6 +2,9 @@
 **/xcuserdata/
 
 .vs/
+.vscode/
+
+compile_commands.json
 
 build/
 tests/

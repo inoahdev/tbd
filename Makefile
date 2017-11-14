@@ -24,3 +24,6 @@ debug: target-dir
 
 install: all
 	@sudo mv $(TARGET) /usr/bin
+
+compile_commands:
+	@echo "[\n\t{\n\t\t\"command\" : \"$(CXX) $(CXXFLAGS) $(SRCS)\"\n\t}\n]" > compile_commands.json
