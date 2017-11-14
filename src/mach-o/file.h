@@ -156,14 +156,14 @@ namespace macho {
                     return false;
                 }
 
-                const auto magic_is_big_endian = magic == magic::fat_big_endian || magic == magic::fat_64_big_endian;
-                if (magic_is_big_endian) {
-                    swap_uint32(nfat_arch);
-                }
-
                 if (!nfat_arch) {
                     close(descriptor);
                     return false;
+                }
+
+                const auto magic_is_big_endian = magic == magic::fat_big_endian || magic == magic::fat_64_big_endian;
+                if (magic_is_big_endian) {
+                    swap_uint32(nfat_arch);
                 }
 
                 const auto magic_is_fat_64 = magic == magic::fat_64 || magic == magic::fat_64_big_endian;

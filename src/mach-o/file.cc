@@ -121,7 +121,7 @@ namespace macho {
             }
         }
 
-        const auto load_commands_size = header->sizeofcmds;
+        const auto &load_commands_size = header->sizeofcmds;
         const auto &load_commands_count = header->ncmds;
 
         if (!load_commands_count || load_commands_size < sizeof(load_command)) {
