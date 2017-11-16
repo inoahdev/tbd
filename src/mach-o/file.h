@@ -113,6 +113,9 @@ namespace macho {
             return is_valid_dynamic_library(path.data());
         }
 
+        bool is_library() noexcept;
+        bool is_dynamic_library() noexcept;
+
     private:
         static bool has_library_command(int descriptor, const struct header *header, check_error *error) noexcept;
         static int get_library_file_descriptor(const char *path, check_error *error);

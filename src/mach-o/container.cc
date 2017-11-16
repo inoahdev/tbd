@@ -91,15 +91,15 @@ namespace macho {
 
     container::~container() noexcept {
         if (cached_load_commands_ != nullptr) {
-            delete[] cached_load_commands_;
+            free(cached_load_commands_);
         }
 
         if (cached_symbol_table_ != nullptr) {
-            delete[] cached_symbol_table_;
+            free(cached_symbol_table_);
         }
 
         if (cached_string_table_ != nullptr) {
-            delete[] cached_string_table_;
+            free(cached_string_table_);
         }
     }
 
@@ -131,7 +131,7 @@ namespace macho {
         const auto &ncmds = header.ncmds;
         const auto &sizeofcmds = header.sizeofcmds;
 
-        if (!ncmds || !sizeofcmds) {
+        if (!ncmds || sizeofcmds < sizeof(struct load_command)) {
             if (result != nullptr) {
                 *result = load_command_iteration_result::no_load_commands;
             }
@@ -139,7 +139,16 @@ namespace macho {
             return nullptr;
         }
 
-        const auto created_cached_load_commands = !cached_load_commands_;
+        const auto load_commands_minimum_size = sizeof(load_command) * ncmds;
+        if (sizeofcmds < load_commands_minimum_size) {
+            if (result != nullptr) {
+                *result = load_command_iteration_result::load_commands_area_is_too_small;
+            }
+
+            return nullptr;
+        }
+
+        const auto created_cached_load_commands = cached_load_commands_ == nullptr;
 
         auto load_command_base = base + sizeof(header);
         auto magic_is_64_bit = is_64_bit();
@@ -169,7 +178,7 @@ namespace macho {
             }
 
             if (!stream.read(cached_load_commands_, sizeofcmds)) {
-                delete[] cached_load_commands_;
+                free(cached_load_commands_);
                 cached_load_commands_ = nullptr;
 
                 if (result != nullptr) {
@@ -224,5 +233,36 @@ namespace macho {
         }
 
         return nullptr;
+    }
+
+    bool container::is_library() noexcept {
+        auto identification_dylib = find_first_of_load_command(load_commands::identification_dylib);
+        if (!identification_dylib) {
+            return false;
+        }
+
+        auto cmdsize = identification_dylib.cmdsize;
+        auto is_big_endian = this->is_big_endian();
+
+        if (is_big_endian) {
+            swap_uint32(cmdsize);
+        }
+
+        return cmdsize >= sizeof(struct dylib_command);
+    }
+
+    bool container::is_dynamic_library() noexcept {
+        auto filetype = header.filetype;
+        auto is_big_endian = this->is_big_endian();
+        
+        if (is_big_endian) {
+            swap_uint32(*reinterpret_cast<uint32_t *>(&filetype));
+        }
+
+        if (filetype != filetype::dylib) {
+            return false;
+        }
+
+        return is_library();
     }
 }

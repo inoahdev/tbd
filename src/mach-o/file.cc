@@ -147,6 +147,7 @@ namespace macho {
                 *error = check_error::failed_to_read_descriptor;
             }
 
+            free(load_commands);
             return false;
         }
 
@@ -156,22 +157,25 @@ namespace macho {
         const auto header_magic_is_big_endian = header->magic == magic::big_endian || header->magic == magic::bits64_big_endian;
 
         for (auto i = uint32_t(); i < load_commands_count; i++) {
-            auto &load_cmd = *reinterpret_cast<load_command *>(&load_commands[index]);
+            auto &load_command = *reinterpret_cast<struct load_command *>(&load_commands[index]);
             if (header_magic_is_big_endian) {
-                swap_load_command(load_cmd);
+                swap_load_command(load_command);
             }
 
-            const auto cmdsize = load_cmd.cmdsize;
-            if (cmdsize < sizeof(load_command)) {
+            const auto cmdsize = load_command.cmdsize;
+            if (cmdsize < sizeof(struct load_command)) {
+                free(load_commands);
                 return false;
             }
 
             if (cmdsize > size_left || (cmdsize == size_left && i != load_commands_count - 1)) {
+                free(load_commands);
                 return false;
             }
 
-            if (load_cmd.cmd == load_commands::identification_dylib) {
-                if (load_cmd.cmdsize < sizeof(dylib_command)) {
+            if (load_command.cmd == load_commands::identification_dylib) {
+                free(load_commands);
+                if (load_command.cmdsize < sizeof(dylib_command)) {
                     // Make sure load-command is valid
                     return false;
                 }
@@ -182,6 +186,31 @@ namespace macho {
             index += cmdsize;
         }
 
+        free(load_commands);
         return false;
+    }
+
+    bool file::is_library() noexcept {
+        auto is_library = false;
+        for (auto &container : containers) {
+            is_library = container.is_library();
+            if (!is_library) {
+                break;
+            }
+        }
+
+        return is_library;
+    }
+    
+    bool file::is_dynamic_library() noexcept {
+        auto is_dynamic_library = false;
+        for (auto &container : containers) {
+            is_dynamic_library = container.is_dynamic_library();
+            if (!is_dynamic_library) {
+                break;
+            }
+        }
+
+        return is_dynamic_library;
     }
 }

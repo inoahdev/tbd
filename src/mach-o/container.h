@@ -55,6 +55,9 @@ namespace macho {
 
         open_result open_copy(const container &container) noexcept;
 
+        bool is_library() noexcept;
+        bool is_dynamic_library() noexcept;
+
         enum class load_command_iteration_result {
             ok,
             failed_to_allocate_memory,
@@ -87,7 +90,7 @@ namespace macho {
                 return load_command_iteration_result::load_commands_area_is_too_small;
             }
 
-            const auto created_cached_load_commands = !cached_load_commands_;
+            const auto created_cached_load_commands = cached_load_commands_ == nullptr;
 
             auto load_command_base = base + sizeof(header);
             auto magic_is_64_bit = is_64_bit();
@@ -109,7 +112,7 @@ namespace macho {
                 }
 
                 if (!stream.read(cached_load_commands_, sizeofcmds)) {
-                    delete[] cached_load_commands_;
+                    free(cached_load_commands_);
                     cached_load_commands_ = nullptr;
 
                     return load_command_iteration_result::stream_read_error;
@@ -124,8 +127,8 @@ namespace macho {
             auto should_callback = true;
 
             for (auto i = uint32_t(), cached_load_commands_index = uint32_t(); i < ncmds; i++) {
-                auto load_cmd = reinterpret_cast<load_command *>(&cached_load_commands_[cached_load_commands_index]);
-                auto swapped_load_command = *load_cmd;
+                auto load_command = reinterpret_cast<struct load_command *>(&cached_load_commands_[cached_load_commands_index]);
+                auto swapped_load_command = *load_command;
 
                 if (magic_is_big_endian) {
                     swap_load_command(swapped_load_command);
@@ -133,7 +136,7 @@ namespace macho {
 
                 auto cmdsize = swapped_load_command.cmdsize;
                 if (created_cached_load_commands) {
-                    if (cmdsize < sizeof(load_command)) {
+                    if (cmdsize < sizeof(struct load_command)) {
                         return load_command_iteration_result::load_command_is_too_small;
                     }
 
@@ -144,7 +147,7 @@ namespace macho {
                 }
 
                 if (should_callback) {
-                    should_callback = callback(load_command_base + cached_load_commands_index, swapped_load_command, load_cmd);
+                    should_callback = callback(load_command_base + cached_load_commands_index, swapped_load_command, load_command);
                 }
 
                 cached_load_commands_index += cmdsize;
@@ -227,7 +230,7 @@ namespace macho {
                 }
 
                 if (!stream.read(cached_string_table, string_table_size)) {
-                    delete[] cached_string_table;
+                    free(cached_string_table);
                     cached_string_table = nullptr;
 
                     return symbols_iteration_result::stream_read_error;
@@ -277,7 +280,7 @@ namespace macho {
                     }
 
                     if (!stream.read(cached_symbol_table, symbol_table_size)) {
-                        delete[] cached_symbol_table;
+                        free(cached_symbol_table);
                         cached_symbol_table = nullptr;
 
                         return symbols_iteration_result::stream_read_error;
@@ -303,7 +306,7 @@ namespace macho {
                     }
 
                     if (!stream.read(cached_symbol_table, symbol_table_size)) {
-                        delete[] cached_symbol_table;
+                        free(cached_symbol_table);
                         cached_symbol_table = nullptr;
 
                         return symbols_iteration_result::stream_read_error;
@@ -437,7 +440,6 @@ namespace macho {
                 if (magic_is_big_endian) {
                     swap_uint32(*reinterpret_cast<uint32_t *>(&filetype));
                 }
-
 
                 if constexpr (type == validation_type::as_library) {
                     if (!filetype_is_library(filetype)) {
