@@ -12,6 +12,10 @@ namespace stream::file {
     shared::open_result shared::open(const char *path, const char *mode) noexcept {
         const auto file = fopen(path, mode);
         if (!file) {
+            // Close the current stream 
+            // even on open failure
+
+            stream_.reset();
             return open_result::failed_to_open_file;
         }
 
@@ -22,9 +26,13 @@ namespace stream::file {
         return open_result::ok;
     }
 
-    shared::open_result shared::open(int descriptor, const char *mode) noexcept {
+    shared::open_result shared::open(int descriptor, const char *mode) noexcept {        
         const auto file = fdopen(descriptor, mode);
         if (!file) {
+            // Close the current stream 
+            // even on open failure
+
+            stream_.reset();
             return open_result::failed_to_open_file;
         }
 

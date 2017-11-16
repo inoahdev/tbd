@@ -30,6 +30,10 @@ namespace stream::file {
     }
 
     unique::open_result unique::open(const char *path, const char *mode) noexcept {
+        if (is_open()) {
+            close();
+        }
+        
         const auto file = fopen(path, mode);
         if (!file) {
             return open_result::failed_to_open_file;
@@ -40,6 +44,10 @@ namespace stream::file {
     }
 
     unique::open_result unique::open(int descriptor, const char *mode) noexcept {
+        if (is_open()) {
+            close();
+        }
+        
         const auto file = fdopen(descriptor, mode);
         if (!file) {
             return open_result::failed_to_open_file;
