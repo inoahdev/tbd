@@ -52,13 +52,38 @@ namespace recurse {
     };
 
     enum class macho_file_type {
-        none,
-        library,
-        dynamic_library
+        none = 0,
+        any             = 1 << 0,
+        library         = 1 << 1,
+        dynamic_library = 1 << 2
     };
 
-    macho::file::open_result _macho_open_file_as_filetype(macho::file &macho_file, const char *path, macho_file_type filetype);
-    bool _macho_check_file_as_filetype(const char *path, macho_file_type filetype, macho::file::check_error &error);
+    inline bool operator==(const uint64_t &lhs, const macho_file_type &rhs) noexcept { return lhs == static_cast<uint64_t>(rhs); }
+    inline bool operator!=(const uint64_t &lhs, const macho_file_type &rhs) noexcept { return lhs != static_cast<uint64_t>(rhs); }
+
+    inline bool operator==(const macho_file_type &lhs, const uint64_t &rhs) noexcept { return static_cast<uint64_t>(lhs) == rhs; }
+    inline bool operator!=(const macho_file_type &lhs, const uint64_t &rhs) noexcept { return static_cast<uint64_t>(lhs) == rhs; }
+
+    inline uint64_t operator|(const uint64_t &lhs, const macho_file_type &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
+    inline void operator|=(uint64_t &lhs, const macho_file_type &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
+
+    inline macho_file_type operator|(const macho_file_type &lhs, const uint64_t &rhs) noexcept { return static_cast<macho_file_type>(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(macho_file_type &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<macho_file_type>(static_cast<uint64_t>(lhs) | rhs); }
+
+    inline macho_file_type operator|(const macho_file_type &lhs, const macho_file_type &rhs) noexcept { return static_cast<macho_file_type>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(macho_file_type &lhs, const macho_file_type &rhs) noexcept { lhs = static_cast<macho_file_type>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+
+    inline uint64_t operator&(const uint64_t &lhs, const macho_file_type &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
+    inline void operator&=(uint64_t &lhs, const macho_file_type &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
+
+    inline macho_file_type operator&(const macho_file_type &lhs, const uint64_t &rhs) noexcept { return static_cast<macho_file_type>(static_cast<uint64_t>(lhs) & rhs); }
+    inline void operator&=(macho_file_type &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<macho_file_type>(static_cast<uint64_t>(lhs) & rhs); }
+
+    inline macho_file_type operator&(const macho_file_type &lhs, const macho_file_type &rhs) noexcept { return static_cast<macho_file_type>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline void operator&=(macho_file_type &lhs, const macho_file_type &rhs) noexcept { lhs = static_cast<macho_file_type>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+
+    macho::file::open_result _macho_open_file_for_filetypes(macho::file &macho_file, const char *path, macho_file_type filetypes);
+    bool _macho_check_file_for_filetypes(const char *path, macho_file_type filetype, macho::file::check_error &error);
 
     template <typename T>
     operation_result macho_files(const char *directory_path, macho_file_type filetype, options options, T &&callback) { // <void(std::string &, macho::file &)>
@@ -79,9 +104,9 @@ namespace recurse {
         }
 
         auto found_valid_files = false;
-        auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](utils::directory &directory, std::string &path) {
+        auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](utils::directory &directory, std::string &path) {        
             auto macho_file = macho::file();
-            auto macho_file_open_result = _macho_open_file_as_filetype(macho_file, path.data(), filetype);
+            auto macho_file_open_result = _macho_open_file_for_filetypes(macho_file, path.data(), filetype);
 
             switch (macho_file_open_result) {
                 case macho::file::open_result::ok:
@@ -168,7 +193,7 @@ namespace recurse {
         auto found_valid_files = false;
         auto recursion_result = directory.recurse(utils::directory::recursion_filetypes::regular_file, recursion_options, [&](const utils::directory &directory, std::string &path) {
             auto check_error = macho::file::check_error::ok;
-            auto is_valid_macho = _macho_check_file_as_filetype(path.data(), filetype, check_error);
+            auto is_valid_macho = _macho_check_file_for_filetypes(path.data(), filetype, check_error);
 
             switch (check_error) {
                 case macho::file::check_error::ok:
