@@ -22,10 +22,10 @@ bits::creation_result bits::create(bits_integer_t length) {
 
     const auto bit_size = this->bit_size();
     if (length > bit_size) {
-        auto size = (size_t)((double)length / (double)bit_size) + 1;
+        auto size = static_cast<size_t>((static_cast<double>(length) / static_cast<double>(bit_size)) + 1);
         auto allocation_size = sizeof(bits_integer_t) * size;
 
-        data.pointer = (bits_integer_t *)calloc(1, allocation_size);
+        data.pointer = static_cast<bits_integer_t *>(malloc(allocation_size));
 
         if (!data.pointer) {
             return creation_result::failed_to_allocate_memory;
