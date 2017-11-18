@@ -35,7 +35,9 @@ namespace recursive::mkdir {
             }
 
             *path_component_end = path_component_end_elmt;
-            path_component_end = utils::path::find_next_slash_at_back_of_pattern(&path_component_end[1], path_end);
+            
+            path_component_end = utils::path::find_end_of_row_of_slashes(path_component_end, path_end);
+            path_component_end = utils::path::find_next_slash(path_component_end, path_end);
         } while (true);
 
         return result::ok;
