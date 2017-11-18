@@ -235,9 +235,7 @@ namespace macho {
 
                                     if (close(descriptor) != 0) {
                                         if (error != nullptr) {
-                                            if (*error == check_error::ok) {
-                                                *error = check_error::failed_to_close_descriptor;
-                                            }
+                                            *error = check_error::failed_to_close_descriptor;
                                         }
                                     }
 
@@ -251,9 +249,7 @@ namespace macho {
 
                                     if (close(descriptor) != 0) {
                                         if (error != nullptr) {
-                                            if (*error == check_error::ok) {
-                                                *error = check_error::failed_to_close_descriptor;
-                                            }
+                                            *error = check_error::failed_to_close_descriptor;
                                         }
                                     }
 
@@ -343,9 +339,7 @@ namespace macho {
 
                                     if (close(descriptor) != 0) {
                                         if (error != nullptr) {
-                                            if (*error == check_error::ok) {
-                                                *error = check_error::failed_to_close_descriptor;
-                                            }
+                                            *error = check_error::failed_to_close_descriptor;
                                         }
                                     }
 
@@ -359,9 +353,7 @@ namespace macho {
 
                                     if (close(descriptor) != 0) {
                                         if (error != nullptr) {
-                                            if (*error == check_error::ok) {
-                                                *error = check_error::failed_to_close_descriptor;
-                                            }
+                                            *error = check_error::failed_to_close_descriptor;
                                         }
                                     }
 

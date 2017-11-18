@@ -241,14 +241,14 @@ namespace macho {
             return false;
         }
 
-        auto cmdsize = identification_dylib.cmdsize;
+        auto cmdsize = identification_dylib->cmdsize;
         auto is_big_endian = this->is_big_endian();
 
         if (is_big_endian) {
             swap_uint32(cmdsize);
         }
 
-        return cmdsize >= sizeof(struct dylib_command);
+        return cmdsize >= sizeof(dylib_command);
     }
 
     bool container::is_dynamic_library() noexcept {

@@ -175,12 +175,7 @@ namespace macho {
 
             if (load_command.cmd == load_commands::identification_dylib) {
                 free(load_commands);
-                if (load_command.cmdsize < sizeof(dylib_command)) {
-                    // Make sure load-command is valid
-                    return false;
-                }
-
-                return true;
+                return load_command.cmdsize >= sizeof(dylib_command);
             }
 
             index += cmdsize;
@@ -191,26 +186,24 @@ namespace macho {
     }
 
     bool file::is_library() noexcept {
-        auto is_library = false;
         for (auto &container : containers) {
-            is_library = container.is_library();
+            auto is_library = container.is_library();
             if (!is_library) {
-                break;
+                return false;
             }
         }
 
-        return is_library;
+        return true;
     }
     
     bool file::is_dynamic_library() noexcept {
-        auto is_dynamic_library = false;
         for (auto &container : containers) {
-            is_dynamic_library = container.is_dynamic_library();
+            auto is_dynamic_library = container.is_dynamic_library();
             if (!is_dynamic_library) {
-                break;
+                return false;
             }
         }
 
-        return is_dynamic_library;
+        return true;
     }
 }
