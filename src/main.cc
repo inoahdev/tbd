@@ -211,7 +211,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             case macho::utils::tbd::creation_result::stream_seek_error:
             case macho::utils::tbd::creation_result::stream_read_error:
                 if (creation_handling_options & creation_handling_print_paths) {
-                    fprintf(stderr, "Failed to read file-stream while mach-o file (at path %s), failing with error: %s\n", macho_file_path, strerror(file.stream.error()));
+                    fprintf(stderr, "Failed to read file-stream while parsing mach-o file (at path %s), failing with error: %s\n", macho_file_path, strerror(file.stream.error()));
                 } else {
                     fprintf(stderr, "Failed to read file-stream while parsing provided mach-o file, failing with error: %s\n", strerror(file.stream.error()));
                 }
