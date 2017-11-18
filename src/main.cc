@@ -952,9 +952,9 @@ int main(int argc, const char *argv[]) {
                                 // not the provided mach-o library file is valid.
 
                                 if (path_is_valid_macho) {
-                                    fprintf(stdout, "Mach-o file (at path %s) is a library\n", path_data);
+                                    fprintf(stdout, "File (at path %s) is a valid mach-o\n", path_data);
                                 } else {
-                                    fprintf(stdout, "Mach-o file (at path %s) is not a library\n", path_data);
+                                    fprintf(stdout, "File (at path %s) is not a valid mach-o\n", path_data);
                                 }
 
                                 break;
@@ -984,6 +984,7 @@ int main(int argc, const char *argv[]) {
 
                     case recurse::operation_result::found_no_matching_files:
                         fprintf(stderr, "No mach-o library files were found while recursing through path: %s\n", path.data());
+                        break;
                 }
             }
 
