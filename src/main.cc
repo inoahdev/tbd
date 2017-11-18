@@ -74,7 +74,7 @@ void parse_architectures_list(uint64_t &architectures, int &index, int argc, con
             // being provided.
 
             if (!architectures) {
-                fprintf(stderr, "Unrecognized architecture with name: %s\n", macho::architecture_info_from_index(architecture_info_table_index)->name);
+                fprintf(stderr, "Unrecognized architecture with name: %s\n", architecture_string);
                 exit(1);
             }
 
@@ -475,17 +475,16 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        include_macho_libraries = 1 << 0,
+        include_macho_libraries         = 1 << 0,
         include_macho_dynamic_libraries = 1 << 1
     };
 
     enum misc_tbd_options : uint64_t {
-        recurse_directories	   = 1 << 24, // Use third-byte to support native tbd options
+        recurse_directories    = 1 << 24, // Use third-byte to support native tbd options
         recurse_subdirectories = 1 << 25,
         maintain_directories   = 1 << 26,
-        dont_print_warnings	   = 1 << 27,
-        replace_path_extension = 1 << 28,
-
+        dont_print_warnings    = 1 << 27,
+        replace_path_extension = 1 << 28
     };
 
     typedef struct tbd_file {
