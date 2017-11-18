@@ -472,8 +472,6 @@ namespace macho::utils::tbd {
     template <>
     struct stream_helper<int> {
         int descriptor = 0;
-        explicit stream_helper(int descriptor) : descriptor(descriptor) {}
-
         inline auto print(const char *str) const noexcept {
             dprintf(descriptor, "%s", str);
         }
@@ -495,8 +493,6 @@ namespace macho::utils::tbd {
     template <>
     struct stream_helper<FILE *> {
         FILE *file = nullptr;
-        explicit stream_helper(FILE *file) : file(file) {}
-
         inline auto print(const char &ch) const noexcept {
             fputc(ch, file);
         }
@@ -1677,18 +1673,18 @@ namespace macho::utils::tbd {
         for (auto &library_container : library_containers) {
             const auto &library_container_header = library_container.header;
 
-            const auto library_container_header_filetype = library_container_header.filetype;
-            const auto library_container_header_flags = library_container_header.flags;
+            auto library_container_header_filetype = library_container_header.filetype;
+            auto library_container_header_flags = library_container_header.flags;
 
-            const auto library_container_header_cputype = library_container_header.cputype;
-            const auto library_container_header_cpusubtype = library_container_header.cpusubtype;
+            auto library_container_header_cputype = library_container_header.cputype;
+            auto library_container_header_cpusubtype = library_container_header.cpusubtype;
 
             if (library_container.is_big_endian()) {
-                swap_uint32(*(uint32_t *)&library_container_header_filetype);
-                swap_uint32(*(uint32_t *)&library_container_header_flags);
+                swap_uint32(*reinterpret_cast<uint32_t *>(&library_container_header_filetype));
+                swap_uint32(*reinterpret_cast<uint32_t *>(&library_container_header_flags));
 
-                swap_uint32(*(uint32_t *)&library_container_header_cputype);
-                swap_uint32(*(uint32_t *)&library_container_header_cpusubtype);
+                swap_uint32(*reinterpret_cast<uint32_t *>(&library_container_header_cputype));
+                swap_uint32(*reinterpret_cast<uint32_t *>(&library_container_header_cpusubtype));
             }
 
             if (!filetype_is_dynamic_library(library_container_header_filetype)) {
@@ -2130,18 +2126,18 @@ namespace macho::utils::tbd {
 
         const auto &header = container.header;
 
-        const auto header_filetype = header.filetype;
-        const auto header_flags = header.flags;
+        auto header_filetype = header.filetype;
+        auto header_flags = header.flags;
 
-        const auto header_cputype = header.cputype;
-        const auto header_cpusubtype = header.cpusubtype;
+        auto header_cputype = header.cputype;
+        auto header_cpusubtype = header.cpusubtype;
 
         if (container.is_big_endian()) {
-            swap_uint32(*(uint32_t *)&header_filetype);
-            swap_uint32(*(uint32_t *)&header_flags);
+            swap_uint32(*reinterpret_cast<uint32_t *>(&header_filetype));
+            swap_uint32(*reinterpret_cast<uint32_t *>(&header_flags));
 
-            swap_uint32(*(uint32_t *)&header_cputype);
-            swap_uint32(*(uint32_t *)&header_cpusubtype);
+            swap_uint32(*reinterpret_cast<uint32_t *>(&header_cputype));
+            swap_uint32(*reinterpret_cast<uint32_t *>(&header_cpusubtype));
         }
 
         if (!filetype_is_dynamic_library(header_filetype)) {
@@ -2350,18 +2346,18 @@ namespace macho::utils::tbd {
     }
 
     creation_result create_from_macho_library(file &library, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        return create_from_macho_library(library, stream_helper<int>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
+        return create_from_macho_library(library, stream_helper<int>{ output }, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     creation_result create_from_macho_library(container &container, int output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        return create_from_macho_library(container, stream_helper<int>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
+        return create_from_macho_library(container, stream_helper<int>{ output }, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     creation_result create_from_macho_library(file &library, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        return create_from_macho_library(library, stream_helper<FILE *>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
+        return create_from_macho_library(library, stream_helper<FILE *>{ output }, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 
     creation_result create_from_macho_library(container &container, FILE *output, options options, flags flags, objc_constraint constraint, platform platform, version version, uint64_t architectures, uint64_t architecture_overrides) {
-        return create_from_macho_library(container, stream_helper<FILE *>(output), options, flags, constraint, platform, version, architectures, architecture_overrides);
+        return create_from_macho_library(container, stream_helper<FILE *>{ output }, options, flags, constraint, platform, version, architectures, architecture_overrides);
     }
 }
