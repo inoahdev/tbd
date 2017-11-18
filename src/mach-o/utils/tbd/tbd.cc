@@ -486,7 +486,7 @@ namespace macho::utils::tbd {
         }
 
         inline auto print(const char &ch) const noexcept {
-            printf("%c", ch);
+            dprintf(descriptor, "%c", ch);
         }
     };
 
