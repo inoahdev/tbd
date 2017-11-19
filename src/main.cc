@@ -1713,23 +1713,24 @@ int main(int argc, const char *argv[]) {
                     output_path_front = utils::path::find_last_slash(library_path.cbegin(), library_path.cend()) - library_path.cbegin();
                 }
 
-                auto output_path = library_path.substr(output_path_front);
+                auto output_path = std::string();
+                
+                auto extracted_output_path = library_path.substr(output_path_front);
+                auto extracted_output_path_length = extracted_output_path.length();
+                
+                auto output_path_length = tbd_output_path_length + extracted_output_path_length + 4;
 
-                auto output_path_length = output_path.length();
-                auto output_path_new_length = output_path_length + tbd_output_path_length + 4;
-
-                output_path.reserve(output_path_new_length);
-                output_path.insert(0, tbd_output_path);
+                output_path.reserve(output_path_length);
+                output_path.append(tbd_output_path);
+                
+                auto extracted_output_path_begin = extracted_output_path.cbegin();
+                auto extracted_output_path_end = extracted_output_path.cend();
 
                 if (tbd_options & replace_path_extension) {
-                    auto output_path_end = output_path.cend();
-                    auto path_extension = utils::path::find_extension(output_path.cbegin(), output_path_end);
-
-                    if (path_extension != output_path_end) {
-                        output_path.erase(path_extension, output_path_end);
-                    }
+                    extracted_output_path_end = utils::path::find_extension(extracted_output_path_begin, extracted_output_path_end);
                 }
 
+                utils::path::add_component(output_path, extracted_output_path_begin, extracted_output_path_end);
                 output_path.append(".tbd");
 
                 auto output_path_creation_terminator = static_cast<char *>(nullptr);
