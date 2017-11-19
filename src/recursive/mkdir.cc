@@ -23,7 +23,8 @@ namespace recursive::mkdir {
         auto path_component_end = begin;
 
         do {
-            if (path_component_end == path_end) {
+            auto next_path_component_begin = utils::path::find_end_of_row_of_slashes(path_component_end, path_end);
+            if (next_path_component_begin == path_end) {
                 break;
             }
 
@@ -35,9 +36,7 @@ namespace recursive::mkdir {
             }
 
             *path_component_end = path_component_end_elmt;
-            
-            path_component_end = utils::path::find_end_of_row_of_slashes(path_component_end, path_end);
-            path_component_end = utils::path::find_next_slash(path_component_end, path_end);
+            path_component_end = utils::path::find_next_slash(next_path_component_begin, path_end);
         } while (true);
 
         return result::ok;
@@ -106,6 +105,10 @@ namespace recursive::mkdir {
         if (stat(path, &sbuf) == 0) {
             if (!S_ISREG(sbuf.st_mode)) {
                 return result::last_already_exists_not_as_file;
+            }
+            
+            if (last_descriptor != nullptr) {
+                *last_descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
             }
 
             return result::ok;
