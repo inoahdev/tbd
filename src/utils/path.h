@@ -678,12 +678,17 @@ namespace utils::path {
 
     template <typename S, typename T1, typename T2>
     S &add_component(S &path, const T1 &component_begin, const T2 &component_end) {
-        const auto &back = path.back();
-        if (back != '/' && back != '\\') {
-            path.append(1, '/');
+        const auto &path_back = path.back();
+        if (path_back != '/' && path_back != '\\') {
+            if (const auto &component_front = *component_begin; component_front != '/' && component_front != '\\') {
+                path.append(1, '/');
+            }
+
+            path.append(component_begin, component_end);
+        } else if (const auto &component_front = *component_begin; component_front == '/' || component_front == '\\') {
+            path.append(component_begin + 1, component_end);
         }
 
-        path.append(component_begin, component_end);
         return path;
     }
 }
