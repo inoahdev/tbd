@@ -1592,11 +1592,11 @@ int main(int argc, const char *argv[]) {
         auto &tbd_output_path = tbd.output_path;
 
         auto &tbd_flags = tbd.flags;
-        if ((tbd_flags & macho::utils::tbd::flags::flat_namespace) != macho::utils::tbd::flags::none) {
+        if ((flags & macho::utils::tbd::flags::flat_namespace) != macho::utils::tbd::flags::none) {
             tbd_flags |= macho::utils::tbd::flags::flat_namespace;
         }
 
-        if ((tbd_flags & macho::utils::tbd::flags::not_app_extension_safe) != macho::utils::tbd::flags::none) {
+        if ((flags & macho::utils::tbd::flags::not_app_extension_safe) != macho::utils::tbd::flags::none) {
             tbd_flags |= macho::utils::tbd::flags::not_app_extension_safe;
         }
 
