@@ -920,7 +920,7 @@ namespace macho::utils::tbd {
                 }
 
                 case load_commands::identification_dylib: {
-                    auto identification_dylib_command = (dylib_command *)load_command;
+                    auto identification_dylib_command = static_cast<const dylib_command *>(load_command);
                     auto identification_dylib_installation_name_string_index = identification_dylib_command->name.offset;
 
                     if (container_is_big_endian) {
@@ -980,7 +980,7 @@ namespace macho::utils::tbd {
                 }
 
                 case load_commands::reexport_dylib: {
-                    auto reexport_dylib_command = (dylib_command *)load_command;
+                    auto reexport_dylib_command = static_cast<const dylib_command *>(load_command);
                     auto reexport_dylib_string_index = reexport_dylib_command->name.offset;
 
                     if (container_is_big_endian) {
