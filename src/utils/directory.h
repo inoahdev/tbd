@@ -137,6 +137,7 @@ namespace utils {
             switch (directory_entry->d_type) {
                 case DT_FIFO:
                     if ((filetypes & recursion_filetypes::pipe) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -144,6 +145,7 @@ namespace utils {
 
                 case DT_CHR:
                     if ((filetypes & recursion_filetypes::character_device) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -170,6 +172,7 @@ namespace utils {
                     }
 
                     if ((filetypes & recursion_filetypes::directory) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -178,6 +181,7 @@ namespace utils {
                             break;
                         }
 
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         directory_entry_path.append(1, '/');
 
                         auto sub_directory = directory();
@@ -204,6 +208,7 @@ namespace utils {
 
                 case DT_BLK:
                     if ((filetypes & recursion_filetypes::block_device) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -211,6 +216,7 @@ namespace utils {
 
                 case DT_REG:
                     if ((filetypes & recursion_filetypes::regular_file) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -218,6 +224,7 @@ namespace utils {
 
                 case DT_LNK:
                     if ((filetypes & recursion_filetypes::symbolic_link) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
@@ -225,6 +232,7 @@ namespace utils {
 
                 case DT_SOCK:
                     if ((filetypes & recursion_filetypes::socket) != recursion_filetypes::none) {
+                        directory_entry_path.append(directory_entry_name, directory_entry_name_length);
                         callback(*this, directory_entry_path);
                     }
 
