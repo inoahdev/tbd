@@ -416,8 +416,9 @@ void print_usage() {
     fputc('\n', stdout);
     fputs("Outputting options:\n", stdout);
     fputs("Usage: tbd -o [--maintain-directories] /path/to/output/file\n", stdout);
-    fputs("        --maintain-directories, Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
-
+    fputs("        --maintain-directories,   Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
+    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
+    
     fputc('\n', stdout);
     fputs("Global options:\n", stdout);
     fputs("    -a, --arch,     Specify architecture(s) to output to tbd (where architectures were not already specified)\n", stdout);
@@ -428,7 +429,6 @@ void print_usage() {
     fputc('\n', stdout);
     fputs("Miscellaneous options:\n", stdout);
     fputs("        --dont-print-warnings,        Don't print any warnings (both path and global option)\n", stdout);
-    fputs("        --replace-path-extension,     Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
     fputs("        --include-dynamic-libraries,  Option for `--list-macho-files` to include mach-o dynamic-libraries when listing", stdout);
     fputs("        --include-ordinary-libraries, Option for `--list-macho-files` to include ordinary mach-o libraries when listing", stdout);
 
@@ -1073,6 +1073,8 @@ int main(int argc, const char *argv[]) {
 
                     if (strcmp(option, "maintain-directories") == 0) {
                         output_options |= maintain_directories;
+                    } else if (strcmp(option, "replace-path-extension") == 0) {
+                        output_options |= replace_path_extension;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", argument);
                         return 1;
@@ -1117,6 +1119,15 @@ int main(int argc, const char *argv[]) {
                     }
 
                     tbd_options |= maintain_directories;
+                }
+
+                if (output_options & replace_path_extension) {
+                    if (!(tbd_options & recurse_directories)) {
+                        fprintf(stderr, "Option (--replace-path-extension) for file (at path %s) can only be provided for files found when recursing a directory\n", tbd.path.data());
+                        return 1;
+                    }
+
+                    tbd_options |= replace_path_extension;
                 }
 
                 if (path == "stdout") {
@@ -1353,8 +1364,6 @@ int main(int argc, const char *argv[]) {
                         local_options |= macho::utils::tbd::options::remove_swift_version;
                     } else if (strcmp(option, "remove-uuids") == 0) {
                         local_options |= macho::utils::tbd::options::remove_uuids;
-                    } else if (strcmp(option, "replace-path-extension") == 0) {
-                        local_options |= replace_path_extension;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
                         if (is_last_argument) {
                             fputs("Please provide a tbd-version\n", stderr);
@@ -1504,8 +1513,6 @@ int main(int argc, const char *argv[]) {
             options |= macho::utils::tbd::options::remove_swift_version;
         } else if (strcmp(option, "remove-uuids") == 0) {
             options |= macho::utils::tbd::options::remove_uuids;
-        } else if (strcmp(option, "replace-path-extension") == 0) {
-            options |= replace_path_extension;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (!is_first_argument || !is_last_argument) {
                 fprintf(stderr, "Option (%s) should be run by itself\n", argument);
