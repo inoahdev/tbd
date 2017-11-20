@@ -34,10 +34,12 @@ namespace utils {
             failed_to_open_directory
         };
 
-        open_result open(const char *path);
-        open_result open(const std::string &path);
+        open_result open(const char *path) noexcept;
+        open_result open(const std::string &path) noexcept;
 
-        open_result open(std::string &&path);
+        open_result open(std::string &&path) noexcept;
+
+        void close() noexcept;
 
         enum class recursion_options : uint64_t {
             none,
@@ -68,7 +70,7 @@ namespace utils {
         };
 
         template <typename T1, typename T2>
-        recursion_result recurse(recursion_filetypes filetypes, recursion_options options, T1 &&callback, T2 &&warning_callback = [](){});
+        recursion_result recurse(recursion_filetypes filetypes, recursion_options options, T1 &&callback, T2 &&warning_callback = [](){}) noexcept;
     };
 
     inline uint64_t operator|(const uint64_t &lhs, const directory::recursion_options &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
@@ -112,7 +114,7 @@ namespace utils {
     inline directory::recursion_filetypes operator~(const directory::recursion_filetypes &lhs) noexcept { return static_cast<directory::recursion_filetypes>(~static_cast<uint64_t>(lhs)); }
 
     template <typename T1, typename T2>
-    directory::recursion_result directory::recurse(recursion_filetypes filetypes, recursion_options options, T1 &&callback, T2 &&warning_callback) {
+    directory::recursion_result directory::recurse(recursion_filetypes filetypes, recursion_options options, T1 &&callback, T2 &&warning_callback) noexcept {
         if (!dir) {
             return recursion_result::directory_not_opened;
         }

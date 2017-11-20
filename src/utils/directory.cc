@@ -9,7 +9,7 @@
 #include "directory.h"
 
 namespace utils {
-    directory::open_result directory::open(const char *path) {
+    directory::open_result directory::open(const char *path) noexcept {
         this->dir = opendir(path);
         if (!dir) {
             return open_result::failed_to_open_directory;
@@ -19,7 +19,7 @@ namespace utils {
         return open_result::ok;
     }
 
-    directory::open_result directory::open(const std::string &path) {
+    directory::open_result directory::open(const std::string &path) noexcept {
         this->dir = opendir(path.data());
         if (!dir) {
             return open_result::failed_to_open_directory;
@@ -29,7 +29,7 @@ namespace utils {
         return open_result::ok;
     }
 
-    directory::open_result directory::open(std::string &&path) {
+    directory::open_result directory::open(std::string &&path) noexcept {
         this->dir = opendir(path.data());
         if (!dir) {
             return open_result::failed_to_open_directory;
@@ -39,10 +39,14 @@ namespace utils {
         return open_result::ok;
     }
 
-    directory::~directory() noexcept {
+    void directory::close() noexcept {
         if (dir != nullptr) {
             closedir(dir);
             dir = nullptr;
         }
+    }
+
+    directory::~directory() noexcept {
+        close();
     }
 }
