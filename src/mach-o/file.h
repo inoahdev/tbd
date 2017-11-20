@@ -556,7 +556,7 @@ namespace macho {
                         }
 
                         if constexpr (type == type::none) {
-                            container_open_result = container.open(stream);
+                            container_open_result = container.open(stream, architecture.offset, architecture.size);
                         }
 
                         if constexpr (type == type::library) {
@@ -642,7 +642,7 @@ namespace macho {
                         }
 
                         if constexpr (type == type::none) {
-                            container_open_result = container.open(stream);
+                            container_open_result = container.open(stream, architecture.offset, architecture.size);
                         }
 
                         if constexpr (type == type::library) {
