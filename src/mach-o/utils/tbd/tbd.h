@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cstring>
+
 #include "../../architecture_info.h"
 #include "../../file.h"
 
@@ -21,22 +24,22 @@ namespace macho::utils::tbd {
     inline uint64_t operator|(const uint64_t &lhs, const flags &rhs) noexcept { return lhs | static_cast<uint64_t>(rhs); }
     inline void operator|=(uint64_t &lhs, const flags &rhs) noexcept { lhs |= static_cast<uint64_t>(rhs); }
 
-    inline flags operator|(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) | rhs); }
-    inline void operator|=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) | rhs); }
+    inline flags operator|(const flags &lhs, const uint64_t &rhs) noexcept { return static_cast<flags>(static_cast<uint64_t>(lhs) | rhs); }
+    inline void operator|=(flags &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<flags>(static_cast<uint64_t>(lhs) | rhs); }
 
-    inline flags operator|(const flags &lhs, const flags &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
-    inline void operator|=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline flags operator|(const flags &lhs, const flags &rhs) noexcept { return static_cast<flags>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
+    inline void operator|=(flags &lhs, const flags &rhs) noexcept { lhs = static_cast<flags>(static_cast<uint64_t>(lhs) | static_cast<uint64_t>(rhs)); }
 
     inline uint64_t operator&(const uint64_t &lhs, const flags &rhs) noexcept { return lhs & static_cast<uint64_t>(rhs); }
     inline void operator&=(uint64_t &lhs, const flags &rhs) noexcept { lhs &= static_cast<uint64_t>(rhs); }
 
-    inline flags operator&(const flags &lhs, const uint64_t &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) & rhs); }
-    inline void operator&=(flags &lhs, const uint64_t &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) & rhs); }
+    inline flags operator&(const flags &lhs, const uint64_t &rhs) noexcept { return static_cast<flags>(static_cast<uint64_t>(lhs) & rhs); }
+    inline void operator&=(flags &lhs, const uint64_t &rhs) noexcept { lhs = static_cast<flags>(static_cast<uint64_t>(lhs) & rhs); }
 
-    inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
-    inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = (flags)(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline flags operator&(const flags &lhs, const flags &rhs) noexcept { return static_cast<flags>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
+    inline void operator&=(flags &lhs, const flags &rhs) noexcept { lhs = static_cast<flags>(static_cast<uint64_t>(lhs) & static_cast<uint64_t>(rhs)); }
 
-    inline flags operator~(const flags &lhs) noexcept { return (flags)~static_cast<uint16_t>(lhs); }
+    inline flags operator~(const flags &lhs) noexcept { return static_cast<flags>(~static_cast<uint16_t>(lhs)); }
 
     enum class objc_constraint : uint32_t {
         no_value,

@@ -7,8 +7,7 @@
 //
 
 #pragma once
-
-#include <cstdio>
+#include <cstdlib>
 
 #include "../stream/file/shared.h"
 #include "swap.h"
