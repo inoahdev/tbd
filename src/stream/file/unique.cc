@@ -6,6 +6,7 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include <sys/stat.h>
 #include "unique.h"
 
 namespace stream::file {
@@ -105,6 +106,24 @@ namespace stream::file {
         }
 
         return ftell(stream_);
+    }
+
+    long unique::size() const noexcept {
+        if (is_closed()) {
+            return 0;
+        }
+
+        const auto descriptor = fileno(stream_);
+        if (descriptor == -1) {
+            return 0;
+        }
+
+        struct stat sbuf;
+        if (fstat(descriptor, &sbuf) != 0) {
+            return 0;
+        }
+
+        return sbuf.st_size;
     }
 
     int unique::error() const noexcept {

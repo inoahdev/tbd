@@ -38,6 +38,8 @@ namespace stream::file {
         bool write(const void *buffer, size_t size) const noexcept;
 
         long position() const noexcept;
+        long size() const noexcept;
+
         int error() const noexcept;
 
         inline bool is_open() const noexcept { return stream_ != nullptr; }

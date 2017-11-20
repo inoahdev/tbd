@@ -448,14 +448,8 @@ namespace macho {
 
         template <type type = type::none>
         inline open_result load_containers() noexcept {
-            const auto stream_desctiptor = fileno(stream.stream());            
-
-            struct stat information;
-            if (fstat(stream_desctiptor, &information) != 0) {
-                return open_result::failed_to_retrieve_information;
-            }
-
-            if (information.st_size < sizeof(header)) {
+            const auto stream_size = stream.size();          
+            if (stream_size < sizeof(header)) {
                 return open_result::not_a_macho;
             }
 
@@ -465,7 +459,7 @@ namespace macho {
                     return -1uL;
                 }
 
-                auto remaining_space = information.st_size - pos;
+                auto remaining_space = stream_size - pos;
                 if (size > remaining_space) {
                     return -1uL;
                 }
@@ -582,7 +576,6 @@ namespace macho {
                             case container::open_result::fat_container:
                             case container::open_result::not_a_macho:
                             case container::open_result::invalid_macho:
-                            case container::open_result::invalid_range:
                                 free(architectures);
                                 return open_result::invalid_container;
 
@@ -668,7 +661,6 @@ namespace macho {
                             case container::open_result::fat_container:
                             case container::open_result::not_a_macho:
                             case container::open_result::invalid_macho:
-                            case container::open_result::invalid_range:
                                 free(architectures);
                                 return open_result::invalid_container;
 
@@ -701,15 +693,15 @@ namespace macho {
                     auto container_open_result = container::open_result::ok;
 
                     if constexpr (type == type::none) {
-                        container_open_result = container.open(stream);
+                        container_open_result = container.open(stream, 0, stream_size);
                     }
 
                     if constexpr (type == type::library) {
-                        container_open_result = container.open_from_library(stream);
+                        container_open_result = container.open_from_library(stream, 0, stream_size);
                     }
 
                     if constexpr (type == type::dynamic_library) {
-                        container_open_result = container.open_from_dynamic_library(stream);
+                        container_open_result = container.open_from_dynamic_library(stream, 0, stream_size);
                     }
 
                     switch (container_open_result) {
@@ -725,7 +717,6 @@ namespace macho {
                         case container::open_result::fat_container:
                         case container::open_result::not_a_macho:
                         case container::open_result::invalid_macho:
-                        case container::open_result::invalid_range:
                             return open_result::not_a_macho;
 
                         case container::open_result::not_a_library:

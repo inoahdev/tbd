@@ -34,7 +34,6 @@ namespace macho {
 
         enum class open_result {
             ok,
-            invalid_range,
 
             stream_seek_error,
             stream_read_error,
@@ -48,9 +47,9 @@ namespace macho {
             not_a_dynamic_library
         };
 
-        open_result open(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
-        open_result open_from_library(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
-        open_result open_from_dynamic_library(const stream::file::shared &stream, long base = 0, size_t size = 0) noexcept;
+        open_result open(const stream::file::shared &stream, long base, size_t size) noexcept;
+        open_result open_from_library(const stream::file::shared &stream, long base, size_t size) noexcept;
+        open_result open_from_dynamic_library(const stream::file::shared &stream, long base, size_t size) noexcept;
 
         open_result open_copy(const container &container) noexcept;
 
@@ -374,7 +373,6 @@ namespace macho {
         uint8_t *cached_symbol_table_ = nullptr;
 
         char *cached_string_table_ = nullptr;
-        size_t file_size(open_result &result) noexcept;
 
         enum class validation_type : uint64_t {
             none,
@@ -417,21 +415,6 @@ namespace macho {
 
             if (!stream.seek(stream_position, stream::file::seek_type::beginning)) {
                 return open_result::stream_seek_error;
-            }
-
-            auto file_size_calculation_result = open_result::ok;
-
-            const auto file_size = this->file_size(file_size_calculation_result);
-            const auto max_size = file_size - base;
-
-            if (file_size_calculation_result != open_result::ok) {
-                return file_size_calculation_result;
-            }
-
-            if (!size) {
-                size = max_size;
-            } else if (size > max_size) {
-                return open_result::invalid_range;
             }
 
             if constexpr (type == validation_type::as_library || type == validation_type::as_dynamic_library) {

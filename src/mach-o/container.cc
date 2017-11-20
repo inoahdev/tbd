@@ -103,28 +103,6 @@ namespace macho {
         }
     }
 
-    size_t container::file_size(container::open_result &result) noexcept {
-        const auto position = stream.position();
-        if (!stream.seek(0, stream::file::seek_type::end)) {
-            result = open_result::stream_seek_error;
-            return 0;
-        }
-
-        auto size = static_cast<size_t>(stream.position());
-        if (size < base) {
-            result = open_result::invalid_range;
-            return size;
-        }
-
-        if (!stream.seek(position, stream::file::seek_type::beginning)) {
-            result = open_result::stream_seek_error;
-            return size;
-        }
-
-        result = open_result::ok;
-        return size;
-    }
-
     struct load_command *container::find_first_of_load_command(load_commands cmd, container::load_command_iteration_result *result) {
         const auto magic_is_big_endian = is_big_endian();
 

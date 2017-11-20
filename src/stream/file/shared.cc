@@ -6,6 +6,7 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include <sys/stat.h>
 #include "shared.h"
 
 namespace stream::file {
@@ -86,6 +87,25 @@ namespace stream::file {
         }
 
         return ftell(stream);
+    }
+
+    long shared::size() const noexcept {
+        const auto stream = this->stream();
+        if (!stream) {
+            return 0;
+        }
+
+        const auto descriptor = fileno(stream);
+        if (descriptor == -1) {
+            return 0;
+        }
+
+        struct stat sbuf;
+        if (fstat(descriptor, &sbuf) != 0) {
+            return 0;
+        }
+
+        return sbuf.st_size;
     }
 
     int shared::error() const noexcept {
