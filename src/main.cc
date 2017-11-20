@@ -475,8 +475,8 @@ int main(int argc, const char *argv[]) {
     }
 
     enum misc_options : uint64_t {
-        include_macho_libraries         = 1 << 0,
-        include_macho_dynamic_libraries = 1 << 1
+        include_libraries         = 1 << 0,
+        include_dynamic_libraries = 1 << 1
     };
 
     enum misc_tbd_options : uint64_t {
@@ -792,10 +792,10 @@ int main(int argc, const char *argv[]) {
 
                         if (strcmp(option, "dont-print-warnings") == 0) {
                             options |= dont_print_warnings;
-                        } else if (strcmp(option, "include-macho-libraries") == 0) {
-                            options |= include_macho_libraries;
-                        } else if (strcmp(option, "include-macho-dynamic-libraries") == 0) {
-                            options |= include_macho_dynamic_libraries;
+                        } else if (strcmp(option, "include-libraries") == 0) {
+                            options |= include_libraries;
+                        } else if (strcmp(option, "include-dynamic-libraries") == 0) {
+                            options |= include_dynamic_libraries;
                         } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                             options |= recurse_directories | recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
@@ -878,11 +878,11 @@ int main(int argc, const char *argv[]) {
 
                         auto recursion_type = recurse::macho_file_type::none;
                         
-                        if (options & include_macho_libraries) {
+                        if (options & include_libraries) {
                             recursion_type |= recurse::macho_file_type::library;
                         }
                         
-                        if (options & include_macho_dynamic_libraries) {
+                        if (options & include_dynamic_libraries) {
                             recursion_type |= recurse::macho_file_type::dynamic_library;
                         }
 
