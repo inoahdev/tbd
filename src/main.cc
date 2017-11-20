@@ -429,8 +429,8 @@ void print_usage() {
     fputc('\n', stdout);
     fputs("Miscellaneous options:\n", stdout);
     fputs("        --dont-print-warnings,        Don't print any warnings (both path and global option)\n", stdout);
-    fputs("        --include-dynamic-libraries,  Option for `--list-macho-files` to include mach-o dynamic-libraries when listing\n", stdout);
-    fputs("        --include-ordinary-libraries, Option for `--list-macho-files` to include ordinary mach-o libraries when listing\n", stdout);
+    fputs("        --include-dynamic-libraries,  Option for option --list-macho-files to include mach-o dynamic-libraries when listing\n", stdout);
+    fputs("        --include-ordinary-libraries, Option for option --list-macho-files to include ordinary mach-o libraries when listing\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
