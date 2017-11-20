@@ -417,7 +417,7 @@ void print_usage() {
     fputs("Outputting options:\n", stdout);
     fputs("Usage: tbd -o [--maintain-directories] /path/to/output/file\n", stdout);
     fputs("        --maintain-directories,   Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
-    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd) (both path and global option)\n", stdout);
+    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd)\n", stdout);
     
     fputc('\n', stdout);
     fputs("Global options:\n", stdout);
