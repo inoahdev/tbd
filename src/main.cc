@@ -675,7 +675,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 auto macho_file = macho::file();
-                auto macho_file_open_result = macho_file.open(path);
+                auto macho_file_open_result = macho_file.open(path.data());
 
                 switch (macho_file_open_result) {
                     case macho::file::open_result::ok:
@@ -936,7 +936,7 @@ int main(int argc, const char *argv[]) {
                         }
 
                         auto path_is_valid_macho_check_error = macho::file::check_error::ok;
-                        const auto path_is_valid_macho = macho::file::is_valid_file(path, &path_is_valid_macho_check_error);
+                        const auto path_is_valid_macho = macho::file::is_valid_file(path.data(), &path_is_valid_macho_check_error);
 
                         switch (path_is_valid_macho_check_error) {
                             case macho::file::check_error::failed_to_open_descriptor:

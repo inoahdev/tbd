@@ -7,6 +7,7 @@
 //
 
 #include <cerrno>
+#include <string>
 
 #include "../../../utils/bits.h"
 #include "../../../objc/image_info.h"

@@ -12,8 +12,6 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-
-#include <string>
 #include <vector>
 
 #include "container.h"
@@ -30,7 +28,7 @@ namespace macho {
 
         enum class open_result {
             ok,
-
+ 
             failed_to_open_stream,
             failed_to_allocate_memory,
             failed_to_retrieve_information,
@@ -49,39 +47,15 @@ namespace macho {
         };
 
         open_result open(const char *path) noexcept;
-        inline open_result open(const std::string &path) noexcept {
-            return open(path.data());
-        }
-
         open_result open(const char *path, const char *mode) noexcept;
-        inline open_result open(const std::string &path, const char *mode) noexcept {
-            return open(path.data(), mode);
-        }
-
         open_result open(FILE *file) noexcept;
 
         open_result open_from_library(const char *path) noexcept;
-        inline open_result open_from_library(const std::string &path) noexcept {
-            return open_from_library(path.data());
-        }
-
         open_result open_from_library(const char *path, const char *mode) noexcept;
-        inline open_result open_from_library(const std::string &path, const char *mode) noexcept {
-            return open_from_library(path.data(), mode);
-        }
-
         open_result open_from_library(FILE *file, const char *mode = "r") noexcept;
 
         open_result open_from_dynamic_library(const char *path) noexcept;
-        inline open_result open_from_dynamic_library(const std::string &path) noexcept {
-            return open_from_dynamic_library(path.data());
-        }
-
         open_result open_from_dynamic_library(const char *path, const char *mode) noexcept;
-        inline open_result open_from_dynamic_library(const std::string &path, const char *mode) noexcept {
-            return open_from_dynamic_library(path.data(), mode);
-        }
-
         open_result open_from_dynamic_library(FILE *file, const char *mode = "r") noexcept;
 
         open_result open_copy(const file &file);
@@ -98,20 +72,9 @@ namespace macho {
             failed_to_read_descriptor
         };
 
-        static bool is_valid_file(const char *path, check_error *error = nullptr) noexcept;
-        static bool is_valid_file(const std::string &path, check_error *error = nullptr) noexcept {
-            return is_valid_file(path.data());
-        }
-
+        static bool is_valid_file(const char *path, check_error *error = nullptr) noexcept;        
         static bool is_valid_library(const char *path, check_error *error = nullptr) noexcept;
-        static bool is_valid_library(const std::string &path, check_error *error = nullptr) noexcept {
-            return is_valid_library(path.data());
-        }
-
         static bool is_valid_dynamic_library(const char *path, check_error *error = nullptr) noexcept;
-        static bool is_valid_dynamic_library(const std::string &path, check_error *error = nullptr) noexcept {
-            return is_valid_dynamic_library(path.data());
-        }
 
         bool is_library() noexcept;
         bool is_dynamic_library() noexcept;
