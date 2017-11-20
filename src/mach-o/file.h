@@ -448,8 +448,10 @@ namespace macho {
 
         template <type type = type::none>
         inline open_result load_containers() noexcept {
+            const auto stream_desctiptor = fileno(stream.stream());            
+
             struct stat information;
-            if (fstat(stream.stream()->_file, &information) != 0) {
+            if (fstat(stream_desctiptor, &information) != 0) {
                 return open_result::failed_to_retrieve_information;
             }
 
