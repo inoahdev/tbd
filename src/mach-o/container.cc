@@ -194,12 +194,22 @@ namespace macho {
                 }
 
                 size_used += swapped_load_command.cmdsize;
-                if (size_used > sizeofcmds || (size_used == sizeofcmds && i != ncmds - 1)) {
+                if (size_used > sizeofcmds) {
                     if (result != nullptr) {
                         *result = load_command_iteration_result::load_command_is_too_large;
                     }
 
                     return nullptr;
+                }
+
+                if (i != ncmds - 1) {
+                    if (size_used == sizeofcmds) {
+                        if (result != nullptr) {
+                            *result = load_command_iteration_result::load_command_is_too_large;
+                        }
+
+                        return nullptr;
+                    }
                 }
             }
 

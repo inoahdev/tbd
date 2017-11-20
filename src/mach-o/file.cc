@@ -174,8 +174,16 @@ namespace macho {
             }
 
             if (load_command.cmd == load_commands::identification_dylib) {
+                if (load_command.cmdsize >= sizeof(dylib_command)) {
+                    free(load_commands);
+                    return true;
+                }
+            }
+
+            size_left -= cmdsize;
+            if (size_left < sizeof(struct load_command)) {
                 free(load_commands);
-                return load_command.cmdsize >= sizeof(dylib_command);
+                return false;
             }
 
             index += cmdsize;
