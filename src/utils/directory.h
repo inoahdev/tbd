@@ -37,6 +37,8 @@ namespace utils {
         open_result open(const char *path);
         open_result open(const std::string &path);
 
+        open_result open(std::string &&path);
+
         enum class recursion_options : uint64_t {
             none,
             recurse_subdirectories  = 1 << 0,
@@ -115,6 +117,10 @@ namespace utils {
             return recursion_result::directory_not_opened;
         }
 
+        if (filetypes == recursion_filetypes::none) {
+            return recursion_result::ok;
+        }
+
         if (options == recursion_options::none) {
             return recursion_result::ok;
         }
@@ -185,7 +191,7 @@ namespace utils {
                         directory_entry_path.append(1, '/');
 
                         auto sub_directory = directory();
-                        auto sub_directory_open_result = sub_directory.open(directory_entry_path);
+                        auto sub_directory_open_result = sub_directory.open(std::move(directory_entry_path));
 
                         switch (sub_directory_open_result) {
                             case open_result::ok: {
@@ -198,7 +204,7 @@ namespace utils {
                             }
 
                             case open_result::failed_to_open_directory:
-                                warning_callback(recursion_warning::failed_to_open_sub_directory, (const void *)&directory_entry_path);
+                                warning_callback(recursion_warning::failed_to_open_sub_directory, (const void *)&sub_directory.path);
                                 break;
                         }
                     }
