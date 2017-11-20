@@ -8,7 +8,7 @@
 
 #include <cerrno>
 
-#include "../../../misc/bits.h"
+#include "../../../utils/bits.h"
 #include "../../../objc/image_info.h"
 
 #include "../../headers/build.h"
@@ -47,10 +47,10 @@ namespace macho::utils::tbd {
 
             auto bits_creation_result = bits.create_stack_max();
             switch (bits_creation_result) {
-                case bits::creation_result::ok:
+                case ::utils::bits::creation_result::ok:
                     break;
 
-                case bits::creation_result::failed_to_allocate_memory:
+                case ::utils::bits::creation_result::failed_to_allocate_memory:
                     return creation_result::failed_to_allocate_memory;
             }
 
@@ -62,10 +62,10 @@ namespace macho::utils::tbd {
 
             auto bits_creation_result = bits.create_copy(reexport.bits);
             switch (bits_creation_result) {
-                case bits::creation_result::ok:
+                case ::utils::bits::creation_result::ok:
                     break;
 
-                case bits::creation_result::failed_to_allocate_memory:
+                case ::utils::bits::creation_result::failed_to_allocate_memory:
                     return creation_result::failed_to_allocate_memory;
             }
 
@@ -74,7 +74,7 @@ namespace macho::utils::tbd {
 
         inline void add_architecture(bits_integer_t index) noexcept { bits.cast(index, true); }
 
-        bits bits;
+        ::utils::bits bits;
         const char *string;
 
         inline bool operator==(const char *string) const noexcept { return strcmp(this->string, string) == 0; }
@@ -129,10 +129,10 @@ namespace macho::utils::tbd {
 
             auto bits_creation_result = bits.create_stack_max();
             switch (bits_creation_result) {
-                case bits::creation_result::ok:
+                case ::utils::bits::creation_result::ok:
                     break;
 
-                case bits::creation_result::failed_to_allocate_memory:
+                case ::utils::bits::creation_result::failed_to_allocate_memory:
                     return creation_result::failed_to_allocate_memory;
             }
 
@@ -147,17 +147,17 @@ namespace macho::utils::tbd {
 
             auto bits_creation_result = bits.create_copy(symbol.bits);
             switch (bits_creation_result) {
-                case bits::creation_result::ok:
+                case ::utils::bits::creation_result::ok:
                     break;
 
-                case bits::creation_result::failed_to_allocate_memory:
+                case ::utils::bits::creation_result::failed_to_allocate_memory:
                     return creation_result::failed_to_allocate_memory;
             }
 
             return creation_result::ok;
         }
 
-        bits bits;
+        ::utils::bits bits;
         const char *string;
 
         enum type type;
@@ -198,20 +198,20 @@ namespace macho::utils::tbd {
             failed_to_allocate_memory
         };
 
-        creation_result create(const bits &bits) {
+        creation_result create(const ::utils::bits &bits) {
             auto bits_creation_result = this->bits.create_copy(bits);
             switch (bits_creation_result) {
-                case bits::creation_result::ok:
+                case ::utils::bits::creation_result::ok:
                     break;
 
-                case bits::creation_result::failed_to_allocate_memory:
+                case ::utils::bits::creation_result::failed_to_allocate_memory:
                     return creation_result::failed_to_allocate_memory;
             }
 
             return creation_result::ok;
         }
 
-        bits bits;
+        ::utils::bits bits;
         std::vector<std::string> clients;
 
         uint64_t reexports_count = 0;
@@ -613,7 +613,7 @@ namespace macho::utils::tbd {
     }
 
     template <typename T>
-    inline void print_export_group_to_tbd_output(const stream_helper<T> &helper, uint64_t architectures, uint64_t architecture_overrides, const bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
+    inline void print_export_group_to_tbd_output(const stream_helper<T> &helper, uint64_t architectures, uint64_t architecture_overrides, const ::utils::bits &bits, const std::vector<std::string> &clients, const std::vector<reexport> &reexports, const std::vector<symbol> &symbols, version version) {
         const auto should_check_bits = bits.was_created();
 
         auto reexports_end = reexports.end();
@@ -2097,7 +2097,7 @@ namespace macho::utils::tbd {
         helper.print("exports:\n");
 
         if (architecture_overrides != 0) {
-            print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
+            print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, ::utils::bits(), std::vector<std::string>(), library_reexports, library_symbols, version);
         } else {
             for (const auto &group : groups) {
                 print_export_group_to_tbd_output(helper, library_container_architectures, architecture_overrides, group.bits, group.clients, library_reexports, library_symbols, version);
@@ -2339,7 +2339,7 @@ namespace macho::utils::tbd {
         }
 
         helper.print("exports:\n");
-        print_export_group_to_tbd_output(helper, 1ull << architecture_info_table_index, architecture_overrides, bits(), sub_clients, reexports, symbols, version);
+        print_export_group_to_tbd_output(helper, 1ull << architecture_info_table_index, architecture_overrides, ::utils::bits(), sub_clients, reexports, symbols, version);
 
         helper.print("...\n");
         return creation_result::ok;
