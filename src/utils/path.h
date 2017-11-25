@@ -685,8 +685,12 @@ namespace utils::path {
             }
 
             path.append(component_begin, component_end);
-        } else if (const auto &component_front = *component_begin; component_front == '/' || component_front == '\\') {
-            path.append(component_begin + 1, component_end);
+        } else {
+            if (const auto &component_front = *component_begin; component_front == '/' || component_front == '\\') {
+                path.append(component_begin + 1, component_end);
+            } else {
+                path.append(component_begin, component_end);
+            }
         }
 
         return path;
