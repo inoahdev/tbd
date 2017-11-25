@@ -39,6 +39,28 @@ namespace utils {
         return open_result::ok;
     }
 
+    std::string directory::_construct_path(const char *path, size_t path_length, const char *name, bool is_directory) noexcept {
+        const auto name_length = strlen(name);
+
+        auto new_path_length = path_length + name_length;
+        auto new_path = std::string();
+
+        if (is_directory) {
+            new_path_length++;
+        }
+
+        new_path.reserve(new_path_length);
+        new_path.append(path);
+
+        utils::path::add_component(new_path, name, &name[name_length]);
+
+        if (is_directory) {
+            new_path.append(1, '/');
+        }
+
+        return new_path;
+    }
+
     void directory::close() noexcept {
         if (dir != nullptr) {
             closedir(dir);
