@@ -795,12 +795,6 @@ int main(int argc, const char *argv[]) {
 
                         if (strcmp(option, "dont-print-warnings") == 0) {
                             options |= dont_print_warnings;
-                        } else if (strcmp(option, "include-normal") == 0) {
-                            options |= include_normal;
-                        } else if (strcmp(option, "include-libraries") == 0) {
-                            options |= include_libraries;
-                        } else if (strcmp(option, "include-dynamic-libraries") == 0) {
-                            options |= include_dynamic_libraries;
                         } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                             options |= recurse_directories | recurse_subdirectories;
                         } else if (strncmp(option, "r=", 2) == 0 || strncmp(option, "recurse=", 8) == 0) {
@@ -880,16 +874,6 @@ int main(int argc, const char *argv[]) {
                         return 1;
                     }
 
-                    auto recursion_type = recurse::macho_file_type::library;
-
-                    if (options & include_normal) {
-                        recursion_type |= recurse::macho_file_type::any;
-                    }
-
-                    if (options & include_libraries) {
-                        recursion_type |= recurse::macho_file_type::library;
-                    }
-
                     auto recurse_options = recurse::options::none;
                     if (!(options & dont_print_warnings)) {
                         recurse_options |= recurse::options::print_warnings;
@@ -899,7 +883,7 @@ int main(int argc, const char *argv[]) {
                         recurse_options |= recurse::options::recurse_subdirectories;
                     }
 
-                    const auto recursion_result = recurse::macho_file_paths(path.data(), recursion_type, recurse_options, [&](std::string &library_path) {
+                    const auto recursion_result = recurse::macho_file_paths(path.data(), recurse::macho_file_type::dynamic_library, recurse_options, [&](std::string &library_path) {
                         fprintf(stdout, "%s\n", library_path.data());
                     });
 
@@ -918,9 +902,9 @@ int main(int argc, const char *argv[]) {
                             // type were found
 
                             if (options & recurse_subdirectories) {
-                                fprintf(stderr, "No mach-o files matching provided type(s) were found while recursing through path (%s) and its sub-directories\n", path.data());
+                                fprintf(stderr, "No mach-o dynamic-libraries were found while recursing through path (%s) and its sub-directories\n", path.data());
                             } else {
-                                fprintf(stderr, "No mach-o files matching provided type(s) were found while recursing through path: %s\n", path.data());
+                                fprintf(stderr, "No mach-o dynamic-libraries were found while recursing through path: %s\n", path.data());
                             }
 
                             break;
