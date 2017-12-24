@@ -397,7 +397,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
 }
 
 void print_usage() {
-    fputs("Usage: tbd [-p file-paths] [-o/-output output-paths-or-stdout]\n", stdout);
+    fputs("Usage: tbd [-p file-paths] [-o/--output output-paths-or-stdout]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,     Print this message\n", stdout);
     fputs("    -o, --output,   Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
