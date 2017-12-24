@@ -200,7 +200,7 @@ bool create_tbd_file(const char *macho_file_path, macho::file &file, const char 
             }
         } while (new_platform == macho::utils::tbd::platform::none);
 
-        result = macho::utils::tbd::create_from_macho_library(file, tbd, options, flags, constraint, platform, version, architectures, architecture_overrides);
+        result = macho::utils::tbd::create_from_macho_library(file, tbd, options, flags, constraint, new_platform, version, architectures, architecture_overrides);
     }
 
     if (!(creation_handling_options & creation_handling_dont_print_warnings)) {
