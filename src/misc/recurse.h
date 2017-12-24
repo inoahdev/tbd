@@ -87,6 +87,10 @@ namespace recurse {
 
     template <typename T>
     operation_result macho_files(const char *directory_path, macho_file_type filetype, options options, T &&callback) { // <void(std::string &, macho::file &)>
+        if (filetype == macho_file_type::none) {
+            return operation_result::ok;
+        }
+        
         auto directory = utils::directory();
         auto directory_open_result = directory.open(directory_path);
 
@@ -174,6 +178,10 @@ namespace recurse {
 
     template <typename T>
     operation_result macho_file_paths(const char *directory_path, macho_file_type filetype, options options, T &&callback) { // <void(std::string &)>
+        if (filetype == macho_file_type::none) {
+            return operation_result::ok;
+        }
+        
         auto directory = utils::directory();
         auto directory_open_result = directory.open(directory_path);
 
