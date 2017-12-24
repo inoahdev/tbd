@@ -6,6 +6,7 @@
 //  Copyright © 2017 inoahdev. All rights reserved.
 //
 
+#include <cerrno>
 #include <sys/stat.h>
 
 #include <fcntl.h>
@@ -76,20 +77,15 @@ namespace recursive::mkdir {
     }
 
     result perform(char *path, char **terminator) noexcept {
-        struct stat sbuf;
-        if (stat(path, &sbuf) == 0) {
-            if (!S_ISDIR(sbuf.st_mode)) {
-                return result::last_already_exists_not_as_directory;
-            }
-
-            return result::ok;
-        }
-
         if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
         if (!_create_directory(path)) {
+            if (errno == EEXIST) {
+                return result::ok;
+            }
+
             return result::failed_to_create_last_as_directory;
         }
 
@@ -101,25 +97,16 @@ namespace recursive::mkdir {
     }
 
     result perform_with_last_as_file(char *path, char **terminator, int *last_descriptor) noexcept {
-        struct stat sbuf;
-        if (stat(path, &sbuf) == 0) {
-            if (!S_ISREG(sbuf.st_mode)) {
-                return result::last_already_exists_not_as_file;
-            }
-            
-            if (last_descriptor != nullptr) {
-                *last_descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-            }
-
-            return result::ok;
-        }
-
         if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
         const auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
         if (descriptor == -1) {
+            if (errno == EEXIST) {
+                return result::ok;
+            }
+
             return result::failed_to_create_last_as_file;
         }
 
