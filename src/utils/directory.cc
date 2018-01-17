@@ -10,65 +10,46 @@
 
 namespace utils {
     directory::open_result directory::open(const char *path) noexcept {
-        this->dir = opendir(path);
-        if (!dir) {
+        this->entries.begin.dir = opendir(path);
+        if (!this->entries.begin.dir) {
             return open_result::failed_to_open_directory;
         }
 
-        this->path = path;
+        this->entries.begin = readdir(this->entries.begin.dir);
         return open_result::ok;
     }
 
-    directory::open_result directory::open(const std::string &path) noexcept {
-        this->dir = opendir(path.data());
-        if (!dir) {
-            return open_result::failed_to_open_directory;
+    std::string directory::iterator::entry_path_from_directory_path(const char *root) const noexcept {
+        const auto root_length = strlen(root);
+        const auto name_length = strlen(ptr->d_name);
+        
+        auto path_length = root_length + name_length;
+        auto path = std::string();
+
+        if (path[root_length - 1] != '/') {
+            path_length++;
+        }
+        
+        if (ptr->d_type == DT_DIR) {
+            path_length++;
         }
 
-        this->path = path;
-        return open_result::ok;
-    }
+        path.reserve(path_length);
+        path.append(root);
 
-    directory::open_result directory::open(std::string &&path) noexcept {
-        this->dir = opendir(path.data());
-        if (!dir) {
-            return open_result::failed_to_open_directory;
+        utils::path::append_component(path, ptr->d_name, &ptr->d_name[name_length]);
+
+        if (ptr->d_type == DT_DIR) {
+            path.append(1, '/');
         }
 
-        this->path = path;
-        return open_result::ok;
-    }
-
-    std::string directory::_construct_path(const char *path, size_t path_length, const char *name, bool is_directory) noexcept {
-        const auto name_length = strlen(name);
-
-        auto new_path_length = path_length + name_length;
-        auto new_path = std::string();
-
-        if (is_directory) {
-            new_path_length++;
-        }
-
-        new_path.reserve(new_path_length);
-        new_path.append(path);
-
-        utils::path::add_component(new_path, name, &name[name_length]);
-
-        if (is_directory) {
-            new_path.append(1, '/');
-        }
-
-        return new_path;
+        return path;
     }
 
     void directory::close() noexcept {
-        if (dir != nullptr) {
-            closedir(dir);
-            dir = nullptr;
+        if (this->entries.begin.dir != nullptr) {
+            closedir(this->entries.begin.dir);
+            this->entries.begin.dir = nullptr;
         }
-    }
-
-    directory::~directory() noexcept {
-        close();
     }
 }

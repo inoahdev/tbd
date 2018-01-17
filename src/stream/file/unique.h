@@ -30,8 +30,6 @@ namespace stream::file {
         open_result open(const char *path, const char *mode) noexcept;
         open_result open(int descriptor, const char *mode) noexcept;
 
-        open_result open_copy(const unique &file) noexcept;
-
         bool seek(long location, seek_type seek) const noexcept;
 
         bool read(void *buffer, size_t size) const noexcept;
@@ -42,15 +40,14 @@ namespace stream::file {
 
         int error() const noexcept;
 
-        inline bool is_open() const noexcept { return stream_ != nullptr; }
-        inline bool is_closed() const noexcept { return stream_ == nullptr; }
+        inline bool is_open() const noexcept { return this->stream_ != nullptr; }
+        inline bool is_closed() const noexcept { return this->stream_ == nullptr; }
 
-        inline FILE *stream() const noexcept { return stream_; }
+        inline FILE *stream() const noexcept { return this->stream_; }
 
         void close();
 
-    private:
+    protected:
         FILE *stream_ = nullptr;
-        const char *mode_ = nullptr;
     };
 }

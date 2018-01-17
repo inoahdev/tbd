@@ -16,11 +16,11 @@ namespace stream::file {
             // Close the current stream 
             // even on open failure
 
-            stream_.reset();
+            this->stream_.reset();
             return open_result::failed_to_open_file;
         }
 
-        stream_.reset(file, [](FILE *file) {
+        this->stream_.reset(file, [](FILE *file) {
             fclose(file);
         });
 
@@ -33,24 +33,58 @@ namespace stream::file {
             // Close the current stream 
             // even on open failure
 
-            stream_.reset();
+            this->stream_.reset();
             return open_result::failed_to_open_file;
         }
 
-        stream_.reset(file, [](FILE *file) {
+        this->stream_.reset(file, [](FILE *file) {
             fclose(file);
         });
 
         return open_result::ok;
     }
+    
+    shared::open_result shared::open_copy(FILE *file, const char *mode) noexcept {
+        const auto file_copy = freopen(nullptr, mode, file);
+        if (!file_copy) {
+            // Close the current stream
+            // even on open failure
+            
+            this->stream_.reset();
+            return open_result::failed_to_open_file;
+        }
+        
+        this->stream_.reset(file_copy, [](FILE *file) {
+            fclose(file);
+        });
+        
+        return open_result::ok;
+    }
+    
+    shared::open_result shared::open_copy(const shared &shared, const char *mode) noexcept {
+        const auto file = freopen(nullptr, mode, shared.stream());
+        if (!file) {
+            // Close the current stream
+            // even on open failure
+            
+            this->stream_.reset();
+            return open_result::failed_to_open_file;
+        }
+        
+        this->stream_.reset(file, [](FILE *file) {
+            fclose(file);
+        });
+        
+        return open_result::ok;
+    }
 
     shared::open_result shared::open(FILE *file) noexcept {
-        stream_.reset(file);
+        this->stream_.reset(file);
         return open_result::ok;
     }
 
     void shared::close() {
-        stream_.reset();
+        this->stream_.reset();
     }
 
     bool shared::seek(long location, seek_type seek) const noexcept {

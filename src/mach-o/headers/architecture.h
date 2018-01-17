@@ -7,11 +7,11 @@
 //
 
 #pragma once
-#include "cputype.h"
+#include <cstdint>
 
 namespace macho {
     typedef struct architecture {
-        cputype cputype;
+        int32_t cputype;
         int32_t cpusubtype;
 
         uint32_t offset;
@@ -20,7 +20,7 @@ namespace macho {
     } architecture;
 
     typedef struct architecture_64 {
-        cputype cputype;
+        int32_t cputype;
         int32_t cpusubtype;
 
         uint64_t offset;

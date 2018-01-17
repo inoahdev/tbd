@@ -14,7 +14,7 @@ namespace utils::path {
         auto elmt = *iter;
 
         while (elmt != '\0' && elmt != '/' && elmt != '\\') {
-            elmt = *(iter++);;
+            elmt = *(iter++);
         }
 
         if (!elmt) {
@@ -29,7 +29,7 @@ namespace utils::path {
         auto elmt = *iter;
 
         while (elmt != '\0' && elmt != '/' && elmt != '\\') {
-            elmt = *(iter++);;
+            elmt = *(iter++);
         }
 
         if (!elmt) {
@@ -44,7 +44,7 @@ namespace utils::path {
         auto elmt = *iter;
 
         while (elmt != '\0' && elmt != '/' && elmt != '\\') {
-            elmt = *(iter++);;
+            elmt = *(iter++);
         }
 
         if (elmt != '\0') {
@@ -66,13 +66,13 @@ namespace utils::path {
         auto elmt = *iter;
 
         while (elmt != '\0' && elmt != '/' && elmt != '\\') {
-            elmt = *(iter++);;
+            elmt = *(iter++);
         }
 
         if (elmt != '\0') {
             elmt = iter[1];
             while (elmt != '\0' && (elmt == '/' || elmt == '\\')) {
-                elmt = *(iter++);;
+                elmt = *(iter++);
             }
 
             if (elmt == '\0') {

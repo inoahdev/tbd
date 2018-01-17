@@ -16,34 +16,29 @@ typedef uint32_t bits_integer_t;
 #endif
 
 namespace utils {
-    class bits {
-    public:
+    struct bits {
         explicit bits() = default;
-
-        explicit bits(const bits &) = delete;
+        explicit bits(bits_integer_t size) noexcept;
+        
+        explicit bits(const bits &) noexcept;
         explicit bits(bits &&) noexcept;
 
         ~bits();
 
         union {
-            bits_integer_t integer = 0;
+            bits_integer_t integer = bits_integer_t();
             bits_integer_t *pointer;
         } data;
-
-        enum class creation_result {
-            ok,
-            failed_to_allocate_memory
-        };
-
-        creation_result create(bits_integer_t length);
-        creation_result create_stack_max();
-
-        creation_result create_copy(const bits &bits);
-
+        
+        bits_integer_t length = bits_integer_t();
+        
+        void create_stack_max() noexcept;
+        void resize(bits_integer_t length) noexcept;
+        
         void cast(bits_integer_t index, bool flag) noexcept;
         bool at(bits_integer_t index) const noexcept;
 
-        bool was_created() const noexcept { return length != 0; }
+        bool was_created() const noexcept { return this->length != 0; }
 
         bool operator==(const bits &bits) const noexcept;
         inline bool operator!=(const bits &bits) const noexcept { return !(*this == bits); }
@@ -51,9 +46,17 @@ namespace utils {
         bits &operator=(const bits &) = delete;
         bits &operator=(bits &&) noexcept;
 
-    private:
-        bits_integer_t length = 0;
-        inline constexpr const bits_integer_t bit_size() const noexcept { return sizeof(bits_integer_t) * 8; }
+    protected:
+#ifdef __LP64__
+        inline constexpr const bits_integer_t byte_shift() const noexcept { return 3; }
+#else
+        inline constexpr const bits_integer_t byte_shift() const noexcept { return 2; }
+#endif
+        
+        inline constexpr const bits_integer_t byte_size() const noexcept { return bits_integer_t(1) << this->byte_shift(); }
+        inline constexpr const bits_integer_t bit_size() const noexcept { return this->byte_size() << 3; }
+        
+        bits_integer_t allocation_size_from_length(bits_integer_t length);
     };
 
 }

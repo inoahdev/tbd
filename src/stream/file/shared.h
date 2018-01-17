@@ -23,8 +23,10 @@ namespace stream::file {
 
         open_result open(const char *path, const char *mode) noexcept;
         open_result open(int descriptor, const char *mode) noexcept;
-
         open_result open(FILE *file) noexcept;
+        
+        open_result open_copy(FILE *file, const char *mode) noexcept;
+        open_result open_copy(const shared &shared, const char *mode) noexcept;
 
         bool seek(long location, seek_type seek) const noexcept;
 
@@ -36,14 +38,14 @@ namespace stream::file {
 
         int error() const noexcept;
 
-        inline bool is_open() const noexcept { return stream() != nullptr; }
-        inline bool is_closed() const noexcept { return stream() == nullptr; }
+        inline bool is_open() const noexcept { return this->stream() != nullptr; }
+        inline bool is_closed() const noexcept { return this->stream() == nullptr; }
 
-        inline FILE *stream() const noexcept { return stream_.get(); }
+        inline FILE *stream() const noexcept { return this->stream_.get(); }
 
         void close();
 
-    private:
+    protected:
         std::shared_ptr<FILE> stream_;
     };
 }

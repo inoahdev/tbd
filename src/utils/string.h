@@ -44,7 +44,7 @@ namespace utils::string {
     template <typename T1, typename T2>
     T1 find_string_in_string(const T1 &lhs_begin, const T2 &rhs_begin, const T2 &rhs_end) noexcept {
         auto lhs_iter = lhs_begin;
-        for (;;) {
+        while (true) {
             auto lhs_search_iter = lhs_iter;
             auto lhs_search_elmt = *lhs_search_iter;
 

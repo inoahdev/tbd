@@ -441,25 +441,23 @@ namespace utils::path {
             const auto lhs_path_component_length = lhs_path_component_end - lhs_path_component_begin;
             const auto rhs_path_component_length = rhs_path_component_end - rhs_path_component_begin;
 
-            if (lhs_path_component_length < rhs_path_component_length) {
-                return -*(rhs_path_component_begin + lhs_path_component_length);
-            } else if (rhs_path_component_length > lhs_path_component_length) {
-                return *(lhs_path_component_begin + rhs_path_component_length);
-            }
-
             // Skip over '.' components
 
-            if (lhs_path_component_length == 1) {
-                if (const auto &lhs_path_component_begin_char = *lhs_path_component_begin; lhs_path_component_begin_char == '.') {
-                    if (const auto &rhs_path_component_begin_char = *rhs_path_component_begin; rhs_path_component_begin_char == '.') {
-                        rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
-                    }
-
-                    lhs_path_component_begin = find_end_of_row_of_slashes(lhs_path_component_end, lhs_reverse_iter);
-                    continue;
-                } else if (const auto &rhs_path_component_begin_char = *rhs_path_component_begin; rhs_path_component_begin_char == '.') {
+            if (const auto &lhs_path_component_begin_char = *lhs_path_component_begin; lhs_path_component_begin_char == '.' && lhs_path_component_length == 1) {
+                if (const auto &rhs_path_component_begin_char = *rhs_path_component_begin; rhs_path_component_begin_char == '.' && rhs_path_component_length == 1) {
                     rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
-                    continue;
+                }
+                
+                lhs_path_component_begin = find_end_of_row_of_slashes(lhs_path_component_end, lhs_reverse_iter);
+                continue;
+            } else if (const auto &rhs_path_component_begin_char = *rhs_path_component_begin; rhs_path_component_begin_char == '.' && rhs_path_component_length == 1) {
+                rhs_path_component_begin = find_end_of_row_of_slashes(rhs_path_component_end, rhs_reverse_iter);
+                continue;
+            } else {
+                if (lhs_path_component_length < rhs_path_component_length) {
+                    return -*(rhs_path_component_begin + lhs_path_component_length);
+                } else if (rhs_path_component_length > lhs_path_component_length) {
+                    return *(lhs_path_component_begin + rhs_path_component_length);
                 }
             }
 
@@ -544,7 +542,7 @@ namespace utils::path {
 
         auto slash_row_begin = begin;
 
-        for (;;) {
+        do {
             if (slash_row_begin == end) {
                 break;
             }
@@ -580,7 +578,7 @@ namespace utils::path {
                 end = path.end();
                 slash_row_begin = find_next_slash(slash_row_begin, end);
             }
-        }
+        } while (true);
 
         return path;
     }
@@ -677,7 +675,7 @@ namespace utils::path {
     }
 
     template <typename S, typename T1, typename T2>
-    S &add_component(S &path, const T1 &component_begin, const T2 &component_end) {
+    S &append_component(S &path, const T1 &component_begin, const T2 &component_end) {
         const auto &path_back = path.back();
         if (path_back != '/' && path_back != '\\') {
             if (const auto &component_front = *component_begin; component_front != '/' && component_front != '\\') {

@@ -20,7 +20,7 @@ namespace recursive::mkdir {
         return ::mkdir(path, 0755) == 0;
     }
 
-    inline result _create_directories_ignoring_last(char *path, char *path_end, char *begin) noexcept {
+    inline result create_directories_ignoring_last(char *path, char *path_end, char *begin) noexcept {
         auto path_component_end = begin;
 
         do {
@@ -43,11 +43,11 @@ namespace recursive::mkdir {
         return result::ok;
     }
 
-    result _create_directories_if_missing_ignoring_last(char *path, char **terminator) noexcept {
+    result create_directories_if_missing_ignoring_last(char *path, char **terminator) noexcept {
         auto end = utils::string::find_end_of_null_terminated_string(path);
-        auto back = end - 1;
+        auto &back = *(end - 1);
 
-        if (*back == '/' || *back == '\\') {
+        if (back == '/' || back == '\\') {
             end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 
@@ -61,10 +61,16 @@ namespace recursive::mkdir {
             if (access(path, F_OK) == 0) {
                 if (terminator != nullptr) {
                     *terminator = prev_path_component_end;
+                    
+                    // terminator should never point to end
+                    
+                    if (*terminator == end) {
+                        *terminator = nullptr;
+                    }
                 }
 
                 *path_component_end = path_component_end_elmt;
-                return _create_directories_ignoring_last(path, end, prev_path_component_end);
+                return create_directories_ignoring_last(path, end, prev_path_component_end);
             }
 
             prev_path_component_end = path_component_end;
@@ -77,7 +83,7 @@ namespace recursive::mkdir {
     }
 
     result perform(char *path, char **terminator) noexcept {
-        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
+        if (const auto result = create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
@@ -93,11 +99,11 @@ namespace recursive::mkdir {
     }
 
     result perform_ignorning_last(char *path, char **terminator) noexcept {
-        return _create_directories_if_missing_ignoring_last(path, terminator);
+        return create_directories_if_missing_ignoring_last(path, terminator);
     }
 
     result perform_with_last_as_file(char *path, char **terminator, int *last_descriptor) noexcept {
-        if (const auto result = _create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
+        if (const auto result = create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 

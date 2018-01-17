@@ -1,5 +1,5 @@
 //
-//  src/mach-o/headers/cputype.h
+//  src/mach-o/cputype.h
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.
@@ -10,8 +10,8 @@
 #include <cstdint>
 
 namespace macho {
-    enum class cputype {
-        none      = 0,
+    enum class cputype : int32_t {
+        none,
         any       = -1,
         arm       = 12,
         arm64     = 16777228,
@@ -29,7 +29,7 @@ namespace macho {
 
     enum class subtype {
         // cputype::none
-        none = 0,
+        none,
 
         // cputype::any
         any,
