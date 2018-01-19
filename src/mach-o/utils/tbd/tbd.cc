@@ -1988,32 +1988,34 @@ namespace macho::utils::tbd {
         }
 
         helper.printf("platform:%-14s%s\n", "", platform_to_string(platform));
-
-        if ((options & options::remove_flags) == options::none || flags != flags::none) {
-            if (flags != flags::none) {
-                if ((flags & flags::flat_namespace) != flags::none) {
-                    library_flags |= macho::flags::two_level_namespaces;
-                }
-
-                if ((flags & flags::not_app_extension_safe) != flags::none) {
-                    library_flags &= ~macho::flags::two_level_namespaces;
-                }
-            }
-
-            if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
-                helper.printf("flags:%-17s[ ", "");
-
-                if (library_flags & macho::flags::two_level_namespaces) {
-                    helper.print("flat_namespace");
-
-                    if (!(library_flags & macho::flags::app_extension_safe)) {
-                        helper.print(", not_app_extension_safe");
+        
+        if (version == version::v2) {
+            if ((options & options::remove_flags) == options::none || flags != flags::none) {
+                if (flags != flags::none) {
+                    if ((flags & flags::flat_namespace) != flags::none) {
+                        library_flags |= macho::flags::two_level_namespaces;
                     }
-                } else if (!(library_flags & macho::flags::app_extension_safe)) {
-                    helper.print("not_app_extension_safe");
+
+                    if ((flags & flags::not_app_extension_safe) != flags::none) {
+                        library_flags &= ~macho::flags::two_level_namespaces;
+                    }
                 }
 
-                helper.print(" ]\n");
+                if (library_flags & macho::flags::two_level_namespaces || !(library_flags & macho::flags::app_extension_safe)) {
+                    helper.printf("flags:%-17s[ ", "");
+
+                    if (library_flags & macho::flags::two_level_namespaces) {
+                        helper.print("flat_namespace");
+
+                        if (!(library_flags & macho::flags::app_extension_safe)) {
+                            helper.print(", not_app_extension_safe");
+                        }
+                    } else if (!(library_flags & macho::flags::app_extension_safe)) {
+                        helper.print("not_app_extension_safe");
+                    }
+
+                    helper.print(" ]\n");
+                }
             }
         }
 
@@ -2063,31 +2065,32 @@ namespace macho::utils::tbd {
             helper.print('\n');
         }
 
-        if ((options & options::remove_swift_version) == options::none) {
-            if (library_swift_version != 0) {
-                switch (library_swift_version) {
-                    case 1:
-                        helper.printf("swift-version:%-9s1\n", "");
-                        break;
+        if (version == version::v2) {
+            if ((options & options::remove_swift_version) == options::none) {
+                if (library_swift_version != 0) {
+                    switch (library_swift_version) {
+                        case 1:
+                            helper.printf("swift-version:%-9s1\n", "");
+                            break;
 
-                    case 2:
-                        helper.printf("swift-version:%-9s1.2\n", "");
-                        break;
+                        case 2:
+                            helper.printf("swift-version:%-9s1.2\n", "");
+                            break;
 
-                    default:
-                        helper.printf("swift-version:%-9s%u\n", "", library_swift_version - 1);
-                        break;
+                        default:
+                            helper.printf("swift-version:%-9s%u\n", "", library_swift_version - 1);
+                            break;
+                    }
                 }
             }
-        }
+        
 
-        if ((options & options::remove_objc_constraint) == options::none) {
-            if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
-                helper.printf("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+            if ((options & options::remove_objc_constraint) == options::none) {
+                if (const auto objc_constraint_string = objc_constraint_to_string(library_objc_constraint); objc_constraint_string != nullptr) {
+                    helper.printf("objc-constraint:%-7s%s\n", "", objc_constraint_to_string(library_objc_constraint));
+                }
             }
-        }
 
-        if (version == version::v2) {
             if ((options & options::remove_parent_umbrella) == options::none) {
                 if (!library_parent_umbrella.empty()) {
                     helper.printf("parent-umbrella:%-7s%s\n", "", library_parent_umbrella.data());
