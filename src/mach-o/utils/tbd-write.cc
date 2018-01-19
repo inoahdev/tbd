@@ -261,8 +261,10 @@ namespace macho::utils {
         }
 
         if (!options.ignores_uuids()) {
-            if (!write_uuids_to_file(file, this->uuids, options)) {
-                return write_result::failed_to_write_uuids;
+            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+                if (!write_uuids_to_file(file, this->uuids, options)) {
+                    return write_result::failed_to_write_uuids;
+                }
             }
         }
 
@@ -273,8 +275,10 @@ namespace macho::utils {
         }
 
         if (!options.ignores_flags()) {
-            if (!write_flags_to_file(file, this->flags)) {
-                return write_result::failed_to_write_flags;
+            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+                if (!write_flags_to_file(file, this->flags)) {
+                    return write_result::failed_to_write_flags;
+                }
             }
         }
 
