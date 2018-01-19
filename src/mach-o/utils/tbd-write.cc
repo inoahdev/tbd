@@ -785,7 +785,7 @@ namespace macho::utils {
         }
 
         if (!write_architectures_to_file(descriptor, architectures, true)) {
-            return tbd::write_result::ok;
+            return tbd::write_result::failed_to_write_architectures;
         }
 
         if (reexports_iter != reexports_end) {
