@@ -484,10 +484,6 @@ namespace macho::utils {
 
         if (options.ignores_reexports() && options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
             options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
-            if (options.enforces_has_exports()) {
-                return tbd::write_result::has_no_exports;
-            }
-            
             return tbd::write_result::ok;
         }
         
