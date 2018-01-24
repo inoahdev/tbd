@@ -1543,7 +1543,16 @@ int main(int argc, const char *argv[]) {
             if (!(tbd.options & main_utils::tbd_with_options::option_masks::ignore_warnings)) {
                 options.print_warnings();
             }
-            filetypes.add_dynamic_library();
+
+            // Validating a mach-o file as a dynamic-library
+            // requires loading and parsing its load-commands buffer
+            // which is unnecessary, and very expensive in the long-run
+
+            // Instead, allow any mach-o file to pass through,
+            // and ignore any errors tbd throws about being
+            // unable to find an identification load-command
+
+            filetypes.add_file();
             const auto recurse_result = misc::recurse::macho_files(tbd.path.c_str(), filetypes, options, [&](macho::file &file, std::string &path) {
                 auto directories_front = tbd.path.length();
                 if (!(tbd.options & main_utils::tbd_with_options::option_masks::maintain_directories)) {
