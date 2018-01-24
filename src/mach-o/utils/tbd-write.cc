@@ -104,34 +104,40 @@ namespace macho::utils {
         // a default if the caller does not provide one
 
         auto groups = std::vector<export_group>();
+
+        auto groups_begin = groups.begin();
         auto groups_end = groups.end();
 
         for (const auto &reexport : this->reexports) {
-            auto groups_iter = std::find(groups.begin(), groups_end, reexport);
+            auto groups_iter = std::find(groups_begin, groups_end, reexport);
             if (groups_iter != groups_end) {
                 if (!groups_iter->reexport) {
                     groups_iter->reexport = &reexport;
                 }
-                
+
                 continue;
             }
-            
+
             groups.emplace_back(&reexport);
+
+            groups_begin = groups.begin();
             groups_end = groups.end();
         }
 
-        
+
         for (const auto &symbol : this->symbols) {
-            auto groups_iter = std::find(groups.begin(), groups_end, symbol);
+            auto groups_iter = std::find(groups_begin, groups_end, symbol);
             if (groups_iter != groups_end) {
                 if (!groups_iter->symbol) {
                     groups_iter->symbol = &symbol;
                 }
-                
+
                 continue;
             }
 
             groups.emplace_back(&symbol);
+
+            groups_begin = groups.begin();
             groups_end = groups.end();
         }
 
@@ -153,7 +159,7 @@ namespace macho::utils {
     tbd::write_result tbd::write_to(int descriptor, const tbd::write_options &options) const noexcept {
         return this->write_with_export_groups_to(descriptor, options, this->export_groups());
     }
-    
+
     tbd::write_result tbd::write_to(FILE *file, const tbd::write_options &options) const noexcept {
         return this->write_with_export_groups_to(file, options, this->export_groups());
     }
@@ -164,49 +170,49 @@ namespace macho::utils {
                 return write_result::failed_to_write_header;
             }
         }
-        
+
         if (!options.ignores_architectures()) {
             if (!write_architectures_to_file(descriptor, this->architectures, false)) {
                 return write_result::failed_to_write_architectures;
             }
         }
-        
+
         if (!options.ignores_uuids()) {
             if (!write_uuids_to_file(descriptor, this->uuids, options)) {
                 return write_result::failed_to_write_uuids;
             }
         }
-        
+
         if (!options.ignores_platform()) {
             if (!write_platform_to_file(descriptor, this->platform)) {
                 return write_result::failed_to_write_platform;
             }
         }
-        
+
         if (!options.ignores_flags()) {
             if (!write_flags_to_file(descriptor, this->flags)) {
                 return write_result::failed_to_write_flags;
             }
         }
-        
+
         if (!options.ignores_install_name()) {
             if (!write_install_name_to_file(descriptor, this->install_name)) {
                 return write_result::failed_to_write_install_name;
             }
         }
-        
+
         if (!options.ignores_current_version()) {
             if (!write_current_version_to_file(descriptor, this->current_version)) {
                 return write_result::failed_to_write_current_version;
             }
         }
-        
+
         if (!options.ignores_compatibility_version()) {
             if (!write_compatibility_version_to_file(descriptor, this->compatibility_version)) {
                 return write_result::failed_to_write_compatibility_version;
             }
         }
-        
+
         if (!options.ignores_swift_version()) {
             if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
                 if (!write_swift_version_to_file(descriptor, this->swift_version)) {
@@ -214,7 +220,7 @@ namespace macho::utils {
                 }
             }
         }
-        
+
         if (!options.ignores_objc_constraint()) {
             if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
                 if (!write_objc_constraint_to_file(descriptor, this->objc_constraint)) {
@@ -222,7 +228,7 @@ namespace macho::utils {
                 }
             }
         }
-        
+
         if (!options.ignores_parent_umbrella()) {
             if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
                 if (!write_parent_umbrella_to_file(descriptor, this->parent_umbrella)) {
@@ -230,23 +236,23 @@ namespace macho::utils {
                 }
             }
         }
-        
+
         if (!options.ignores_exports()) {
             const auto result = write_exports_to_file(*this, descriptor, options, this->export_groups());
             if (result != write_result::ok) {
                 return result;
             }
         }
-        
+
         if (!options.ignores_footer()) {
             if (!write_footer_to_file(descriptor)) {
                 return write_result::failed_to_write_footer;
             }
         }
-        
+
         return write_result::ok;
     }
-    
+
     tbd::write_result tbd::write_with_export_groups_to(FILE *file, const tbd::write_options &options, const std::vector<export_group> &groups) const noexcept {
         if (!options.ignores_header()) {
             if (!write_header_to_file(file, this->version)) {
@@ -490,12 +496,12 @@ namespace macho::utils {
             options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
             return tbd::write_result::ok;
         }
-        
+
         if (tbd.reexports.empty() && tbd.symbols.empty()) {
             if (options.enforces_has_exports()) {
                 return tbd::write_result::has_no_exports;
             }
-            
+
             return tbd::write_result::ok;
         }
 
@@ -503,14 +509,14 @@ namespace macho::utils {
             if (options.enforces_has_exports()) {
                 return tbd::write_result::has_no_exports;
             }
-            
+
             return tbd::write_result::ok;
         }
-        
+
         if (dprintf(descriptor, "exports:\n") == -1) {
             return tbd::write_result::failed_to_write_exports;
         }
-        
+
         for (const auto &group : groups) {
             const auto result = write_group_to_file(tbd, descriptor, group, options);
             if (result == tbd::write_result::ok) {
@@ -526,28 +532,25 @@ namespace macho::utils {
     tbd::write_result write_exports_to_file(const tbd &tbd, FILE *file, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept {
         // Don't check if options.ignore_exports() as
         // caller is supposed to check if it's configured
+
         if (options.ignores_reexports() && options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
             options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
-            if (options.enforces_has_exports()) {
-                return tbd::write_result::has_no_exports;
-            }
-            
             return tbd::write_result::ok;
         }
-        
+
         if (tbd.reexports.empty() && tbd.symbols.empty()) {
             if (options.enforces_has_exports()) {
                 return tbd::write_result::has_no_exports;
             }
-            
+
             return tbd::write_result::ok;
         }
-        
+
         if (groups.empty()) {
             if (options.enforces_has_exports()) {
                 return tbd::write_result::has_no_exports;
             }
-            
+
             return tbd::write_result::ok;
         }
 
@@ -701,10 +704,10 @@ namespace macho::utils {
             options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
             return tbd::write_result::ok;
         }
-        
+
         const auto architectures = group.architectures();
         const auto symbols_end = tbd.symbols.cend();
-        
+
         auto group_symbols_begin = symbols_end;
         if (group.symbol != nullptr) {
             group_symbols_begin = tbd.symbols.cbegin() + std::distance(tbd.symbols.data(), group.symbol);
@@ -716,43 +719,43 @@ namespace macho::utils {
         auto objc_class_symbols_iter = symbols_end;
         auto objc_ivar_symbols_iter = symbols_end;
         auto weak_symbols_iter = symbols_end;
-        
+
         if (group_symbols_begin != symbols_end) {
             const auto symbols_begin = group_symbols_begin + 1;
-            
+
             if (group.symbol != nullptr) {
                 switch (group.symbol->type) {
                     case tbd::symbol::type::normal:
                         normal_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::objc_class:
                         objc_class_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::objc_ivar:
                         objc_ivar_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::weak:
                         weak_symbols_iter = group_symbols_begin;
                         break;
                 }
             }
-            
+
             const auto architectures = group.architectures();
             if (normal_symbols_iter != group_symbols_begin) {
                 normal_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::normal);
             }
-            
+
             if (objc_class_symbols_iter != group_symbols_begin) {
                 objc_class_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_class);
             }
-            
+
             if (objc_ivar_symbols_iter != group_symbols_begin) {
                 objc_ivar_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_ivar);
             }
-            
+
             if (weak_symbols_iter != group_symbols_begin) {
                 weak_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::weak);
             }
@@ -771,7 +774,7 @@ namespace macho::utils {
 
         auto reexports_iter = reexports_end;
         if (group.reexport != nullptr) {
-            reexports_iter = tbd.reexports.cbegin() + std::distance(tbd.reexports.data(), group.reexport);
+            reexports_iter = reexports_begin + std::distance(tbd.reexports.data(), group.reexport);
         } else {
             reexports_iter = std::find(reexports_begin, reexports_end, architectures);
         }
@@ -834,74 +837,74 @@ namespace macho::utils {
 
         const auto architectures = group.architectures();
         const auto symbols_end = tbd.symbols.cend();
-        
+
         auto group_symbols_begin = symbols_end;
         if (group.symbol != nullptr) {
             group_symbols_begin = tbd.symbols.cbegin() + std::distance(tbd.symbols.data(), group.symbol);
         } else {
             group_symbols_begin = std::find(tbd.symbols.cbegin(), symbols_end, group.architectures());
         }
-        
+
         auto normal_symbols_iter = symbols_end;
         auto objc_class_symbols_iter = symbols_end;
         auto objc_ivar_symbols_iter = symbols_end;
         auto weak_symbols_iter = symbols_end;
-        
+
         if (group_symbols_begin != symbols_end) {
             const auto symbols_begin = group_symbols_begin + 1;
-            
+
             if (group.symbol != nullptr) {
                 switch (group.symbol->type) {
                     case tbd::symbol::type::normal:
                         normal_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::objc_class:
                         objc_class_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::objc_ivar:
                         objc_ivar_symbols_iter = group_symbols_begin;
                         break;
-                        
+
                     case tbd::symbol::type::weak:
                         weak_symbols_iter = group_symbols_begin;
                         break;
                 }
             }
-            
+
             const auto architectures = group.architectures();
             if (normal_symbols_iter != group_symbols_begin) {
                 normal_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::normal);
             }
-            
+
             if (objc_class_symbols_iter != group_symbols_begin) {
                 objc_class_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_class);
             }
-            
+
             if (objc_ivar_symbols_iter != group_symbols_begin) {
                 objc_ivar_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_ivar);
             }
-            
+
             if (weak_symbols_iter != group_symbols_begin) {
                 weak_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::weak);
             }
         }
-        
+
         // Like above, we have to check that atleast one category is written
         // because we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
-        
+
         // We need this check because although group is guaranteed to have one
         // symbol, it may have been ignored by its type and options, so we need
         // to check each
-        
+
         const auto reexports_begin = tbd.reexports.cbegin();
         const auto reexports_end = tbd.reexports.cend();
-        
+
         auto reexports_iter = reexports_end;
         if (group.reexport != nullptr) {
-            reexports_iter = tbd.reexports.cbegin() + std::distance(tbd.reexports.data(), group.reexport);
+            reexports_iter = reexports_begin + std::distance(tbd.reexports.data(), group.reexport);
         } else {
             reexports_iter = std::find(reexports_begin, reexports_end, architectures);
         }
@@ -1227,32 +1230,32 @@ namespace macho::utils {
         }
 
         auto tracker = uint64_t();
-        
+
         const auto uuids_begin = uuids.cbegin();
         const auto uuids_end = uuids.cend();
-        
+
         const auto uuids_size = uuids.size();
 
         if (options.orders_by_architecture_info_table()) {
             auto null_architectures_pair = tbd::uuid_pair();
             null_architectures_pair.architecture = nullptr;
-            
+
             auto last_pair = const_cast<const tbd::uuid_pair *>(&null_architectures_pair);
             auto pair = uuids_begin;
-            
+
             do {
                 for (auto iter = uuids_begin; iter != uuids_end; iter++) {
                     if (pair->architecture < iter->architecture) {
                         continue;
                     }
-                    
+
                     if (last_pair->architecture >= iter->architecture) {
                         continue;
                     }
-                    
+
                     pair = iter;
                 }
-                
+
                 const auto &uuid = pair->uuid();
                 const auto result = dprintf(descriptor, "'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
                                             uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
@@ -1260,20 +1263,20 @@ namespace macho::utils {
                 if (result == -1) {
                     return false;
                 }
-                
+
                 tracker++;
                 if (tracker != uuids_size) {
                     if (dprintf(descriptor, ", ") == -1) {
                         return false;
                     }
-                    
+
                     if (!(tracker & 1)) {
                         if (dprintf(descriptor, "%-26s", "\n") == -1) {
                             return false;
                         }
                     }
                 }
-                
+
                 last_pair = pair.base();
                 pair = uuids_begin;
             } while (tracker != uuids_size);
@@ -1286,13 +1289,13 @@ namespace macho::utils {
                 if (result == -1) {
                     return false;
                 }
-                
+
                 tracker++;
                 if (tracker != uuids_size) {
                     if (dprintf(descriptor, ", ") == -1) {
                         return false;
                     }
-                    
+
                     if (!(tracker & 1)) {
                         if (dprintf(descriptor, "%-26s", "\n") == -1) {
                             return false;

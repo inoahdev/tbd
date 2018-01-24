@@ -16,36 +16,36 @@ namespace misc::recurse {
         if (filetypes.has_file()) {
             return true;
         }
-        
+
         const auto is_library = macho::utils::validation::as_library(file);
         if (!is_library) {
             return false;
         }
-        
+
         if (!filetypes.has_dynamic_library()) {
             return is_library;
         }
-        
+
         return macho::utils::validation::as_dynamic_library(file);
     }
-    
+
     bool is_valid_macho_file_at_path(macho::file &file, const char *path, const filetypes &filetypes, const options &options) {
         switch (file.open(path)) {
             case macho::file::open_result::ok:
                 break;
-                
+
             case macho::file::open_result::failed_to_open_stream:
                 if (options.prints_warnings()) {
                     fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", path, strerror(errno));
                 }
-                
+
                 return false;
 
             case macho::file::open_result::failed_to_retrieve_information:
                 if (options.prints_warnings()) {
                     fprintf(stderr, "Warning: Failed to retrieve information necessary to process file (at path %s), failing with error: %s\n", path, strerror(errno));
                 }
-                
+
                 return false;
 
             case macho::file::open_result::not_a_macho:
@@ -59,7 +59,7 @@ namespace misc::recurse {
             case macho::file::open_result::invalid_container:
                 return false;
         }
-        
+
         return is_valid_file_for_filetypes(file, filetypes);
     }
 }
