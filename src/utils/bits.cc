@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 7/10/17.
-//  Copyright © 2017 inoahdev. All rights reserved.
+//  Copyright © 2017 - 2018 inoahdev. All rights reserved.
 //
 
 #include <cerrno>
