@@ -1341,12 +1341,12 @@ int main(int argc, const char *argv[]) {
 
                 if (S_ISREG(information.st_mode)) {
                     if (tbd.options.recurse_directories_at_path) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a mach-o file. Please provide -r (--recurse) (with an optional recurse-type) to recurse the directory\n", path.c_str());
+                        fprintf(stderr, "Cannot recurse file at path (%s). Please provide a path to a directory to recurse in\n", path.c_str());
                         return 1;
                     }
                 } else if (S_ISDIR(information.st_mode)) {
                     if (!tbd.options.recurse_directories_at_path) {
-                        fprintf(stderr, "Cannot recurse file at path (%s). Please provide a path to a directory to recurse in\n", path.c_str());
+                        fprintf(stderr, "Cannot open directory at path (%s) as a mach-o file. Please provide -r (--recurse) (with an optional recurse-type) to recurse the directory\n", path.c_str());
                         return 1;
                     }
 
