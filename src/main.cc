@@ -973,11 +973,7 @@ int main(int argc, const char *argv[]) {
                 }
 
                 struct stat information;
-                if (stat(path.c_str(), &information) != 0) {
-                    if (const auto path_back = path.back(); path_back != '/' && path_back != '\\') {
-                        path.append(1, '/');
-                    }
-                } else {
+                if (stat(path.c_str(), &information) == 0) {
                     if (S_ISREG(information.st_mode)) {
                         if (tbd.options.recurse_directories_at_path) {
                             fputs("Cannot write .tbd files created found while recursing to a file. Please provide a directory to write created .tbd files to\n", stderr);
@@ -988,13 +984,15 @@ int main(int argc, const char *argv[]) {
                             fputs("Cannot write a created .tbd file to a directory object itself, Please provide a path to a file\n", stderr);
                             return 1;
                         }
-
-                        if (const auto path_back = path.back(); path_back != '/' && path_back != '\\') {
-                            path.append(1, '/');
-                        }
                     }
                 }
 
+                if (tbd.options.recurse_directories_at_path) {
+                    if (const auto path_back = path.back(); path_back != '/' && path_back != '\\') {
+                        path.append(1, '/');
+                    }
+                }
+                
                 tbd.options.value |= options.value;
                 tbd.write_path = std::move(path);
 
