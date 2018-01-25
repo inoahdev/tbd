@@ -138,6 +138,52 @@ void recursively_remove_with_terminator(char *path, char *terminator, bool shoul
     }
 }
 
+void tbd_with_options_apply_local_options(main_utils::tbd_with_options &tbd, int argc, const char *argv[]) {
+    if (tbd.local_option_start == 0) {
+        return;
+    }
+
+    struct macho::utils::tbd::flags flags_add;
+    struct macho::utils::tbd::flags flags_re;
+
+    for (auto index = tbd.local_option_start; index != argc; index++) {
+        const auto &option = argv[index];
+        if (strcmp(option, "add-flags") == 0) {
+            if ((tbd.options & main_utils::tbd_with_options::option_masks::replace_flags) ^
+                (tbd.options & main_utils::tbd_with_options::option_masks::remove_flags)) {
+                continue;
+            }
+
+            main_utils::parse_flags(&flags_add, ++index, argc, argv);
+        } else if (strcmp(option, "replace-flags") == 0) {
+            if (tbd.options & main_utils::tbd_with_options::option_masks::remove_flags) {
+                continue;
+            }
+
+            tbd.info.flags.clear();
+            main_utils::parse_flags(&flags_re, ++index, argc, argv);
+        } else if (strcmp(option, "remove-flags") == 0) {
+            if (tbd.options & main_utils::tbd_with_options::option_masks::replace_flags) {
+                continue;
+            }
+
+            main_utils::parse_flags(&flags_re, ++index, argc, argv);
+        } else if (option[0] != '-') {
+            break;
+        }
+
+        // Ignore handling of any unrecognized options
+        // as by this point, argv has been fully validated
+    }
+
+    if (tbd.options & main_utils::tbd_with_options::remove_flags) {
+        tbd.info.flags.bits |= flags_add.bits;
+        tbd.info.flags.bits &= ~flags_re.bits;
+    } else {
+        tbd.info.flags.bits = flags_re.bits;
+    }
+}
+
 /*
    tbd has several different types of options;
    - an option that is provided by itself (such as -h (--help) or -u (--usage)
@@ -1518,7 +1564,21 @@ int main(int argc, const char *argv[]) {
 
         tbd.apply_missing_from(global);
 
-        if (tbd.options & recurse_directories_at_path) {
+        // Apply other global variables
+
+        if (global.options & main_utils::tbd_with_options::option_masks::remove_architectures) {
+            tbd.architectures |= global_architectures_to_override_to_add;
+            tbd.architectures &= global_architectures_to_override_to_re;
+        } else {
+            tbd.architectures = global_architectures_to_override_to_re;
+        }
+
+        // Parse global-flags after creating tbd as local
+        // flags options are parsed after the fact, and
+        // as global flags receive priority, we need to
+        // apply global-flags ourselves afterwards
+
+        if (tbd.options & main_utils::tbd_with_options::option_masks::recurse_directories_at_path) {
             // A check here is necessary in the
             // rare scenario where user asked
             // to recurse a directory, but did not
@@ -1621,32 +1681,10 @@ int main(int argc, const char *argv[]) {
                 // Parse local-options for modification of tbd-fields
                 // after creation and before write to avoid any extra hoops
 
-                if (tbd.local_option_start != 0) {
-                    for (auto index = tbd.local_option_start; index != argc; index++) {
-                        const auto &option = argv[index];
-                        if (strcmp(option, "add-flags") == 0) {
-                            if ((tbd.options & replace_flags) ^ (tbd.options & remove_flags)) {
-                                continue;
-                            }
+                // Do this before applying any global variables as global
+                // variables have preference over local variables
 
-                            main_utils::parse_flags(&tbd.info.flags, ++index, argc, argv);
-                        } else if (strcmp(option, "replace-flags") == 0) {
-                            if (tbd.options & remove_flags) {
-                                continue;
-                            }
-
-                            tbd.info.flags.clear();
-                            main_utils::parse_flags(&tbd.info.flags, ++index, argc, argv);
-                        } else if (option[0] != '-') {
-                            break;
-                        }
-
-                        // Ignore handling of any unrecognized options
-                        // as by this point, argv has been fully validated
-                    }
-                }
-
-                tbd.write_options.order_by_architecture_info_table();
+                tbd_with_options_apply_local_options(global, argc, argv);
 
                 switch (tbd.info.write_to(descriptor, tbd.write_options)) {
                     case macho::utils::tbd::write_result::ok:
@@ -1838,29 +1876,16 @@ int main(int argc, const char *argv[]) {
             // Parse local-options for modification of tbd-fields
             // after creation and before write to avoid any extra hoops
 
-            if (tbd.local_option_start != 0) {
-                for (auto index = tbd.local_option_start; index != argc; index++) {
-                    const auto &option = argv[index];
-                    if (strcmp(option, "add-flags") == 0) {
-                        if ((tbd.options & replace_flags) ^ (tbd.options & remove_flags)) {
-                            continue;
-                        }
+            // Do this before applying any global variables as global
+            // variables have preference over local variables
 
-                        main_utils::parse_flags(&tbd.info.flags, ++index, argc, argv);
-                    } else if (strcmp(option, "replace-flags") == 0) {
-                        if (tbd.options & remove_flags) {
-                            continue;
-                        }
+            tbd_with_options_apply_local_options(global, argc, argv);
 
-                        tbd.info.flags.clear();
-                        main_utils::parse_flags(&tbd.info.flags, ++index, argc, argv);
-                    } else if (option[0] != '-') {
-                        break;
-                    }
-
-                    // Ignore handling of any unrecognized options
-                    // as by this point, argv has been fully validated
-                }
+            if (global.options & main_utils::tbd_with_options::option_masks::remove_architectures) {
+                tbd.info.flags.bits |= global_tbd_flags_to_add.bits;
+                tbd.info.flags.bits &= global_tbd_flags_to_add.bits;
+            } else {
+                tbd.info.flags.bits = global_tbd_flags_to_re.bits;
             }
 
             auto write_result = macho::utils::tbd::write_result::ok;
