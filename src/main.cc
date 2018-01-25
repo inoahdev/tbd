@@ -992,7 +992,7 @@ int main(int argc, const char *argv[]) {
                         path.append(1, '/');
                     }
                 }
-                
+
                 tbd.options.value |= options.value;
                 tbd.write_path = std::move(path);
 
@@ -1637,7 +1637,7 @@ int main(int argc, const char *argv[]) {
 
                 utils::path::append_component(write_path, extracted_directories_begin, extracted_directories_end);
                 write_path.append(".tbd");
-                
+
                 auto terminator = static_cast<char *>(nullptr);
                 auto descriptor = -1;
 
@@ -1675,34 +1675,31 @@ int main(int argc, const char *argv[]) {
                 const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
                 if (!creation_result) {
                     recursively_remove_with_terminator(write_path.data(), terminator, true);
-                    close(descriptor);
+                } else {
+                    // Parse local-options for modification of tbd-fields
+                    // after creation and before write to avoid any extra hoops
 
-                    return true;
-                }
+                    // Do this before applying any global variables as global
+                    // variables have preference over local variables
 
-                // Parse local-options for modification of tbd-fields
-                // after creation and before write to avoid any extra hoops
+                    tbd_with_options_apply_local_options(global, argc, argv);
 
-                // Do this before applying any global variables as global
-                // variables have preference over local variables
+                    switch (tbd.info.write_to(descriptor, tbd.write_options)) {
+                        case macho::utils::tbd::write_result::ok:
+                            break;
 
-                tbd_with_options_apply_local_options(global, argc, argv);
+                        case macho::utils::tbd::write_result::has_no_exports:
+                            fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", path.c_str());
+                            recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
 
-                switch (tbd.info.write_to(descriptor, tbd.write_options)) {
-                    case macho::utils::tbd::write_result::ok:
-                        break;
+                            break;
 
-                    case macho::utils::tbd::write_result::has_no_exports:
-                        fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", path.c_str());
-                        recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
+                        default:
+                            fprintf(stderr, "Failed to write .tbd to output-file at path: %s\n", write_path.c_str());
+                            recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
 
-                        break;
-
-                    default:
-                        fprintf(stderr, "Failed to write .tbd to output-file at path: %s\n", write_path.c_str());
-                        recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
-
-                        break;
+                            break;
+                    }
                 }
 
                 tbd.info.clear();
