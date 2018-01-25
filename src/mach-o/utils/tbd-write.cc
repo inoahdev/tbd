@@ -165,86 +165,86 @@ namespace macho::utils {
     }
 
     tbd::write_result tbd::write_with_export_groups_to(int descriptor, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) const noexcept {
-        if (!options.ignores_header()) {
+        if (!options.ignore_header) {
             if (!write_header_to_file(descriptor, this->version)) {
                 return write_result::failed_to_write_header;
             }
         }
 
-        if (!options.ignores_architectures()) {
+        if (!options.ignore_architectures) {
             if (!write_architectures_to_file(descriptor, this->architectures, false)) {
                 return write_result::failed_to_write_architectures;
             }
         }
 
-        if (!options.ignores_uuids()) {
+        if (!options.ignore_uuids) {
             if (!write_uuids_to_file(descriptor, this->uuids, options)) {
                 return write_result::failed_to_write_uuids;
             }
         }
 
-        if (!options.ignores_platform()) {
+        if (!options.ignore_platform) {
             if (!write_platform_to_file(descriptor, this->platform)) {
                 return write_result::failed_to_write_platform;
             }
         }
 
-        if (!options.ignores_flags()) {
+        if (!options.ignore_flags) {
             if (!write_flags_to_file(descriptor, this->flags)) {
                 return write_result::failed_to_write_flags;
             }
         }
 
-        if (!options.ignores_install_name()) {
+        if (!options.ignore_install_name) {
             if (!write_install_name_to_file(descriptor, this->install_name)) {
                 return write_result::failed_to_write_install_name;
             }
         }
 
-        if (!options.ignores_current_version()) {
+        if (!options.ignore_current_version) {
             if (!write_current_version_to_file(descriptor, this->current_version)) {
                 return write_result::failed_to_write_current_version;
             }
         }
 
-        if (!options.ignores_compatibility_version()) {
+        if (!options.ignore_compatibility_version) {
             if (!write_compatibility_version_to_file(descriptor, this->compatibility_version)) {
                 return write_result::failed_to_write_compatibility_version;
             }
         }
 
-        if (!options.ignores_swift_version()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_swift_version) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_swift_version_to_file(descriptor, this->swift_version)) {
                     return write_result::failed_to_write_swift_version;
                 }
             }
         }
 
-        if (!options.ignores_objc_constraint()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_objc_constraint) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_objc_constraint_to_file(descriptor, this->objc_constraint)) {
                     return write_result::failed_to_write_objc_constraint;
                 }
             }
         }
 
-        if (!options.ignores_parent_umbrella()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_parent_umbrella) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_parent_umbrella_to_file(descriptor, this->parent_umbrella)) {
                     return write_result::failed_to_write_parent_umbrella;
                 }
             }
         }
 
-        if (!options.ignores_exports()) {
+        if (!options.ignore_exports) {
             const auto result = write_exports_to_file(*this, descriptor, options, this->export_groups());
             if (result != write_result::ok) {
                 return result;
             }
         }
 
-        if (!options.ignores_footer()) {
+        if (!options.ignore_footer) {
             if (!write_footer_to_file(descriptor)) {
                 return write_result::failed_to_write_footer;
             }
@@ -254,90 +254,90 @@ namespace macho::utils {
     }
 
     tbd::write_result tbd::write_with_export_groups_to(FILE *file, const tbd::write_options &options, const std::vector<export_group> &groups) const noexcept {
-        if (!options.ignores_header()) {
+        if (!options.ignore_header) {
             if (!write_header_to_file(file, this->version)) {
                 return write_result::failed_to_write_header;
             }
         }
 
-        if (!options.ignores_architectures()) {
+        if (!options.ignore_architectures) {
             if (!write_architectures_to_file(file, this->architectures, false)) {
                 return write_result::failed_to_write_architectures;
             }
         }
 
-        if (!options.ignores_uuids()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_uuids) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_uuids_to_file(file, this->uuids, options)) {
                     return write_result::failed_to_write_uuids;
                 }
             }
         }
 
-        if (!options.ignores_platform()) {
+        if (!options.ignore_platform) {
             if (!write_platform_to_file(file, this->platform)) {
                 return write_result::failed_to_write_platform;
             }
         }
 
-        if (!options.ignores_flags()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_flags) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_flags_to_file(file, this->flags)) {
                     return write_result::failed_to_write_flags;
                 }
             }
         }
 
-        if (!options.ignores_install_name()) {
+        if (!options.ignore_install_name) {
             if (!write_install_name_to_file(file, this->install_name)) {
                 return write_result::failed_to_write_install_name;
             }
         }
 
-        if (!options.ignores_current_version()) {
+        if (!options.ignore_current_version) {
             if (!write_current_version_to_file(file, this->current_version)) {
                 return write_result::failed_to_write_current_version;
             }
         }
 
-        if (!options.ignores_compatibility_version()) {
+        if (!options.ignore_compatibility_version) {
             if (!write_compatibility_version_to_file(file, this->compatibility_version)) {
                 return write_result::failed_to_write_compatibility_version;
             }
         }
 
-        if (!options.ignores_swift_version()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_swift_version) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_swift_version_to_file(file, this->swift_version)) {
                     return write_result::failed_to_write_swift_version;
                 }
             }
         }
 
-        if (!options.ignores_objc_constraint()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_objc_constraint) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_objc_constraint_to_file(file, this->objc_constraint)) {
                     return write_result::failed_to_write_objc_constraint;
                 }
             }
         }
 
-        if (!options.ignores_parent_umbrella()) {
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+        if (!options.ignore_parent_umbrella) {
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                 if (!write_parent_umbrella_to_file(file, this->parent_umbrella)) {
                     return write_result::failed_to_write_parent_umbrella;
                 }
             }
         }
 
-        if (!options.ignores_exports()) {
+        if (!options.ignore_exports) {
             const auto result = write_exports_to_file(*this, file, options, this->export_groups());
             if (result != write_result::ok) {
                 return result;
             }
         }
 
-        if (!options.ignores_footer()) {
+        if (!options.ignore_footer) {
             if (!write_footer_to_file(file)) {
                 return write_result::failed_to_write_footer;
             }
@@ -492,13 +492,13 @@ namespace macho::utils {
         // Don't check if options.ignore_exports() as
         // caller is supposed to check if it's configured
 
-        if (options.ignores_reexports() && options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
-            options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
+        if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
+            options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
         if (tbd.reexports.empty() && tbd.symbols.empty()) {
-            if (options.enforces_has_exports()) {
+            if (options.enforce_has_exports) {
                 return tbd::write_result::has_no_exports;
             }
 
@@ -506,7 +506,7 @@ namespace macho::utils {
         }
 
         if (groups.empty()) {
-            if (options.enforces_has_exports()) {
+            if (options.enforce_has_exports) {
                 return tbd::write_result::has_no_exports;
             }
 
@@ -533,13 +533,13 @@ namespace macho::utils {
         // Don't check if options.ignore_exports() as
         // caller is supposed to check if it's configured
 
-        if (options.ignores_reexports() && options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
-            options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
+        if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
+            options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
         if (tbd.reexports.empty() && tbd.symbols.empty()) {
-            if (options.enforces_has_exports()) {
+            if (options.enforce_has_exports) {
                 return tbd::write_result::has_no_exports;
             }
 
@@ -547,7 +547,7 @@ namespace macho::utils {
         }
 
         if (groups.empty()) {
-            if (options.enforces_has_exports()) {
+            if (options.enforce_has_exports) {
                 return tbd::write_result::has_no_exports;
             }
 
@@ -575,14 +575,14 @@ namespace macho::utils {
             return false;
         }
 
-        if (flags.has_flat_namespace()) {
+        if (flags.flat_namespace) {
             if (dprintf(descriptor, "flat_namespace") == -1) {
                 return false;
             }
         }
 
-        if (flags.is_not_app_extension_safe()) {
-            if (flags.has_flat_namespace()) {
+        if (flags.not_app_extension_safe) {
+            if (flags.flat_namespace) {
                 if (dprintf(descriptor, ", ") == -1) {
                     return false;
                 }
@@ -609,14 +609,14 @@ namespace macho::utils {
             return false;
         }
 
-        if (flags.has_flat_namespace()) {
+        if (flags.flat_namespace) {
             if (fputs("flat_namespace", file) == -1) {
                 return false;
             }
         }
 
-        if (flags.is_not_app_extension_safe()) {
-            if (flags.has_flat_namespace()) {
+        if (flags.not_app_extension_safe) {
+            if (flags.flat_namespace) {
                 if (fputs(", ", file) == -1) {
                     return false;
                 }
@@ -699,9 +699,8 @@ namespace macho::utils {
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
-        if (options.ignores_allowable_clients() && options.ignores_reexports() &&
-            options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
-            options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
+        if (options.ignore_allowable_clients && options.ignore_reexports && options.ignore_normal_symbols &&
+            options.ignore_weak_symbols && options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
@@ -779,11 +778,11 @@ namespace macho::utils {
             reexports_iter = std::find(reexports_begin, reexports_end, architectures);
         }
 
-        if ((!options.ignores_reexports() && reexports_iter == reexports_end) &&
-            (!options.ignores_normal_symbols() && normal_symbols_iter == symbols_end) &&
-            (!options.ignores_objc_class_symbols() && objc_class_symbols_iter == symbols_end) &&
-            (!options.ignores_objc_ivar_symbols() && objc_ivar_symbols_iter == symbols_end) &&
-            (!options.ignores_weak_symbols() && weak_symbols_iter == symbols_end)) {
+        if ((!options.ignore_reexports && reexports_iter == reexports_end) &&
+            (!options.ignore_normal_symbols && normal_symbols_iter == symbols_end) &&
+            (!options.ignore_objc_class_symbols && objc_class_symbols_iter == symbols_end) &&
+            (!options.ignore_objc_ivar_symbols && objc_ivar_symbols_iter == symbols_end) &&
+            (!options.ignore_weak_symbols && weak_symbols_iter == symbols_end)) {
             return tbd::write_result::ok;
         }
 
@@ -829,9 +828,8 @@ namespace macho::utils {
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
-        if (options.ignores_allowable_clients() && options.ignores_reexports() &&
-            options.ignores_normal_symbols() && options.ignores_weak_symbols() &&
-            options.ignores_objc_class_symbols() && options.ignores_objc_ivar_symbols()) {
+        if (options.ignore_allowable_clients && options.ignore_reexports && options.ignore_normal_symbols &&
+            options.ignore_weak_symbols && options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
@@ -909,11 +907,11 @@ namespace macho::utils {
             reexports_iter = std::find(reexports_begin, reexports_end, architectures);
         }
 
-        if ((!options.ignores_reexports() && reexports_iter == reexports_end) &&
-            (!options.ignores_normal_symbols() && normal_symbols_iter == symbols_end) &&
-            (!options.ignores_objc_class_symbols() && objc_class_symbols_iter == symbols_end) &&
-            (!options.ignores_objc_ivar_symbols() && objc_ivar_symbols_iter == symbols_end) &&
-            (!options.ignores_weak_symbols() && weak_symbols_iter == symbols_end)) {
+        if ((!options.ignore_reexports && reexports_iter == reexports_end) &&
+            (!options.ignore_normal_symbols && normal_symbols_iter == symbols_end) &&
+            (!options.ignore_objc_class_symbols && objc_class_symbols_iter == symbols_end) &&
+            (!options.ignore_objc_ivar_symbols && objc_ivar_symbols_iter == symbols_end) &&
+            (!options.ignore_weak_symbols && weak_symbols_iter == symbols_end)) {
             return tbd::write_result::ok;
         }
 
@@ -1236,7 +1234,7 @@ namespace macho::utils {
 
         const auto uuids_size = uuids.size();
 
-        if (options.orders_by_architecture_info_table()) {
+        if (options.order_by_architecture_info_table) {
             auto null_architectures_pair = tbd::uuid_pair();
             null_architectures_pair.architecture = nullptr;
 
@@ -1328,7 +1326,7 @@ namespace macho::utils {
 
         const auto uuids_size = uuids.size();
 
-        if (options.orders_by_architecture_info_table()) {
+        if (options.order_by_architecture_info_table) {
             auto null_architectures_pair = tbd::uuid_pair();
             null_architectures_pair.architecture = nullptr;
 

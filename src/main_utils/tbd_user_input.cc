@@ -55,27 +55,14 @@ namespace main_utils {
         } while (true);
     }
 
-    enum create_tbd_retained : uint64_t {
-        create_tbd_retained_never_replace_platform          = 1 << 0,
-        create_tbd_retained_never_replace_installation_name = 1 << 1,
-        create_tbd_retained_never_replace_objc_constraint   = 1 << 2,
-        create_tbd_retained_never_replace_swift_version     = 1 << 3,
-        create_tbd_retained_never_replace_parent_umbrella   = 1 << 4,
-        create_tbd_retained_never_ignore_flags              = 1 << 5,
-        create_tbd_retained_never_ignore_uuids              = 1 << 6,
-        create_tbd_retained_never_ignore_non_unique_uuids   = 1 << 7,
-        create_tbd_retained_never_ignore_missing_uuids      = 1 << 8
-    };
-
-    bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-           if (*info & create_tbd_retained_never_replace_platform) {
+           if (info->replace_platform) {
                return false;
            }
         }
 
-        if (all.creation_options.ignores_platform() &&
-            all.info.platform != macho::utils::tbd::platform::none) {
+        if (all.creation_options.ignore_platform && all.info.platform != macho::utils::tbd::platform::none) {
             return true;
         }
 
@@ -89,7 +76,7 @@ namespace main_utils {
 
         if (result == "never") {
            if (info != nullptr) {
-               *info |= create_tbd_retained_never_replace_platform;
+               info->replace_platform = true;
            }
 
            return false;
@@ -110,25 +97,24 @@ namespace main_utils {
         } while (new_platform == macho::utils::tbd::platform::none);
 
         tbd.info.platform = new_platform;
-        tbd.creation_options.ignore_platform();
+        tbd.creation_options.ignore_platform = true;
 
         if (apply_to_all) {
            all.info.platform = new_platform;
-           all.creation_options.ignore_platform();
+           all.creation_options.ignore_platform = true;
         }
 
         return true;
     }
 
-    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_replace_installation_name) {
+            if (info->replace_installation_name) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_install_name() &&
-            all.info.install_name.size() != 0) {
+        if (all.creation_options.ignore_install_name && all.info.install_name.size() != 0) {
             return true;
         }
 
@@ -142,7 +128,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_replace_installation_name;
+                info->replace_installation_name = true;
             }
 
             return false;
@@ -157,24 +143,24 @@ namespace main_utils {
         } while (result.empty());
 
         tbd.info.install_name = std::move(result);
-        tbd.creation_options.ignore_install_name();
+        tbd.creation_options.ignore_install_name = true;
 
         if (apply_to_all) {
             all.info.install_name = tbd.info.install_name;
-            all.creation_options.ignore_install_name();
+            all.creation_options.ignore_install_name = true;
         }
 
         return true;
     }
 
-    bool request_new_objc_constraint(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_new_objc_constraint(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_replace_objc_constraint) {
+            if (info->replace_objc_constraint) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_objc_constraint() &&
+        if (all.creation_options.ignore_objc_constraint &&
             all.info.objc_constraint != macho::utils::tbd::objc_constraint::none) {
             return true;
         }
@@ -189,7 +175,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_replace_objc_constraint;
+                info->replace_objc_constraint = true;
             }
 
             return false;
@@ -210,25 +196,24 @@ namespace main_utils {
         } while (true);
 
         tbd.info.objc_constraint = new_objc_constraint;
-        tbd.creation_options.ignore_objc_constraint();
+        tbd.creation_options.ignore_objc_constraint = true;
 
         if (apply_to_all) {
             all.info.objc_constraint = new_objc_constraint;
-            all.creation_options.ignore_objc_constraint();
+            all.creation_options.ignore_objc_constraint = true;
         }
 
         return true;
     }
 
-    bool request_new_parent_umbrella(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_new_parent_umbrella(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_replace_parent_umbrella) {
+            if (info->replace_parent_umbrella) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_parent_umbrella() &&
-            all.info.parent_umbrella.size() != 0) {
+        if (all.creation_options.ignore_parent_umbrella && all.info.parent_umbrella.size() != 0) {
             return true;
         }
 
@@ -242,7 +227,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_replace_parent_umbrella;
+                info->replace_parent_umbrella = true;
             }
 
             return false;
@@ -256,25 +241,24 @@ namespace main_utils {
         } while (result.empty());
 
         tbd.info.parent_umbrella = std::move(result);
-        tbd.creation_options.ignore_parent_umbrella();
+        tbd.creation_options.ignore_parent_umbrella = true;
 
         if (apply_to_all) {
             all.info.parent_umbrella = tbd.info.parent_umbrella;
-            all.creation_options.ignore_parent_umbrella();
+            all.creation_options.ignore_parent_umbrella = true;
         }
 
         return true;
     }
 
-    bool request_new_swift_version(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_new_swift_version(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_replace_swift_version) {
+            if (info->replace_swift_version) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_swift_version() &&
-            all.info.swift_version != 0) {
+        if (all.creation_options.ignore_swift_version && all.info.swift_version != 0) {
             return true;
         }
 
@@ -288,7 +272,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_replace_swift_version;
+                info->replace_swift_version = true;
             }
 
             return false;
@@ -304,24 +288,24 @@ namespace main_utils {
         } while ((new_swift_version = (uint32_t)strtoul(result.c_str(), nullptr, 10)) != 0);
 
         tbd.info.swift_version = (uint32_t)new_swift_version;
-        tbd.creation_options.ignore_swift_version();
+        tbd.creation_options.ignore_swift_version = true;
 
         if (apply_to_all) {
             all.info.swift_version = new_swift_version;
-            all.creation_options.ignore_swift_version();
+            all.creation_options.ignore_swift_version = true;
         }
 
         return true;
     }
 
-    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_replace_swift_version) {
+            if (info->replace_swift_version) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_flags()) {
+        if (all.creation_options.ignore_flags) {
             return true;
         }
 
@@ -334,7 +318,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_replace_swift_version;
+                info->replace_swift_version = true;
             }
 
             return false;
@@ -342,25 +326,25 @@ namespace main_utils {
             return false;
         }
 
-        tbd.creation_options.ignore_flags();
-        tbd.write_options.ignore_flags();
+        tbd.creation_options.ignore_flags = true;
+        tbd.write_options.ignore_flags = true;
 
         if (result == "all") {
-            all.creation_options.ignore_flags();
-            all.write_options.ignore_flags();
+            all.creation_options.ignore_flags = true;
+            all.write_options.ignore_flags = true;
         }
 
         return true;
     }
 
-    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_ignore_uuids) {
+            if (info->ignore_uuids) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_uuids()) {
+        if (all.creation_options.ignore_uuids) {
             return true;
         }
 
@@ -373,7 +357,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_ignore_uuids;
+                info->ignore_uuids = true;
             }
 
             return false;
@@ -381,25 +365,25 @@ namespace main_utils {
             return false;
         }
 
-        tbd.creation_options.ignore_uuids();
-        tbd.write_options.ignore_uuids();
+        tbd.creation_options.ignore_uuids = true;
+        tbd.write_options.ignore_uuids = true;
 
         if (result == "all") {
-            all.creation_options.ignore_uuids();
-            all.write_options.ignore_uuids();
+            all.creation_options.ignore_uuids = true;
+            all.write_options.ignore_uuids = true;
         }
 
         return true;
     }
 
-    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_ignore_non_unique_uuids) {
+            if (info->ignore_non_unique_uuids) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_non_unique_uuids()) {
+        if (all.creation_options.ignore_non_unique_uuids) {
             return true;
         }
 
@@ -413,7 +397,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_ignore_non_unique_uuids;
+                info->ignore_non_unique_uuids = true;
             }
 
             return false;
@@ -421,22 +405,22 @@ namespace main_utils {
             return false;
         }
 
-        tbd.creation_options.ignore_non_unique_uuids();
+        tbd.creation_options.ignore_non_unique_uuids = true;
         if (result == "all") {
-            all.creation_options.ignore_non_unique_uuids();
+            all.creation_options.ignore_non_unique_uuids = true;
         }
 
         return true;
     }
 
-    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, uint64_t *info) noexcept {
+    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
         if (info != nullptr) {
-            if (*info & create_tbd_retained_never_ignore_missing_uuids) {
+            if (info->ignore_missing_uuids) {
                 return false;
             }
         }
 
-        if (all.creation_options.ignores_missing_uuids()) {
+        if (all.creation_options.ignore_missing_uuids) {
             return true;
         }
 
@@ -450,7 +434,7 @@ namespace main_utils {
 
         if (result == "never") {
             if (info != nullptr) {
-                *info |= create_tbd_retained_never_ignore_missing_uuids;
+                info->ignore_missing_uuids = true;
             }
 
             return false;
@@ -458,9 +442,9 @@ namespace main_utils {
             return false;
         }
 
-        tbd.creation_options.ignore_missing_uuids();
+        tbd.creation_options.ignore_missing_uuids = true;
         if (result == "all") {
-            all.creation_options.ignore_missing_uuids();
+            all.creation_options.ignore_missing_uuids = true;
         }
 
         return true;

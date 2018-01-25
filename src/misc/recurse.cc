@@ -13,7 +13,7 @@
 
 namespace misc::recurse {
     bool is_valid_file_for_filetypes(macho::file &file, const filetypes &filetypes) {
-        if (filetypes.has_file()) {
+        if (filetypes.file) {
             return true;
         }
 
@@ -22,7 +22,7 @@ namespace misc::recurse {
             return false;
         }
 
-        if (!filetypes.has_dynamic_library()) {
+        if (!filetypes.dynamic_library) {
             return is_library;
         }
 
@@ -35,14 +35,14 @@ namespace misc::recurse {
                 break;
 
             case macho::file::open_result::failed_to_open_stream:
-                if (options.prints_warnings()) {
+                if (options.print_warnings) {
                     fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", path, strerror(errno));
                 }
 
                 return false;
 
             case macho::file::open_result::failed_to_retrieve_information:
-                if (options.prints_warnings()) {
+                if (options.print_warnings) {
                     fprintf(stderr, "Warning: Failed to retrieve information necessary to process file (at path %s), failing with error: %s\n", path, strerror(errno));
                 }
 

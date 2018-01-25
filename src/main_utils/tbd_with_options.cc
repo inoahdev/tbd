@@ -22,8 +22,8 @@ namespace main_utils {
             this->info.compatibility_version.value = options.info.compatibility_version.value;
         }
 
-        if (this->info.flags.bits == 0) {
-            this->info.flags.bits = options.info.flags.bits;
+        if (this->info.flags.value == 0) {
+            this->info.flags.value = options.info.flags.value;
         }
 
         if (this->info.install_name.empty()) {

@@ -16,11 +16,11 @@ namespace main_utils {
             const auto argument = argv[jndex];
             if (strcmp(argument, "flat_namespace") == 0) {
                 if (flags != nullptr) {
-                    flags->set_has_flat_namespace();
+                    flags->flat_namespace = true;
                 }
             } else if (strcmp(argument, "not_app_extension_safe") == 0) {
                 if (flags != nullptr) {
-                    flags->set_not_app_extension_safe();
+                    flags->not_app_extension_safe = true;
                 }
             } else {
                 // Make sure the user provided at-least one flag

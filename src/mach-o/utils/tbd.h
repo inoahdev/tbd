@@ -25,77 +25,28 @@
 namespace macho::utils {
     struct tbd {
         struct flags {
-            enum class shifts {
-                flat_namespace,
-                not_app_extension_safe
+            explicit inline flags() = default;
+            explicit inline flags(uint64_t value) : value(value) {};
+
+            union {
+                uint64_t value = 0;
+
+                struct {
+                    bool flat_namespace         : 1;
+                    bool not_app_extension_safe : 1;
+                } __attribute__((packed));;
             };
 
-            uint64_t bits = uint64_t();
+            inline bool has_none() const noexcept { return this->value == 0; }
+            inline void clear() noexcept { this->value = 0; }
 
-            inline bool has_none() const noexcept {
-                return this->bits == 0;
-            }
-
-            inline bool has_shift(shifts shift) const noexcept {
-                return bits & (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline bool has_flat_namespace() const noexcept {
-                return has_shift(shifts::flat_namespace);
-            }
-
-            inline bool is_not_app_extension_safe() const noexcept {
-                return has_shift(shifts::not_app_extension_safe);
-            }
-
-            inline void add_shift(shifts shift) noexcept {
-                bits |= (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void set_has_flat_namespace() noexcept {
-                add_shift(shifts::flat_namespace);
-            }
-
-            inline void set_not_app_extension_safe() noexcept {
-                add_shift(shifts::not_app_extension_safe);
-            }
-
-            inline void remove_shift(shifts shift) noexcept {
-                bits &= ~(1 << static_cast<uint64_t>(shift));
-            }
-
-            inline void clear() noexcept {
-                this->bits = 0;
-            }
-
-            inline void set_doesnt_have_flat_namespace() noexcept {
-                remove_shift(shifts::flat_namespace);
-            }
-
-            inline void set_app_extension_safe() noexcept {
-                remove_shift(shifts::not_app_extension_safe);
-            }
-
-            inline bool operator==(const uint64_t bits) const noexcept {
-                return this->bits == bits;
-            }
-
-            inline bool operator!=(const uint64_t bits) const noexcept {
-                return this->bits != bits;
-            }
-
-            inline bool operator==(const flags &flags) const noexcept {
-                return this->bits == flags.bits;
-            }
-
-            inline bool operator!=(const flags &flags) const noexcept {
-                return this->bits != flags.bits;
-            }
+            inline bool operator==(const flags &flags) const noexcept { return this->value == flags.value; }
+            inline bool operator!=(const flags &flags) const noexcept { return this->value != flags.value; }
         };
 
         struct reexport;
         struct symbol;
-        
+
         struct export_group {
             explicit export_group(const reexport *reexport) noexcept;
             explicit export_group(const symbol *symbol) noexcept;
@@ -112,22 +63,22 @@ namespace macho::utils {
                 if (this->reexport != nullptr) {
                     return reexport->architectures;
                 }
-                
+
                 if (this->symbol != nullptr) {
                     return this->symbol->architectures;
                 }
-                
+
                 return 0;
             }
 
             inline const ::utils::bits &containers() const noexcept {
                 return symbol->containers;
             }
-            
+
             inline bool operator==(const struct reexport &reexport) const noexcept {
                 return this->architectures() == reexport.architectures;
             }
-            
+
             inline bool operator!=(const struct reexport &reexport) const noexcept {
                 return this->architectures() != reexport.architectures;
             }
@@ -346,7 +297,7 @@ namespace macho::utils {
                 weak
             };
 
-            static type type_from_symbol_string(const char *& string, uint16_t n_desc) noexcept;
+            static type type_from_symbol_string(const char *& string, symbol_table::desc n_desc) noexcept;
 
             explicit symbol() = default;
             explicit symbol(uint64_t architectures, ::utils::bits &containers, std::string &string, type type) noexcept;
@@ -459,11 +410,11 @@ namespace macho::utils {
 
         enum class version {
             none,
-            
+
             v1,
             v2
         };
-        
+
         static const char *version_to_string(version version) noexcept;
         static version version_from_string(const char *string) noexcept;
 
@@ -471,7 +422,7 @@ namespace macho::utils {
 
         packed_version current_version = {{ uint32_t() }};
         packed_version compatibility_version = {{ uint32_t() }};
-        
+
         flags flags;
         platform platform = platform::none;
 
@@ -491,347 +442,62 @@ namespace macho::utils {
         std::vector<uuid_pair> uuids;
 
         struct creation_options {
-            enum class shifts : uint64_t {
-                allow_private_normal_symbols,
-                allow_private_weak_symbols,
-                allow_private_objc_class_symbols,
-                allow_private_objc_ivar_symbols,
+            explicit inline creation_options() = default;
+            explicit inline creation_options(uint64_t value) : value(value) {};
 
-                // Ignores all errors surrounding
-                // gathering of information that is
-                // ignored, also doesn't fill information
-                // in tbd fields
+            union {
+                uint64_t value = 0;
 
-                ignore_architectures,
-                ignore_allowable_clients,
-                ignore_current_version,
-                ignore_compatibility_version,
-                ignore_exports,
-                ignore_flags,
-                ignore_install_name,
-                ignore_objc_constraint,
-                ignore_parent_umbrella,
-                ignore_platform,
-                ignore_reexports,
-                ignore_swift_version,
-                ignore_uuids,
+                struct {
+                    bool allow_private_normal_symbols     : 1;
+                    bool allow_private_weak_symbols       : 1;
+                    bool allow_private_objc_class_symbols : 1;
+                    bool allow_private_objc_ivar_symbols  : 1;
 
-                // Ignores all errors relating to
-                // gathering of information that isn't
-                // necessary for tbd.version
+                    // Ignores all errors surrounding
+                    // gathering of information that is
+                    // ignored, also doesn't fill information
+                    // in tbd fields
 
-                // Like the other ignore options above,
-                // tbd information fields for information
-                // ignored is not filled
+                    bool ignore_architectures         : 1;
+                    bool ignore_allowable_clients     : 1;
+                    bool ignore_current_version       : 1;
+                    bool ignore_compatibility_version : 1;
+                    bool ignore_exports               : 1;
+                    bool ignore_flags                 : 1;
+                    bool ignore_install_name          : 1;
+                    bool ignore_objc_constraint       : 1;
+                    bool ignore_parent_umbrella       : 1;
+                    bool ignore_platform              : 1;
+                    bool ignore_reexports             : 1;
+                    bool ignore_swift_version         : 1;
+                    bool ignore_uuids                 : 1;
 
-                ignore_unneeded_fields_for_version,
+                    // Ignores all errors relating to
+                    // gathering of information that isn't
+                    // necessary for tbd.version
 
-                // Ignore errors for required fields
+                    // Like the other ignore options above,
+                    // tbd information fields for information
+                    // ignored is not filled
 
-                ignore_missing_identification,
-                ignore_missing_platform,
-                ignore_missing_symbol_table,
-                ignore_missing_uuids,
-                ignore_non_unique_uuids
+                    bool ignore_unneeded_fields_for_version : 1;
+
+                    // Ignore errors for required fields
+
+                    bool ignore_missing_identification : 1;
+                    bool ignore_missing_platform       : 1;
+                    bool ignore_missing_symbol_table   : 1;
+                    bool ignore_missing_uuids          : 1;
+                    bool ignore_non_unique_uuids       : 1;
+                } __attribute__((packed));
             };
 
-            uint64_t bits = uint64_t();
-
-            inline bool has_none() const noexcept {
-                return this->bits == 0;
-            }
-
-            inline bool has_shift(shifts shift) const noexcept {
-                return this->bits & (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline bool allows_private_normal_symbols() const noexcept {
-                return this->has_shift(shifts::allow_private_normal_symbols);
-            }
-
-            inline bool allows_private_weak_symbols() const noexcept {
-                return this->has_shift(shifts::allow_private_weak_symbols);
-            }
-
-            inline bool allows_private_objc_class_symbols() const noexcept {
-                return this->has_shift(shifts::allow_private_objc_class_symbols);
-            }
-
-            inline bool allows_private_objc_ivar_symbols() const noexcept {
-                return this->has_shift(shifts::allow_private_objc_ivar_symbols);
-            }
-
-            inline bool ignores_architectures() const noexcept {
-                return this->has_shift(shifts::ignore_architectures);
-            }
-
-            inline bool ignores_allowable_clients() const noexcept {
-                return this->has_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline bool ignores_current_version() const noexcept {
-                return this->has_shift(shifts::ignore_current_version);
-            }
-
-            inline bool ignores_compatibility_version() const noexcept {
-                return this->has_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline bool ignores_exports() const noexcept {
-                return this->has_shift(shifts::ignore_exports);
-            }
-
-            inline bool ignores_flags() const noexcept {
-                return this->has_shift(shifts::ignore_flags);
-            }
-
-            inline bool ignores_install_name() const noexcept {
-                return this->has_shift(shifts::ignore_install_name);
-            }
-
-            inline bool ignores_objc_constraint() const noexcept {
-                return this->has_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline bool ignores_parent_umbrella() const noexcept {
-                return this->has_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline bool ignores_platform() const noexcept {
-                return this->has_shift(shifts::ignore_platform);
-            }
-
-            inline bool ignores_reexports() const noexcept {
-                return this->has_shift(shifts::ignore_reexports);
-            }
-
-            inline bool ignores_swift_version() const noexcept {
-                return this->has_shift(shifts::ignore_swift_version);
-            }
-
-            inline bool ignores_unneeded_fields_for_version() const noexcept {
-                return this->has_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline bool ignores_uuids() const noexcept {
-                return this->has_shift(shifts::ignore_uuids);
-            }
-
-            inline bool ignores_missing_symbol_table() const noexcept {
-                return this->has_shift(shifts::ignore_missing_symbol_table);
-            }
-
-            inline bool ignores_missing_identification() const noexcept {
-                return this->has_shift(shifts::ignore_missing_identification);
-            }
-
-            inline bool ignores_missing_platform() const noexcept {
-                return this->has_shift(shifts::ignore_missing_platform);
-            }
-
-            inline bool ignores_missing_uuids() const noexcept {
-                return this->has_shift(shifts::ignore_missing_uuids);
-            }
-
-            inline bool ignores_non_unique_uuids() const noexcept {
-                return this->has_shift(shifts::ignore_non_unique_uuids);
-            }
-
-            inline void add_shift(shifts shift) noexcept {
-                this->bits |= (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void allow_private_normal_symbols() noexcept {
-                this->add_shift(shifts::allow_private_normal_symbols);
-            }
-
-            inline void allow_private_weak_symbols() noexcept {
-                this->add_shift(shifts::allow_private_weak_symbols);
-            }
-
-            inline void allow_private_objc_class_symbols() noexcept {
-                this->add_shift(shifts::allow_private_objc_class_symbols);
-            }
-
-            inline void allow_private_objc_ivar_symbols() noexcept {
-                this->add_shift(shifts::allow_private_objc_ivar_symbols);
-            }
-
-            inline void ignore_architectures() noexcept {
-                this->add_shift(shifts::ignore_architectures);
-            }
-
-            inline void ignore_allowable_clients() noexcept {
-                this->add_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline void ignore_current_version() noexcept {
-                this->add_shift(shifts::ignore_current_version);
-            }
-
-            inline void ignore_compatibility_version() noexcept {
-                this->add_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline void ignore_exports() noexcept {
-                this->add_shift(shifts::ignore_exports);
-            }
-
-            inline void ignore_flags() noexcept {
-                this->add_shift(shifts::ignore_flags);
-            }
-
-            inline void ignore_install_name() noexcept {
-                this->add_shift(shifts::ignore_install_name);
-            }
-
-            inline void ignore_objc_constraint() noexcept {
-                this->add_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline void ignore_parent_umbrella() noexcept {
-                this->add_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline void ignore_platform() noexcept {
-                this->add_shift(shifts::ignore_platform);
-            }
-
-            inline void ignore_reexports() noexcept {
-                this->add_shift(shifts::ignore_reexports);
-            }
-
-            inline void ignore_swift_version() noexcept {
-                this->add_shift(shifts::ignore_swift_version);
-            }
-
-            inline void ignore_unneeded_fields_for_version() noexcept {
-                this->add_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline void ignore_uuids() noexcept {
-                this->add_shift(shifts::ignore_uuids);
-            }
-
-            inline void ignore_missing_identification() noexcept {
-                this->add_shift(shifts::ignore_missing_identification);
-            }
-
-            inline void ignore_missing_platform() noexcept {
-                this->add_shift(shifts::ignore_missing_platform);
-            }
-
-            inline void ignore_missing_symbol_table() noexcept {
-                this->add_shift(shifts::ignore_missing_symbol_table);
-            }
-
-            inline void ignore_missing_uuids() noexcept {
-                this->add_shift(shifts::ignore_missing_uuids);
-            }
-
-            inline void ignore_non_unique_uuids() noexcept {
-                this->add_shift(shifts::ignore_non_unique_uuids);
-            }
-
-            inline void remove_shift(shifts shift) noexcept {
-                this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void clear() noexcept {
-                this->bits = 0;
-            }
-
-            inline void dont_allow_private_normal_symbols() noexcept {
-                this->remove_shift(shifts::allow_private_normal_symbols);
-            }
-
-            inline void dont_allow_private_weak_symbols() noexcept {
-                this->remove_shift(shifts::allow_private_weak_symbols);
-            }
-
-            inline void dont_allow_private_objc_class_symbols() noexcept {
-                this->remove_shift(shifts::allow_private_objc_class_symbols);
-            }
-
-            inline void dont_allow_private_objc_ivar_symbols() noexcept {
-                this->remove_shift(shifts::allow_private_objc_ivar_symbols);
-            }
-
-            inline void dont_ignore_architectures() noexcept {
-                this->remove_shift(shifts::ignore_architectures);
-            }
-
-            inline void dont_ignore_allowable_clients() noexcept {
-                this->remove_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline void dont_ignore_current_version() noexcept {
-                this->remove_shift(shifts::ignore_current_version);
-            }
-
-            inline void dont_ignore_compatibility_version() noexcept {
-                this->remove_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline void dont_ignore_exports() noexcept {
-                this->remove_shift(shifts::ignore_exports);
-            }
-
-            inline void dont_ignore_flags() noexcept {
-                this->remove_shift(shifts::ignore_flags);
-            }
-
-            inline void dont_ignore_install_name() noexcept {
-                this->remove_shift(shifts::ignore_install_name);
-            }
-
-            inline void dont_ignore_objc_constraint() noexcept {
-                this->remove_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline void dont_ignore_parent_umbrella() noexcept {
-                this->remove_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline void dont_ignore_platform() noexcept {
-                this->remove_shift(shifts::ignore_platform);
-            }
-
-            inline void dont_ignore_reexports() noexcept {
-                this->remove_shift(shifts::ignore_reexports);
-            }
-
-            inline void dont_ignore_swift_version() noexcept {
-                this->remove_shift(shifts::ignore_swift_version);
-            }
-
-            inline void dont_ignore_uuids() noexcept {
-                this->remove_shift(shifts::ignore_uuids);
-            }
-
-            inline void dont_ignore_unneeded_fields_for_version() noexcept {
-                this->remove_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline void dont_ignore_missing_identification() noexcept {
-                this->add_shift(shifts::ignore_missing_identification);
-            }
-
-            inline void dont_ignore_missing_platform() noexcept {
-                this->add_shift(shifts::ignore_missing_platform);
-            }
-
-            inline void dont_ignore_missing_symbol_table() noexcept {
-                this->remove_shift(shifts::ignore_missing_symbol_table);
-            }
-
-            inline void dont_ignore_missing_uuids() noexcept {
-                this->remove_shift(shifts::ignore_missing_uuids);
-            }
-
-            inline void dont_ignore_non_unique_uuids() noexcept {
-                this->remove_shift(shifts::ignore_non_unique_uuids);
-            }
+            inline bool has_none() const noexcept { return this->value == 0; }
+            inline void clear() noexcept { this->value = 0; }
+
+            inline bool operator==(const creation_options &options) const noexcept { return this->value == options.value; }
+            inline bool operator!=(const creation_options &options) const noexcept { return this->value != options.value; }
         };
 
         // "Multiple" is to mean the same types of
@@ -892,7 +558,7 @@ namespace macho::utils {
             invalid_sub_umbrella_command,
 
             empty_parent_umbrella,
-            
+
             multiple_parent_umbrella,
             parent_umbrella_mismatch,
 
@@ -919,331 +585,58 @@ namespace macho::utils {
         std::vector<export_group> export_groups() const noexcept;
 
         struct write_options {
-            enum class shifts {
-                enforce_has_exports,
-                
-                // Each of the following
-                // "ignores" field, thereby
-                // not printing it out
+            explicit inline write_options() = default;
+            explicit inline write_options(uint64_t value) : value(value) {};
 
-                ignore_architectures,
-                ignore_allowable_clients,
-                ignore_current_version,
-                ignore_compatibility_version,
-                ignore_exports,
-                ignore_flags,
-                ignore_footer,
-                ignore_header,
-                ignore_install_name,
-                ignore_objc_constraint,
-                ignore_parent_umbrella,
-                ignore_platform,
-                ignore_swift_version,
-                ignore_uuids,
+            union {
+                uint64_t value = 0;
 
-                ignore_reexports,
-                ignore_normal_symbols,
-                ignore_objc_class_symbols,
-                ignore_objc_ivar_symbols,
-                ignore_weak_symbols,
+                struct {
+                    bool enforce_has_exports : 1;
 
-                // Ignore any fields that are not
-                // required for tbd.version
+                    // Each of the following
+                    // "ignores" field, thereby
+                    // not printing it out
 
-                ignore_unneeded_fields_for_version,
+                    bool ignore_architectures         : 1;
+                    bool ignore_allowable_clients     : 1;
+                    bool ignore_current_version       : 1;
+                    bool ignore_compatibility_version : 1;
+                    bool ignore_exports               : 1;
+                    bool ignore_flags                 : 1;
+                    bool ignore_footer                : 1;
+                    bool ignore_header                : 1;
+                    bool ignore_install_name          : 1;
+                    bool ignore_objc_constraint       : 1;
+                    bool ignore_parent_umbrella       : 1;
+                    bool ignore_platform              : 1;
+                    bool ignore_swift_version         : 1;
+                    bool ignore_uuids                 : 1;
 
-                // Orders field information s by
-                // architecture-infe table, default
-                // behavior ordering by container
+                    bool ignore_reexports             : 1;
+                    bool ignore_normal_symbols        : 1;
+                    bool ignore_objc_class_symbols    : 1;
+                    bool ignore_objc_ivar_symbols     : 1;
+                    bool ignore_weak_symbols          : 1;
 
-                order_by_architecture_info_table
+                    // Ignore any fields that are not
+                    // required for tbd.version
+
+                    bool ignore_unneeded_fields_for_version : 1;
+
+                    // Orders field information s by
+                    // architecture-infe table, default
+                    // behavior ordering by container
+
+                    bool order_by_architecture_info_table : 1;
+                } __attribute__((packed));
             };
 
-            uint64_t bits = uint64_t();
-
-            inline bool has_none() const noexcept {
-                return this->bits == 0;
-            }
-
-            inline bool has_shift(shifts shift) const noexcept {
-                return this->bits & (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline bool enforces_has_exports() const noexcept {
-                return this->has_shift(shifts::enforce_has_exports);
-            }
-            
-            inline bool ignores_architectures() const noexcept {
-                return this->has_shift(shifts::ignore_architectures);
-            }
-
-            inline bool ignores_allowable_clients() const noexcept {
-                return this->has_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline bool ignores_current_version() const noexcept {
-                return this->has_shift(shifts::ignore_current_version);
-            }
-
-            inline bool ignores_compatibility_version() const noexcept {
-                return this->has_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline bool ignores_exports() const noexcept {
-                return this->has_shift(shifts::ignore_exports);
-            }
-
-            inline bool ignores_flags() const noexcept {
-                return this->has_shift(shifts::ignore_flags);
-            }
-
-            inline bool ignores_footer() const noexcept {
-                return this->has_shift(shifts::ignore_footer);
-            }
-
-            inline bool ignores_header() const noexcept {
-                return this->has_shift(shifts::ignore_header);
-            }
-
-            inline bool ignores_install_name() const noexcept {
-                return this->has_shift(shifts::ignore_install_name);
-            }
-
-            inline bool ignores_objc_constraint() const noexcept {
-                return this->has_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline bool ignores_parent_umbrella() const noexcept {
-                return this->has_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline bool ignores_platform() const noexcept {
-                return this->has_shift(shifts::ignore_platform);
-            }
-
-            inline bool ignores_swift_version() const noexcept {
-                return this->has_shift(shifts::ignore_swift_version);
-            }
-
-            inline bool ignores_uuids() const noexcept {
-                return this->has_shift(shifts::ignore_uuids);
-            }
-
-            inline bool ignores_reexports() const noexcept {
-                return this->has_shift(shifts::ignore_reexports);
-            }
-
-            inline bool ignores_normal_symbols() const noexcept {
-                return this->has_shift(shifts::ignore_normal_symbols);
-            }
-
-            inline bool ignores_objc_class_symbols() const noexcept {
-                return this->has_shift(shifts::ignore_objc_class_symbols);
-            }
-
-            inline bool ignores_objc_ivar_symbols() const noexcept {
-                return this->has_shift(shifts::ignore_objc_ivar_symbols);
-            }
-
-            inline bool ignores_weak_symbols() const noexcept {
-                return this->has_shift(shifts::ignore_weak_symbols);
-            }
-
-            inline bool orders_by_architecture_info_table() const noexcept {
-                return this->has_shift(shifts::order_by_architecture_info_table);
-            }
-
-            inline bool ignores_unneeded_fields_for_version() const noexcept {
-                return this->has_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline void add_shift(shifts shift) noexcept {
-                this->bits |= (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void enforce_has_exports() noexcept {
-                this->add_shift(shifts::enforce_has_exports);
-            }
-            
-            inline void ignore_architectures() noexcept {
-                this->add_shift(shifts::ignore_architectures);
-            }
-
-            inline void ignore_allowable_clients() noexcept {
-                this->add_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline void ignore_current_version() noexcept {
-                this->add_shift(shifts::ignore_current_version);
-            }
-
-            inline void ignore_compatibility_version() noexcept {
-                this->add_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline void ignore_exports() noexcept {
-                this->add_shift(shifts::ignore_exports);
-            }
-
-            inline void ignore_footer() noexcept {
-                this->add_shift(shifts::ignore_footer);
-            }
-
-            inline void ignore_flags() noexcept {
-                this->add_shift(shifts::ignore_flags);
-            }
-
-            inline void ignore_header() noexcept {
-                this->add_shift(shifts::ignore_header);
-            }
-
-            inline void ignore_install_name() noexcept {
-                this->add_shift(shifts::ignore_install_name);
-            }
-
-            inline void ignore_objc_constraint() noexcept {
-                this->add_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline void ignore_parent_umbrella() noexcept {
-                this->add_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline void ignore_platform() noexcept {
-                this->add_shift(shifts::ignore_platform);
-            }
-
-            inline void ignore_swift_version() noexcept {
-                this->add_shift(shifts::ignore_swift_version);
-            }
-
-            inline void ignore_uuids() noexcept {
-                this->add_shift(shifts::ignore_uuids);
-            }
-
-            inline void ignore_reexports() noexcept {
-                this->add_shift(shifts::ignore_reexports);
-            }
-
-            inline void ignore_normal_symbols() noexcept {
-                this->add_shift(shifts::ignore_normal_symbols);
-            }
-
-            inline void ignores_objc_class_symbols() noexcept {
-                this->add_shift(shifts::ignore_objc_class_symbols);
-            }
-
-            inline void ignore_objc_ivar_symbols() noexcept {
-                this->add_shift(shifts::ignore_objc_ivar_symbols);
-            }
-
-            inline void ignore_weak_symbols() noexcept {
-                this->add_shift(shifts::ignore_weak_symbols);
-            }
-
-            inline void ignore_unneeded_fields_for_version() noexcept {
-                this->add_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline void order_by_architecture_info_table() noexcept {
-                this->add_shift(shifts::order_by_architecture_info_table);
-            }
-
-            inline void remove_shift(shifts shift) noexcept {
-                this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void clear() noexcept {
-                this->bits = 0;
-            }
-            
-            inline void dont_enforce_has_exports() noexcept {
-                this->remove_shift(shifts::enforce_has_exports);
-            }
-
-            inline void dont_ignore_architectures() noexcept {
-                this->remove_shift(shifts::ignore_architectures);
-            }
-
-            inline void dont_ignore_allowable_clients() noexcept {
-                this->remove_shift(shifts::ignore_allowable_clients);
-            }
-
-            inline void dont_ignore_current_version() noexcept {
-                this->remove_shift(shifts::ignore_current_version);
-            }
-
-            inline void dont_ignore_compatibility_version() noexcept {
-                this->remove_shift(shifts::ignore_compatibility_version);
-            }
-
-            inline void dont_ignore_exports() noexcept {
-                this->remove_shift(shifts::ignore_exports);
-            }
-
-            inline void dont_ignore_footer() noexcept {
-                this->remove_shift(shifts::ignore_footer);
-            }
-
-            inline void dont_ignore_flags() noexcept {
-                this->remove_shift(shifts::ignore_flags);
-            }
-
-            inline void dont_ignore_header() noexcept {
-                this->remove_shift(shifts::ignore_header);
-            }
-
-            inline void dont_ignore_install_name() noexcept {
-                this->remove_shift(shifts::ignore_install_name);
-            }
-
-            inline void dont_ignore_objc_constraint() noexcept {
-                this->remove_shift(shifts::ignore_objc_constraint);
-            }
-
-            inline void dont_ignore_parent_umbrella() noexcept {
-                this->remove_shift(shifts::ignore_parent_umbrella);
-            }
-
-            inline void dont_ignore_platform() noexcept {
-                this->remove_shift(shifts::ignore_platform);
-            }
-
-            inline void dont_ignore_swift_version() noexcept {
-                this->remove_shift(shifts::ignore_swift_version);
-            }
-
-            inline void dont_ignore_uuids() noexcept {
-                this->remove_shift(shifts::ignore_uuids);
-            }
-
-            inline void dont_ignore_reexports() noexcept {
-                this->remove_shift(shifts::ignore_reexports);
-            }
-
-            inline void dont_ignore_normal_symbols() noexcept {
-                this->remove_shift(shifts::ignore_normal_symbols);
-            }
-
-            inline void dont_ignores_objc_class_symbols() noexcept {
-                this->remove_shift(shifts::ignore_objc_class_symbols);
-            }
-
-            inline void dont_ignore_objc_ivar_symbols() noexcept {
-                this->remove_shift(shifts::ignore_objc_ivar_symbols);
-            }
-
-            inline void dont_ignore_weak_symbols() noexcept {
-                this->remove_shift(shifts::ignore_weak_symbols);
-            }
-
-            inline void dont_ignore_unneeded_fields_for_version() noexcept {
-                this->remove_shift(shifts::ignore_unneeded_fields_for_version);
-            }
-
-            inline void dont_order_by_architecture_info_table() noexcept {
-                this->add_shift(shifts::order_by_architecture_info_table);
-            }
+            inline bool has_none() const noexcept { return this->value == 0; }
+            inline void clear() noexcept { this->value = 0; }
+
+            inline bool operator==(const write_options &options) const noexcept { return this->value == options.value; }
+            inline bool operator!=(const write_options &options) const noexcept { return this->value != options.value; }
         };
 
         enum class write_result {
@@ -1265,7 +658,7 @@ namespace macho::utils {
             failed_to_write_uuids,
 
             has_no_exports,
-            
+
             failed_to_write_reexports,
             failed_to_write_normal_symbols,
             failed_to_write_objc_class_symbols,
@@ -1280,7 +673,7 @@ namespace macho::utils {
         write_result write_with_export_groups_to(const char *path, const write_options &options, const std::vector<export_group> &groups) const noexcept;
         write_result write_with_export_groups_to(int descriptor, const write_options &options, const std::vector<export_group> &groups) const noexcept;
         write_result write_with_export_groups_to(FILE *file, const write_options &options, const std::vector<export_group> &groups) const noexcept;
-    
+
         void clear() noexcept;
     };
 }

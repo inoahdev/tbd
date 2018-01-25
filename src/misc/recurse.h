@@ -16,122 +16,44 @@
 
 namespace misc::recurse {
     struct options {
-        enum class shifts : uint64_t {
-            recurse_subdirectories,
-            print_warnings
+        explicit inline options() = default;
+        explicit inline options(uint64_t value) : value(value) {};
+
+        union {
+            uint64_t value = 0;
+
+            struct {
+                bool recurse_subdirectories : 1;
+                bool print_warnings         : 1;
+            } __attribute__((packed));
         };
 
-        uint64_t bits = uint64_t();
+        inline bool has_none() noexcept { return this->value == 0; }
+        inline void clear() noexcept { this->value = 0; }
 
-        inline bool has_none() const noexcept {
-            return this->bits == 0;
-        }
-
-        inline bool has_shift(shifts shift) const noexcept {
-            return this->bits & static_cast<uint64_t>(shift);
-        }
-
-        inline bool recurses_subdirectories() const noexcept {
-            return this->has_shift(shifts::recurse_subdirectories);
-        }
-
-        inline bool prints_warnings() const noexcept {
-            return this->has_shift(shifts::print_warnings);
-        }
-
-        inline void add_shift(shifts shift) noexcept {
-            this->bits |= (1ull << static_cast<uint64_t>(shift));
-        }
-
-        inline void recurse_subdirectories() noexcept {
-            this->add_shift(shifts::recurse_subdirectories);
-        }
-
-        inline void print_warnings() noexcept {
-            this->add_shift(shifts::print_warnings);
-        }
-
-        inline void remove_shift(shifts shift) noexcept {
-            this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-        }
-
-        inline void clear() noexcept {
-            this->bits = 0;
-        }
-
-        inline void dont_recurse_subdirectories() noexcept {
-            this->remove_shift(shifts::recurse_subdirectories);
-        }
-
-        inline void dont_print_warnings() noexcept {
-            this->remove_shift(shifts::print_warnings);
-        }
+        inline bool operator==(const options &options) const noexcept { return this->value == options.value; }
+        inline bool operator!=(const options &options) const noexcept { return this->value != options.value; }
     };
 
     struct filetypes {
-        enum class shifts {
-            file,
-            library,
-            dynamic_library
+        explicit inline filetypes() = default;
+        explicit inline filetypes(uint64_t value) : value(value) {};
+
+        union {
+            uint64_t value = 0;
+
+            struct {
+                bool file            : 1;
+                bool library         : 1;
+                bool dynamic_library : 1;
+            } __attribute__((packed));
         };
 
-        uint64_t bits = uint64_t();
+        inline bool has_none() const noexcept { return this->value == 0; }
+        inline void clear() noexcept { this->value = 0; }
 
-        inline bool has_none() const noexcept {
-            return this->bits == 0;
-        }
-
-        inline bool has_shift(shifts shift) const noexcept {
-            return this->bits & static_cast<uint64_t>(shift);
-        }
-
-        inline bool has_file() const noexcept {
-            return this->has_shift(shifts::file);
-        }
-
-        inline bool has_library() const noexcept {
-            return this->has_shift(shifts::library);
-        }
-
-        inline bool has_dynamic_library() const noexcept {
-            return this->has_shift(shifts::dynamic_library);
-        }
-
-        inline void add_shift(shifts shift) noexcept {
-            this->bits |= (1ull << static_cast<uint64_t>(shift));
-        }
-
-        inline void add_file() noexcept {
-            this->add_shift(shifts::file);
-        }
-
-        inline void add_library() noexcept {
-            this->add_shift(shifts::library);
-        }
-
-        inline void add_dynamic_library() noexcept {
-            this->add_shift(shifts::dynamic_library);
-        }
-
-        inline void remove_shift(shifts shift) noexcept {
-            this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-        }
-
-        inline void clear() noexcept {
-            this->bits = 0;
-        }
-
-        inline void remove_file() noexcept {
-            this->remove_shift(shifts::file);
-        }
-
-        inline void remove_library() noexcept {
-            this->remove_shift(shifts::library);
-        }
-
-        inline void remove_dynamic_library() noexcept {
-            this->remove_shift(shifts::dynamic_library);
-        }
+        inline bool operator==(const filetypes &filetypes) const noexcept { return this->value == filetypes.value; }
+        inline bool operator!=(const filetypes &filetypes) const noexcept { return this->value != filetypes.value; }
     };
 
     bool is_valid_file_for_filetypes(macho::file &macho_file, const filetypes &filetypes);
@@ -171,7 +93,7 @@ namespace misc::recurse {
                 break;
 
             case utils::directory::open_result::failed_to_open_directory:
-                if (options.prints_warnings()) {
+                if (options.print_warnings) {
                     if (is_subdirectory) {
                         fprintf(stderr, "Warning: Failed to open sub-directory at path (%s), failing with error: %s\n", directory_path, strerror(errno));
                     }
@@ -185,7 +107,16 @@ namespace misc::recurse {
         }
 
         auto found_valid_files = false;
-        auto has_skipped_past_dots = 0;
+        struct dots {
+            union {
+                uint64_t value = 0;
+
+                struct {
+                    bool skipped_current : 1;
+                    bool skipped_parent  : 1;
+                } __attribute__((packed));
+            };
+        } has_skipped_past_dots;
 
         for (auto iter = directory.entries.begin; iter != directory.entries.end; iter++) {
             auto should_exit = false;
@@ -203,16 +134,16 @@ namespace misc::recurse {
                 }
 
                 case DT_DIR: {
-                    if (!(has_skipped_past_dots & 1)) {
+                    if (!has_skipped_past_dots.skipped_current) {
                         if (strcmp(iter->d_name, ".") == 0) {
-                            has_skipped_past_dots |= 1;
+                            has_skipped_past_dots.skipped_current = 1;
                             continue;
                         }
                     }
 
-                    if (!(has_skipped_past_dots & 1 << 1)) {
+                    if (!has_skipped_past_dots.skipped_parent) {
                         if (strcmp(iter->d_name, "..") == 0) {
-                            has_skipped_past_dots |= 1 << 1;
+                            has_skipped_past_dots.skipped_parent = true;
                             continue;
                         }
                     }

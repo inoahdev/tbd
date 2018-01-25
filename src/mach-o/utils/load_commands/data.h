@@ -15,61 +15,39 @@ namespace macho::utils::load_commands {
     struct data {
         struct flags {
             friend struct data;
-
-            enum class shifts : uint64_t {
-                is_big_endian,
-                is_64_bit
-            };
-
-            inline bool has_shift(shifts shift) const noexcept {
-                return this->bits & (1ull << static_cast<uint64_t>(shift));
-            }
-
+            
             inline bool is_little_endian() const noexcept {
-                return !this->is_big_endian();
+                return !this->bits.is_big_endian;
             }
 
             inline bool is_big_endian() const noexcept {
-                return this->has_shift(shifts::is_big_endian);
+                return this->bits.is_big_endian;
             }
 
             inline bool is_32_bit() const noexcept {
-                return !this->is_64_bit();
+                return !this->bits.is_64_bit;
             }
 
             inline bool is_64_bit() const noexcept {
-                return this->has_shift(shifts::is_64_bit);
+                return this->bits.is_64_bit;
             }
 
-            inline bool operator==(const flags &flags) const noexcept { return bits == flags.bits; }
-            inline bool operator!=(const flags &flags) const noexcept { return bits != flags.bits; }
+            inline bool has_none() const noexcept { return this->bits.value == 0; }
+
+            inline bool operator==(const flags &flags) const noexcept { return this->bits.value == flags.bits.value; }
+            inline bool operator!=(const flags &flags) const noexcept { return this->bits.value == flags.bits.value; }
 
         protected:
-            uint64_t bits = uint64_t();
+            union {
+                uint64_t value = 0;
 
-            inline void add_shift(shifts shift) noexcept {
-                this->bits |= 1ull << static_cast<uint64_t>(shift);
-            }
+                struct {
+                    bool is_big_endian : 1;
+                    bool is_64_bit     : 1;
+                } __attribute__((packed));
+            } bits;
 
-            inline void remove_shift(shifts shift) noexcept {
-                this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void set_is_little_endian() noexcept {
-                this->remove_shift(shifts::is_big_endian);
-            }
-
-            inline void set_is_big_endian() noexcept {
-                this->add_shift(shifts::is_big_endian);
-            }
-
-            inline void set_is_32_bit() noexcept {
-                this->remove_shift(shifts::is_64_bit);
-            }
-
-            inline void set_is_64_bit() noexcept {
-                this->add_shift(shifts::is_64_bit);
-            }
+            inline void clear() noexcept { this->bits.value = 0; }
         };
 
         struct iterator {
@@ -133,78 +111,28 @@ namespace macho::utils::load_commands {
         inline const flags &flags() const noexcept { return begin.flags; }
 
         struct options {
-            enum class shifts : uint64_t {
-                none,
+            explicit inline options() = default;
+            explicit inline options(uint64_t value) : value(value) {};
 
-                convert_to_little_endian,
-                convert_to_big_endian,
+            union {
+                uint64_t value = 0;
 
-                // Don't allow misaligned
-                // load-command buffer
+                struct {
+                    bool convert_to_little_endian : 1;
+                    bool convert_to_big_endian    : 1;
 
-                enforce_strict_alignment,
+                    // Don't allow misaligned
+                    // load-command buffer
+
+                    bool enforce_strict_alignment : 1;
+                } __attribute__((packed));
             };
 
-            uint64_t bits = uint64_t();
+            inline bool has_none() const noexcept { return this->value == 0; }
+            inline void clear() noexcept { this->value = 0; }
 
-            inline bool has_none() const noexcept {
-                return this->bits == 0;
-            }
-
-            inline bool has_shift(shifts shift) const noexcept {
-                return this->bits & (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline bool convert_to_little_endian() const noexcept {
-                return this->has_shift(shifts::convert_to_little_endian);
-            }
-
-            inline bool convert_to_big_endian() const noexcept {
-                return this->has_shift(shifts::convert_to_big_endian);
-            }
-
-            inline bool enforce_strict_alignment() const noexcept {
-                return this->has_shift(shifts::enforce_strict_alignment);
-            }
-
-            inline void add_shift(shifts shift) noexcept {
-                this->bits |= (1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void remove_shift(shifts shift) noexcept {
-                this->bits &= ~(1ull << static_cast<uint64_t>(shift));
-            }
-
-            inline void clear() noexcept {
-                this->bits = 0;
-            }
-            
-            inline void set_should_convert_to_little_endian() noexcept {
-                this->add_shift(shifts::convert_to_little_endian);
-            }
-
-            inline void set_should_not_convert_to_little_endian() noexcept {
-                this->remove_shift(shifts::convert_to_little_endian);
-            }
-
-            inline void set_should_convert_to_big_endian() noexcept {
-                this->add_shift(shifts::convert_to_big_endian);
-            }
-
-            inline void set_should_not_convert_to_big_endian() noexcept {
-                this->remove_shift(shifts::convert_to_big_endian);
-            }
-
-            inline void set_should_enforce_strict_alignment() noexcept {
-                this->add_shift(shifts::enforce_strict_alignment);
-            }
-
-            inline void set_should_not_enforce_strict_alignment() noexcept {
-                this->remove_shift(shifts::enforce_strict_alignment);
-            }
-
-            inline bool operator==(const options &options) const noexcept { return bits == options.bits; }
-            inline bool operator!=(const options &options) const noexcept { return bits != options.bits; }
+            inline bool operator==(const options &options) const noexcept { return this->value == options.value; }
+            inline bool operator!=(const options &options) const noexcept { return this->value != options.value; }
         };
 
         enum class creation_result {

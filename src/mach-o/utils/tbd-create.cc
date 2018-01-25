@@ -39,15 +39,16 @@ namespace macho::utils {
 
             this->architectures |= (1ull << architecture_info_index);
 
-            if (!options.ignores_flags()) {
-                struct tbd::flags::flags flags = {};
-                if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
-                    if (container.header.flags & macho::flags::two_level_namespaces) {
-                        flags.set_has_flat_namespace();
+            if (!options.ignore_flags) {
+                struct tbd::flags::flags flags;
+
+                if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
+                    if (macho::flags(container.header.flags).two_level_namespaces) {
+                        flags.flat_namespace = true;
                     }
 
-                    if (!(container.header.flags & macho::flags::app_extension_safe)) {
-                        flags.set_not_app_extension_safe();
+                    if (!macho::flags(container.header.flags).app_extension_safe) {
+                        flags.not_app_extension_safe = true;
                     }
                 }
 
@@ -87,7 +88,7 @@ namespace macho::utils {
                 const auto cmd = iter.cmd();
                 switch (cmd) {
                     case macho::load_commands::build_version: {
-                        if (options.ignores_platform()) {
+                        if (options.ignore_platform) {
                             break;
                         }
 
@@ -148,7 +149,7 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::identification_dylib: {
-                        if (options.ignores_current_version() && options.ignores_compatibility_version() && options.ignores_install_name()) {
+                        if (options.ignore_current_version && options.ignore_compatibility_version && options.ignore_install_name) {
                             break;
                         }
 
@@ -164,7 +165,7 @@ namespace macho::utils {
                             ::utils::swap::uint32(dylib_command_compatibility_version);
                         }
 
-                        if (!options.ignores_current_version()) {
+                        if (!options.ignore_current_version) {
                             if (this->current_version.value != dylib_command_current_version) {
                                 if (found_container_identification) {
                                     return creation_result::multiple_current_versions;
@@ -176,7 +177,7 @@ namespace macho::utils {
                             }
                         }
 
-                        if (!options.ignores_compatibility_version()) {
+                        if (!options.ignore_compatibility_version) {
                             if (this->compatibility_version.value != dylib_command_compatibility_version) {
                                 if (found_container_identification) {
                                     return creation_result::multiple_compatibility_versions;
@@ -217,7 +218,7 @@ namespace macho::utils {
                             return creation_result::empty_install_name;
                         }
 
-                        if (!options.ignores_install_name()) {
+                        if (!options.ignore_install_name) {
                             if (this->install_name.size() != 0) {
                                 if (this->install_name.length() != dylib_command_name_length) {
                                     if (found_container_identification) {
@@ -243,15 +244,15 @@ namespace macho::utils {
 
                         found_container_identification = true;
 
-                        if (!options.ignores_current_version()) {
+                        if (!options.ignore_current_version) {
                             this->current_version.value = dylib_command_current_version;
                         }
 
-                        if (!options.ignores_compatibility_version()) {
+                        if (!options.ignore_compatibility_version) {
                             this->compatibility_version.value = dylib_command_compatibility_version;
                         }
 
-                        if (!options.ignores_install_name()) {
+                        if (!options.ignore_install_name) {
                             this->install_name.assign(dylib_command_name, dylib_command_name_length);
                         }
 
@@ -259,7 +260,7 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::reexport_dylib: {
-                        if (options.ignores_reexports()) {
+                        if (options.ignore_reexports) {
                             break;
                         }
 
@@ -333,14 +334,14 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::segment: {
-                        if (options.ignores_objc_constraint() && options.ignores_swift_version()) {
+                        if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
 
                         // tbd fields objc-constraint and swift-version
                         // are only found on tbd-version v2
 
-                        if (options.ignores_unneeded_fields_for_version()) {
+                        if (options.ignore_unneeded_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
@@ -416,18 +417,18 @@ namespace macho::utils {
                                 return creation_result::stream_read_error;
                             }
 
-                            auto objc_image_info_flags = objc_image_info.flags;
+                            struct objc::image_info::flags objc_image_info_flags(objc_image_info.flags);
                             if (container.is_big_endian()) {
-                                ::utils::swap::uint32(objc_image_info_flags);
+                                ::utils::swap::uint32(objc_image_info_flags.value);
                             }
 
-                            if (!options.ignores_objc_constraint()) {
+                            if (!options.ignore_objc_constraint) {
                                 auto objc_constraint = objc_constraint::retain_release;
-                                if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                                if (objc_image_info_flags.requires_gc) {
                                     objc_constraint = objc_constraint::gc;
-                                } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                                } else if (objc_image_info_flags.supports_gc) {
                                     objc_constraint = objc_constraint::retain_release_or_gc;
-                                } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                                } else if (objc_image_info_flags.is_simulated) {
                                     objc_constraint = objc_constraint::retain_release_for_simulator;
                                 }
 
@@ -444,9 +445,8 @@ namespace macho::utils {
                                 this->objc_constraint = objc_constraint;
                             }
 
-                            const auto swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                            if (!options.ignores_swift_version()) {
-                                if (this->swift_version != swift_version) {
+                            if (!options.ignore_swift_version) {
+                                if (this->swift_version != objc_image_info_flags.swift_version) {
                                     if (found_container_objc_information) {
                                         return creation_result::multiple_swift_version;
                                     }
@@ -460,7 +460,7 @@ namespace macho::utils {
                                 // zero is not needed as this->swift_version
                                 // by default is zero
 
-                                this->swift_version = swift_version;
+                                this->swift_version = objc_image_info_flags.swift_version;
                             }
 
                             found_container_objc_information = true;
@@ -471,14 +471,14 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::segment_64: {
-                        if (options.ignores_objc_constraint() && options.ignores_swift_version()) {
+                        if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
 
                         // tbd fields objc-constraint and swift-version
                         // are only found on tbd-version v2
 
-                        if (options.ignores_unneeded_fields_for_version()) {
+                        if (options.ignore_unneeded_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
@@ -550,18 +550,18 @@ namespace macho::utils {
                                 return creation_result::stream_read_error;
                             }
 
-                            auto objc_image_info_flags = objc_image_info.flags;
+                            struct objc::image_info::flags objc_image_info_flags(objc_image_info.flags);
                             if (container.is_big_endian()) {
-                                ::utils::swap::uint32(objc_image_info_flags);
+                                ::utils::swap::uint32(objc_image_info_flags.value);
                             }
 
-                            if (!options.ignores_objc_constraint()) {
+                            if (!options.ignore_objc_constraint) {
                                 auto objc_constraint = objc_constraint::retain_release;
-                                if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                                if (objc_image_info_flags.requires_gc) {
                                     objc_constraint = objc_constraint::gc;
-                                } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                                } else if (objc_image_info_flags.supports_gc) {
                                     objc_constraint = objc_constraint::retain_release_or_gc;
-                                } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                                } else if (objc_image_info_flags.is_simulated) {
                                     objc_constraint = objc_constraint::retain_release_for_simulator;
                                 }
 
@@ -578,9 +578,8 @@ namespace macho::utils {
                                 this->objc_constraint = objc_constraint;
                             }
 
-                            if (!options.ignores_swift_version()) {
-                                const auto swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                                if (this->swift_version != swift_version) {
+                            if (!options.ignore_swift_version) {
+                                if (this->swift_version != objc_image_info_flags.swift_version) {
                                     if (found_container_objc_information) {
                                         return creation_result::multiple_swift_version;
                                     }
@@ -594,7 +593,7 @@ namespace macho::utils {
                                 // zero is not needed as this->swift_version
                                 // by default is zero
 
-                                this->swift_version = swift_version;
+                                this->swift_version = objc_image_info_flags.swift_version;
                             }
 
                             found_container_objc_information = true;
@@ -605,14 +604,14 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::sub_client: {
-                        if (options.ignores_allowable_clients()) {
+                        if (options.ignore_allowable_clients) {
                             break;
                         }
 
                         // tbd field sub-clients is only
                         // available on tbd version v2
 
-                        if (options.ignores_unneeded_fields_for_version()) {
+                        if (options.ignore_unneeded_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
@@ -689,14 +688,14 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::sub_umbrella: {
-                        if (options.ignores_parent_umbrella()) {
+                        if (options.ignore_parent_umbrella) {
                             break;
                         }
 
                         // tbd field parent-umbrella is
                         // only available on tbd-version v2
 
-                        if (options.ignores_unneeded_fields_for_version()) {
+                        if (options.ignore_unneeded_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
@@ -764,7 +763,7 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::symbol_table: {
-                        if (options.ignores_exports()) {
+                        if (options.ignore_exports) {
                             break;
                         }
 
@@ -793,14 +792,14 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::uuid: {
-                        if (options.ignores_uuids()) {
+                        if (options.ignore_uuids) {
                             break;
                         }
 
                         // tbd field uuids is only
                         // available on tbd-version v2
 
-                        if (options.ignores_unneeded_fields_for_version()) {
+                        if (options.ignore_unneeded_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
@@ -821,7 +820,7 @@ namespace macho::utils {
                             break;
                         }
 
-                        if (!options.ignores_non_unique_uuids()) {
+                        if (!options.ignore_non_unique_uuids) {
                             // Search for same uuids across other containers
                             // in order to guarantee uniqueness
 
@@ -852,7 +851,7 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::version_min_macosx:
-                        if (options.ignores_platform()) {
+                        if (options.ignore_platform) {
                             break;
                         }
 
@@ -872,7 +871,7 @@ namespace macho::utils {
                         break;
 
                     case macho::load_commands::version_min_iphoneos:
-                        if (options.ignores_platform()) {
+                        if (options.ignore_platform) {
                             break;
                         }
 
@@ -892,7 +891,7 @@ namespace macho::utils {
                         break;
 
                     case macho::load_commands::version_min_watchos:
-                        if (options.ignores_platform()) {
+                        if (options.ignore_platform) {
                             break;
                         }
 
@@ -912,7 +911,7 @@ namespace macho::utils {
                         break;
 
                     case macho::load_commands::version_min_tvos:
-                        if (options.ignores_platform()) {
+                        if (options.ignore_platform) {
                             break;
                         }
 
@@ -940,23 +939,23 @@ namespace macho::utils {
             // or not the first container has them, but ignore
             // if provided options demand so
 
-            if (!options.ignores_missing_identification()) {
-                if (!options.ignores_current_version() || !options.ignores_compatibility_version() || !options.ignores_install_name()) {
+            if (!options.ignore_missing_identification) {
+                if (!options.ignore_current_version || !options.ignore_compatibility_version || !options.ignore_install_name) {
                     if (!found_container_identification) {
                         return creation_result::container_is_missing_dynamic_library_identification;
                     }
                 }
             }
 
-            if (!options.ignores_platform() && !options.ignores_missing_platform()) {
+            if (!options.ignore_platform && !options.ignore_missing_platform) {
                 if (!found_container_platform) {
                     return creation_result::container_is_missing_platform;
                 }
             }
 
-            if (!options.ignores_uuids() && !options.ignores_missing_uuids()) {
+            if (!options.ignore_uuids && !options.ignore_missing_uuids) {
                 if (this->uuids.size() != (container_index + 1)) {
-                    if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+                    if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                         return creation_result::container_is_missing_uuid;
                     }
                 }
@@ -982,9 +981,9 @@ namespace macho::utils {
                 }
             }
 
-            if (!options.ignores_exports()) {
+            if (!options.ignore_exports) {
                 if (!symtab_command) {
-                    if (!options.ignores_missing_symbol_table()) {
+                    if (!options.ignore_missing_symbol_table) {
                         return creation_result::container_is_missing_symbol_table;
                     }
 
@@ -1005,7 +1004,7 @@ namespace macho::utils {
                     auto symbol_table = symbols::table_64::data();
                     auto symbol_table_options = symbols::table_64::data::options();
 
-                    symbol_table_options.convert_to_little_endian();
+                    symbol_table_options.convert_to_little_endian = true;
 
                     switch (symbol_table.create(container, *symtab_command, symbol_table_options)) {
                         case symbols::table_64::data::creation_result::ok:
@@ -1017,7 +1016,7 @@ namespace macho::utils {
 
                     const auto string_table_size = string_table.size();
                     for (auto iter = symbol_table.begin; iter != symbol_table.end; iter++) {
-                        if ((iter->n_type & symbol_table::flags::type) != symbol_table::type::section) {
+                        if (iter->n_type.type != symbol_table::type::section) {
                             continue;
                         }
 
@@ -1041,8 +1040,8 @@ namespace macho::utils {
                         const auto type = symbol::type_from_symbol_string(string, n_desc);
                         switch (type) {
                             case symbol::type::normal:
-                                if (!options.allows_private_normal_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_normal_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1050,8 +1049,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::weak:
-                                if (!options.allows_private_weak_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_weak_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1059,8 +1058,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::objc_class:
-                                if (!options.allows_private_objc_class_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_objc_class_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1068,8 +1067,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::objc_ivar:
-                                if (!options.allows_private_objc_ivar_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_objc_ivar_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1134,7 +1133,7 @@ namespace macho::utils {
                     auto symbol_table = symbols::table::data();
                     auto symbol_table_options = symbols::table::data::options();
 
-                    symbol_table_options.convert_to_little_endian();
+                    symbol_table_options.convert_to_little_endian = true;
 
                     switch (symbol_table.create(container, *symtab_command, symbol_table_options)) {
                         case symbols::table::data::creation_result::ok:
@@ -1146,7 +1145,7 @@ namespace macho::utils {
 
                     const auto string_table_size = string_table.size();
                     for (auto iter = symbol_table.begin; iter != symbol_table.end; iter++) {
-                        if ((iter->n_type & symbol_table::flags::type) != symbol_table::type::section) {
+                        if (iter->n_type.type != symbol_table::type::section) {
                             continue;
                         }
 
@@ -1170,8 +1169,8 @@ namespace macho::utils {
                         const auto type = symbol::type_from_symbol_string(string, n_desc);
                         switch (type) {
                             case symbol::type::normal:
-                                if (!options.allows_private_normal_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_normal_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1179,8 +1178,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::weak:
-                                if (!options.allows_private_weak_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_weak_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1188,8 +1187,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::objc_class:
-                                if (!options.allows_private_objc_class_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_objc_class_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1197,8 +1196,8 @@ namespace macho::utils {
                                 break;
 
                             case symbol::type::objc_ivar:
-                                if (!options.allows_private_objc_ivar_symbols()) {
-                                    if (!(iter->n_type & symbol_table::flags::external)) {
+                                if (!options.allow_private_objc_ivar_symbols) {
+                                    if (!iter->n_type.external) {
                                         continue;
                                     }
                                 }
@@ -1300,15 +1299,15 @@ namespace macho::utils {
 
         this->architectures |= (1ull << architecture_info_index);
 
-        if (!options.ignores_flags()) {
-            struct tbd::flags::flags flags = {};
-            if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
-                if (container.header.flags & macho::flags::two_level_namespaces) {
-                    flags.set_has_flat_namespace();
+        if (!options.ignore_flags) {
+            struct tbd::flags::flags flags;
+            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
+                if (macho::flags(container.header.flags).two_level_namespaces) {
+                    flags.flat_namespace = true;
                 }
 
-                if (!(container.header.flags & macho::flags::app_extension_safe)) {
-                    flags.set_not_app_extension_safe();
+                if (!macho::flags(container.header.flags).app_extension_safe) {
+                    flags.not_app_extension_safe = true;
                 }
             }
 
@@ -1319,7 +1318,7 @@ namespace macho::utils {
             const auto cmd = iter.cmd();
             switch (cmd) {
                 case macho::load_commands::build_version: {
-                    if (options.ignores_platform()) {
+                    if (options.ignore_platform) {
                         break;
                     }
 
@@ -1374,7 +1373,7 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::identification_dylib: {
-                    if (options.ignores_current_version() && options.ignores_compatibility_version() && options.ignores_install_name()) {
+                    if (options.ignore_current_version && options.ignore_compatibility_version && options.ignore_install_name) {
                         break;
                     }
 
@@ -1390,7 +1389,7 @@ namespace macho::utils {
                         ::utils::swap::uint32(dylib_command_compatibility_version);
                     }
 
-                    if (!options.ignores_current_version()) {
+                    if (!options.ignore_current_version) {
                         if (this->current_version.value != dylib_command_current_version) {
                             // Use install-name to indicate whether
                             // or not we've parsed identification in
@@ -1403,7 +1402,7 @@ namespace macho::utils {
                         }
                     }
 
-                    if (!options.ignores_compatibility_version()) {
+                    if (!options.ignore_compatibility_version) {
                         if (this->compatibility_version.value != dylib_command_compatibility_version) {
                             // Use install-name to indicate whether
                             // or not we've parsed identification in
@@ -1446,7 +1445,7 @@ namespace macho::utils {
                         return creation_result::empty_install_name;
                     }
 
-                    if (!options.ignores_install_name()) {
+                    if (!options.ignore_install_name) {
                         const auto install_name_length = this->install_name.length();
                         if (install_name_length != 0) {
                             if (install_name_length != dylib_command_name_length) {
@@ -1459,15 +1458,15 @@ namespace macho::utils {
                         }
                     }
 
-                    if (!options.ignores_current_version()) {
+                    if (!options.ignore_current_version) {
                         this->current_version.value = dylib_command_current_version;
                     }
 
-                    if (!options.ignores_compatibility_version()) {
+                    if (!options.ignore_compatibility_version) {
                         this->compatibility_version.value = dylib_command_compatibility_version;
                     }
 
-                    if (!options.ignores_install_name()) {
+                    if (!options.ignore_install_name) {
                         this->install_name.assign(dylib_command_name, dylib_command_name_length);
                     }
 
@@ -1475,7 +1474,7 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::reexport_dylib: {
-                    if (options.ignores_reexports()) {
+                    if (options.ignore_reexports) {
                         break;
                     }
 
@@ -1524,14 +1523,14 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::segment: {
-                    if (options.ignores_objc_constraint() && options.ignores_swift_version()) {
+                    if (options.ignore_objc_constraint && options.ignore_swift_version) {
                         break;
                     }
 
                     // tbd fields objc-constraint and swift-version
                     // are only found on tbd-version v2
 
-                    if (options.ignores_unneeded_fields_for_version()) {
+                    if (options.ignore_unneeded_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
@@ -1607,18 +1606,18 @@ namespace macho::utils {
                             return creation_result::stream_read_error;
                         }
 
-                        auto objc_image_info_flags = objc_image_info.flags;
+                        struct objc::image_info::flags objc_image_info_flags(objc_image_info.flags);
                         if (container.is_big_endian()) {
-                            ::utils::swap::uint32(objc_image_info_flags);
+                            ::utils::swap::uint32(objc_image_info_flags.value);
                         }
 
-                        if (!options.ignores_objc_constraint()) {
+                        if (!options.ignore_objc_constraint) {
                             auto objc_constraint = objc_constraint::retain_release;
-                            if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                            if (objc_image_info_flags.requires_gc) {
                                 objc_constraint = objc_constraint::gc;
-                            } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                            } else if (objc_image_info_flags.supports_gc) {
                                 objc_constraint = objc_constraint::retain_release_or_gc;
-                            } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                            } else if (objc_image_info_flags.is_simulated) {
                                 objc_constraint = objc_constraint::retain_release_for_simulator;
                             }
 
@@ -1631,10 +1630,9 @@ namespace macho::utils {
                             this->objc_constraint = objc_constraint;
                         }
 
-                        const auto swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                        if (!options.ignores_swift_version()) {
+                        if (!options.ignore_swift_version) {
                             if (this->swift_version != 0) {
-                                if (this->swift_version != swift_version) {
+                                if (this->swift_version != objc_image_info_flags.swift_version) {
                                     return creation_result::multiple_swift_version;
                                 }
                             }
@@ -1643,7 +1641,7 @@ namespace macho::utils {
                             // zero is not needed as this->swift_version
                             // by default is zero
 
-                            this->swift_version = swift_version;
+                            this->swift_version = objc_image_info_flags.swift_version;
                         }
 
                         break;
@@ -1653,14 +1651,14 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::segment_64: {
-                    if (options.ignores_objc_constraint() && options.ignores_swift_version()) {
+                    if (options.ignore_objc_constraint && options.ignore_swift_version) {
                         break;
                     }
 
                     // tbd fields objc-constraint and swift-version
                     // are only found on tbd-version v2
 
-                    if (options.ignores_unneeded_fields_for_version()) {
+                    if (options.ignore_unneeded_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
@@ -1732,18 +1730,18 @@ namespace macho::utils {
                             return creation_result::stream_read_error;
                         }
 
-                        auto objc_image_info_flags = objc_image_info.flags;
+                        struct objc::image_info::flags objc_image_info_flags(objc_image_info.flags);
                         if (container.is_big_endian()) {
-                            ::utils::swap::uint32(objc_image_info_flags);
+                            ::utils::swap::uint32(objc_image_info_flags.value);
                         }
 
-                        if (!options.ignores_objc_constraint()) {
+                        if (!options.ignore_objc_constraint) {
                             auto objc_constraint = objc_constraint::retain_release;
-                            if (objc_image_info_flags & objc::image_info::flags::requires_gc) {
+                            if (objc_image_info_flags.requires_gc) {
                                 objc_constraint = objc_constraint::gc;
-                            } else if (objc_image_info_flags & objc::image_info::flags::supports_gc) {
+                            } else if (objc_image_info_flags.supports_gc) {
                                 objc_constraint = objc_constraint::retain_release_or_gc;
-                            } else if (objc_image_info_flags & objc::image_info::flags::is_simulated) {
+                            } else if (objc_image_info_flags.is_simulated) {
                                 objc_constraint = objc_constraint::retain_release_for_simulator;
                             }
 
@@ -1756,10 +1754,9 @@ namespace macho::utils {
                             this->objc_constraint = objc_constraint;
                         }
 
-                        const auto swift_version = (objc_image_info_flags >> objc::image_info::swift_version::shift) & objc::image_info::swift_version::mask;
-                        if (!options.ignores_swift_version()) {
+                        if (!options.ignore_swift_version) {
                             if (this->swift_version != 0) {
-                                if (this->swift_version != swift_version) {
+                                if (this->swift_version != objc_image_info_flags.swift_version) {
                                     return creation_result::multiple_swift_version;
                                 }
                             }
@@ -1768,7 +1765,7 @@ namespace macho::utils {
                             // zero is not needed as this->swift_version
                             // by default is zero
 
-                            this->swift_version = swift_version;
+                            this->swift_version = objc_image_info_flags.swift_version;
                         }
 
                         break;
@@ -1778,14 +1775,14 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::sub_client: {
-                    if (options.ignores_allowable_clients()) {
+                    if (options.ignore_allowable_clients) {
                         break;
                     }
 
                     // tbd field sub-clients is only
                     // available on tbd version v2
 
-                    if (options.ignores_unneeded_fields_for_version()) {
+                    if (options.ignore_unneeded_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
@@ -1833,14 +1830,14 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::sub_umbrella: {
-                    if (options.ignores_parent_umbrella()) {
+                    if (options.ignore_parent_umbrella) {
                         break;
                     }
 
                     // tbd field parent-umbrella is
                     // only available on tbd-version v2
 
-                    if (options.ignores_unneeded_fields_for_version()) {
+                    if (options.ignore_unneeded_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
@@ -1898,14 +1895,14 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::uuid: {
-                    if (options.ignores_uuids()) {
+                    if (options.ignore_uuids) {
                         break;
                     }
 
                     // tbd field uuids is only
                     // available on tbd-version v2
 
-                    if (options.ignores_unneeded_fields_for_version()) {
+                    if (options.ignore_unneeded_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
@@ -1924,7 +1921,7 @@ namespace macho::utils {
                         }
                     }
 
-                    if (!options.ignores_non_unique_uuids()) {
+                    if (!options.ignore_non_unique_uuids) {
                         // Search for same uuids across other containers
                         // in order to guarantee uniqueness
 
@@ -1955,7 +1952,7 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::version_min_macosx:
-                    if (options.ignores_platform()) {
+                    if (options.ignore_platform) {
                         break;
                     }
 
@@ -1969,7 +1966,7 @@ namespace macho::utils {
                     break;
 
                 case macho::load_commands::version_min_iphoneos:
-                    if (options.ignores_platform()) {
+                    if (options.ignore_platform) {
                         break;
                     }
 
@@ -1983,7 +1980,7 @@ namespace macho::utils {
                     break;
 
                 case macho::load_commands::version_min_watchos:
-                    if (options.ignores_platform()) {
+                    if (options.ignore_platform) {
                         break;
                     }
 
@@ -1997,7 +1994,7 @@ namespace macho::utils {
                     break;
 
                 case macho::load_commands::version_min_tvos:
-                    if (options.ignores_platform()) {
+                    if (options.ignore_platform) {
                         break;
                     }
 
@@ -2019,44 +2016,44 @@ namespace macho::utils {
         // or not the first container has them, but ignore
         // if provided options demand so
 
-        if (!options.ignores_missing_identification()) {
-            if (!options.ignores_current_version() || !options.ignores_compatibility_version() || !options.ignores_install_name()) {
+        if (!options.ignore_missing_identification) {
+            if (!options.ignore_current_version || !options.ignore_compatibility_version || !options.ignore_install_name) {
                 if (this->install_name.empty()) {
                     return creation_result::container_is_missing_dynamic_library_identification;
                 }
             }
         }
 
-        if (!options.ignores_platform() && !options.ignores_missing_platform()) {
+        if (!options.ignore_platform && !options.ignore_missing_platform) {
             if (this->platform == platform::none) {
                 return creation_result::container_is_missing_platform;
             }
         }
 
-        if (!options.ignores_uuids() && !options.ignores_missing_uuids()) {
+        if (!options.ignore_uuids && !options.ignore_missing_uuids) {
             if (this->uuids.size() != 1) {
-                if (this->version == version::v2 || !options.ignores_unneeded_fields_for_version()) {
+                if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
                     return creation_result::container_is_missing_uuid;
                 }
             }
         }
 
-        if (!options.ignores_exports()) {
+        if (!options.ignore_exports) {
             std::sort(this->reexports.begin(), this->reexports.end(), [](const reexport &lhs, const reexport &rhs) {
                 return lhs.string.compare(rhs.string) < 0;
             });
 
             const auto string_table_size = string_table.size();
             for (auto iter = symbol_table.begin; iter != symbol_table.end; iter++) {
-                if ((iter->n_type & symbol_table::flags::type) != symbol_table::type::section) {
+                if (iter->n_type.type != symbol_table::type::section) {
                     continue;
                 }
 
-                auto n_desc = iter->n_desc;
+                auto desc = iter->n_desc;
                 auto index = iter->n_un.n_strx;
 
                 if (container.is_big_endian()) {
-                    ::utils::swap::int16(n_desc);
+                    ::utils::swap::uint16(desc.value);
                     ::utils::swap::uint32(index);
                 }
 
@@ -2074,11 +2071,11 @@ namespace macho::utils {
                     continue;
                 }
 
-                const auto type = symbol::type_from_symbol_string(string, n_desc);
+                const auto type = symbol::type_from_symbol_string(string, desc);
                 switch (type) {
                     case symbol::type::normal:
-                        if (!options.allows_private_normal_symbols()) {
-                            if (!(iter->n_type & symbol_table::flags::external)) {
+                        if (!options.allow_private_normal_symbols) {
+                            if (!iter->n_type.external) {
                                 continue;
                             }
                         }
@@ -2086,8 +2083,8 @@ namespace macho::utils {
                         break;
 
                     case symbol::type::weak:
-                        if (!options.allows_private_weak_symbols()) {
-                            if (!(iter->n_type & symbol_table::flags::external)) {
+                        if (!options.allow_private_weak_symbols) {
+                            if (!iter->n_type.external) {
                                 continue;
                             }
                         }
@@ -2095,8 +2092,8 @@ namespace macho::utils {
                         break;
 
                     case symbol::type::objc_class:
-                        if (!options.allows_private_objc_class_symbols()) {
-                            if (!(iter->n_type & symbol_table::flags::external)) {
+                        if (!options.allow_private_objc_class_symbols) {
+                            if (!iter->n_type.external) {
                                 continue;
                             }
                         }
@@ -2104,8 +2101,8 @@ namespace macho::utils {
                         break;
 
                     case symbol::type::objc_ivar:
-                        if (!options.allows_private_objc_ivar_symbols()) {
-                            if (!(iter->n_type & symbol_table::flags::external)) {
+                        if (!options.allow_private_objc_ivar_symbols) {
+                            if (!iter->n_type.external) {
                                 continue;
                             }
                         }
@@ -2127,7 +2124,7 @@ namespace macho::utils {
 
         return creation_result::ok;
     }
-    
+
     void tbd::clear() noexcept {
         this->architectures = 0;
         this->current_version.value = 0;
