@@ -1555,9 +1555,9 @@ int main(int argc, const char *argv[]) {
 
         // Apply global "don't" options
 
-        tbd.creation_options.value &= global_dont_creation_options.value;
-        tbd.write_options.value &= global_dont_write_options.value;
-        tbd.options.value &= global_dont_options.value;
+        tbd.creation_options.value &= ~global_dont_creation_options.value;
+        tbd.write_options.value &= ~global_dont_write_options.value;
+        tbd.options.value &= ~global_dont_options.value;
 
         // Apply global variables from global tbd
 
@@ -1637,7 +1637,7 @@ int main(int argc, const char *argv[]) {
 
                 utils::path::append_component(write_path, extracted_directories_begin, extracted_directories_end);
                 write_path.append(".tbd");
-
+                
                 auto terminator = static_cast<char *>(nullptr);
                 auto descriptor = -1;
 
