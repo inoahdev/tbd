@@ -45,16 +45,34 @@ namespace recursive::mkdir {
 
     result create_directories_if_missing_ignoring_last(char *path, char **terminator) noexcept {
         auto end = utils::string::find_end_of_null_terminated_string(path);
-        auto &back = *(end - 1);
+        auto &back = end[-1];
 
+        // In the case where path ends with a series of slashes
+        // set end to the front most slash in that series
+        
         if (back == '/' || back == '\\') {
             end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 
+        // Start from second-to-last path-component, as we
+        // are after all, ignoring the last path-component
+        
         auto path_component_end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         auto prev_path_component_end = end;
 
+        // Walk backwards, from the second-to-last
+        // path-component, all the way back to the first
+        
+        // This is done in this way so as to minimize
+        // syscalls on directories that most likely exist
+        // (the first few path-components) versus those that
+        // most likely don't exist (the last few path-components)
+        
         while (path_component_end != path) {
+            // Terminate string at path-component end,
+            // so as to get the entire path of the current
+            // path-component
+            
             auto path_component_end_elmt = *path_component_end;
             *path_component_end = '\0';
 
@@ -62,7 +80,10 @@ namespace recursive::mkdir {
                 if (terminator != nullptr) {
                     *terminator = prev_path_component_end;
                     
-                    // terminator should never point to end
+                    // terminator should never point to
+                    // end because terminator is used in
+                    // recursively-remove which does not
+                    // check this
                     
                     if (*terminator == end) {
                         *terminator = nullptr;
