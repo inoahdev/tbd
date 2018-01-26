@@ -15,11 +15,11 @@ namespace macho::utils::validation {
     bool as_normal(const char *path, file::open_result *error) noexcept {
         auto file = macho::file();
         auto open_result = file.open(path);
-        
+
         if (error != nullptr) {
             *error = open_result;
         }
-        
+
         return open_result == file::open_result::ok;
     }
 }

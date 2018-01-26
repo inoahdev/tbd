@@ -13,10 +13,10 @@ namespace macho {
     struct flags {
         explicit inline flags() = default;
         explicit inline flags(uint32_t value) : value(value) {};
-        
+
         union {
             uint32_t value = 0;
-            
+
             struct {
                 bool no_undefined_references         : 1;
                 bool incremental_link                : 1;
@@ -43,10 +43,10 @@ namespace macho {
                 bool app_extension_safe              : 1;
             } __attribute__((packed));
         };
-        
+
         inline bool has_none() const noexcept { return this->value == 0; }
         inline void clear() noexcept { this->value = 0; }
-        
+
         inline bool operator==(const flags &flags) const noexcept { return this->value == flags.value; }
         inline bool operator!=(const flags &flags) const noexcept { return this->value == flags.value; }
     };

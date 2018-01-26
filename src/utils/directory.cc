@@ -22,14 +22,14 @@ namespace utils {
     std::string directory::iterator::entry_path_from_directory_path(const char *root) const noexcept {
         const auto root_length = strlen(root);
         const auto name_length = strlen(ptr->d_name);
-        
+
         auto path_length = root_length + name_length;
         auto path = std::string();
 
         if (path[root_length - 1] != '/') {
             path_length++;
         }
-        
+
         if (ptr->d_type == DT_DIR) {
             path_length++;
         }

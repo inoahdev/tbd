@@ -15,7 +15,7 @@ namespace macho::utils::load_commands {
     struct data {
         struct flags {
             friend struct data;
-            
+
             inline bool is_little_endian() const noexcept {
                 return !this->bits.is_big_endian;
             }

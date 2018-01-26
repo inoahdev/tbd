@@ -20,7 +20,7 @@ namespace macho {
         fat_64            = 0xcafebabf,
         fat_64_big_endian = 0xbfbafeca
     };
-    
+
     inline bool magic_is_valid(magic magic) noexcept {
         return magic == magic::normal || magic == magic::big_endian || magic == magic::bits64 || magic == magic::bits64_big_endian || magic == magic::fat || magic == magic::fat_big_endian || magic == magic::fat_64 || magic == magic::fat_64_big_endian;
     }

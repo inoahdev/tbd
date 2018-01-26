@@ -24,7 +24,7 @@ namespace stream::file {
         open_result open(const char *path, const char *mode) noexcept;
         open_result open(int descriptor, const char *mode) noexcept;
         open_result open(FILE *file) noexcept;
-        
+
         open_result open_copy(FILE *file, const char *mode) noexcept;
         open_result open_copy(const shared &shared, const char *mode) noexcept;
 

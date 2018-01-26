@@ -30,7 +30,7 @@ namespace stream::file {
         if (this->is_open()) {
             this->close();
         }
-        
+
         const auto file = fopen(path, mode);
         if (!file) {
             return open_result::failed_to_open_file;
@@ -44,7 +44,7 @@ namespace stream::file {
         if (this->is_open()) {
             this->close();
         }
-        
+
         const auto file = fdopen(descriptor, mode);
         if (!file) {
             return open_result::failed_to_open_file;

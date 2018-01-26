@@ -13,7 +13,7 @@ namespace stream::file {
     shared::open_result shared::open(const char *path, const char *mode) noexcept {
         const auto file = fopen(path, mode);
         if (!file) {
-            // Close the current stream 
+            // Close the current stream
             // even on open failure
 
             this->stream_.reset();
@@ -27,10 +27,10 @@ namespace stream::file {
         return open_result::ok;
     }
 
-    shared::open_result shared::open(int descriptor, const char *mode) noexcept {        
+    shared::open_result shared::open(int descriptor, const char *mode) noexcept {
         const auto file = fdopen(descriptor, mode);
         if (!file) {
-            // Close the current stream 
+            // Close the current stream
             // even on open failure
 
             this->stream_.reset();
@@ -43,38 +43,38 @@ namespace stream::file {
 
         return open_result::ok;
     }
-    
+
     shared::open_result shared::open_copy(FILE *file, const char *mode) noexcept {
         const auto file_copy = freopen(nullptr, mode, file);
         if (!file_copy) {
             // Close the current stream
             // even on open failure
-            
+
             this->stream_.reset();
             return open_result::failed_to_open_file;
         }
-        
+
         this->stream_.reset(file_copy, [](FILE *file) {
             fclose(file);
         });
-        
+
         return open_result::ok;
     }
-    
+
     shared::open_result shared::open_copy(const shared &shared, const char *mode) noexcept {
         const auto file = freopen(nullptr, mode, shared.stream());
         if (!file) {
             // Close the current stream
             // even on open failure
-            
+
             this->stream_.reset();
             return open_result::failed_to_open_file;
         }
-        
+
         this->stream_.reset(file, [](FILE *file) {
             fclose(file);
         });
-        
+
         return open_result::ok;
     }
 

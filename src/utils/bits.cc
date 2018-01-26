@@ -30,14 +30,14 @@ namespace utils {
     void bits::create_stack_max() noexcept {
         this->length = bits_integer_t(1) << (this->byte_shift() + 3);
     }
-    
+
     void bits::resize(bits_integer_t length) noexcept {
         const auto bit_size = this->bit_size();
         const auto old_allocation_size = this->allocation_size_from_length(this->length);
-        
+
         if (this->length > bit_size) {
             const auto new_allocation_size = this->allocation_size_from_length(length);
-            
+
             if (new_allocation_size != old_allocation_size) {
                 auto pointer = new bits_integer_t[new_allocation_size];
                 if (!old_allocation_size) {
@@ -55,10 +55,10 @@ namespace utils {
                 integer = *data.pointer;
                 delete[] data.pointer;
             }
-            
+
             data.integer = integer;
         }
-        
+
         this->length = length;
     }
 
@@ -67,14 +67,14 @@ namespace utils {
         const auto bit_size = this->bit_size();
         if (bits.length > bit_size) {
             const auto bit_shift = (this->byte_shift() + 3);
-            
+
             auto size = this->length >> bit_shift;
             auto remainder_bits = (bits_integer_t(~0) >> (bit_size - bit_shift));
-            
+
             if (this->length & remainder_bits) {
                 size++;
             }
-            
+
             data.pointer = new bits_integer_t[size];
             memcpy(data.pointer, bits.data.pointer, sizeof(bits_integer_t) * size);
         } else {
@@ -97,14 +97,14 @@ namespace utils {
     void bits::cast(bits_integer_t index, bool flag) noexcept {
         auto data = &this->data.integer;
         const auto bit_size = this->bit_size();
-        
+
         if (this->length > bit_size) {
             const auto location = (index + 1) >> (this->byte_shift() + 3);
-            
+
             data = this->data.pointer + location;
             index -= bit_size * location;
         }
-        
+
         if (flag) {
             *data |= static_cast<bits_integer_t>(1) << index;
         } else {
@@ -117,25 +117,25 @@ namespace utils {
         if (this->length > bit_size) {
             const auto location = (index + 1) >> (this->byte_shift() + 3);
             const auto pointer = this->data.pointer + location;
-        
+
             index -= bit_size * location;
-            
+
             return *pointer & index;
         }
 
         return this->data.integer & (bits_integer_t(1) << index);
     }
-    
+
     bits_integer_t bits::allocation_size_from_length(bits_integer_t length) {
         const auto bit_shift = (this->byte_shift() + 3);
-        
+
         auto size = this->length >> bit_shift;
         auto remainder_bits = (bits_integer_t(~0) >> (this->bit_size() - bit_shift));
-        
+
         if (this->length & remainder_bits) {
             size++;
         }
-        
+
         return size;
     }
 
@@ -147,14 +147,14 @@ namespace utils {
         auto bit_size = this->bit_size();
         if (this->length > bit_size) {
             const auto bit_shift = (this->byte_shift() + 3);
-            
+
             auto size = this->length >> bit_shift;
             auto remainder_bits = (bits_integer_t(~0) >> (bit_size - bit_shift));
-            
+
             if (this->length & remainder_bits) {
                 size++;
             }
-            
+
             return memcmp(data.pointer, bits.data.pointer, sizeof(bits_integer_t) * size) == 0;
         }
 

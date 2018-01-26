@@ -22,10 +22,10 @@ namespace macho::utils::segments {
             sections_iterator end = sections_iterator(nullptr);
         } sections;
     };
-    
+
     struct command_64 {
         explicit command_64(const macho::segment_command_64 *segment, bool is_big_endian) noexcept;
-        
+
         struct {
             sections_64_iterator begin = sections_64_iterator(nullptr);
             sections_64_iterator end = sections_64_iterator(nullptr);

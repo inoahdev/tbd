@@ -19,7 +19,7 @@ namespace utils {
     struct bits {
         explicit bits() = default;
         explicit bits(bits_integer_t size) noexcept;
-        
+
         explicit bits(const bits &) noexcept;
         explicit bits(bits &&) noexcept;
 
@@ -29,12 +29,12 @@ namespace utils {
             bits_integer_t integer = bits_integer_t();
             bits_integer_t *pointer;
         } data;
-        
+
         bits_integer_t length = bits_integer_t();
-        
+
         void create_stack_max() noexcept;
         void resize(bits_integer_t length) noexcept;
-        
+
         void cast(bits_integer_t index, bool flag) noexcept;
         bool at(bits_integer_t index) const noexcept;
 
@@ -52,10 +52,10 @@ namespace utils {
 #else
         inline constexpr const bits_integer_t byte_shift() const noexcept { return 2; }
 #endif
-        
+
         inline constexpr const bits_integer_t byte_size() const noexcept { return bits_integer_t(1) << this->byte_shift(); }
         inline constexpr const bits_integer_t bit_size() const noexcept { return this->byte_size() << 3; }
-        
+
         bits_integer_t allocation_size_from_length(bits_integer_t length);
     };
 
