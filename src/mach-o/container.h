@@ -24,7 +24,7 @@ namespace macho {
         long base = long();
         size_t size = size_t();
 
-        struct header header = {};
+        struct header header;
 
         enum class open_result {
             ok,

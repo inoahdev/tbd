@@ -23,7 +23,7 @@ namespace macho::utils {
             auto container_cpusubtype = container.header.cpusubtype;
 
             if (container.is_big_endian()) {
-                ::utils::swap::int32(container_cputype);
+                swap::cputype(container_cputype);
                 ::utils::swap::int32(container_cpusubtype);
             }
 
@@ -40,14 +40,14 @@ namespace macho::utils {
             this->architectures |= (1ull << architecture_info_index);
 
             if (!options.ignore_flags) {
-                struct tbd::flags::flags flags;
+                struct tbd::flags flags;
 
                 if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                    if (macho::flags(container.header.flags).two_level_namespaces) {
+                    if (container.header.flags.two_level_namespaces) {
                         flags.flat_namespace = true;
                     }
 
-                    if (!macho::flags(container.header.flags).app_extension_safe) {
+                    if (!container.header.flags.app_extension_safe) {
                         flags.not_app_extension_safe = true;
                     }
                 }
@@ -1283,7 +1283,7 @@ namespace macho::utils {
         auto container_cpusubtype = container.header.cpusubtype;
 
         if (container.is_big_endian()) {
-            ::utils::swap::int32(container_cputype);
+            swap::cputype(container_cputype);
             ::utils::swap::int32(container_cpusubtype);
         }
 
@@ -1300,13 +1300,13 @@ namespace macho::utils {
         this->architectures |= (1ull << architecture_info_index);
 
         if (!options.ignore_flags) {
-            struct tbd::flags::flags flags;
+            struct tbd::flags flags;
             if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                if (macho::flags(container.header.flags).two_level_namespaces) {
+                if (container.header.flags.two_level_namespaces) {
                     flags.flat_namespace = true;
                 }
 
-                if (!macho::flags(container.header.flags).app_extension_safe) {
+                if (!container.header.flags.app_extension_safe) {
                     flags.not_app_extension_safe = true;
                 }
             }

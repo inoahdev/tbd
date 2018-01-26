@@ -1,12 +1,12 @@
 //
-//  src/mach-o/cputype.cc
+//  src/mach-o/subtype.cc
 //  tbd
 //
 //  Created by inoahdev on 7/18/17.
 //  Copyright © 2017 - 2018 inoahdev. All rights reserved.
 //
 
-#include "cputype.h"
+#include "subtype.h"
 
 namespace macho {
     subtype subtype_from_cputype(cputype cputype, int32_t subtype) {

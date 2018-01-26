@@ -15,10 +15,11 @@
 #include "../headers/symbol_table.h"
 
 namespace macho::utils::swap {
+    cputype &cputype(cputype &cputype) noexcept;
+    filetype &filetype(filetype &filetype) noexcept;
+
     header &mach_header(header &header) noexcept;
     fat &fat_header(fat &header) noexcept;
-
-    filetype &filetype(filetype &filetype) noexcept;
     
     struct architecture &architecture(struct architecture &arch) noexcept;
     struct architecture_64 &architecture_64(struct architecture_64 &arch) noexcept;

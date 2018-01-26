@@ -8,18 +8,20 @@
 
 #pragma once
 
+#include "cputype.h"
 #include "filetype.h"
+#include "flags.h"
 #include "magic.h"
 
 namespace macho {
     typedef struct header {
         magic magic;
-        int32_t cputype;
+        cputype cputype;
         int32_t cpusubtype;
         filetype filetype;
         uint32_t ncmds;
         uint32_t sizeofcmds;
-        uint32_t flags;
+        flags flags;
     } header;
 
     typedef struct fat_header {

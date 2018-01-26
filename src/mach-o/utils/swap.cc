@@ -10,13 +10,23 @@
 #include "swap.h"
 
 namespace macho::utils::swap {
+    enum cputype &cputype(enum cputype &cputype) noexcept {
+        ::utils::swap::int32(*reinterpret_cast<int32_t *>(&cputype));
+        return cputype;
+    }
+    
+    enum filetype &filetype(enum filetype &filetype) noexcept {
+        ::utils::swap::uint32(*reinterpret_cast<uint32_t *>(&filetype));
+        return filetype;
+    }
+    
     header &mach_header(header &header) noexcept {
-        ::utils::swap::int32(header.cputype);
+        cputype(header.cputype);
         ::utils::swap::int32(header.cpusubtype);
-        ::utils::swap::int32(*reinterpret_cast<int32_t *>(&header.filetype));
+        filetype(header.filetype);
         ::utils::swap::uint32(header.ncmds);
         ::utils::swap::uint32(header.sizeofcmds);
-        ::utils::swap::uint32(header.flags);
+        ::utils::swap::uint32(header.flags.value);
         
         return header;
     }
@@ -24,11 +34,6 @@ namespace macho::utils::swap {
     fat &fat_header(fat &header) noexcept {
         ::utils::swap::uint32(header.nfat_arch);
         return header;
-    }
-    
-    enum filetype &filetype(macho::filetype &filetype) noexcept {
-        ::utils::swap::uint32(*reinterpret_cast<uint32_t *>(&filetype));
-        return filetype;
     }
 
     struct architecture &architecture(struct architecture &arch) noexcept {
