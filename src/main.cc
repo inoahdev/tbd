@@ -454,6 +454,7 @@ int main(int argc, const char *argv[]) {
                             }
                         } else {
                             fprintf(stderr, "Unrecognized argument: %s\n", argument);
+                            return 1;
                         }
 
                         continue;
