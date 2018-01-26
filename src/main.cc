@@ -9,287 +9,20 @@
 #include <sys/stat.h>
 #include <iostream>
 
+#include "main_utils/parse_architectures_list.h"
+#include "main_utils/print_help_menu.h"
+
 #include "main_utils/tbd_create.h"
 #include "main_utils/tbd_parse_fields.h"
 #include "main_utils/tbd_print_field_information.h"
 
+#include "main_utils/recursive_mkdir.h"
+#include "main_utils/recursive_remove_with_terminator.h"
+
 #include "misc/current_directory.h"
 #include "misc/recurse.h"
 
-#include "recursive/mkdir.h"
-#include "recursive/remove.h"
-
-uint64_t parse_architectures_list(int &index, int argc, const char *argv[]) {
-    if (index == argc) {
-        fputs("Please provide a list of architectures\n", stderr);
-        exit(1);
-    }
-
-    auto architectures = uint64_t();
-    do {
-        const auto &architecture_string = argv[index];
-        const auto &architecture_string_front = architecture_string[0];
-
-        // Quickly filter out an option or path instead of a (relatively)
-        // expensive call to macho::architecture_info_from_name().
-
-        if (architecture_string_front == '-' || architecture_string_front == '/' || architecture_string_front == '\\') {
-            // If the architectures vector is empty, the user did not provide any architectures
-            // but did provided the architecture option, which requires at least one architecture
-            // being provided.
-
-            if (!architectures) {
-                fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
-                exit(1);
-            }
-
-            break;
-        }
-
-        const auto architecture_info_table_index = macho::architecture_info_index_from_name(architecture_string);
-        if (architecture_info_table_index == -1) {
-            // macho::architecture_info_index_from_name() returning -1 can be the result of one
-            // of two scenarios, The string stored in architecture being invalid, such as being
-            // misspelled, or the string being the path object inevitably following the architecture
-            // argument.
-
-            // If the architectures vector is empty, the user did not provide any architectures
-            // but did provide the architecture option, which requires at least one architecture
-            // being provided.
-
-            if (!architectures) {
-                fprintf(stderr, "Unrecognized architecture with name: %s\n", architecture_string);
-                exit(1);
-            }
-
-            break;
-        }
-
-        architectures |= (1ull << architecture_info_table_index);
-        index++;
-    } while (index < argc);
-
-    // As the caller of this function is in a for loop,
-    // the index is incremented once again once this function
-    // returns. To make up for this, decrement index by 1.
-
-    index--;
-    return architectures;
-}
-
-void recursively_remove_with_terminator(char *path, char *terminator, bool should_print_paths) {
-    if (terminator == nullptr) {
-        return;
-    }
-
-    switch (recursive::remove::perform(path, terminator)) {
-        case recursive::remove::result::ok:
-            break;
-
-        case recursive::remove::result::failed_to_remove_directory:
-            if (should_print_paths) {
-                // Terminate at terminator to get original created directory
-
-                *terminator = '\0';
-                fprintf(stderr, "Failed to remove created-directory (at path %s)\n", path);
-            } else {
-                fputs("Failed to remove created-directory at provided output-path\n", stderr);
-            }
-
-            break;
-
-        case recursive::remove::result::directory_doesnt_exist:
-            if (should_print_paths) {
-                // Terminate at terminator to get original created directory
-
-                *terminator = '\0';
-                fprintf(stderr, "[Internal Error] Created directory doesn't exist (at path %s)\n", path);
-            } else {
-                fputs("[Internal Error] Created directory doesn't exist (at path %s)\n", stderr);
-            }
-
-            break;
-
-        case recursive::remove::result::failed_to_remove_subdirectories:
-            if (should_print_paths) {
-                // Terminate at terminator to get original created directory
-                *terminator = '\0';
-
-                fprintf(stderr, "Failed to remove created sub-directories (of directory at path %s)\n", path);
-                *terminator = '/';
-
-                fprintf(stderr, " at path: %s\n", path);
-            } else {
-                fprintf(stderr, "Failed to remove created sub-directories of provided output-path %s)\n", path);
-            }
-
-            break;
-
-        case recursive::remove::result::sub_directory_doesnt_exist:
-            // Terminate at terminator to get original created directory
-            *terminator = '\0';
-
-            fprintf(stderr, "[Internal Error] Created sub-directories (of directory at path %s)\n", path);
-            *terminator = '/';
-
-            fprintf(stderr, " (at path %s) doesn't exist\n", path);
-            break;
-
-    }
-}
-
-void tbd_with_options_apply_local_options(main_utils::tbd_with_options &tbd, int argc, const char *argv[]) {
-    if (tbd.local_option_start == 0) {
-        return;
-    }
-
-    struct macho::utils::tbd::flags flags_add;
-    struct macho::utils::tbd::flags flags_re;
-
-    for (auto index = tbd.local_option_start; index != argc; index++) {
-        const auto &option = argv[index];
-        if (strcmp(option, "add-flags") == 0) {
-            if (tbd.options.replace_flags ^ tbd.options.remove_flags) {
-                continue;
-            }
-
-            main_utils::parse_flags(&flags_add, ++index, argc, argv);
-        } else if (strcmp(option, "replace-flags") == 0) {
-            if (tbd.options.remove_flags) {
-                continue;
-            }
-
-            tbd.info.flags.clear();
-            main_utils::parse_flags(&flags_re, ++index, argc, argv);
-        } else if (strcmp(option, "remove-flags") == 0) {
-            if (tbd.options.replace_flags) {
-                continue;
-            }
-
-            main_utils::parse_flags(&flags_re, ++index, argc, argv);
-        } else if (option[0] != '-') {
-            break;
-        }
-
-        // Ignore handling of any unrecognized options
-        // as by this point, argv has been fully validated
-    }
-
-    if (tbd.options.remove_flags) {
-        tbd.info.flags.value |= flags_add.value;
-        tbd.info.flags.value &= ~flags_re.value;
-    } else {
-        tbd.info.flags.value = flags_re.value;
-    }
-}
-
-/*
-   tbd has several different types of options;
-   - an option that is provided by itself (such as -h (--help) or -u (--usage)
-   - an option that is used with other options to provide additional information.
-     As they are within other options, and to differentiate from global options,
-     they are referred to as local options
-   - an option that is provided not from within another option but meant to
-     apply to other options that don't manually supply them
-   - an option that accepts local options in between the option and its main
-     requested information (such as -p (--path) local-options /main/requested/path)
-*/
-
-void print_usage() {
-    fputs("Usage: tbd [-p file-paths] [-o/--output output-paths-or-stdout]\n", stdout);
-    fputs("Main options:\n", stdout);
-    fputs("    -h, --help,   Print this message\n", stdout);
-    fputs("    -o, --output, Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
-    fputs("    -p, --path,   Path(s) to mach-o file(s) to convert to a tbd file. Can also provide \"stdin\" to use stdin\n", stdout);
-    fputs("    -u, --usage,  Print this message\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Path options:\n", stdout);
-    fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform platform] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
-    fputs("    -a, --arch,     Specify architecture(s) to output to tbd\n", stdout);
-    fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provided mach-o file(s)\n", stdout);
-    fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
-    fputs("    -r, --recurse,  Specify directory to recurse and find mach-o library files in\n", stdout);
-    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2)\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Outputting options:\n", stdout);
-    fputs("Usage: tbd -o [--maintain-directories] /path/to/output/file\n", stdout);
-    fputs("        --maintain-directories,   Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
-    fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd)\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Global options:\n", stdout);
-    fputs("    -a, --arch,     Specify architecture(s) to output to tbd (where architectures were not already specified)\n", stdout);
-    fputs("        --archs,    Specify architecture(s) to override architectures found in file (where default architecture-overrides were not already provided)\n", stdout);
-    fputs("        --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)\n", stdout);
-    fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Miscellaneous options:\n", stdout);
-    fputs("        --dont-print-warnings, Don't print any warnings (both path and global option)\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Symbol options: (Both path and global options)\n", stdout);
-    fputs("        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars\n", stdout);
-    fputs("        --allow-private-objc-classes,   Allow all non-external objc-classes\n", stdout);
-    fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("tbd field replacement options: (Both path and global options)\n", stdout);
-    fputs("        --replace-flags,           Specify flags to add onto ones found in provided mach-o file(s)\n", stdout);
-    fputs("        --replace-objc-constraint, Specify objc-constraint to use instead of one(s) found in provided mach-o file(s)\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("tbd field remove options: (Both path and global options)\n", stdout);
-    fputs("        --remove-current-version,            Remove current-version field from outputted tbds\n", stdout);
-    fputs("        --remove-compatibility-version,      Remove compatibility-version field from outputted tbds\n", stdout);
-    fputs("        --remove-exports,                    Remove exports field from outputted tbds\n", stdout);
-    fputs("        --remove-flags,                      Remove flags field from outputted tbds\n", stdout);
-    fputs("        --remove-objc-constraint,            Remove objc-constraint field from outputted tbds\n", stdout);
-    fputs("        --remove-parent-umbrella,            Remove parent-umbrella field from outputted tbds\n", stdout);
-    fputs("        --remove-swift-version,              Remove swift-version field from outputted tbds\n", stdout);
-    fputs("        --remove-uuids,                      Remove uuids field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-current-version,       Don't remove current-version field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-compatibility-version, Don't remove compatibility-version field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-exports,               Don't remove exports field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-flags,                 Don't remove flags field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-objc-constraint,       Don't remove objc-constraint field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-parent-umbrella,       Don't remove parent-umbrella field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-swift-version,         Don't remove swift-version field from outputted tbds\n", stdout);
-    fputs("        --dont-remove-uuids,                 Don't remove uuids field from outputted tbds\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("tbd field warning ignore options: (Both path and global options)\n", stdout);
-    fputs("        --ignore-everything,            Ignore all tbd ignorable field warnings (sets the options below)\n", stdout);
-    fputs("        --ignore-missing-exports,       Ignore if no symbols or reexpors to output are found in provided mach-o file(s)\n", stdout);
-    fputs("        --ignore-missing-uuids,         Ignore if uuids are not found in provided mach-o file(s)\n", stdout);
-    fputs("        --ignore-non-unique-uuids,      Ignore if uuids found in provided mach-o file(s) are not unique\n", stdout);
-    fputs("        --dont-ignore-everything,       Reset all tbd field warning ignore options\n", stdout);
-    fputs("        --dont-ignore-missing-exports,  Reset ignorning of missing symbols and reexports to output in provided mach-o file(s)\n", stdout);
-    fputs("        --dont-ignore-missing-uuids,    Reset ignoring of missing uuids in provided mach-o file(s)\n", stdout);
-    fputs("        --dont-ignore-non-unique-uuids, Reset ignoring of uuids found in provided mach-o file(s) not being unique\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("List options:\n", stdout);
-    fputs("        --list-architectures,           List all valid architectures for tbd files. Also able to list architectures of a provided mach-o file\n", stdout);
-    fputs("        --list-tbd-flags,               List all valid flags for tbd files\n", stdout);
-    fputs("        --list-macho-dynamic-libraries, List all valid mach-o libraries in current-directory (or at provided path(s))\n", stdout);
-    fputs("        --list-objc-constraints,        List all valid objc-constraint options for tbd files\n", stdout);
-    fputs("        --list-platform,                List all valid platforms\n", stdout);
-    fputs("        --list-recurse,                 List all valid recurse options for parsing directories\n", stdout);
-    fputs("        --list-tbd-versions,            List all valid versions for tbd files\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("Validation options:\n", stdout);
-    fputs("        --validate-macho-dynamic-library, Check if file(s) at provided path(s) are valid mach-o dynamic-libraries\n", stdout);
-}
-
 int main(int argc, const char *argv[]) {
-    //sleep(50);
     if (argc < 2) {
         fputs("Please run -h (--help) or -u (--usage) to see a list of options\n", stderr);
         return 1;
@@ -353,7 +86,7 @@ int main(int argc, const char *argv[]) {
         }
 
         if (strcmp(option, "a") == 0 || strcmp(option, "arch") == 0) {
-            global.architectures |= parse_architectures_list(index, argc, argv);
+            global.architectures |= main_utils::parse_architectures_list(index, argc, argv);
         } if (strcmp(option, "add-archs") == 0) {
             // XXX: add-archs will add onto replaced architecture overrides
             // provided earlier in a 'replace-archs' options. This may not
@@ -364,7 +97,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            global_architectures_to_override_to_add |= parse_architectures_list(++index, argc, argv);
+            global_architectures_to_override_to_add |= main_utils::parse_architectures_list(++index, argc, argv);
         } else if (strcmp(option, "allow-all-private-symbols") == 0) {
             global.creation_options.allow_private_normal_symbols = true;
             global.creation_options.allow_private_weak_symbols = true;
@@ -538,7 +271,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            print_usage();
+            main_utils::print_help_menu();
             return 0;
         } else if (strcmp(option, "ignore-everything") == 0) {
             global.creation_options.ignore_missing_symbol_table = true;
@@ -1041,7 +774,7 @@ int main(int argc, const char *argv[]) {
                     }
 
                     if (strcmp(option, "a") == 0 || strcmp(option, "arch") == 0) {
-                        tbd.architectures |= parse_architectures_list(index, argc, argv);
+                        tbd.architectures |= main_utils::parse_architectures_list(index, argc, argv);
                     } else if (strcmp(option, "add-archs") == 0) {
                         // XXX: add-archs will add onto replaced architecture overrides
                         // provided earlier in a 'replace-archs' options. This may not
@@ -1052,7 +785,7 @@ int main(int argc, const char *argv[]) {
                             return 1;
                         }
 
-                        tbd.info.architectures |= parse_architectures_list(++index, argc, argv);
+                        tbd.info.architectures |= main_utils::parse_architectures_list(++index, argc, argv);
                     } else if (strcmp(option, "allow-all-private-symbols") == 0) {
                         tbd.creation_options.allow_private_normal_symbols = true;
                         tbd.creation_options.allow_private_weak_symbols = true;
@@ -1149,18 +882,6 @@ int main(int argc, const char *argv[]) {
                     } else if (strcmp(option, "dont-remove-uuids") == 0) {
                         tbd.creation_options.ignore_uuids = false;
                         tbd.write_options.ignore_uuids = false;
-                    } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
-                        if (index != 1 || index != argc - 1) {
-                            // Use argument to print out provided option
-                            // as it is the full string with dashes that the
-                            // user provided
-
-                            fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                            return 1;
-                        }
-
-                        print_usage();
-                        return 0;
                     } else if (strcmp(option, "ignore-missing-exports") == 0) {
                         // "exports" includes sub-clients, reexports, and
                         // symbols, but utils::tbd errors out only if
@@ -1267,7 +988,7 @@ int main(int argc, const char *argv[]) {
                         // replacing not only add-archs options, but earlier provided
                         // replace-archs options
 
-                        tbd.info.architectures = parse_architectures_list(++index, argc, argv);
+                        tbd.info.architectures = main_utils::parse_architectures_list(++index, argc, argv);
 
                         // We need to stop tbd::create from
                         // overiding these replaced architectures
@@ -1308,14 +1029,6 @@ int main(int argc, const char *argv[]) {
                     } else if (strcmp(option, "replace-platform") == 0) {
                         tbd.info.platform = main_utils::parse_platform_from_argument(index, argc, argv);
                         tbd.creation_options.ignore_platform = true;
-                    } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
-                        if (index != 1 || index != argc - 1) {
-                            fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                            return 1;
-                        }
-
-                        print_usage();
-                        return 0;
                     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
                         tbd.info.version = main_utils::parse_tbd_version(index, argc, argv);
                     } else {
@@ -1495,7 +1208,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            global_architectures_to_override_to_re = parse_architectures_list(++index, argc, argv);
+            global_architectures_to_override_to_re = main_utils::parse_architectures_list(++index, argc, argv);
             global.options.replace_architectures = true;
         } else if (strcmp(option, "replace-flags") == 0) {
             index++;
@@ -1529,7 +1242,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            print_usage();
+            main_utils::print_help_menu();
             return 0;
         } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
             global.info.version = main_utils::parse_tbd_version(index, argc, argv);
@@ -1641,31 +1354,7 @@ int main(int argc, const char *argv[]) {
                 auto terminator = static_cast<char *>(nullptr);
                 auto descriptor = -1;
 
-                switch (recursive::mkdir::perform_with_last_as_file(write_path.data(), &terminator, &descriptor)) {
-                    case recursive::mkdir::result::ok:
-                    case recursive::mkdir::result::failed_to_create_last_as_directory:
-                        break;
-
-                    case recursive::mkdir::result::failed_to_create_last_as_file:
-                        fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", write_path.c_str(), strerror(errno));
-                        return true;
-
-                    case recursive::mkdir::result::failed_to_create_intermediate_directories:
-                        fprintf(stderr, "Failed to create intermediate directories for file (at path %s), failing with error: %s\n", write_path.c_str(), strerror(errno));
-                        return true;
-
-                    case recursive::mkdir::result::last_already_exists_not_as_file:
-                        fprintf(stderr, "Object at path (%s) already exists, but is not a file\n", write_path.c_str());
-                        return true;
-
-                    default:
-                        break;
-                }
-
-                if (descriptor == -1) {
-                    fprintf(stderr, "Failed to open output-path (%s), failing with error: %s\n", write_path.c_str(), strerror(errno));
-                    return true;
-                }
+                main_utils::recursive_mkdir(write_path.data(), &terminator, &descriptor);
 
                 auto options = main_utils::create_tbd_options();
 
@@ -1674,7 +1363,7 @@ int main(int argc, const char *argv[]) {
 
                 const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
                 if (!creation_result) {
-                    recursively_remove_with_terminator(write_path.data(), terminator, true);
+                    main_utils::recursively_remove_with_terminator(write_path.data(), terminator, true);
                 } else {
                     // Parse local-options for modification of tbd-fields
                     // after creation and before write to avoid any extra hoops
@@ -1682,7 +1371,7 @@ int main(int argc, const char *argv[]) {
                     // Do this before applying any global variables as global
                     // variables have preference over local variables
 
-                    tbd_with_options_apply_local_options(global, argc, argv);
+                    global.apply_local_options(argc, argv);
 
                     switch (tbd.info.write_to(descriptor, tbd.write_options)) {
                         case macho::utils::tbd::write_result::ok:
@@ -1690,13 +1379,13 @@ int main(int argc, const char *argv[]) {
 
                         case macho::utils::tbd::write_result::has_no_exports:
                             fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", path.c_str());
-                            recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
+                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
 
                             break;
 
                         default:
                             fprintf(stderr, "Failed to write .tbd to output-file at path: %s\n", write_path.c_str());
-                            recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
+                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
 
                             break;
                     }
@@ -1824,46 +1513,7 @@ int main(int argc, const char *argv[]) {
             auto descriptor = -1;
 
             if (!tbd.write_path.empty()) {
-                switch (recursive::mkdir::perform_with_last_as_file(tbd.write_path.data(), &terminator, &descriptor)) {
-                    case recursive::mkdir::result::ok:
-                    case recursive::mkdir::result::failed_to_create_last_as_directory:
-                        break;
-
-                    case recursive::mkdir::result::failed_to_create_last_as_file:
-                        if (should_print_paths) {
-                            fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", tbd.write_path.c_str(), strerror(errno));
-                        } else {
-                            fprintf(stderr, "Failed to create file at provided path, failing with error: %s\n", strerror(errno));
-                        }
-
-                        continue;
-
-                    case recursive::mkdir::result::failed_to_create_intermediate_directories:
-                        if (should_print_paths) {
-                            fprintf(stderr, "Failed to create intermediate directories for file (at path %s), failing with error: %s\n", tbd.write_path.c_str(), strerror(errno));
-                        } else {
-                            fprintf(stderr, "Failed to create intermediate directories for file at provided path, failing with error: %s\n", strerror(errno));
-                        }
-
-                        continue;
-
-                    case recursive::mkdir::result::last_already_exists_not_as_file:
-                        if (should_print_paths) {
-                            fprintf(stderr, "Object at path (%s) already exists, but is not a file\n", tbd.write_path.c_str());
-                        } else {
-                            fputs("Object at provided path already exists, but is not a file\n", stderr);
-                        }
-
-                        continue;
-
-                    default:
-                        break;
-                }
-
-                if (descriptor == -1) {
-                    fprintf(stderr, "Failed to open output-file (at path %s), failing with error: %s\n", tbd.write_path.c_str(), strerror(errno));
-                    continue;
-                }
+                main_utils::recursive_mkdir(tbd.write_path.data(), &terminator, &descriptor);
             }
 
             auto options = main_utils::create_tbd_options();
@@ -1873,7 +1523,7 @@ int main(int argc, const char *argv[]) {
 
             const auto creation_result = main_utils::create_tbd(tbd, tbd, file, options, nullptr, tbd.path.c_str());
             if (!creation_result) {
-                recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                 continue;
             }
 
@@ -1883,7 +1533,7 @@ int main(int argc, const char *argv[]) {
             // Do this before applying any global variables as global
             // variables have preference over local variables
 
-            tbd_with_options_apply_local_options(global, argc, argv);
+            global.apply_local_options(argc, argv);
 
             if (global.options.remove_architectures) {
                 tbd.info.flags.value |= global_tbd_flags_to_add.value;
@@ -1911,7 +1561,7 @@ int main(int argc, const char *argv[]) {
                         fputs("Mach-o file at provided path has no reexports or symbols to be written out\n", stderr);
                     }
 
-                    recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                     break;
 
                 default:
@@ -1921,7 +1571,7 @@ int main(int argc, const char *argv[]) {
                         fputs("Failed to write .tbd to output-file at provided output-path\n", stderr);
                     }
 
-                    recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                     break;
             }
         }

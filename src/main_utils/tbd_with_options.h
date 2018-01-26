@@ -114,5 +114,6 @@ namespace main_utils {
         // utility functions
 
         void apply_missing_from(const tbd_with_options &options) noexcept;
+        void apply_local_options(int argc, const char *argv[]) noexcept;
     };
 }
