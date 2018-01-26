@@ -157,7 +157,7 @@ namespace macho::utils::load_commands {
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
 
             if (load_command_remaining_size != 0) {
-                const auto load_command_remaining_data = &full_load_command[sizeof(load_command)];
+                const auto load_command_remaining_data = &full_load_command[1];
                 const auto container_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!container_read_result) {
@@ -295,7 +295,7 @@ namespace macho::utils::load_commands {
 
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
             if (load_command_remaining_size != 0) {
-                const auto load_command_remaining_data = &buffer[sizeof(load_command)];
+                const auto load_command_remaining_data = &buffer[1];
                 const auto load_command_remaining_data_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!load_command_remaining_data_read_result) {
