@@ -1324,47 +1324,45 @@ int main(int argc, const char *argv[]) {
 
             filetypes.file = true;
             const auto recurse_result = misc::recurse::macho_files(tbd.path.c_str(), filetypes, options, [&](macho::file &file, std::string &path) {
-                auto directories_front = tbd.path.length();
-                if (!tbd.options.maintain_directories) {
-                    directories_front = utils::path::find_last_slash(tbd.path.cbegin(), tbd.path.cend()) - tbd.path.cbegin();
-                }
-
-                auto write_path = std::string();
-
-                // 4 for path-extension; ".tbd"
-                auto extracted_directories_length = path.length() - directories_front;
-                auto write_path_length = tbd.write_path.length() + extracted_directories_length + 4;
-
-                write_path.reserve(write_path_length);
-                write_path.append(tbd.write_path);
-
-                // Replace path-extension by snipping out the
-                // path-extension of the file provided at path
-
-                auto extracted_directories_begin = path.cbegin() + directories_front;
-                auto extracted_directories_end = extracted_directories_begin + extracted_directories_length;
-
-                if (tbd.options.replace_path_extension) {
-                    extracted_directories_end = utils::path::find_extension(extracted_directories_begin, extracted_directories_end);
-                }
-
-                utils::path::append_component(write_path, extracted_directories_begin, extracted_directories_end);
-                write_path.append(".tbd");
-
-                auto terminator = static_cast<char *>(nullptr);
-                auto descriptor = -1;
-
-                main_utils::recursive_mkdir(write_path.data(), &terminator, &descriptor);
-
                 auto options = main_utils::create_tbd_options();
 
                 options.print_paths = true;
                 options.ignore_missing_dynamic_library_information = true;
 
                 const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
-                if (!creation_result) {
-                    main_utils::recursively_remove_with_terminator(write_path.data(), terminator, true);
-                } else {
+                if (creation_result) {
+                    auto directories_front = tbd.path.length();
+                    if (!tbd.options.maintain_directories) {
+                        directories_front = utils::path::find_last_slash(tbd.path.cbegin(), tbd.path.cend()) - tbd.path.cbegin();
+                    }
+
+                    auto write_path = std::string();
+
+                    // 4 for path-extension; ".tbd"
+                    auto extracted_directories_length = path.length() - directories_front;
+                    auto write_path_length = tbd.write_path.length() + extracted_directories_length + 4;
+
+                    write_path.reserve(write_path_length);
+                    write_path.append(tbd.write_path);
+
+                    // Replace path-extension by snipping out the
+                    // path-extension of the file provided at path
+
+                    auto extracted_directories_begin = path.cbegin() + directories_front;
+                    auto extracted_directories_end = extracted_directories_begin + extracted_directories_length;
+
+                    if (tbd.options.replace_path_extension) {
+                        extracted_directories_end = utils::path::find_extension(extracted_directories_begin, extracted_directories_end);
+                    }
+
+                    utils::path::append_component(write_path, extracted_directories_begin, extracted_directories_end);
+                    write_path.append(".tbd");
+
+                    auto terminator = static_cast<char *>(nullptr);
+                    auto descriptor = -1;
+
+                    main_utils::recursive_mkdir(write_path.data(), &terminator, &descriptor);
+
                     // Parse local-options for modification of tbd-fields
                     // after creation and before write to avoid any extra hoops
 
@@ -1389,12 +1387,13 @@ int main(int argc, const char *argv[]) {
 
                             break;
                     }
+
+                    close(descriptor);
                 }
 
                 tbd.info.clear();
                 tbd.apply_missing_from(global);
 
-                close(descriptor);
                 return true;
             });
 
@@ -1509,13 +1508,6 @@ int main(int argc, const char *argv[]) {
                     continue;
             }
 
-            auto terminator = static_cast<char *>(nullptr);
-            auto descriptor = -1;
-
-            if (!tbd.write_path.empty()) {
-                main_utils::recursive_mkdir(tbd.write_path.data(), &terminator, &descriptor);
-            }
-
             auto options = main_utils::create_tbd_options();
 
             options.print_paths = should_print_paths;
@@ -1523,7 +1515,6 @@ int main(int argc, const char *argv[]) {
 
             const auto creation_result = main_utils::create_tbd(tbd, tbd, file, options, nullptr, tbd.path.c_str());
             if (!creation_result) {
-                main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                 continue;
             }
 
@@ -1543,9 +1534,17 @@ int main(int argc, const char *argv[]) {
             }
 
             auto write_result = macho::utils::tbd::write_result::ok;
+            auto terminator = static_cast<char *>(nullptr);
+
             if (tbd.write_path.empty()) {
                 write_result = tbd.info.write_to(stdout, tbd.write_options);
             } else {
+                auto descriptor = -1;
+
+                if (!tbd.write_path.empty()) {
+                    main_utils::recursive_mkdir(tbd.write_path.data(), &terminator, &descriptor);
+                }
+
                 write_result = tbd.info.write_to(descriptor, tbd.write_options);
                 close(descriptor);
             }
@@ -1561,7 +1560,10 @@ int main(int argc, const char *argv[]) {
                         fputs("Mach-o file at provided path has no reexports or symbols to be written out\n", stderr);
                     }
 
-                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    if (!tbd.write_path.empty()) {
+                        main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    }
+
                     break;
 
                 default:
@@ -1571,7 +1573,10 @@ int main(int argc, const char *argv[]) {
                         fputs("Failed to write .tbd to output-file at provided output-path\n", stderr);
                     }
 
-                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    if (!tbd.write_path.empty()) {
+                        main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    }
+
                     break;
             }
         }
