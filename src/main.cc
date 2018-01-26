@@ -1369,7 +1369,7 @@ int main(int argc, const char *argv[]) {
                     // Do this before applying any global variables as global
                     // variables have preference over local variables
 
-                    global.apply_local_options(argc, argv);
+                    tbd.apply_local_options(argc, argv);
 
                     switch (tbd.info.write_to(descriptor, tbd.write_options)) {
                         case macho::utils::tbd::write_result::ok:
@@ -1524,7 +1524,7 @@ int main(int argc, const char *argv[]) {
             // Do this before applying any global variables as global
             // variables have preference over local variables
 
-            global.apply_local_options(argc, argv);
+            tbd.apply_local_options(argc, argv);
 
             if (global.options.remove_architectures) {
                 tbd.info.flags.value |= global_tbd_flags_to_add.value;
