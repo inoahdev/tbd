@@ -29,14 +29,14 @@ namespace recursive::mkdir {
                 break;
             }
 
-            auto path_component_end_elmt = *path_component_end;
+            auto path_component_end_chr = *path_component_end;
             *path_component_end = '\0';
 
             if (!_create_directory(path)) {
                 return result::failed_to_create_intermediate_directories;
             }
 
-            *path_component_end = path_component_end_elmt;
+            *path_component_end = path_component_end_chr;
             path_component_end = utils::path::find_next_slash(next_path_component_begin, path_end);
         } while (true);
 
@@ -49,55 +49,57 @@ namespace recursive::mkdir {
 
         // In the case where path ends with a series of slashes
         // set end to the front most slash in that series
-        
+
         if (back == '/' || back == '\\') {
             end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         }
 
         // Start from second-to-last path-component, as we
         // are after all, ignoring the last path-component
-        
+
         auto path_component_end = utils::path::find_last_slash_in_front_of_pattern(path, end);
         auto prev_path_component_end = end;
 
         // Walk backwards, from the second-to-last
         // path-component, all the way back to the first
-        
+
         // This is done in this way so as to minimize
         // syscalls on directories that most likely exist
         // (the first few path-components) versus those that
         // most likely don't exist (the last few path-components)
-        
+
         while (path_component_end != path) {
             // Terminate string at path-component end,
             // so as to get the entire path of the current
             // path-component
-            
-            auto path_component_end_elmt = *path_component_end;
+
+            auto path_component_end_chr = *path_component_end;
             *path_component_end = '\0';
 
             if (access(path, F_OK) == 0) {
-                if (terminator != nullptr) {
-                    *terminator = prev_path_component_end;
-                    
-                    // terminator should never point to
-                    // end because terminator is used in
-                    // recursively-remove which does not
-                    // check this
-                    
-                    if (*terminator == end) {
-                        *terminator = nullptr;
-                    }
+                // if prev_path_component_end points
+                // to end,it means we are at the first
+                // path component, and all path-components,
+                // save the last, which we are to ignore
+                // exist
+
+                if (prev_path_component_end == end) {
+                    *path_component_end = '/';
+                    break;
                 }
 
-                *path_component_end = path_component_end_elmt;
+                if (terminator != nullptr) {
+                    *terminator = prev_path_component_end;
+                }
+
+                *path_component_end = path_component_end_chr;
                 return create_directories_ignoring_last(path, end, prev_path_component_end);
             }
 
             prev_path_component_end = path_component_end;
             path_component_end = utils::path::find_last_slash_in_front_of_pattern(path, path_component_end);
 
-            *prev_path_component_end = path_component_end_elmt;
+            *prev_path_component_end = path_component_end_chr;
         }
 
         return result::ok;
@@ -108,15 +110,18 @@ namespace recursive::mkdir {
             return result;
         }
 
-        if (!_create_directory(path)) {
-            if (errno == EEXIST) {
-                return result::ok;
+        const auto result = _create_directory(path);
+        if (result || (!result && errno == EEXIST)) {
+            if (terminator != nullptr) {
+                if (*terminator == nullptr) {
+                    *terminator = utils::string::find_end_of_null_terminated_string(path);
+                }
             }
 
-            return result::failed_to_create_last_as_directory;
+            return result::ok;
         }
 
-        return result::ok;
+        return result::failed_to_create_last_as_directory;
     }
 
     result perform_ignorning_last(char *path, char **terminator) noexcept {
@@ -135,6 +140,12 @@ namespace recursive::mkdir {
             }
 
             return result::failed_to_create_last_as_file;
+        }
+
+        if (terminator != nullptr) {
+            if (*terminator == nullptr) {
+                *terminator = utils::string::find_end_of_null_terminated_string(path);
+            }
         }
 
         if (last_descriptor != nullptr) {
