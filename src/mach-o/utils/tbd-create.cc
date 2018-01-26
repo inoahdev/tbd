@@ -334,6 +334,13 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::segment: {
+                        // Ignore 32-bit containers
+                        // on 64-bit containers
+
+                        if (container.is_64_bit()) {
+                            continue;
+                        }
+
                         if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
@@ -360,13 +367,6 @@ namespace macho::utils {
                             strncmp(segment_command->segname, "__DATA_CONST", sizeof(segment_command->segname)) != 0 &&
                             strncmp(segment_command->segname, "__DATA_DIRTY", sizeof(segment_command->segname)) != 0 &&
                             strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0) {
-                            continue;
-                        }
-
-                        // Ignore 32-bit containers on
-                        // 64-bit containers
-
-                        if (container.is_64_bit()) {
                             continue;
                         }
 
@@ -471,6 +471,13 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::segment_64: {
+                        // Ignore 64-bit containers
+                        // on 32-bit containers
+
+                        if (container.is_32_bit()) {
+                            continue;
+                        }
+
                         if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
@@ -497,13 +504,6 @@ namespace macho::utils {
                             strncmp(segment_command->segname, "__DATA_CONST", sizeof(segment_command->segname)) != 0 &&
                             strncmp(segment_command->segname, "__DATA_DIRTY", sizeof(segment_command->segname)) != 0 &&
                             strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0) {
-                            continue;
-                        }
-
-                        // Ignore 64-bit containers on
-                        // 32-bit containers
-
-                        if (container.is_32_bit()) {
                             continue;
                         }
 
@@ -1523,6 +1523,13 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::segment: {
+                    // Ignore 32-bit containers
+                    // on 64-bit containers
+
+                    if (container.is_64_bit()) {
+                        continue;
+                    }
+
                     if (options.ignore_objc_constraint && options.ignore_swift_version) {
                         break;
                     }
@@ -1549,13 +1556,6 @@ namespace macho::utils {
                         strncmp(segment_command->segname, "__DATA_CONST", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__DATA_DIRTY", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0) {
-                        continue;
-                    }
-
-                    // Ignore 32-bit containers on
-                    // 64-bit containers
-
-                    if (container.is_64_bit()) {
                         continue;
                     }
 
@@ -1651,6 +1651,13 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::segment_64: {
+                    // Ignore 64-bit containers
+                    // on 32-bit containers
+
+                    if (container.is_32_bit()) {
+                        continue;
+                    }
+
                     if (options.ignore_objc_constraint && options.ignore_swift_version) {
                         break;
                     }
@@ -1677,13 +1684,6 @@ namespace macho::utils {
                         strncmp(segment_command->segname, "__DATA_CONST", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__DATA_DIRTY", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0) {
-                        continue;
-                    }
-
-                    // Ignore 64-bit containers on
-                    // 32-bit containers
-
-                    if (container.is_32_bit()) {
                         continue;
                     }
 
