@@ -245,7 +245,7 @@ namespace main_utils {
                     filetypes.dynamic_library = true;
 
                     const auto recursion_result = misc::recurse::macho_files(path.c_str(), filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
-                        fprintf(stderr, "%s\n", path.c_str());
+                        fprintf(stdout, "%s\n", path.c_str());
                         return true;
                     });
 
@@ -299,7 +299,7 @@ namespace main_utils {
                 filetypes.dynamic_library = true;
 
                 const auto recursion_result = misc::recurse::macho_files(path, filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
-                    fprintf(stderr, "%s\n", path.c_str());
+                    fprintf(stdout, "%s\n", path.c_str());
                     return true;
                 });
 
