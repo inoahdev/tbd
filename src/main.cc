@@ -512,9 +512,9 @@ int main(int argc, const char *argv[]) {
         // apply global-flags ourselves afterwards
 
         if (tbd.options.recurse_directories_at_path) {
-            // A check here is necessary in the rare scenario where user
-            // asked to recurse a directory, but did not provide an
-            // output-path, leaving tbd.write_path empty, which is invalid
+            // A check here is necessary as we cannot check before
+            // this whether or not a corresponding write-path was
+            // provided for a tbd
 
             if (tbd.write_path.empty()) {
                 fprintf(stderr, "Cannot write created tbd files found while recursing directory (at path %s) to stdout. Please provide a directory to write created tbd files to\n", tbd.path.c_str());
