@@ -170,6 +170,7 @@ namespace main_utils {
                         auto option = &argument[1];
                         if (option[0] == '\0') {
                             fputs("Please provide a valid option\n", stderr);
+                            exit(1);
                         }
 
                         if (option[0] == '-') {
