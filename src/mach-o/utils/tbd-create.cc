@@ -40,25 +40,20 @@ namespace macho::utils {
             this->architectures |= (1ull << architecture_info_index);
 
             if (!options.ignore_flags) {
-                struct tbd::flags flags;
-
                 if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                    if (container.header.flags.two_level_namespaces) {
-                        flags.flat_namespace = true;
+                    struct tbd::flags flags;
+
+                    flags.flat_namespace = container.header.flags.two_level_namespaces;
+                    flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
+
+                    if (container_index != 0) {
+                        if (this->flags != flags) {
+                            return creation_result::flags_mismatch;
+                        }
                     }
 
-                    if (!container.header.flags.app_extension_safe) {
-                        flags.not_app_extension_safe = true;
-                    }
+                    this->flags = flags;
                 }
-
-                if (container_index != 0) {
-                    if (this->flags != flags) {
-                        return creation_result::flags_mismatch;
-                    }
-                }
-
-                this->flags = flags;
             }
 
             auto load_commands = load_commands::data();
@@ -1300,18 +1295,14 @@ namespace macho::utils {
         this->architectures |= (1ull << architecture_info_index);
 
         if (!options.ignore_flags) {
-            struct tbd::flags flags;
             if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                if (container.header.flags.two_level_namespaces) {
-                    flags.flat_namespace = true;
-                }
+                struct tbd::flags flags;
 
-                if (!container.header.flags.app_extension_safe) {
-                    flags.not_app_extension_safe = true;
-                }
+                flags.flat_namespace = container.header.flags.two_level_namespaces;
+                flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
+
+                this->flags = flags;
             }
-
-            this->flags = flags;
         }
 
         for (auto iter = load_commands.begin; iter != load_commands.end; iter++) {
