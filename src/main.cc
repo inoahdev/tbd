@@ -40,6 +40,15 @@ int main(int argc, const char *argv[]) {
 
     auto global = main_utils::tbd_with_options();
 
+    // Apply "default" behavior and information for tbd
+
+    global.creation_options.ignore_unneeded_fields_for_version = true;
+    global.info.version = macho::utils::tbd::version::v2;
+
+    global.write_options.ignore_unneeded_fields_for_version = true;
+    global.write_options.order_by_architecture_info_table = true;
+    global.write_options.enforce_has_exports = true;
+
     // For global options, which can be anywhere in argv [0.. argc], it
     // would be inefficient to recurse and re-parse all provided arguments,
     // for each field that allows adding, removing, and replacing, we use
@@ -245,13 +254,8 @@ int main(int argc, const char *argv[]) {
 
             // Apply "default" behavior and information
 
+            tbd.apply_missing_from(global);
             tbd.local_option_start = index;
-            tbd.creation_options.ignore_unneeded_fields_for_version = true;
-            tbd.info.version = macho::utils::tbd::version::v2;
-
-            tbd.write_options.ignore_unneeded_fields_for_version = true;
-            tbd.write_options.order_by_architecture_info_table = true;
-            tbd.write_options.enforce_has_exports = true;
 
             // An unused structure that is only written
             // to for parsing of local don't options
