@@ -30,6 +30,14 @@ namespace macho::utils::symbols::table_64 {
             inline const_pointer operator+(uint64_t index) const noexcept { return ptr + index; }
             inline const_pointer operator-(uint64_t index) const noexcept { return ptr - index; }
 
+            inline size_t operator+(const iterator &iter) const noexcept {
+                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) + reinterpret_cast<uintptr_t>(iter.ptr));
+            }
+
+            inline size_t operator-(const iterator &iter) const noexcept {
+                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) - reinterpret_cast<uintptr_t>(iter.ptr));
+            }
+
             inline iterator &operator++() noexcept { ++ptr; return *this; }
             inline iterator &operator--() noexcept { --ptr; return *this; }
 
@@ -115,5 +123,9 @@ namespace macho::utils::symbols::table_64 {
         creation_result create(const container &container, const symtab_command &symtab, const options &options) noexcept;
 
         ~data() noexcept;
+
+        inline size_t size() const noexcept {
+            return (this->end - this->begin) / sizeof(iterator::const_reference);
+        }
     };
 }

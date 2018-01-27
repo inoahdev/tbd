@@ -22,24 +22,32 @@ namespace macho::utils::symbols::table {
 
             explicit iterator(const const_pointer &ptr) noexcept : ptr(ptr) {}
 
-            inline const_reference operator*() const noexcept { return *ptr; }
-            inline const_pointer operator->() const noexcept { return ptr; }
+            inline const_reference operator*() const noexcept { return *this->ptr; }
+            inline const_pointer operator->() const noexcept { return this->ptr; }
 
-            inline const_pointer operator+(uint64_t index) const noexcept { return ptr + index; }
-            inline const_pointer operator-(uint64_t index) const noexcept { return ptr - index; }
+            inline const_pointer operator+(uint64_t index) const noexcept { return this->ptr + index; }
+            inline const_pointer operator-(uint64_t index) const noexcept { return this->ptr - index; }
 
-            inline iterator &operator++() noexcept { ++ptr; return *this; }
-            inline iterator &operator--() noexcept { --ptr; return *this; }
+            inline size_t operator+(const iterator &iter) const noexcept {
+                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) + reinterpret_cast<uintptr_t>(iter.ptr));
+            }
+
+            inline size_t operator-(const iterator &iter) const noexcept {
+                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) - reinterpret_cast<uintptr_t>(iter.ptr));
+            }
+
+            inline iterator &operator++() noexcept { ++this->ptr; return *this; }
+            inline iterator &operator--() noexcept { --this->ptr; return *this; }
 
             inline iterator &operator++(int) noexcept { return ++(*this); }
             inline iterator &operator--(int) noexcept { return --(*this); }
 
-            inline const_reference operator[](int64_t index) const noexcept { return ptr[index]; }
+            inline const_reference operator[](int64_t index) const noexcept { return this->ptr[index]; }
 
-            inline bool operator==(const iterator &iter) const noexcept { return ptr == iter.ptr; }
-            inline bool operator!=(const iterator &iter) const noexcept { return ptr != iter.ptr; }
+            inline bool operator==(const iterator &iter) const noexcept { return this->ptr == iter.ptr; }
+            inline bool operator!=(const iterator &iter) const noexcept { return this->ptr != iter.ptr; }
 
-            inline const_pointer entry() const noexcept { return ptr; }
+            inline const_pointer entry() const noexcept { return this->ptr; }
 
         protected:
             const_pointer ptr;
@@ -119,5 +127,9 @@ namespace macho::utils::symbols::table {
         creation_result create(const container &container, const symtab_command &symtab, const options &options) noexcept;
 
         ~data() noexcept;
+
+        inline size_t size() const noexcept {
+            return (this->end - this->begin) / sizeof(iterator::const_reference);
+        }
     };
 }

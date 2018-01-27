@@ -1025,10 +1025,20 @@ namespace macho::utils {
                             continue;
                         }
 
-                        // Skip empty strings
+                        // Skip size 0 strings
 
                         auto string = &string_table[index];
-                        if (string[0] == '\0') {
+                        if (*string == '\0') {
+                            continue;
+                        }
+
+                        // Skip empty strings
+
+                        // Assume that the string isn't null-terminated to
+                        // avoid resulting in undefined behavior when copying
+
+                        const auto string_length = strnlen(string, string_table_size - index);
+                        if (std::all_of(string, &string[string_length], isspace)) {
                             continue;
                         }
 
@@ -1071,10 +1081,6 @@ namespace macho::utils {
                                 break;
                         }
 
-                        // Assume that the string isn't null-terminated to
-                        // avoid resulting in undefined behavior when copying
-
-                        const auto string_length = strnlen(string, string_table_size - index);
                         const auto symbols_end = this->symbols.end();
 
                         // An optimization can be made here to remove
@@ -1816,7 +1822,7 @@ namespace macho::utils {
                         continue;
                     }
 
-                    sub_clients.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(sub_client_command_name, sub_client_command_name_length));
+                    this->sub_clients.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(sub_client_command_name, sub_client_command_name_length));
                     break;
                 }
 
@@ -2035,6 +2041,10 @@ namespace macho::utils {
             });
 
             const auto string_table_size = string_table.size();
+            const auto symbol_table_size = symbol_table.size();
+
+            this->symbols.reserve(symbol_table_size);
+
             for (auto iter = symbol_table.begin; iter != symbol_table.end; iter++) {
                 if (iter->n_type.type != symbol_table::type::section) {
                     continue;
@@ -2055,10 +2065,20 @@ namespace macho::utils {
                     continue;
                 }
 
-                // Skip empty strings
+                // Skip size 0 strings
 
                 auto string = &string_table[index];
                 if (*string == '\0') {
+                    continue;
+                }
+
+                // Skip empty strings
+
+                // Assume that the string isn't null-terminated to
+                // avoid resulting in undefined behavior when copying
+
+                const auto string_length = strnlen(string, string_table_size - index);
+                if (std::all_of(string, &string[string_length], isspace)) {
                     continue;
                 }
 
@@ -2101,10 +2121,6 @@ namespace macho::utils {
                         break;
                 }
 
-                // Assume that the string isn't null-terminated to
-                // avoid resulting in undefined behavior when copying
-
-                const auto string_length = strnlen(string, string_table_size - index);
                 this->symbols.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(string, string_length), type);
             }
 
