@@ -20,15 +20,15 @@ namespace main_utils {
             uint64_t value = 0;
 
             struct {
-                bool replace_platform          : 1;
-                bool replace_installation_name : 1;
-                bool replace_objc_constraint   : 1;
-                bool replace_swift_version     : 1;
-                bool replace_parent_umbrella   : 1;
-                bool ignore_flags              : 1;
-                bool ignore_uuids              : 1;
-                bool ignore_non_unique_uuids   : 1;
-                bool ignore_missing_uuids      : 1;
+                bool never_replace_platform          : 1;
+                bool never_replace_installation_name : 1;
+                bool never_replace_objc_constraint   : 1;
+                bool never_replace_swift_version     : 1;
+                bool never_replace_parent_umbrella   : 1;
+                bool never_ignore_flags              : 1;
+                bool never_ignore_uuids              : 1;
+                bool never_ignore_non_unique_uuids   : 1;
+                bool never_ignore_missing_uuids      : 1;
             } __attribute__((packed));
         };
 
