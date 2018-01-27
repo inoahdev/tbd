@@ -536,8 +536,9 @@ int main(int argc, const char *argv[]) {
             }
 
             // Validating a mach-o file as a dynamic-library
-            // requires loading and parsing its load-commands buffer
-            // which is unnecessary, and very expensive in the long-run
+            // requires loading and parsing its load-commands buffer,
+            // before macho::utils::tbd, which also loads and parses its own
+            // load-command buffer, which is unnecessary, and very expensive in the long run
 
             // Instead, allow any mach-o file to pass through,
             // and ignore any errors tbd throws about being
