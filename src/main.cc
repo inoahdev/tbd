@@ -612,7 +612,13 @@ int main(int argc, const char *argv[]) {
                     close(descriptor);
                 }
 
+                // tbd.info.version is set to none when
+                // tbd.info is cleared, so keep a copy here
+
+                auto version = tbd.info.version;
+
                 tbd.info.clear();
+                tbd.info.version = version;
                 tbd.apply_missing_from(global);
 
                 return true;
