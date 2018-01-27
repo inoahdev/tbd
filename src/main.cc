@@ -29,8 +29,8 @@ int main(int argc, const char *argv[]) {
     auto tbds = std::vector<main_utils::tbd_with_options>();
     auto tbds_current_index = 0;
 
-    // global is used to store all the global information.
-    // Their purpose is to be the x of any tbd which
+    // global is used to store all "global" information.
+    // Its purpose is to be the x of any tbd which
     // wasn't provided a different x of the same type
 
     // From an arguments point of view, If an argument is given
@@ -457,8 +457,6 @@ int main(int argc, const char *argv[]) {
             // overiding these replaced flags
 
             global.options.replace_flags = true;
-        } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
-            global.info.version = main_utils::parse_tbd_version(index, argc, argv);
         } else if (global.parse_option_from_argv(option, index, argc, argv)) {
             continue;
         } else if (global.parse_dont_option_from_argv(option, index, argc, argv, global_donts)) {
