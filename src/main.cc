@@ -792,13 +792,15 @@ int main(int argc, const char *argv[]) {
                     break;
 
                 default:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write .tbd to output-file at path: %s\n", tbd.write_path.c_str());
+                    if (tbd.write_path.empty()) {
+                        fputs("Failed to write created tbd to stdout\n", stderr);
                     } else {
-                        fputs("Failed to write .tbd to output-file at provided output-path\n", stderr);
-                    }
+                        if (should_print_paths) {
+                            fprintf(stderr, "Failed to write created tbd to output-file at path: %s\n", tbd.write_path.c_str());
+                        } else {
+                            fputs("Failed to write created tbd to output-file at provided output-path\n", stderr);
+                        }
 
-                    if (!tbd.write_path.empty()) {
                         main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                     }
 
