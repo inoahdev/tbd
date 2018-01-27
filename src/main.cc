@@ -6,9 +6,6 @@
 //  Copyright © 2017 - 2018 inoahdev. All rights reserved.
 //
 
-#include <sys/stat.h>
-#include <iostream>
-
 #include "main_utils/parse_architectures_list.h"
 #include "main_utils/parse_list_argument.h"
 
@@ -16,7 +13,6 @@
 
 #include "main_utils/tbd_create.h"
 #include "main_utils/tbd_parse_fields.h"
-#include "main_utils/tbd_print_field_information.h"
 
 #include "main_utils/recursive_mkdir.h"
 #include "main_utils/recursive_remove_with_terminator.h"
@@ -503,7 +499,7 @@ int main(int argc, const char *argv[]) {
 
         if (global.options.remove_architectures) {
             tbd.architectures |= global_architectures_to_override_to_add;
-            tbd.architectures &= global_architectures_to_override_to_re;
+            tbd.architectures &= ~global_architectures_to_override_to_re;
         } else {
             tbd.architectures = global_architectures_to_override_to_re;
         }
