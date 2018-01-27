@@ -110,14 +110,17 @@ namespace recursive::mkdir {
             return result;
         }
 
-        const auto result = _create_directory(path);
-        if (result || (!result && errno == EEXIST)) {
+        if (_create_directory(path)) {
             if (terminator != nullptr) {
                 if (*terminator == nullptr) {
                     *terminator = utils::string::find_end_of_null_terminated_string(path);
                 }
             }
 
+            return result::ok;
+        }
+
+        if (errno == EEXIST) {
             return result::ok;
         }
 
@@ -134,26 +137,26 @@ namespace recursive::mkdir {
         }
 
         const auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-        if (descriptor == -1) {
-            if (errno == EEXIST) {
-                return result::ok;
+        if (descriptor != -1) {
+            if (terminator != nullptr) {
+                if (*terminator == nullptr) {
+                    *terminator = utils::string::find_end_of_null_terminated_string(path);
+                }
             }
 
-            return result::failed_to_create_last_as_file;
-        }
-
-        if (terminator != nullptr) {
-            if (*terminator == nullptr) {
-                *terminator = utils::string::find_end_of_null_terminated_string(path);
+            if (last_descriptor != nullptr) {
+                *last_descriptor = descriptor;
+            } else {
+                close(descriptor);
             }
+
+            return result::ok;
         }
 
-        if (last_descriptor != nullptr) {
-            *last_descriptor = descriptor;
-        } else {
-            close(descriptor);
+        if (errno == EEXIST) {
+            return result::ok;
         }
 
-        return result::ok;
+        return result::failed_to_create_last_as_file;
     }
 }
