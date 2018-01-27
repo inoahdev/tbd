@@ -189,7 +189,7 @@ int main(int argc, const char *argv[]) {
 
                 if (tbd.options.recurse_directories_at_path) {
                     if (path == "stdout") {
-                        fputs("Cannot output files found while recursing to stdout. Please provide a directory to output .tbd files to\n", stderr);
+                        fputs("Cannot write files found while recursing to stdout. Please provide a directory to write created tbd files to\n", stderr);
                         return 1;
                     }
                 } else {
@@ -208,12 +208,12 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.c_str(), &information) == 0) {
                     if (S_ISREG(information.st_mode)) {
                         if (tbd.options.recurse_directories_at_path) {
-                            fputs("Cannot write .tbd files created found while recursing to a file. Please provide a directory to write created .tbd files to\n", stderr);
+                            fputs("Cannot write created tbd files found while recursing to a file. Please provide a directory to write created tbd files to\n", stderr);
                             return 1;
                         }
                     } else if (S_ISDIR(information.st_mode)) {
                         if (!tbd.options.recurse_directories_at_path) {
-                            fputs("Cannot write a created .tbd file to a directory object itself, Please provide a path to a file\n", stderr);
+                            fputs("Cannot write a created tbd file to a directory object, Please provide a path to a file\n", stderr);
                             return 1;
                         }
                     }
@@ -519,7 +519,7 @@ int main(int argc, const char *argv[]) {
             // output-path, leaving tbd.write_path empty, which is invalid
 
             if (tbd.write_path.empty()) {
-                fprintf(stderr, "Cannot output .tbd files created while recursing directory (at path %s) to stdout. Please provide a directory to output created .tbd files to\n", tbd.path.c_str());
+                fprintf(stderr, "Cannot write created tbd files found while recursing directory (at path %s) to stdout. Please provide a directory to write created tbd files to\n", tbd.path.c_str());
                 continue;
             }
 
@@ -605,7 +605,7 @@ int main(int argc, const char *argv[]) {
                             break;
 
                         default:
-                            fprintf(stderr, "Failed to write .tbd to output-file at path: %s\n", write_path.c_str());
+                            fprintf(stderr, "Failed to write created tbd to output-file at path: %s\n", write_path.c_str());
                             main_utils::recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
 
                             break;
