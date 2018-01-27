@@ -51,17 +51,16 @@ namespace macho::utils {
             explicit export_group(const reexport *reexport) noexcept;
             explicit export_group(const symbol *symbol) noexcept;
 
-            // Store a pointer to the first symbol
-            // to appear in the group which contains
-            // all the information we need with no
-            // extra cost
+            // Store a pointer to the first symbol and/or reexport
+            // to appear in the group which contains all the information
+            // we need with no extra cost
 
             const reexport *reexport = nullptr;
             const symbol *symbol = nullptr;
 
             inline uint64_t architectures() const noexcept {
                 if (this->reexport != nullptr) {
-                    return reexport->architectures;
+                    return this->reexport->architectures;
                 }
 
                 if (this->symbol != nullptr) {
@@ -71,8 +70,16 @@ namespace macho::utils {
                 return 0;
             }
 
-            inline const ::utils::bits &containers() const noexcept {
-                return symbol->containers;
+            inline const ::utils::bits *containers() const noexcept {
+                if (this->reexport != nullptr) {
+                    return &this->reexport->containers;
+                }
+
+                if (this->symbol != nullptr) {
+                    return &this->symbol->containers;
+                }
+
+                return nullptr;
             }
 
             inline bool operator==(const struct reexport &reexport) const noexcept {
