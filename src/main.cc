@@ -255,7 +255,7 @@ int main(int argc, const char *argv[]) {
             // Apply "default" behavior and information
 
             tbd.apply_missing_from(global);
-            tbd.local_option_start = index;
+            tbd.local_option_start = 0;
 
             // An unused structure that is only written
             // to for parsing of local don't options
@@ -272,6 +272,10 @@ int main(int argc, const char *argv[]) {
             for (; index != argc; index++) {
                 const auto argument = argv[index];
                 if (argument[0] == '-') {
+                    if (!tbd.local_option_start) {
+                        tbd.local_option_start = index;
+                    }
+
                     auto option = &argument[1];
                     if (option[0] == '-') {
                         option = &option[1];
