@@ -525,7 +525,7 @@ int main(int argc, const char *argv[]) {
                 continue;
             }
 
-            auto user_input_info = main_utils::create_tbd_retained();
+            auto user_input_info = main_utils::create_tbd_retained_user_info();
             auto all = main_utils::tbd_with_options();
 
             auto filetypes = misc::recurse::filetypes();

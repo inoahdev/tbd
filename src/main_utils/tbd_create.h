@@ -32,5 +32,5 @@ namespace main_utils {
         inline bool operator!=(const create_tbd_options &options) const noexcept { return this->value != options.value; }
     };
 
-    bool create_tbd(tbd_with_options &all, tbd_with_options &tbd, macho::file &file, const create_tbd_options &options, create_tbd_retained *user_input_information, const char *path);
+    bool create_tbd(tbd_with_options &all, tbd_with_options &tbd, macho::file &file, const create_tbd_options &options, create_tbd_retained_user_info *user_input_information, const char *path);
 }

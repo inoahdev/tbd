@@ -55,7 +55,7 @@ namespace main_utils {
         } while (true);
     }
 
-    bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
            if (info->replace_platform) {
                return false;
@@ -107,7 +107,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->replace_installation_name) {
                 return false;
@@ -153,7 +153,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_objc_constraint(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_new_objc_constraint(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->replace_objc_constraint) {
                 return false;
@@ -206,7 +206,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_parent_umbrella(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_new_parent_umbrella(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->replace_parent_umbrella) {
                 return false;
@@ -251,7 +251,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_swift_version(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_new_swift_version(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->replace_swift_version) {
                 return false;
@@ -298,7 +298,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->replace_swift_version) {
                 return false;
@@ -337,7 +337,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->ignore_uuids) {
                 return false;
@@ -376,7 +376,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->ignore_non_unique_uuids) {
                 return false;
@@ -413,7 +413,7 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained *info) noexcept {
+    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->ignore_missing_uuids) {
                 return false;
