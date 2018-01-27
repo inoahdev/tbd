@@ -81,7 +81,6 @@ namespace main_utils {
 
                     bool replace_architectures : 1;
                     bool replace_flags         : 1;
-                    bool replace_clients       : 1;
 
                     // Remove options are set if intended
                     // to remove x in tbd, otherwise nothing
@@ -89,7 +88,6 @@ namespace main_utils {
 
                     bool remove_architectures : 1;
                     bool remove_flags         : 1;
-                    bool remove_clients       : 1;
 
                     // Options provided for output
 

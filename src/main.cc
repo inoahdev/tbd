@@ -413,13 +413,6 @@ int main(int argc, const char *argv[]) {
                     }
                 }
 
-                if (tbd.write_options.ignore_allowable_clients) {
-                    if (tbd.options.replace_clients || tbd.options.remove_clients) {
-                        fprintf(stderr, "Cannot both modify tbd allowable-clients field and remove the field entirely for path (%s)\n", path.c_str());
-                        return 1;
-                    }
-                }
-
                 if (tbd.write_options.ignore_flags) {
                     if (tbd.options.replace_flags || tbd.options.remove_flags) {
                         fprintf(stderr, "Cannot both modify tbd flags field and remove the field entirely for path (%s)\n", path.c_str());
