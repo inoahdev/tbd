@@ -115,5 +115,15 @@ namespace main_utils {
 
         void apply_missing_from(const tbd_with_options &options) noexcept;
         void apply_local_options(int argc, const char *argv[]) noexcept;
+
+        struct dont_options {
+            struct macho::utils::tbd::creation_options creation_options;
+            struct macho::utils::tbd::write_options write_options;
+
+            struct options options;
+        };
+
+        bool parse_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept;
+        bool parse_dont_option_from_argv(const char *option, int &index, int argc, const char *argv[], dont_options &donts) noexcept;
     };
 }

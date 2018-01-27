@@ -10,6 +10,8 @@
 #include <iostream>
 
 #include "main_utils/parse_architectures_list.h"
+#include "main_utils/parse_list_argument.h"
+
 #include "main_utils/print_help_menu.h"
 
 #include "main_utils/tbd_create.h"
@@ -63,10 +65,7 @@ int main(int argc, const char *argv[]) {
     // Keep a bitset of dont options to
     // and later with individual tbds
 
-    struct macho::utils::tbd::creation_options global_dont_creation_options;
-    struct macho::utils::tbd::write_options global_dont_write_options;
-
-    struct main_utils::tbd_with_options::options global_dont_options;
+    struct main_utils::tbd_with_options::dont_options global_donts;
 
     for (auto index = 1; index != argc; index++) {
         const auto argument = argv[index];
@@ -85,9 +84,7 @@ int main(int argc, const char *argv[]) {
             option = &option[1];
         }
 
-        if (strcmp(option, "a") == 0 || strcmp(option, "arch") == 0) {
-            global.architectures |= main_utils::parse_architectures_list(index, argc, argv);
-        } if (strcmp(option, "add-archs") == 0) {
+        if (strcmp(option, "add-archs") == 0) {
             // XXX: add-archs will add onto replaced architecture overrides
             // provided earlier in a 'replace-archs' options. This may not
             // be wanted behavior
@@ -98,27 +95,6 @@ int main(int argc, const char *argv[]) {
             }
 
             global_architectures_to_override_to_add |= main_utils::parse_architectures_list(++index, argc, argv);
-        } else if (strcmp(option, "allow-all-private-symbols") == 0) {
-            global.creation_options.allow_private_normal_symbols = true;
-            global.creation_options.allow_private_weak_symbols = true;
-            global.creation_options.allow_private_objc_class_symbols = true;
-            global.creation_options.allow_private_objc_ivar_symbols = true;
-        } else if (strcmp(option, "add-allowable-clients") == 0) {
-            index++;
-            if (index == argc) {
-                fputs("Please provide a list of allowable-clients to add\n", stderr);
-                return 1;
-            }
-
-            if (global.options.replace_clients) {
-                fputs("Can't both replace allowable-clients found and add onto allowable-clients found\n", stderr);
-                return 1;
-            }
-
-            main_utils::parse_flags(&global_tbd_flags_to_add, index, argc, argv);
-
-            global.options.remove_clients = true;
-            global.options.replace_clients = true;
         } else if (strcmp(option, "add-flags") == 0) {
             index++;
             if (index == argc) {
@@ -139,129 +115,8 @@ int main(int argc, const char *argv[]) {
 
             global.options.remove_flags = true;
             global.options.replace_flags = true;
-        } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
-            global.creation_options.allow_private_normal_symbols = true;
-        } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
-            global.creation_options.allow_private_weak_symbols = true;
-        } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
-            global.creation_options.allow_private_objc_class_symbols = true;
-            global.creation_options.allow_private_objc_ivar_symbols = true;
-        } else if (strcmp(option, "allow-private-objc-class-symbols") == 0) {
-            global.creation_options.allow_private_objc_class_symbols = true;
-        } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
-            global.creation_options.allow_private_objc_ivar_symbols = true;
-        } else if (strcmp(option, "dont-allow-private-normal-symbols") == 0) {
-            global.creation_options.allow_private_normal_symbols = false;
-            global_dont_creation_options.allow_private_normal_symbols = true;
-        } else if (strcmp(option, "dont-allow-private-weak-symbols") == 0) {
-            global.creation_options.allow_private_weak_symbols = false;
-            global_dont_creation_options.allow_private_weak_symbols = true;
-        } else if (strcmp(option, "dont-allow-private-objc-symbols") == 0) {
-            global.creation_options.allow_private_objc_class_symbols = false;
-            global.creation_options.allow_private_objc_ivar_symbols = false;
-
-            global_dont_creation_options.allow_private_objc_class_symbols = true;
-            global_dont_creation_options.allow_private_objc_ivar_symbols = true;
-        } else if (strcmp(option, "dont-allow-private-objc-class-symbols") == 0) {
-            global.creation_options.allow_private_objc_class_symbols = false;
-            global_dont_creation_options.allow_private_objc_class_symbols = true;
-        } else if (strcmp(option, "dont-allow-private-objc-ivar-symbols") == 0) {
-            global.creation_options.allow_private_objc_ivar_symbols = false;
-            global_dont_creation_options.allow_private_objc_ivar_symbols = true;
-        } else if (strcmp(option, "dont-ignore-everything") == 0) {
-            global.creation_options.ignore_missing_symbol_table = false;
-            global.creation_options.ignore_missing_uuids = false;
-            global.creation_options.ignore_non_unique_uuids = false;
-
-            global_dont_creation_options.ignore_missing_symbol_table = true;
-            global_dont_creation_options.ignore_missing_uuids = true;
-            global_dont_creation_options.ignore_non_unique_uuids = true;
-        } else if (strcmp(option, "dont-ignore-missing-exports") == 0) {
-            // "exports" includes sub-clients, reexports, and
-            // symbols, but utils::tbd errors out only if
-            // symbol-table is missing
-
-            global.creation_options.ignore_missing_symbol_table = false;
-            global_dont_creation_options.ignore_missing_symbol_table = true;
-        } else if (strcmp(option, "dont-ignore-missing-uuids") == 0) {
-            global.creation_options.ignore_missing_uuids = false;
-            global_dont_creation_options.ignore_missing_uuids = true;
-        } else if (strcmp(option, "dont-ignore-non-unique-uuids") == 0) {
-            global.creation_options.ignore_non_unique_uuids = false;
-            global_dont_creation_options.ignore_non_unique_uuids = false;
-        } else if (strcmp(option, "dont-ignore-warnings") == 0) {
-            global.options.ignore_warnings = true;
-            global_dont_options.ignore_warnings = true;
-        } else if (strcmp(option, "dont-remove-allowable-clients-field") == 0) {
-            global.creation_options.ignore_allowable_clients = false;
-            global_dont_creation_options.ignore_allowable_clients = true;
-        } else if (strcmp(option, "dont-remove-current-version") == 0) {
-            global.creation_options.ignore_current_version = false;
-            global.write_options.ignore_current_version = false;
-
-            global_dont_creation_options.ignore_current_version = true;
-            global_dont_write_options.ignore_current_version = true;
-        } else if (strcmp(option, "dont-remove-compatibility-version") == 0) {
-            global.creation_options.ignore_compatibility_version = false;
-            global.write_options.ignore_compatibility_version = false;
-
-            global_dont_creation_options.ignore_compatibility_version = true;
-            global_dont_write_options.ignore_compatibility_version = true;
-        } else if (strcmp(option, "dont-remove-exports") == 0) {
-            global.creation_options.ignore_exports = false;
-            global.write_options.ignore_exports = false;
-
-            global_dont_creation_options.ignore_exports = true;
-            global_dont_write_options.ignore_exports = true;
-        } else if (strcmp(option, "dont-remove-flags-field") == 0) {
-            global.creation_options.ignore_flags = false;
-            global.write_options.ignore_flags = false;
-
-            global_dont_creation_options.ignore_flags = true;
-            global_dont_write_options.ignore_flags = true;
-        } else if (strcmp(option, "dont-remove-install-name") == 0) {
-            global.creation_options.ignore_install_name = false;
-            global.write_options.ignore_install_name = false;
-
-            global_dont_creation_options.ignore_install_name = true;
-            global_dont_write_options.ignore_install_name = true;
-        } else if (strcmp(option, "dont-remove-objc-constraint") == 0) {
-            global.creation_options.ignore_objc_constraint = false;
-            global.write_options.ignore_objc_constraint = false;
-
-            global_dont_creation_options.ignore_objc_constraint = true;
-            global_dont_write_options.ignore_objc_constraint = true;
-        } else if (strcmp(option, "dont-remove-parent-umbrella") == 0) {
-            global.creation_options.ignore_parent_umbrella = false;
-            global.write_options.ignore_parent_umbrella = false;
-
-            global_dont_creation_options.ignore_parent_umbrella = true;
-            global_dont_write_options.ignore_parent_umbrella = true;
-        } else if (strcmp(option, "dont-remove-platform") == 0) {
-            global.creation_options.ignore_platform = false;
-            global.write_options.ignore_platform = false;
-
-            global_dont_creation_options.ignore_platform = true;
-            global_dont_write_options.ignore_platform = true;
-        } else if (strcmp(option, "dont-remove-reexports") == 0) {
-            global.creation_options.ignore_reexports = false;
-            global.write_options.ignore_reexports = false;
-
-            global_dont_creation_options.ignore_reexports = true;
-            global_dont_write_options.ignore_reexports = true;
-        } else if (strcmp(option, "dont-remove-swift-version") == 0) {
-            global.creation_options.ignore_swift_version = false;
-            global.write_options.ignore_swift_version = false;
-
-            global_dont_creation_options.ignore_swift_version = true;
-            global_dont_write_options.ignore_swift_version = true;
-        } else if (strcmp(option, "dont-remove-uuids") == 0) {
-            global.creation_options.ignore_uuids = false;
-            global.write_options.ignore_uuids = false;
-
-            global_dont_creation_options.ignore_uuids = true;
-            global_dont_write_options.ignore_uuids = true;
-        } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
+        } else if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0 ||
+                   strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (index != 1 || index != argc - 1) {
                 // Use argument to print out provided option
                 // as it is the full string with dashes that the
@@ -272,362 +127,6 @@ int main(int argc, const char *argv[]) {
             }
 
             main_utils::print_help_menu();
-            return 0;
-        } else if (strcmp(option, "ignore-everything") == 0) {
-            global.creation_options.ignore_missing_symbol_table = true;
-            global.creation_options.ignore_missing_uuids = true;
-            global.creation_options.ignore_non_unique_uuids = true;
-        } else if (strcmp(option, "ignore-missing-exports") == 0) {
-            // "exports" includes sub-clients, reexports, and
-            // symbols, but utils::tbd errors out only if
-            // symbol-table is missing
-
-            global.creation_options.ignore_missing_symbol_table = true;
-        } else if (strcmp(option, "ignore-missing-uuids") == 0) {
-            global.creation_options.ignore_missing_uuids = true;
-        } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
-            global.creation_options.ignore_non_unique_uuids = true;
-        } else if (strcmp(option, "ignore-warnings") == 0) {
-            global.options.ignore_warnings = true;
-        } else if (strcmp(option, "list-architectures") == 0) {
-            if (index != 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file \n", argument);
-                return 1;
-            }
-
-            // Two modes exist for --list-architectures, either list out the
-            // architecture-info table, or list the architectures of a single
-            // provided path to a mach-o file
-
-            if (index == argc - 1) {
-                auto architecture_info = macho::get_architecture_info_table();
-
-                fputs(architecture_info->name, stdout);
-                architecture_info++;
-
-                while (architecture_info->name != nullptr) {
-                    fprintf(stdout, ", %s", architecture_info->name);
-                    architecture_info++;
-                }
-            } else {
-                index++;
-
-                // Don't allow other arguments
-                // to --list-architectures
-
-                if (index + 2 <= argc) {
-                    fprintf(stderr, "Unrecognized argument: %s\n", argv[index + 1]);
-                    return 1;
-                }
-
-                auto file = macho::file();
-                auto path = misc::path_with_current_directory(argv[index]);
-
-                struct stat sbuf;
-                if (stat(path.c_str(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
-                    return 1;
-                }
-
-                if (!S_ISREG(sbuf.st_mode)) {
-                    fputs("Object at provided path is not a regular file\n", stderr);
-                    return 1;
-                }
-
-                switch (file.open(path.c_str())) {
-                    case macho::file::open_result::ok:
-                        break;
-
-                    case macho::file::open_result::not_a_macho:
-                        fputs("File at provided path is not a mach-o\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::invalid_macho:
-                        fputs("File at provided path is an invalid mach-o\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::failed_to_open_stream:
-                        fprintf(stderr, "Failed to open stream for file at provided path, failing with error: %s\n", strerror(errno));
-                        return 1;
-
-                    case macho::file::open_result::failed_to_retrieve_information:
-                        fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
-                        return 1;
-
-                    case macho::file::open_result::stream_seek_error:
-                    case macho::file::open_result::stream_read_error:
-                        fputs("Encountered an error while parsing file at provided path\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::zero_containers:
-                        fputs("Mach-o file at provided path has zero architectures\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::too_many_containers:
-                        fputs("Mach-o file at provided path has too many architectures for its file-size\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::containers_goes_past_end_of_file:
-                        fputs("Mach-o file at provided path's architectures goes past end of file\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::overlapping_containers:
-                        fputs("Mach-o file at provided path has overlapping architectures\n", stderr);
-                        return 1;
-
-                    case macho::file::open_result::invalid_container:
-                        fputs("Mach-o file at provided path has an invalid architecture\n", stderr);
-                        return 1;
-                }
-
-                // store architecture names in a vector before printing
-                // so we can handle any errors encountered first
-
-                auto cndex = 0;
-                auto names = std::vector<const char *>();
-
-                for (const auto &container : file.containers) {
-                    const auto container_subtype = macho::subtype_from_cputype(macho::cputype(container.header.cputype), container.header.cpusubtype);
-                    if (container_subtype == macho::subtype::none) {
-                        fprintf(stderr, "Unrecognized cpu-subtype for architecture at index %d\n", cndex);
-                        return 1;
-                    }
-
-                    const auto architecture_info = macho::architecture_info_from_cputype(macho::cputype(container.header.cputype), container_subtype);
-                    if (!architecture_info) {
-                        fprintf(stderr, "Unrecognized cputype information for architecture at index %d\n", cndex);
-                        return 1;
-                    }
-
-                    cndex++;
-                }
-
-                fputs(names.front(), stdout);
-                for (auto iter = names.cbegin() + 1; iter != names.cend(); iter++) {
-                    fprintf(stdout, ", %s", *iter);
-                }
-            }
-
-            fputc('\n', stdout);
-            return 0;
-        } else if (strcmp(option, "list-macho-dynamic-libraries") == 0) {
-            if (index != 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file\n", argument);
-                return 1;
-            }
-
-            // Two different modes exist for --list-macho-dynamic-libraries;
-            // either recurse current-directory with default options, or
-            // recurse provided director(ies) with provided options
-
-            index++;
-            if (index != argc) {
-                auto paths = std::vector<std::pair<struct main_utils::tbd_with_options::options, std::string>>();
-                struct main_utils::tbd_with_options::options options;
-
-                options.recurse_directories_at_path = true;
-
-                for (; index != argc; index++) {
-                    const auto &argument = argv[index];
-                    const auto &argument_front = argument[0];
-
-                    if (argument_front == '-') {
-                        auto option = &argument[1];
-                        if (option[0] == '\0') {
-                            fputs("Please provide a valid option\n", stderr);
-                        }
-
-                        if (option[0] == '-') {
-                            option++;
-                        }
-
-                        if (strcmp(option, "dont-print-warnings") == 0) {
-                            options.ignore_warnings = true;
-                        } else if (strcmp(option, "r") == 0) {
-                            if (index + 1 != argc) {
-                                if (strcmp(argv[index + 1], "once") == 0) {
-                                    index++;
-                                } else if (strcmp(argv[index + 1], "all") == 0) {
-                                    options.recurse_subdirectories_at_path = true;
-                                    index++;
-                                }
-                            }
-                        } else {
-                            fprintf(stderr, "Unrecognized argument: %s\n", argument);
-                            return 1;
-                        }
-
-                        continue;
-                    }
-
-                    auto path = misc::path_with_current_directory(argv[index]);
-
-                    struct stat sbuf;
-                    if (stat(path.c_str(), &sbuf) != 0) {
-                        if (index == argc - 1) {
-                            fprintf(stderr, "Failed to retrieve information on file at provided path, failing with error: %s\n", strerror(errno));
-                        } else {
-                            fprintf(stderr, "Failed to retrieve information on file (at path %s), failing with error: %s\n", path.c_str(), strerror(errno));
-                        }
-
-                        return 1;
-                    }
-
-                    if (!S_ISDIR(sbuf.st_mode)) {
-                        if (index == argc - 1) {
-                            fputs("Object at provided path is not a directory\n", stderr);
-                        } else {
-                            fprintf(stderr, "Object (at path %s) is not a directory\n", path.c_str());
-                        }
-
-                        return 1;
-                    }
-
-                    paths.emplace_back(options, std::move(path));
-                    options.clear();
-                }
-
-                if (paths.empty()) {
-                    fputs("No directories have been provided to recurse in\n", stderr);
-                    return 1;
-                }
-
-                const auto &back = paths.back();
-                for (const auto &pair : paths) {
-                    const auto &options = pair.first;
-                    const auto &path = pair.second;
-
-                    auto recurse_options = misc::recurse::options();
-                    if (!options.ignore_warnings) {
-                        recurse_options.print_warnings = true;
-                    }
-
-                    if (options.recurse_subdirectories_at_path) {
-                        recurse_options.recurse_subdirectories = true;
-                    }
-
-                    auto filetypes = misc::recurse::filetypes();
-                    filetypes.dynamic_library = true;
-
-                    const auto recursion_result = misc::recurse::macho_files(path.c_str(), filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
-                        fprintf(stderr, "%s\n", path.c_str());
-                        return true;
-                    });
-
-                    switch (recursion_result) {
-                        case misc::recurse::operation_result::ok:
-                            break;
-
-                        case misc::recurse::operation_result::failed_to_open_directory:
-                            if (paths.size() != 1) {
-                                fprintf(stderr, "Failed to open directory (at path %s), failing with error: %s\n", path.c_str(), strerror(errno));
-                            } else {
-                                fprintf(stderr, "Failed to open directory at provided path, failing with error: %s\n", strerror(errno));
-                            }
-
-                            break;
-
-                        case misc::recurse::operation_result::found_no_matching_files:
-                            if (options.recurse_subdirectories_at_path) {
-                                if (paths.size() != 1) {
-                                    fprintf(stderr, "Found no mach-o dynamic library files while recursing through directory and its sub-directories at path: %s\n", path.c_str());
-                                } else {
-                                    fputs("Found no mach-o dynamic library files while recursing through directory and its sub-directories at provided path\n", stderr);
-                                }
-                            } else {
-                                if (paths.size() != 1) {
-                                    fprintf(stderr, "Found no mach-o dynamic library files while recursing through directory at path: %s\n", path.c_str());
-                                } else {
-                                    fputs("Found no mach-o dynamic library files while recursing through directory at provided path\n", stderr);
-
-                                }
-                            }
-
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    // Print a newline between each pair
-                    if (pair != back) {
-                        fputc('\n', stdout);
-                    }
-                }
-            } else {
-                auto path = misc::retrieve_current_directory();
-                auto recurse_options = misc::recurse::options();
-
-                recurse_options.print_warnings = true;
-                recurse_options.recurse_subdirectories = true;
-
-                auto filetypes = misc::recurse::filetypes();
-                filetypes.dynamic_library = true;
-
-                const auto recursion_result = misc::recurse::macho_files(path, filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
-                    fprintf(stderr, "%s\n", path.c_str());
-                    return true;
-                });
-
-                switch (recursion_result) {
-                    case misc::recurse::operation_result::ok:
-                        break;
-
-                    case misc::recurse::operation_result::failed_to_open_directory:
-                        fprintf(stderr, "Failed to open directory at current-directory, failing with error: %s\n", strerror(errno));
-                        break;
-
-                    case misc::recurse::operation_result::found_no_matching_files:
-                        fputs("Found no mach-o dynamic library files while recursing through directory and its sub-directories at provided path\n", stderr);
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-
-            return 0;
-        } else if (strcmp(option, "list-objc-constraint") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            fputs("none\nretain_release\nretain_release_or_gc\nretain_release_for_simulator\ngc\n", stderr);
-            return 0;
-        } else if (strcmp(option, "list-platform") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            main_utils::print_tbd_platforms();
-            return 0;
-        } else if (strcmp(option, "list-recurse") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            fputs("once, Recurse through all of a directory's files (default)\n", stdout);
-            fputs("all,  Recurse through all of a directory's files and sub-directories\n", stdout);
-
-            return 0;
-        } else if (strcmp(option, "list-tbd-flags") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            fputs("flat_namespace\nnot_app_extension_safe\n", stdout);
-            return  0;
-        } else if (strcmp(option, "list-tbd-versions") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            main_utils::print_tbd_versions();
             return 0;
         } else if (strcmp(option, "o") == 0 || strcmp(option, "output") == 0) {
             ++index;
@@ -641,8 +140,7 @@ int main(int argc, const char *argv[]) {
             // the output-path to print out if there
             // is a mistake
 
-            // XXX: Might want to change
-            // this behavior in the future
+            // XXX: Might want to change this behavior in the future
 
             struct main_utils::tbd_with_options::options options;
 
@@ -759,6 +257,11 @@ int main(int argc, const char *argv[]) {
             tbd.write_options.order_by_architecture_info_table = true;
             tbd.write_options.enforce_has_exports = true;
 
+            // An unused structure that is only written
+            // to for parsing of local don't options
+
+            struct main_utils::tbd_with_options::dont_options donts;
+
             // Validate all local-options, but leave the multi-argument
             // local-options to be parsed after tbd-creation with
             // tbd_with_options::local_options_start
@@ -774,9 +277,7 @@ int main(int argc, const char *argv[]) {
                         option = &option[1];
                     }
 
-                    if (strcmp(option, "a") == 0 || strcmp(option, "arch") == 0) {
-                        tbd.architectures |= main_utils::parse_architectures_list(index, argc, argv);
-                    } else if (strcmp(option, "add-archs") == 0) {
+                    if (strcmp(option, "add-archs") == 0) {
                         // XXX: add-archs will add onto replaced architecture overrides
                         // provided earlier in a 'replace-archs' options. This may not
                         // be wanted behavior
@@ -787,11 +288,6 @@ int main(int argc, const char *argv[]) {
                         }
 
                         tbd.info.architectures |= main_utils::parse_architectures_list(++index, argc, argv);
-                    } else if (strcmp(option, "allow-all-private-symbols") == 0) {
-                        tbd.creation_options.allow_private_normal_symbols = true;
-                        tbd.creation_options.allow_private_weak_symbols = true;
-                        tbd.creation_options.allow_private_objc_class_symbols = true;
-                        tbd.creation_options.allow_private_objc_ivar_symbols = true;
                     } else if (strcmp(option, "add-flags") == 0) {
                         if (index == argc - 1) {
                             fputs("Please provide a list of flags to add\n", stderr);
@@ -809,92 +305,6 @@ int main(int argc, const char *argv[]) {
 
                         tbd.options.remove_flags = true;
                         tbd.options.replace_flags = true;
-                    } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
-                        tbd.creation_options.allow_private_normal_symbols = true;
-                    } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
-                        tbd.creation_options.allow_private_weak_symbols = true;
-                    } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_class_symbols = true;
-                        tbd.creation_options.allow_private_objc_ivar_symbols = true;
-                    } else if (strcmp(option, "allow-private-objc-class-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_class_symbols = true;
-                    } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_ivar_symbols = true;
-                    } else if (strcmp(option, "dont-allow-private-normal-symbols") == 0) {
-                        tbd.creation_options.allow_private_normal_symbols = true;
-                    } else if (strcmp(option, "dont-allow-private-weak-symbols") == 0) {
-                        tbd.creation_options.allow_private_weak_symbols = false;
-                    } else if (strcmp(option, "dont-allow-private-objc-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_class_symbols = false;
-                        tbd.creation_options.allow_private_objc_ivar_symbols = false;
-                    } else if (strcmp(option, "dont-allow-private-objc-class-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_class_symbols = false;
-                    } else if (strcmp(option, "dont-allow-private-objc-ivar-symbols") == 0) {
-                        tbd.creation_options.allow_private_objc_ivar_symbols = false;
-                    } else if (strcmp(option, "dont-ignore-missing-exports") == 0) {
-                        tbd.creation_options.ignore_missing_symbol_table = false;
-                        tbd.creation_options.ignore_missing_uuids = false;
-                        tbd.creation_options.ignore_non_unique_uuids = false;
-                    } else if (strcmp(option, "dont-ignore-missing-exports") == 0) {
-                        // "exports" includes sub-clients, reexports, and
-                        // symbols, but utils::tbd errors out only if
-                        // symbol-table is missing
-
-                        tbd.creation_options.ignore_missing_symbol_table = false;
-                    } else if (strcmp(option, "dont-ignore-missing-uuids") == 0) {
-                        tbd.creation_options.ignore_missing_uuids = false;
-                    } else if (strcmp(option, "dont-ignore-non-unique-uuids") == 0) {
-                        tbd.creation_options.ignore_non_unique_uuids = false;
-                    } else if (strcmp(option, "dont-ignore-warnings") == 0) {
-                        tbd.options.ignore_warnings = true;
-                    } else if (strcmp(option, "dont-remove-allowable-clients-field") == 0) {
-                        tbd.creation_options.ignore_allowable_clients = false;
-                        tbd.write_options.ignore_allowable_clients = false;
-                    } else if (strcmp(option, "dont-remove-current-version") == 0) {
-                        tbd.creation_options.ignore_current_version = false;
-                        tbd.write_options.ignore_current_version = false;
-                    } else if (strcmp(option, "dont-remove-compatibility-version") == 0) {
-                        tbd.creation_options.ignore_compatibility_version = false;
-                        tbd.write_options.ignore_compatibility_version = false;
-                    } else if (strcmp(option, "dont-remove-exports") == 0) {
-                        tbd.creation_options.ignore_exports = false;
-                        tbd.write_options.ignore_exports = false;
-                    } else if (strcmp(option, "dont-remove-flags-field") == 0) {
-                        tbd.creation_options.ignore_flags = false;
-                        tbd.write_options.ignore_flags = false;
-                    } else if (strcmp(option, "dont-remove-install-name") == 0) {
-                        tbd.creation_options.ignore_install_name = false;
-                        tbd.write_options.ignore_install_name = false;
-                    } else if (strcmp(option, "dont-remove-objc-constraint") == 0) {
-                        tbd.creation_options.ignore_objc_constraint = false;
-                        tbd.write_options.ignore_objc_constraint = false;
-                    } else if (strcmp(option, "dont-remove-parent-umbrella") == 0) {
-                        tbd.creation_options.ignore_parent_umbrella = false;
-                        tbd.write_options.ignore_parent_umbrella = false;
-                    } else if (strcmp(option, "dont-remove-platform") == 0) {
-                        tbd.creation_options.ignore_platform = false;
-                        tbd.write_options.ignore_platform = false;
-                    } else if (strcmp(option, "dont-remove-reexports") == 0) {
-                        tbd.creation_options.ignore_reexports = false;
-                        tbd.write_options.ignore_reexports = false;
-                    } else if (strcmp(option, "dont-remove-swift-version") == 0) {
-                        tbd.creation_options.ignore_swift_version = false;
-                        tbd.write_options.ignore_swift_version = false;
-                    } else if (strcmp(option, "dont-remove-uuids") == 0) {
-                        tbd.creation_options.ignore_uuids = false;
-                        tbd.write_options.ignore_uuids = false;
-                    } else if (strcmp(option, "ignore-missing-exports") == 0) {
-                        // "exports" includes sub-clients, reexports, and
-                        // symbols, but utils::tbd errors out only if
-                        // symbol-table is missing
-
-                        tbd.creation_options.ignore_missing_symbol_table = true;
-                    } else if (strcmp(option, "ignore-missing-uuids") == 0) {
-                        tbd.creation_options.ignore_missing_uuids = true;
-                    } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
-                        tbd.creation_options.ignore_non_unique_uuids = true;
-                    } else if (strcmp(option, "ignore-warnings") == 0) {
-                        tbd.options.ignore_warnings = true;
                     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                         tbd.options.recurse_directories_at_path = true;
 
@@ -911,18 +321,6 @@ int main(int argc, const char *argv[]) {
                                 }
                             }
                         }
-                    } else if (strcmp(option, "remove-allowable-clients-field") == 0) {
-                        tbd.creation_options.ignore_allowable_clients = true;
-                        tbd.write_options.ignore_allowable_clients = true;
-                    } else if (strcmp(option, "remove-current-version") == 0) {
-                        tbd.creation_options.ignore_current_version = true;
-                        tbd.write_options.ignore_current_version = true;
-                    } else if (strcmp(option, "remove-compatibility-version") == 0) {
-                        tbd.creation_options.ignore_compatibility_version = true;
-                        tbd.write_options.ignore_compatibility_version = true;
-                    } else if (strcmp(option, "remove-exports") == 0) {
-                        tbd.creation_options.ignore_exports = true;
-                        tbd.write_options.ignore_exports = true;
                     } else if (strcmp(option, "remove-flags") == 0) {
                         if (index == argc - 1) {
                             fputs("Please provide a list of flags to remove\n", stderr);
@@ -935,67 +333,6 @@ int main(int argc, const char *argv[]) {
                         }
 
                         tbd.options.remove_flags = true;
-                    } else if (strcmp(option, "remove-flags-field") == 0) {
-                        if (tbd.options.replace_flags) {
-                            if (tbd.options.remove_flags) {
-                                fputs("Can't both add flags to flags found and remove the tbd-flags field\n", stderr);
-                            } else {
-                                fputs("Can't both replace flags found and remove the tbd-flags field\n", stderr);
-                            }
-
-                            return 1;
-                        }
-
-                        if (tbd.options.remove_flags) {
-                            fputs("Can't both remove select flags from flags found and remove the tbd-flags field\n", stderr);
-                            return 1;
-                        }
-
-                        tbd.creation_options.ignore_flags = true;
-                        tbd.write_options.ignore_flags = true;
-                    } else if (strcmp(option, "remove-install-name") == 0) {
-                        tbd.creation_options.ignore_install_name = true;
-                        tbd.write_options.ignore_install_name = true;
-                    } else if (strcmp(option, "remove-objc-constraint") == 0) {
-                        tbd.creation_options.ignore_objc_constraint = true;
-                        tbd.write_options.ignore_objc_constraint = true;
-                    } else if (strcmp(option, "remove-parent-umbrella") == 0) {
-                        tbd.creation_options.ignore_parent_umbrella = true;
-                        tbd.write_options.ignore_parent_umbrella = true;
-                    } else if (strcmp(option, "remove-platform") == 0) {
-                        tbd.creation_options.ignore_platform = true;
-                        tbd.write_options.ignore_platform = true;
-                    } else if (strcmp(option, "remove-reexports") == 0) {
-                        tbd.creation_options.ignore_reexports = true;
-                        tbd.write_options.ignore_reexports = true;
-                    } else if (strcmp(option, "remove-swift-version") == 0) {
-                        tbd.creation_options.ignore_swift_version = true;
-                        tbd.write_options.ignore_swift_version = true;
-                    } else if (strcmp(option, "remove-uuids") == 0) {
-                        tbd.creation_options.ignore_uuids = true;
-                        tbd.write_options.ignore_uuids = true;
-                    } else if (strcmp(option, "replace-archs") == 0) {
-                        if (tbd.options.remove_architectures) {
-                            if (tbd.options.replace_architectures) {
-                                fputs("Can't both replace architectures and add architectures to list founs\n", stderr);
-                            } else {
-                                fputs("Can't both replace architectures and remove select architectures from list founs\n", stderr);
-                            }
-
-                            return 1;
-                        }
-
-                        // Replacing architectures 'resets' the architectures list,
-                        // replacing not only add-archs options, but earlier provided
-                        // replace-archs options
-
-                        tbd.info.architectures = main_utils::parse_architectures_list(++index, argc, argv);
-
-                        // We need to stop tbd::create from
-                        // overiding these replaced architectures
-
-                        tbd.creation_options.ignore_architectures = true;
-                        tbd.options.replace_architectures = true;
                     } else if (strcmp(option, "replace-flags") == 0) {
                         index++;
                         if (index == argc) {
@@ -1023,15 +360,10 @@ int main(int argc, const char *argv[]) {
 
                         tbd.options.replace_flags = true;
                         tbd.creation_options.ignore_flags = true;
-                    } else if (strcmp(option, "replace-objc-constraint") == 0) {
-                        tbd.info.objc_constraint = main_utils::parse_objc_constraint_from_argument(index, argc, argv);
-                        tbd.creation_options.ignore_objc_constraint = true;
-                        tbd.options.replaced_objc_constraint = true;
-                    } else if (strcmp(option, "replace-platform") == 0) {
-                        tbd.info.platform = main_utils::parse_platform_from_argument(index, argc, argv);
-                        tbd.creation_options.ignore_platform = true;
-                    } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
-                        tbd.info.version = main_utils::parse_tbd_version(index, argc, argv);
+                    } else if (tbd.parse_option_from_argv(option, index, argc, argv)) {
+                        continue;
+                    } else if (tbd.parse_dont_option_from_argv(option, index, argc, argv, donts)) {
+                        continue;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", argument);
                         return 1;
@@ -1105,100 +437,6 @@ int main(int argc, const char *argv[]) {
             }
 
             tbds.emplace_back(std::move(tbd));
-        } else if (strcmp(option, "remove-allowable-clients-field") == 0) {
-            if (global.options.replace_clients) {
-                fputs("Can't both remove select flags from allowable-clients found and replace allowable-clients found\n", stderr);
-                return 1;
-            }
-
-            // We need to stop tbd::create from modifying our
-            // changed allowable-clients field
-
-            global.creation_options.ignore_allowable_clients = true;
-            global.write_options.ignore_allowable_clients = true;
-        } else if (strcmp(option, "remove-current-version") == 0) {
-            global.creation_options.ignore_current_version = true;
-            global.write_options.ignore_current_version = true;
-        } else if (strcmp(option, "remove-compatibility-version") == 0) {
-            global.creation_options.ignore_compatibility_version = true;
-            global.write_options.ignore_compatibility_version = true;
-        } else if (strcmp(option, "remove-exports") == 0) {
-            global.creation_options.ignore_exports = true;
-            global.write_options.ignore_exports = true;
-        } else if (strcmp(option, "remove-flags") == 0) {
-            index++;
-            if (index == argc) {
-                fputs("Please provide a list of flags to remove\n", stderr);
-                return 1;
-            }
-
-            if (global.options.replace_flags) {
-                fputs("Can't both remove select flags from flags found and replace flags found\n", stderr);
-                return 1;
-            }
-
-            main_utils::parse_flags(&global_tbd_flags_to_re, index, argc, argv);
-
-            global.options.remove_flags = true;
-            global.creation_options.ignore_flags = true;
-        } else if (strcmp(option, "remove-flags-field") == 0) {
-            if (global.options.replace_flags) {
-                if (global.options.remove_flags) {
-                    fputs("Can't both add flags to flags found and remove the tbd-flags field\n", stderr);
-                } else {
-                    fputs("Can't both replace flags found and remove the tbd-flags field\n", stderr);
-                }
-
-                return 1;
-            }
-
-            if (global.options.remove_flags) {
-                fputs("Can't both remove select flags from flags found and remove the tbd-flags field\n", stderr);
-                return 1;
-            }
-
-            global.creation_options.ignore_flags = true;
-            global.write_options.ignore_flags = true;
-        } else if (strcmp(option, "remove-install-name") == 0) {
-            global.creation_options.ignore_install_name = true;
-            global.write_options.ignore_install_name = true;
-        } else if (strcmp(option, "remove-objc-constraint") == 0) {
-            global.creation_options.ignore_objc_constraint = true;
-            global.write_options.ignore_objc_constraint = true;
-        } else if (strcmp(option, "remove-parent-umbrella") == 0) {
-            global.creation_options.ignore_parent_umbrella = true;
-            global.write_options.ignore_parent_umbrella = true;
-        } else if (strcmp(option, "remove-platform") == 0) {
-            global.creation_options.ignore_platform = true;
-            global.write_options.ignore_platform = true;
-        } else if (strcmp(option, "remove-reexports") == 0) {
-            global.creation_options.ignore_reexports = true;
-            global.write_options.ignore_reexports = true;
-        } else if (strcmp(option, "remove-swift-version") == 0) {
-            global.creation_options.ignore_swift_version = true;
-            global.write_options.ignore_swift_version = true;
-        } else if (strcmp(option, "remove-uuids") == 0) {
-            global.creation_options.ignore_uuids = true;
-            global.write_options.ignore_uuids = true;
-        } else if (strcmp(option, "replace-allowable-clients") == 0) {
-            index++;
-            if (index == argc) {
-                fputs("Please provide a list of allowable-clients to replace ones found\n", stderr);
-                return 1;
-            }
-
-            if (global.options.remove_clients) {
-                fputs("Can't both replace allowable-clients found and remove select allowable-clients from allowable-clients found\n", stderr);
-                return 1;
-            }
-
-            main_utils::parse_flags(&global_tbd_flags_to_re, index, argc, argv);
-
-            // We need to stop tbd::create from
-            // overiding these replaced sub-clients
-
-            global.options.replace_clients = true;
-            global.creation_options.ignore_allowable_clients = true;
         } else if (strcmp(option, "replace-archs") == 0) {
             // Replacing architectures 'resets' the global architectures
             // list, replacing not only add-archs options, but earlier provided
@@ -1230,23 +468,14 @@ int main(int argc, const char *argv[]) {
             // overiding these replaced flags
 
             global.options.replace_flags = true;
-        } else if (strcmp(option, "replace-objc-constraint") == 0) {
-            global.info.objc_constraint = main_utils::parse_objc_constraint_from_argument(index, argc, argv);
-            global.creation_options.ignore_objc_constraint = true;
-            global.options.replaced_objc_constraint = true;
-        } else if (strcmp(option, "replace-platform") == 0) {
-            global.info.platform = main_utils::parse_platform_from_argument(index, argc, argv);
-            global.creation_options.ignore_platform = true;
-        } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
-            if (index != 1 || index != argc - 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
-            }
-
-            main_utils::print_help_menu();
-            return 0;
         } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
             global.info.version = main_utils::parse_tbd_version(index, argc, argv);
+        } else if (global.parse_option_from_argv(option, index, argc, argv)) {
+            continue;
+        } else if (global.parse_dont_option_from_argv(option, index, argc, argv, global_donts)) {
+            continue;
+        } else if (main_utils::parse_list_argument(argument, index, argc, argv)) {
+            continue;
         } else {
             fprintf(stderr, "Unrecognized option: %s\n", argument);
             return 1;
@@ -1269,9 +498,9 @@ int main(int argc, const char *argv[]) {
 
         // Apply global "don't" options
 
-        tbd.creation_options.value &= ~global_dont_creation_options.value;
-        tbd.write_options.value &= ~global_dont_write_options.value;
-        tbd.options.value &= ~global_dont_options.value;
+        tbd.creation_options.value &= ~global_donts.creation_options.value;
+        tbd.write_options.value &= ~global_donts.write_options.value;
+        tbd.options.value &= ~global_donts.options.value;
 
         // Apply global variables from global tbd
 
@@ -1499,6 +728,8 @@ int main(int argc, const char *argv[]) {
                         fputs("Mach-o file at provided path has architectures that go past end of file\n", stderr);
                     }
 
+                    continue;
+
                 case macho::file::open_result::invalid_container:
                     if (should_print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an architecute that is invalid\n", tbd.path.c_str());
@@ -1529,7 +760,7 @@ int main(int argc, const char *argv[]) {
 
             if (global.options.remove_architectures) {
                 tbd.info.flags.value |= global_tbd_flags_to_add.value;
-                tbd.info.flags.value &= global_tbd_flags_to_add.value;
+                tbd.info.flags.value &= ~global_tbd_flags_to_re.value;
             } else {
                 tbd.info.flags.value = global_tbd_flags_to_re.value;
             }
@@ -1537,9 +768,7 @@ int main(int argc, const char *argv[]) {
             auto write_result = macho::utils::tbd::write_result::ok;
             auto terminator = static_cast<char *>(nullptr);
 
-            if (tbd.write_path.empty()) {
-                write_result = tbd.info.write_to(stdout, tbd.write_options);
-            } else {
+            if (!tbd.write_path.empty()) {
                 auto descriptor = -1;
 
                 if (!tbd.write_path.empty()) {
@@ -1548,6 +777,8 @@ int main(int argc, const char *argv[]) {
 
                 write_result = tbd.info.write_to(descriptor, tbd.write_options);
                 close(descriptor);
+            } else {
+                write_result = tbd.info.write_to(stdout, tbd.write_options);
             }
 
             switch (write_result) {
