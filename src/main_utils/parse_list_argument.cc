@@ -28,7 +28,7 @@ namespace main_utils {
         if (strcmp(option, "list-architectures") == 0) {
             if (index != 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file\n", argument);
-                return 1;
+                exit(1);
             }
 
             // Two modes exist for --list-architectures, either list out the
@@ -53,7 +53,7 @@ namespace main_utils {
 
                 if (index + 2 <= argc) {
                     fprintf(stderr, "Unrecognized argument: %s\n", argv[index + 1]);
-                    return 1;
+                    exit(1);
                 }
 
                 auto file = macho::file();
@@ -62,12 +62,12 @@ namespace main_utils {
                 struct stat sbuf;
                 if (stat(path.c_str(), &sbuf) != 0) {
                     fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
-                    return 1;
+                    exit(1);
                 }
 
                 if (!S_ISREG(sbuf.st_mode)) {
                     fputs("Object at provided path is not a regular file\n", stderr);
-                    return 1;
+                    exit(1);
                 }
 
                 switch (file.open(path.c_str())) {
@@ -76,44 +76,44 @@ namespace main_utils {
 
                     case macho::file::open_result::not_a_macho:
                         fputs("File at provided path is not a mach-o\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::invalid_macho:
                         fputs("File at provided path is an invalid mach-o\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::failed_to_open_stream:
                         fprintf(stderr, "Failed to open stream for file at provided path, failing with error: %s\n", strerror(errno));
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::failed_to_retrieve_information:
                         fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::stream_seek_error:
                     case macho::file::open_result::stream_read_error:
                         fputs("Encountered an error while parsing file at provided path\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::zero_containers:
                         fputs("Mach-o file at provided path has zero architectures\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::too_many_containers:
                         fputs("Mach-o file at provided path has too many architectures for its file-size\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::containers_goes_past_end_of_file:
                         fputs("Mach-o file at provided path's architectures goes past end of file\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::overlapping_containers:
                         fputs("Mach-o file at provided path has overlapping architectures\n", stderr);
-                        return 1;
+                        exit(1);
 
                     case macho::file::open_result::invalid_container:
                         fputs("Mach-o file at provided path has an invalid architecture\n", stderr);
-                        return 1;
+                        exit(1);
                 }
 
                 // Store architecture names in a vector before printing
@@ -126,13 +126,13 @@ namespace main_utils {
                     const auto container_subtype = macho::subtype_from_cputype(macho::cputype(container.header.cputype), container.header.cpusubtype);
                     if (container_subtype == macho::subtype::none) {
                         fprintf(stderr, "Unrecognized cpu-subtype for architecture at index %d\n", cndex);
-                        return 1;
+                        exit(1);
                     }
 
                     const auto architecture_info = macho::architecture_info_from_cputype(macho::cputype(container.header.cputype), container_subtype);
                     if (!architecture_info) {
                         fprintf(stderr, "Unrecognized cputype information for architecture at index %d\n", cndex);
-                        return 1;
+                        exit(1);
                     }
 
                     cndex++;
@@ -145,11 +145,10 @@ namespace main_utils {
             }
 
             fputc('\n', stdout);
-            return 0;
         } else if (strcmp(option, "list-macho-dynamic-libraries") == 0) {
             if (index != 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file\n", argument);
-                return 1;
+                exit(1);
             }
 
             // Two different modes exist for --list-macho-dynamic-libraries;
@@ -190,7 +189,7 @@ namespace main_utils {
                             }
                         } else {
                             fprintf(stderr, "Unrecognized argument: %s\n", argument);
-                            return 1;
+                            exit(1);
                         }
 
                         continue;
@@ -206,7 +205,7 @@ namespace main_utils {
                             fprintf(stderr, "Failed to retrieve information on file (at path %s), failing with error: %s\n", path.c_str(), strerror(errno));
                         }
 
-                        return 1;
+                        exit(1);
                     }
 
                     if (!S_ISDIR(sbuf.st_mode)) {
@@ -216,7 +215,7 @@ namespace main_utils {
                             fprintf(stderr, "Object (at path %s) is not a directory\n", path.c_str());
                         }
 
-                        return 1;
+                        exit(1);
                     }
 
                     paths.emplace_back(options, std::move(path));
@@ -225,7 +224,7 @@ namespace main_utils {
 
                 if (paths.empty()) {
                     fputs("No directories have been provided to recurse in\n", stderr);
-                    return 1;
+                    exit(1);
                 }
 
                 const auto &back = paths.back();
@@ -320,51 +319,43 @@ namespace main_utils {
                         break;
                 }
             }
-
-            return 0;
         } else if (strcmp(option, "list-objc-constraint") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
+                exit(1);
             }
 
             fputs("none\nretain_release\nretain_release_or_gc\nretain_release_for_simulator\ngc\n", stderr);
-            return 0;
         } else if (strcmp(option, "list-platform") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
+                exit(1);
             }
 
             main_utils::print_tbd_platforms();
-            return 0;
         } else if (strcmp(option, "list-recurse") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
+                exit(1);
             }
 
             fputs("once, Recurse through all of a directory's files (default)\n", stdout);
             fputs("all,  Recurse through all of a directory's files and sub-directories\n", stdout);
-
-            return 0;
         } else if (strcmp(option, "list-tbd-flags") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
+                exit(1);
             }
 
             fputs("flat_namespace\n", stdout);
             fputs("not_app_extension_safe\n", stdout);
-            return  0;
         } else if (strcmp(option, "list-tbd-versions") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
-                return 1;
+                exit(1);
             }
 
             main_utils::print_tbd_versions();
-            return 0;
         } else {
             return false;
         }
