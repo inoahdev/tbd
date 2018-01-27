@@ -27,7 +27,7 @@ namespace main_utils {
 
         if (strcmp(option, "list-architectures") == 0) {
             if (index != 1) {
-                fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file \n", argument);
+                fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file\n", argument);
                 return 1;
             }
 
@@ -275,7 +275,6 @@ namespace main_utils {
                                     fprintf(stderr, "Found no mach-o dynamic library files while recursing through directory at path: %s\n", path.c_str());
                                 } else {
                                     fputs("Found no mach-o dynamic library files while recursing through directory at provided path\n", stderr);
-
                                 }
                             }
 
@@ -355,7 +354,8 @@ namespace main_utils {
                 return 1;
             }
 
-            fputs("flat_namespace\nnot_app_extension_safe\n", stdout);
+            fputs("flat_namespace\n", stdout);
+            fputs("not_app_extension_safe\n", stdout);
             return  0;
         } else if (strcmp(option, "list-tbd-versions") == 0) {
             if (index != 1 || index != argc - 1) {
