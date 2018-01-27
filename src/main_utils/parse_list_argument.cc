@@ -325,7 +325,11 @@ namespace main_utils {
                 exit(1);
             }
 
-            fputs("none\nretain_release\nretain_release_or_gc\nretain_release_for_simulator\ngc\n", stderr);
+            fputs("none\n", stderr);
+            fputs("retain_release\n", stdout);
+            fputs("retain_release_or_gc\n", stdout);
+            fputs("retain_release_for_simulator\n", stdout);
+            fputs("gc\n", stdout);
         } else if (strcmp(option, "list-platform") == 0) {
             if (index != 1 || index != argc - 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself\n", argument);
