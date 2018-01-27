@@ -255,7 +255,6 @@ int main(int argc, const char *argv[]) {
             // Apply "default" behavior and information
 
             tbd.apply_missing_from(global);
-            tbd.local_option_start = 0;
 
             // An unused structure that is only written
             // to for parsing of local don't options
