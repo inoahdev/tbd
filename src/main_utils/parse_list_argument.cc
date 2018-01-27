@@ -116,7 +116,7 @@ namespace main_utils {
                         return 1;
                 }
 
-                // store architecture names in a vector before printing
+                // Store architecture names in a vector before printing
                 // so we can handle any errors encountered first
 
                 auto cndex = 0;

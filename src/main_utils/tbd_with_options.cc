@@ -92,9 +92,7 @@ namespace main_utils {
     }
 
     bool tbd_with_options::parse_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept {
-        if (strcmp(option, "a") == 0 || strcmp(option, "arch") == 0) {
-            this->architectures |= main_utils::parse_architectures_list(index, argc, argv);
-        } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
+        if (strcmp(option, "allow-private-normal-symbols") == 0) {
             this->creation_options.allow_private_normal_symbols = true;
         } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
             this->creation_options.allow_private_weak_symbols = true;
