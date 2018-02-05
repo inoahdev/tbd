@@ -20,6 +20,10 @@ namespace recursive::mkdir {
         return ::mkdir(path, 0755) == 0;
     }
 
+    inline bool _create_directory_if_needed(char *path) noexcept {
+        return _create_directory(path) || errno == EEXIST;
+    }
+
     inline result create_directories_ignoring_last(char *path, char *path_end, char *begin) noexcept {
         auto path_component_end = begin;
 
@@ -76,11 +80,11 @@ namespace recursive::mkdir {
             auto path_component_end_chr = *path_component_end;
             *path_component_end = '\0';
 
-            if (access(path, F_OK) == 0) {
+            if (_create_directory_if_needed(path)) {
                 // if prev_path_component_end points
-                // to end,it means we are at the first
+                // to end, it means we are at the first
                 // path component, and all path-components,
-                // save the last, which we are to ignore
+                // save the last, which we are to ignore,
                 // exist
 
                 if (prev_path_component_end == end) {
@@ -94,6 +98,8 @@ namespace recursive::mkdir {
 
                 *path_component_end = path_component_end_chr;
                 return create_directories_ignoring_last(path, end, prev_path_component_end);
+            } else if (errno != ENOENT) {
+                return result::failed_to_create_intermediate_directories;
             }
 
             prev_path_component_end = path_component_end;

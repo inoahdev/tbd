@@ -6,7 +6,9 @@
 //  Copyright © 2017 - 2018 inoahdev. All rights reserved.
 //
 
+#include <cerrno>
 #include <cstdio>
+
 #include <unistd.h>
 
 #include "../utils/path.h"
@@ -42,20 +44,14 @@ namespace recursive::remove {
             auto path_component_end_chr = *path_component_end;
             *path_component_end = '\0';
 
-            if (access(path, F_OK) != 0) {
-                if (path_component_end == begin) {
-                    return result::directory_doesnt_exist;
-                }
-
-                return result::sub_directory_doesnt_exist;
-            }
-
             if (::remove(path) != 0) {
-                if (path_component_end == begin) {
-                    return result::failed_to_remove_directory;
-                }
+                if (errno != ENOTEMPTY) {
+                    if (path_component_end == begin) {
+                        return result::failed_to_remove_directory;
+                    }
 
-                return result::failed_to_remove_subdirectories;
+                    return result::failed_to_remove_subdirectories;
+                }
             }
 
             *path_component_end = path_component_end_chr;
