@@ -63,7 +63,6 @@
 		C36E92B01F96E326008CC57F /* directory.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = directory.cc; path = ../../src/utils/directory.cc; sourceTree = "<group>"; };
 		C36E92B11F96E326008CC57F /* directory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = directory.h; path = ../../src/utils/directory.h; sourceTree = "<group>"; };
 		C38254B51F93CD820084CFCE /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../Makefile; sourceTree = "<group>"; };
-		C3A45E4E1F804E4800FC649E /* compile_commands.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = compile_commands.json; path = ../../compile_commands.json; sourceTree = "<group>"; };
 		C3A8A7CD1F93ED99001510A2 /* string.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = string.cc; path = ../../src/utils/string.cc; sourceTree = "<group>"; };
 		C3A8A7CE1F93ED99001510A2 /* string.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = string.h; path = ../../src/utils/string.h; sourceTree = "<group>"; };
 		C3A8A7D11F941205001510A2 /* mkdir.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = mkdir.cc; path = ../../src/recursive/mkdir.cc; sourceTree = "<group>"; };
@@ -102,7 +101,6 @@
 			isa = PBXGroup;
 			children = (
 				C32A7AA91F10E600000BF14E /* src */,
-				C3A45E4E1F804E4800FC649E /* compile_commands.json */,
 				C38254B51F93CD820084CFCE /* Makefile */,
 				C353AB8D1FB7C518006964CE /* .gitignore */,
 				C32D3C0A1F997E800092E0A0 /* LICENSE.md */,
