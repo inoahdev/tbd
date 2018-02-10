@@ -772,7 +772,7 @@ int main(int argc, const char *argv[]) {
             if (!tbd.write_path.empty()) {
                 auto descriptor = -1;
 
-                main_utils::recursive_mkdir(tbd.write_path.data(), &terminator, &descriptor);
+                main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), &terminator, &descriptor);
 
                 write_result = tbd.info.write_to(descriptor, tbd.write_options);
                 close(descriptor);
