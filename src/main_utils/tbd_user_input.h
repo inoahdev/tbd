@@ -49,5 +49,5 @@ namespace main_utils {
     bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
 
     bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
+    bool request_if_should_ignore_missing_uuids(tbd_with_options &all,    tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
 }

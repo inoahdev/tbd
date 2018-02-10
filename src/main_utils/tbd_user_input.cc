@@ -28,7 +28,7 @@ namespace main_utils {
                     fprintf(stderr, ", %s", *iter);
                 }
 
-                fputs(")", stdout);
+                fputc(')', stdout);
                 fflush(stdout);
             }
 
