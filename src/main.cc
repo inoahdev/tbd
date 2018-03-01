@@ -586,7 +586,7 @@ int main(int argc, const char *argv[]) {
                     auto terminator = static_cast<char *>(nullptr);
                     auto descriptor = -1;
 
-                    main_utils::recursive_mkdir(write_path.data(), &terminator, &descriptor);
+                    main_utils::recursive_mkdir_last_as_file(write_path.data(), &terminator, &descriptor);
 
                     // Parse local-options for modification of tbd-fields
                     // after creation and before write to avoid any extra hoops
