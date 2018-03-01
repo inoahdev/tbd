@@ -504,7 +504,7 @@ namespace macho::utils {
 
     template <typename T>
     tbd::write_result write_group_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::export_group &group, const tbd::write_options &options) noexcept {
-        // We have to check that atleast one category is written because
+        // We have to check that at least one category is written because
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
@@ -569,7 +569,7 @@ namespace macho::utils {
             }
         }
 
-        // Like above, we have to check that atleast one category is written
+        // Like above, we have to check that at least one category is written
         // because we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
