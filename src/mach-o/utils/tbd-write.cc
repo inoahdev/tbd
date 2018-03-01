@@ -499,7 +499,7 @@ namespace macho::utils {
             return true;
         }
 
-        return stream.printf("install-name:%-10s%s\n", "", install_name.c_str());
+        return stream.printf("install-name:\'%-10s%s\'\n", "", install_name.c_str());
     }
 
     template <typename T>
