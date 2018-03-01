@@ -2019,7 +2019,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        helper.printf("install-name:%-10s%s\n", "", library_installation_name);
+        helper.printf("install-name:\'%-10s%s\'\n", "", library_installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = library_current_version >> 16;
@@ -2264,7 +2264,7 @@ namespace macho::utils::tbd {
             }
         }
 
-        helper.printf("install-name:%-10s%s\n", "", installation_name);
+        helper.printf("install-name:\'%-10s%s\'\n", "", installation_name);
 
         if ((options & options::remove_current_version) == options::none) {
             auto library_current_version_major = current_version >> 16;
