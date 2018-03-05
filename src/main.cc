@@ -635,9 +635,12 @@ int main(int argc, const char *argv[]) {
 
                 const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
                 if (creation_result) {
+                    // directories_front is an index to the start of the
+                    // directories we are supposed to maintain (if needed)
+
                     auto directories_front = tbd.path.length();
                     if (!tbd.options.maintain_directories) {
-                        directories_front = utils::path::find_last_slash(tbd.path.cbegin(), tbd.path.cend()) - tbd.path.cbegin();
+                        directories_front = utils::path::find_last_slash(path.cbegin(), path.cend()) - path.cbegin();
                     }
 
                     auto write_path = std::string();
