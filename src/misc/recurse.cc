@@ -41,20 +41,12 @@ namespace misc::recurse {
 
                 return false;
 
-            case macho::file::open_result::failed_to_retrieve_information:
-                if (options.print_warnings) {
-                    fprintf(stderr, "Warning: Failed to retrieve information necessary to process file (at path %s), failing with error: %s\n", path, strerror(errno));
-                }
-
-                return false;
-
             case macho::file::open_result::not_a_macho:
             case macho::file::open_result::invalid_macho:
             case macho::file::open_result::stream_seek_error:
             case macho::file::open_result::stream_read_error:
             case macho::file::open_result::zero_containers:
             case macho::file::open_result::too_many_containers:
-            case macho::file::open_result::containers_goes_past_end_of_file:
             case macho::file::open_result::overlapping_containers:
             case macho::file::open_result::invalid_container:
                 return false;

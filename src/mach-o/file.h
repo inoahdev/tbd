@@ -28,12 +28,11 @@ namespace macho {
 
         enum class open_result {
             ok,
-            
+
             not_a_macho,
             invalid_macho,
-            
+
             failed_to_open_stream,
-            failed_to_retrieve_information,
 
             stream_seek_error,
             stream_read_error,
@@ -41,9 +40,7 @@ namespace macho {
             zero_containers,
             too_many_containers,
 
-            containers_goes_past_end_of_file,
             overlapping_containers,
-            
             invalid_container,
         };
 

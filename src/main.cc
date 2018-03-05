@@ -6,6 +6,8 @@
 //  Copyright © 2017 - 2018 inoahdev. All rights reserved.
 //
 
+#include "mach-o/utils/validation/as_dynamic_library.h"
+
 #include "main_utils/parse_architectures_list.h"
 #include "main_utils/parse_list_argument.h"
 
@@ -180,7 +182,7 @@ int main(int argc, const char *argv[]) {
                 // wrong
 
                 auto path = std::string(argv[index]);
-                if (path.front() != '/') {
+                if (const auto &front = path.front(); front != '/' && front != '\\') {
                     path = misc::path_with_current_directory(path.c_str());
                 }
 
@@ -470,6 +472,83 @@ int main(int argc, const char *argv[]) {
             continue;
         } else if (main_utils::parse_list_argument(argument, index, argc, argv)) {
             continue;
+        } else if (strcmp(option, "validate-macho-dylib") == 0) {
+            index++;
+            if (index == argc) {
+                fputs("Please provide a path to a file to validate as a mach-o dynamic library\n", stderr);
+                return 1;
+            }
+
+            for (; index != argc; index++) {
+                auto path = std::string(argv[index]);
+                if (const auto &front = path.front(); front != '/' && front != '\\') {
+                    path = misc::path_with_current_directory(path.c_str());
+                }
+
+                struct stat information;
+                if (stat(path.c_str(), &information) == 0) {
+                    if (!S_ISREG(information.st_mode)) {
+                        if (S_ISDIR(information.st_mode)) {
+                            fprintf(stderr, "Unable to open directory at path (%s). Please provide a path to a regular file\n", path.c_str());
+                        } else {
+                            fprintf(stderr, "Unable to open object at path (%s). Please provide a path to a regular file\n", path.c_str());
+                        }
+
+                        return 1;
+                    }
+                }
+
+                auto file = macho::file();
+                switch (file.open(path.c_str())) {
+                    case macho::file::open_result::ok:
+                        break;
+
+                    case macho::file::open_result::not_a_macho:
+                        fprintf(stderr, "File (at path %s) is not a valid mach-o file\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::invalid_macho:
+                        fprintf(stderr, "File (at path %s) is an invalid mach-o file\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::failed_to_open_stream:
+                        fprintf(stderr, "Failed to open file (at path %s), failing with error: %s\n", path.c_str(), strerror(file.stream.error()));
+                        continue;
+
+                    case macho::file::open_result::stream_seek_error:
+                    case macho::file::open_result::stream_read_error:
+                        fprintf(stderr, "Encountered an error while parsing file (at path %s)\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::zero_containers:
+                        fprintf(stderr, "Mach-o file (at path %s) has no architectures\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::too_many_containers:
+                        fprintf(stderr, "Mach-o file (at path %s) has too many architectures to fit inside the mach-o file\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::overlapping_containers:
+                        fprintf(stderr, "Mach-o file (at path %s) has architectures overlap with one another\n", path.c_str());
+                        continue;
+
+                    case macho::file::open_result::invalid_container:
+                        fprintf(stderr, "Mach-o file (at path %s) has architecture that is invalid\n", path.c_str());
+                        continue;
+
+                    default:
+                        break;
+                }
+
+                auto is_macho_dynamic_library = macho::utils::validation::as_dynamic_library(file);
+                if (is_macho_dynamic_library) {
+                    fprintf(stdout, "File at path %s is a valid mach-o dynamic library\n", path.c_str());
+                } else {
+                    fprintf(stdout, "File at path %s is not a mach-o dynamic library\n", path.c_str());
+                }
+            }
+
+            return 0;
         } else {
             fprintf(stderr, "Unrecognized option: %s\n", argument);
             return 1;
@@ -676,15 +755,6 @@ int main(int argc, const char *argv[]) {
 
                     continue;
 
-                case macho::file::open_result::failed_to_retrieve_information:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to retrieve information on file (at path %s), failing with error: %s\n", tbd.path.c_str(), strerror(errno));
-                    } else {
-                        fprintf(stderr, "Failed to retrieve information on file at provided path, failing with error: %s\n", strerror(errno));
-                    }
-
-                    continue;
-
                 case macho::file::open_result::stream_seek_error:
                 case macho::file::open_result::stream_read_error:
                     if (should_print_paths) {
@@ -713,20 +783,11 @@ int main(int argc, const char *argv[]) {
 
                     continue;
 
-                case macho::file::open_result::containers_goes_past_end_of_file:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has an architecture that goes past end of file\n", tbd.path.c_str());
-                    } else {
-                        fputs("Mach-o file at provided path has an architecture that goes past end of file\n", stderr);
-                    }
-
-                    continue;
-
                 case macho::file::open_result::overlapping_containers:
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has architectures that go past end of file\n", tbd.path.c_str());
+                        fprintf(stderr, "Mach-o file (at path %s) has architectures that overlap with one another\n", tbd.path.c_str());
                     } else {
-                        fputs("Mach-o file at provided path has architectures that go past end of file\n", stderr);
+                        fputs("Mach-o file at provided path has architectures that overlap with one another\n", stderr);
                     }
 
                     continue;

@@ -112,6 +112,6 @@ namespace main_utils {
 
         fputc('\n', stdout);
         fputs("Validation options:\n", stdout);
-        fputs("        --validate-macho-dynamic-library, Check if file(s) at provided path(s) are valid mach-o dynamic-libraries\n", stdout);
+        fputs("        --validate-macho-dylib, Check if file(s) at provided path(s) are valid mach-o dynamic-libraries\n", stdout);
     }
 }

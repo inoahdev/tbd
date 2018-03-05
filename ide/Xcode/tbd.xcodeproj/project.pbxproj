@@ -44,6 +44,9 @@
 		C3BA3CA81F131AC30049C652 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA71F131AC30049C652 /* main.cc */; };
 		C3BA3CAD1F131AD00049C652 /* container.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CA91F131AD00049C652 /* container.cc */; };
 		C3BA3CAE1F131AD00049C652 /* file.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3BA3CAB1F131AD00049C652 /* file.cc */; };
+		C3C0E31A204DF775003410FD /* tbd-create.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3C0E319204DF775003410FD /* tbd-create.cc */; };
+		C3C0E31E204DF79F003410FD /* swap.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3C0E31D204DF79F003410FD /* swap.cc */; };
+		C3C0E320204DF7B3003410FD /* swap.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3C0E31F204DF7B3003410FD /* swap.cc */; };
 		C3DF4F1A1FFD6ACB00F90F0E /* segment_with_sections_iterator.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F191FFD6ACB00F90F0E /* segment_with_sections_iterator.cc */; };
 		C3DF4F221FFE25D600F90F0E /* as_library.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F1F1FFE25D600F90F0E /* as_library.cc */; };
 		C3DF4F231FFE25D600F90F0E /* as_dynamic_library.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F201FFE25D600F90F0E /* as_dynamic_library.cc */; };
@@ -135,6 +138,12 @@
 		C3BA3CA91F131AD00049C652 /* container.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = container.cc; path = "../../src/mach-o/container.cc"; sourceTree = "<group>"; };
 		C3BA3CAB1F131AD00049C652 /* file.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = file.cc; path = "../../src/mach-o/file.cc"; sourceTree = "<group>"; };
 		C3BA3CAC1F131AD00049C652 /* container.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = container.h; path = "../../src/mach-o/container.h"; sourceTree = "<group>"; };
+		C3C0E319204DF775003410FD /* tbd-create.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "tbd-create.cc"; path = "../../src/mach-o/utils/tbd-create.cc"; sourceTree = "<group>"; };
+		C3C0E31B204DF77E003410FD /* tbd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tbd.h; path = "../../src/mach-o/utils/tbd.h"; sourceTree = "<group>"; };
+		C3C0E31C204DF799003410FD /* swap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = swap.h; path = "../../src/mach-o/utils/swap.h"; sourceTree = "<group>"; };
+		C3C0E31D204DF79F003410FD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = "../../src/mach-o/utils/swap.cc"; sourceTree = "<group>"; };
+		C3C0E31F204DF7B3003410FD /* swap.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = swap.cc; path = ../../src/utils/swap.cc; sourceTree = "<group>"; };
+		C3C0E321204DF7B9003410FD /* swap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = swap.h; path = ../../src/utils/swap.h; sourceTree = "<group>"; };
 		C3D027021F1AE88100BAA510 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
 		C3DB912A1F10F20C00A7C2E7 /* file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file.h; path = "../../src/mach-o/file.h"; sourceTree = "<group>"; };
 		C3DF4F171FFD6AC400F90F0E /* segment_with_sections_iterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = segment_with_sections_iterator.h; path = "../../src/mach-o/utils/segments/segment_with_sections_iterator.h"; sourceTree = "<group>"; };
@@ -239,6 +248,10 @@
 				C3552F991FFCB66D00A34733 /* strings */,
 				C3A70D1A1FF6D97500463494 /* symbols */,
 				C3DF4F1E1FFE25C600F90F0E /* validation */,
+				C3C0E31C204DF799003410FD /* swap.h */,
+				C3C0E31D204DF79F003410FD /* swap.cc */,
+				C3C0E31B204DF77E003410FD /* tbd.h */,
+				C3C0E319204DF775003410FD /* tbd-create.cc */,
 				C3B1F98820020D930059E076 /* tbd-structure.cc */,
 				C3B1F98620020D280059E076 /* tbd-write.cc */,
 			);
@@ -256,6 +269,8 @@
 				C34E38B91F93DE620078F554 /* path.cc */,
 				C3A8A7CE1F93ED99001510A2 /* string.h */,
 				C3A8A7CD1F93ED99001510A2 /* string.cc */,
+				C3C0E321204DF7B9003410FD /* swap.h */,
+				C3C0E31F204DF7B3003410FD /* swap.cc */,
 			);
 			name = utils;
 			sourceTree = "<group>";
@@ -482,11 +497,14 @@
 				C3A70D311FF6DAF800463494 /* (null) in Sources */,
 				C369BF7F2047F54400F5ECA2 /* tbd_parse_fields.cc in Sources */,
 				C3B1F98920020D930059E076 /* tbd-structure.cc in Sources */,
+				C3C0E31A204DF775003410FD /* tbd-create.cc in Sources */,
 				C369BF682047F4EB00F5ECA2 /* subtype.cc in Sources */,
 				C369BF852047F54400F5ECA2 /* recursive_mkdir.cc in Sources */,
+				C3C0E31E204DF79F003410FD /* swap.cc in Sources */,
 				C3552FA01FFCB6AF00A34733 /* data.cc in Sources */,
 				C3A70D341FF6DB2E00463494 /* (null) in Sources */,
 				C34B7A85200C0959009FB07A /* current_directory.cc in Sources */,
+				C3C0E320204DF7B3003410FD /* swap.cc in Sources */,
 				C3A70D1E1FF6D9B400463494 /* (null) in Sources */,
 				C3B9186C1FB670DC00311727 /* unique.cc in Sources */,
 				C3B1F98720020D280059E076 /* tbd-write.cc in Sources */,

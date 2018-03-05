@@ -86,10 +86,6 @@ namespace main_utils {
                         fprintf(stderr, "Failed to open stream for file at provided path, failing with error: %s\n", strerror(errno));
                         exit(1);
 
-                    case macho::file::open_result::failed_to_retrieve_information:
-                        fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
-                        exit(1);
-
                     case macho::file::open_result::stream_seek_error:
                     case macho::file::open_result::stream_read_error:
                         fputs("Encountered an error while parsing file at provided path\n", stderr);
@@ -101,10 +97,6 @@ namespace main_utils {
 
                     case macho::file::open_result::too_many_containers:
                         fputs("Mach-o file at provided path has too many architectures for its file-size\n", stderr);
-                        exit(1);
-
-                    case macho::file::open_result::containers_goes_past_end_of_file:
-                        fputs("Mach-o file at provided path's architectures goes past end of file\n", stderr);
                         exit(1);
 
                     case macho::file::open_result::overlapping_containers:
