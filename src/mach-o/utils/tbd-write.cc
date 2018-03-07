@@ -362,7 +362,7 @@ namespace macho::utils {
             }
 
             const auto architecture_info = architecture_info_from_index(index);
-            if (!stream.print(architecture_info->name)) {
+            if (!stream.printf(", %s", architecture_info->name)) {
                 return false;
             }
         }
@@ -789,29 +789,48 @@ namespace macho::utils {
         const auto uuids_size = uuids.size();
 
         if (options.order_by_architecture_info_table) {
-            auto null_architectures_pair = tbd::uuid_pair();
-            null_architectures_pair.architecture = nullptr;
+            // To organize by architecture_info_table, we iterate over the
+            // uuids-vector, finding the uuid with the lowest corresponding
+            // architecture-info pointer
 
-            auto last_pair = const_cast<const tbd::uuid_pair *>(&null_architectures_pair);
-            auto pair = uuids_begin;
+            // But we avoid having to remove uuid architecture-info pairs by
+            // keeping a pointer to the last architecture we used, and checking
+            // against it to make sure the lowest architecture-info we find is
+            // greater than the last used
+
+            auto architecture_info_table = macho::get_architecture_info_table();
+            auto last_architecture = macho::get_architecture_info_table();
 
             do {
+                // To get the smallest architecture, we iterate over the uuids
+                // vector, but there is an issue. What should the initial value
+                // of resulting_iter be? Storing as the first uuids_begin risks messing
+                // up the ordering as we are to select only from [last_architecture+1...uuids_end]
+
+                // The way to remedy this is to store the architecture-info of the result iter
+                // in a seperate variable, initially set to NULL architecture-info (the last
+                // architecture-info in the table)
+
+                auto resulting_iter = uuids_begin;
+                auto resulting_architecture = &architecture_info_table[macho::get_architecture_info_table_size() - 1];
+
                 for (auto iter = uuids_begin; iter != uuids_end; iter++) {
-                    if (pair->architecture < iter->architecture) {
+                    if (last_architecture >= iter->architecture) {
                         continue;
                     }
 
-                    if (last_pair->architecture >= iter->architecture) {
+                    if (resulting_architecture <= iter->architecture) {
                         continue;
                     }
 
-                    pair = iter;
+                    resulting_iter = iter;
+                    resulting_architecture = iter->architecture;
                 }
 
-                const auto &uuid = pair->uuid();
-                const auto result = stream.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
-                                                    uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
-                                                    uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                const auto &uuid = resulting_iter->uuid();
+                const auto result = stream.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", resulting_architecture->name,
+                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
+                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 if (!result) {
                     return false;
                 }
@@ -829,15 +848,14 @@ namespace macho::utils {
                     }
                 }
 
-                last_pair = pair.base();
-                pair = uuids_begin;
+                last_architecture = resulting_architecture;
             } while (tracker != uuids_size);
         } else {
             for (auto pair = uuids.cbegin(); pair != uuids_end; pair++) {
                 const auto &uuid = pair->uuid();
                 const auto result = stream.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
-                                                    uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
-                                                    uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
+                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 if (result) {
                     return false;
                 }
