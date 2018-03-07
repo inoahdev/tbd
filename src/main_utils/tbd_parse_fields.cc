@@ -71,10 +71,52 @@ namespace main_utils {
         return platform;
     }
 
+    uint32_t parse_swift_version_from_argument(int &index, int argc, const char *argv[]) {
+        ++index;
+        if (index == argc) {
+            fputs("Please provide a swift-version\n", stderr);
+            exit(1);
+        }
+
+        uint32_t value = 0;
+        const char *string = argv[index];
+
+        if (*string == '\0') {
+            fputs("Please provide a swift-version\n", stderr);
+            exit(1);
+        }
+
+        if (strcmp(string, "1.2") == 0) {
+            value = 2;
+        } else {
+            do {
+                char ch = *string;
+                int digit = ch & ~0x30;
+
+                if (digit >= 10) {
+                    fprintf(stderr, "Invalid character in swift-version: %c\n", ch);
+                    exit(1);
+                }
+
+                value *= 10;
+                value += digit;
+
+                string++;
+            } while (*string != '\0');
+
+            if (value > 1) {
+                value++;
+            }
+        }
+
+        return value;
+    }
+
     enum macho::utils::tbd::version parse_tbd_version(int &index, int argc, const char *argv[]) {
         ++index;
         if (index == argc) {
             fputs("Please provide a tbd-version. Run --list-versions to see a list of tbd-versions\n", stderr);
+            exit(1);
         }
 
         const auto argument = argv[index];

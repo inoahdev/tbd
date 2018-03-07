@@ -57,9 +57,9 @@ namespace main_utils {
 
     bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
-           if (info->never_replace_platform) {
-               return false;
-           }
+            if (info->never_replace_platform) {
+                return false;
+            }
         }
 
         if (all.creation_options.ignore_platform && all.info.platform != macho::utils::tbd::platform::none) {
@@ -69,39 +69,36 @@ namespace main_utils {
         auto result = std::string();
 
         if (info != nullptr) {
-           request_input(result, "Replace platform?", { "all", "yes", "no", "never" });
+            request_input(result, "Replace platform?", { "all", "yes", "no", "never" });
         } else {
-           request_input(result, "Replace platform?", { "yes", "no" });
+            request_input(result, "Replace platform?", { "yes", "no" });
         }
 
         if (result == "never") {
-           if (info != nullptr) {
-               info->never_replace_platform = true;
-           }
-
-           return false;
+            info->never_replace_platform = true;
+            return false;
         } else if (result == "none") {
-           return false;
+            return false;
         }
 
         auto apply_to_all = result == "all";
         auto new_platform = macho::utils::tbd::platform::none;
 
         do {
-           request_input(result, "Replacement platform: (--list-platform to see a list of platforms)", {});
-           if (result == "--list-platform") {
-               print_tbd_platforms();
-           } else {
-               new_platform = macho::utils::tbd::platform_from_string(result.c_str());
-           }
+            request_input(result, "Replacement platform: (--list-platform to see a list of platforms)", {});
+            if (result == "--list-platform") {
+                print_tbd_platforms();
+            } else {
+                new_platform = macho::utils::tbd::platform_from_string(result.c_str());
+            }
         } while (new_platform == macho::utils::tbd::platform::none);
 
         tbd.info.platform = new_platform;
         tbd.creation_options.ignore_platform = true;
 
         if (apply_to_all) {
-           all.info.platform = new_platform;
-           all.creation_options.ignore_platform = true;
+            all.info.platform = new_platform;
+            all.creation_options.ignore_platform = true;
         }
 
         return true;
@@ -127,10 +124,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_replace_installation_name = true;
-            }
-
+            info->never_replace_installation_name = true;
             return false;
         } else if (result == "none") {
             return false;
@@ -174,10 +168,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_replace_objc_constraint = true;
-            }
-
+            info->never_replace_objc_constraint = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -226,10 +217,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_replace_parent_umbrella = true;
-            }
-
+            info->never_replace_parent_umbrella = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -271,10 +259,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_replace_swift_version = true;
-            }
-
+            info->never_replace_swift_version = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -285,7 +270,18 @@ namespace main_utils {
 
         do {
             request_input(result, "Replacement swift-version", {});
-        } while ((new_swift_version = (uint32_t)strtoul(result.c_str(), nullptr, 10)) != 0);
+
+            if (result == "1.2") {
+                new_swift_version = 2;
+            } else {
+                if (result.find_first_not_of("0123456789") != std::string::npos) {
+                    continue;
+                }
+
+                new_swift_version = (uint32_t)strtoul(result.c_str(), nullptr, 10) + 1;
+                break;
+            }
+        } while (true);
 
         tbd.info.swift_version = (uint32_t)new_swift_version;
         tbd.creation_options.ignore_swift_version = true;
@@ -317,10 +313,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_replace_swift_version = true;
-            }
-
+            info->never_replace_swift_version = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -356,10 +349,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_ignore_uuids = true;
-            }
-
+            info->never_ignore_uuids = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -396,10 +386,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_ignore_non_unique_uuids = true;
-            }
-
+            info->never_ignore_non_unique_uuids = true;
             return false;
         } else if (result == "no") {
             return false;
@@ -433,10 +420,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            if (info != nullptr) {
-                info->never_ignore_missing_uuids = true;
-            }
-
+            info->never_ignore_missing_uuids = true;
             return false;
         } else if (result == "no") {
             return false;

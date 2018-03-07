@@ -41,6 +41,14 @@ namespace main_utils {
             this->info.platform = options.info.platform;
         }
 
+        if (options.options.replaced_objc_constraint) {
+            this->info.objc_constraint = options.info.objc_constraint;
+        }
+
+        if (this->info.swift_version == 0) {
+            this->info.swift_version = options.info.swift_version;
+        }
+
         if (this->info.version == macho::utils::tbd::version::none) {
             this->info.version = options.info.version;
         }
@@ -158,9 +166,9 @@ namespace main_utils {
         } else if (strcmp(option, "replace-archs") == 0) {
             if (this->options.remove_architectures) {
                 if (this->options.replace_architectures) {
-                    fputs("Can't both replace architectures and add architectures to list founs\n", stderr);
+                    fputs("Can't both replace architectures and add architectures to list found\n", stderr);
                 } else {
-                    fputs("Can't both replace architectures and remove select architectures from list founs\n", stderr);
+                    fputs("Can't both replace architectures and remove select architectures from list found\n", stderr);
                 }
 
                 exit(1);
@@ -184,6 +192,9 @@ namespace main_utils {
         } else if (strcmp(option, "replace-platform") == 0) {
             this->info.platform = main_utils::parse_platform_from_argument(index, argc, argv);
             this->creation_options.ignore_platform = true;
+        } else if (strcmp(option, "replace-swift-version") == 0) {
+            this->info.swift_version = parse_swift_version_from_argument(index, argc, argv);
+            this->creation_options.ignore_swift_version = true;
         } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
             this->info.version = main_utils::parse_tbd_version(index, argc, argv);
         } else {
