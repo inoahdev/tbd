@@ -99,6 +99,8 @@ namespace main_utils {
                     bool replace_path_extension : 1;
 
                     bool replaced_objc_constraint : 1;
+                    bool provided_tbd_version     : 1;
+                    
                 } __attribute__((packed));
             };
 

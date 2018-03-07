@@ -563,6 +563,10 @@ int main(int argc, const char *argv[]) {
     auto should_print_paths = tbds.size() != 1;
     for (auto &tbd : tbds) {
 
+        // Apply global variables from global tbd
+        
+        tbd.apply_missing_from(global);
+        
         // Apply global options
 
         tbd.creation_options.value |= global.creation_options.value;
@@ -574,10 +578,6 @@ int main(int argc, const char *argv[]) {
         tbd.creation_options.value &= ~global_donts.creation_options.value;
         tbd.write_options.value &= ~global_donts.write_options.value;
         tbd.options.value &= ~global_donts.options.value;
-
-        // Apply global variables from global tbd
-
-        tbd.apply_missing_from(global);
 
         // Apply other global variables
 

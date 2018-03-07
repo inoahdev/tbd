@@ -12,45 +12,45 @@
 #include "tbd_with_options.h"
 
 namespace main_utils {
-    void tbd_with_options::apply_missing_from(const tbd_with_options &options) noexcept {
+    void tbd_with_options::apply_missing_from(const tbd_with_options &tbd) noexcept {
         if (this->info.architectures == 0) {
-            this->info.architectures = options.info.architectures;
+            this->info.architectures = tbd.info.architectures;
         }
 
         if (this->info.current_version.value == 0) {
-            this->info.current_version.value = options.info.current_version.value;
+            this->info.current_version.value = tbd.info.current_version.value;
         }
 
         if (this->info.compatibility_version.value == 0) {
-            this->info.compatibility_version.value = options.info.compatibility_version.value;
+            this->info.compatibility_version.value = tbd.info.compatibility_version.value;
         }
 
         if (this->info.flags.value == 0) {
-            this->info.flags.value = options.info.flags.value;
+            this->info.flags.value = tbd.info.flags.value;
         }
 
         if (this->info.install_name.empty()) {
-            this->info.install_name = options.info.install_name;
+            this->info.install_name = tbd.info.install_name;
         }
 
         if (this->info.parent_umbrella.empty()) {
-            this->info.parent_umbrella = options.info.parent_umbrella;
+            this->info.parent_umbrella = tbd.info.parent_umbrella;
         }
 
         if (this->info.platform == macho::utils::tbd::platform::none) {
-            this->info.platform = options.info.platform;
+            this->info.platform = tbd.info.platform;
         }
 
-        if (options.options.replaced_objc_constraint) {
-            this->info.objc_constraint = options.info.objc_constraint;
+        if (tbd.options.replaced_objc_constraint) {
+            this->info.objc_constraint = tbd.info.objc_constraint;
         }
 
         if (this->info.swift_version == 0) {
-            this->info.swift_version = options.info.swift_version;
+            this->info.swift_version = tbd.info.swift_version;
         }
 
-        if (this->info.version == macho::utils::tbd::version::none) {
-            this->info.version = options.info.version;
+        if (!this->options.provided_tbd_version) {
+            this->info.version = tbd.info.version;
         }
     }
 
@@ -197,6 +197,7 @@ namespace main_utils {
             this->creation_options.ignore_swift_version = true;
         } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
             this->info.version = main_utils::parse_tbd_version(index, argc, argv);
+            this->options.provided_tbd_version = true;
         } else {
             return false;
         }
