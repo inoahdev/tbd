@@ -22,6 +22,8 @@ namespace main_utils {
                         fputs("Mach-o file at provided path has multiple containers for the same cputype and subtype\n", stderr);
                     }
                     
+                    return false;
+                    
                 case macho::utils::tbd::creation_result::invalid_container_header_subtype:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an unrecognized cpu-subtype\n", path);
