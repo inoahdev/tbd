@@ -11,8 +11,6 @@
 #include <string>
 #include <vector>
 
-#include "../../utils/bits.h"
-
 #include "../architecture_info.h"
 #include "../file.h"
 
