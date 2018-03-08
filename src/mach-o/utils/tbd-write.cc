@@ -137,40 +137,17 @@ namespace macho::utils {
     std::vector<tbd::symbol>::const_iterator next_iterator_for_symbol(const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures, enum tbd::symbol::type type) noexcept;
 
     std::vector<tbd::export_group> tbd::export_groups() const noexcept {
-        // Symbols created using tbd::create are kept
-        // track of by a bitset of indexs into the
-        // containers that hold them, but this differs
-        // from the tbd-format, where symbols are tracked
-        // with the *architecture* of where they're found
-
-        // To generate export-groups, we need to convert the
-        // container-index bitset to an architecture-info indexs
-        // bitset but that presents an issue which may be a problem,
-        // namely multiple containers with the same architecture.
-
-        // Multiple containers with the same architecture may not
-        // even be supported officially by llvm, either they don't,
-        // they choose a "best" fitting architecture with some sort
-        // or measurement, or combine all containers with the same
-        // architecture into a single architecture export-group, which,
-        // for now, is what we're doing
-
-        // XXX: We might want to move to a different behavior for this,
-        // or allow the caller to provide this different behavior, keeping
-        // a default if the caller does not provide one
-
         auto groups = std::vector<export_group>();
 
         auto groups_begin = groups.begin();
         auto groups_end = groups.end();
 
+        // Create groups by the architectures bit-set in each
+        // reexport and symbol.
+        
         for (const auto &reexport : this->reexports) {
             auto groups_iter = std::find(groups_begin, groups_end, reexport);
             if (groups_iter != groups_end) {
-                if (!groups_iter->reexport) {
-                    groups_iter->reexport = &reexport;
-                }
-
                 continue;
             }
 
@@ -184,6 +161,10 @@ namespace macho::utils {
         for (const auto &symbol : this->symbols) {
             auto groups_iter = std::find(groups_begin, groups_end, symbol);
             if (groups_iter != groups_end) {
+                // A group may have already been created
+                // for the symbol's architectures when iterating
+                // over reexports
+                
                 if (!groups_iter->symbol) {
                     groups_iter->symbol = &symbol;
                 }
@@ -337,14 +318,18 @@ namespace macho::utils {
         auto first_architecture_index = 1ull;
         auto first_architecture_index_bit = 1ull;
         
-        for (; first_architecture_index < architecture_info_size; first_architecture_index++) {
+        for (; first_architecture_index < architecture_info_size; first_architecture_index++, first_architecture_index_bit <<= 1) {
             if (!(architectures & first_architecture_index_bit)) {
                 continue;
             }
 
-            return false;
+            break;
         }
 
+        if (first_architecture_index == architecture_info_size) {
+            return false;
+        }
+        
         const auto architecture_info = architecture_info_from_index(first_architecture_index);
         if (dash) {
             if (!stream.printf("  - archs:%-14s[ %s", "", architecture_info->name)) {
