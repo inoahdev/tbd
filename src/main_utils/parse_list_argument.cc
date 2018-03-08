@@ -111,23 +111,23 @@ namespace main_utils {
                 // Store architecture names in a vector before printing
                 // so we can handle any errors encountered first
 
-                auto cndex = 0;
+                auto container_index = 0;
                 auto names = std::vector<const char *>();
 
                 for (const auto &container : file.containers) {
                     const auto container_subtype = macho::subtype_from_cputype(macho::cputype(container.header.cputype), container.header.cpusubtype);
                     if (container_subtype == macho::subtype::none) {
-                        fprintf(stderr, "Unrecognized cpu-subtype for architecture at index %d\n", cndex);
+                        fprintf(stderr, "Unrecognized cpu-subtype for architecture at index %d\n", container_index);
                         exit(1);
                     }
 
                     const auto architecture_info = macho::architecture_info_from_cputype(macho::cputype(container.header.cputype), container_subtype);
                     if (!architecture_info) {
-                        fprintf(stderr, "Unrecognized cputype information for architecture at index %d\n", cndex);
+                        fprintf(stderr, "Unrecognized cputype information for architecture at index %d\n", container_index);
                         exit(1);
                     }
 
-                    cndex++;
+                    container_index++;
                 }
 
                 fputs(names.front(), stdout);
@@ -137,13 +137,13 @@ namespace main_utils {
             }
 
             fputc('\n', stdout);
-        } else if (strcmp(option, "list-macho-dynamic-libraries") == 0) {
+        } else if (strcmp(option, "list-macho-dylibs") == 0) {
             if (index != 1) {
                 fprintf(stderr, "Option (%s) needs to be run by itself or with a path to a mach-o file\n", argument);
                 exit(1);
             }
 
-            // Two different modes exist for --list-macho-dynamic-libraries;
+            // Two different modes exist for --list-macho-dylibs;
             // either recurse current-directory with default options, or
             // recurse provided director(ies) with provided options
 
