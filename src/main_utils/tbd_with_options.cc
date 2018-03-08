@@ -49,7 +49,7 @@ namespace main_utils {
             this->info.swift_version = tbd.info.swift_version;
         }
 
-        if (!this->options.provided_tbd_version) {
+        if (this->info.version == macho::utils::tbd::version::none) {
             this->info.version = tbd.info.version;
         }
     }
@@ -197,7 +197,6 @@ namespace main_utils {
             this->creation_options.ignore_swift_version = true;
         } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
             this->info.version = main_utils::parse_tbd_version(index, argc, argv);
-            this->options.provided_tbd_version = true;
         } else {
             return false;
         }

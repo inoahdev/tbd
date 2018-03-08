@@ -254,10 +254,6 @@ int main(int argc, const char *argv[]) {
 
             auto tbd = main_utils::tbd_with_options();
 
-            // Apply "default" behavior and information
-
-            tbd.apply_missing_from(global);
-
             // An unused structure that is only written
             // to for parsing of local don't options
 
