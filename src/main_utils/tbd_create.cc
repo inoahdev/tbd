@@ -15,6 +15,13 @@ namespace main_utils {
                 case macho::utils::tbd::creation_result::ok:
                     return true;
 
+                case macho::utils::tbd::creation_result::multiple_containers_for_same_architecture:
+                    if (options.print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) has multiple containers for the same cputype and subtype\n", path);
+                    } else {
+                        fputs("Mach-o file at provided path has multiple containers for the same cputype and subtype\n", stderr);
+                    }
+                    
                 case macho::utils::tbd::creation_result::invalid_container_header_subtype:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an unrecognized cpu-subtype\n", path);
@@ -461,7 +468,7 @@ namespace main_utils {
                     return false;
             }
         } while (true);
-
+        
         return true;
     }
 }

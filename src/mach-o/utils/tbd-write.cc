@@ -334,16 +334,14 @@ namespace macho::utils {
         // Find first architecture to write out, then
         // write out the rest with a leading comma
 
-        auto first_architecture_index = uint64_t();
+        auto first_architecture_index = 1ull;
+        auto first_architecture_index_bit = 1ull;
+        
         for (; first_architecture_index < architecture_info_size; first_architecture_index++) {
-            if (!(architectures & (1ull << first_architecture_index))) {
+            if (!(architectures & first_architecture_index_bit)) {
                 continue;
             }
 
-            break;
-        }
-
-        if (first_architecture_index == architecture_info_size) {
             return false;
         }
 

@@ -51,7 +51,6 @@
 		C3DF4F221FFE25D600F90F0E /* as_library.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F1F1FFE25D600F90F0E /* as_library.cc */; };
 		C3DF4F231FFE25D600F90F0E /* as_dynamic_library.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F201FFE25D600F90F0E /* as_dynamic_library.cc */; };
 		C3DF4F241FFE25D600F90F0E /* as_normal.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3DF4F211FFE25D600F90F0E /* as_normal.cc */; };
-		C3E46DD81FC2798700ED4574 /* bits.cc in Sources */ = {isa = PBXBuildFile; fileRef = C3E46DD71FC2798600ED4574 /* bits.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -155,8 +154,6 @@
 		C3DF4F251FFE25DD00F90F0E /* as_library.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = as_library.h; path = "../../src/mach-o/utils/validation/as_library.h"; sourceTree = "<group>"; };
 		C3DF4F261FFE25DD00F90F0E /* as_normal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = as_normal.h; path = "../../src/mach-o/utils/validation/as_normal.h"; sourceTree = "<group>"; };
 		C3DF4F271FFE25DD00F90F0E /* as_dynamic_library.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = as_dynamic_library.h; path = "../../src/mach-o/utils/validation/as_dynamic_library.h"; sourceTree = "<group>"; };
-		C3E46DD71FC2798600ED4574 /* bits.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bits.cc; path = ../../src/utils/bits.cc; sourceTree = "<group>"; };
-		C3E46DD91FC2798D00ED4574 /* bits.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bits.h; path = ../../src/utils/bits.h; sourceTree = "<group>"; };
 		C3E4A8A61F80281300A6A4E4 /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = flags.h; path = "../../src/mach-o/headers/flags.h"; sourceTree = "<group>"; };
 		C3FB674B1F4339470025EB0A /* image_info.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = image_info.h; path = ../../src/objc/image_info.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -261,8 +258,6 @@
 		C34E38B81F93DBF60078F554 /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				C3E46DD91FC2798D00ED4574 /* bits.h */,
-				C3E46DD71FC2798600ED4574 /* bits.cc */,
 				C36E92B11F96E326008CC57F /* directory.h */,
 				C36E92B01F96E326008CC57F /* directory.cc */,
 				C34E38BB1F93DE6C0078F554 /* path.h */,
@@ -522,7 +517,6 @@
 				C3BA3CA81F131AC30049C652 /* main.cc in Sources */,
 				C369BF812047F54400F5ECA2 /* tbd_print_field_information.cc in Sources */,
 				C3DF4F221FFE25D600F90F0E /* as_library.cc in Sources */,
-				C3E46DD81FC2798700ED4574 /* bits.cc in Sources */,
 				C3A70D221FF6D9C900463494 /* (null) in Sources */,
 				C369BF6D2047F50600F5ECA2 /* retrieve.cc in Sources */,
 				C3DF4F1A1FFD6ACB00F90F0E /* segment_with_sections_iterator.cc in Sources */,

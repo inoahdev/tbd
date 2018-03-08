@@ -37,7 +37,12 @@ namespace macho::utils {
                 return creation_result::unrecognized_container_cputype_subtype_pair;
             }
 
-            this->architectures |= (1ull << architecture_info_index);
+            const auto architecture_info_index_bit = (1ull << architecture_info_index);
+            if (this->architectures & architecture_info_index_bit) {
+                return creation_result::multiple_containers_for_same_architecture;
+            }
+            
+            this->architectures |= architecture_info_index_bit;
 
             if (!options.ignore_unnecessary_fields_for_version) {
                 if (!options.ignore_flags) {
@@ -313,17 +318,14 @@ namespace macho::utils {
                             }
 
                             reexports_iter->add_architecture(architecture_info_index);
-                            reexports_iter->add_container(container_index);
-
                             break;
                         }
 
                         if (reexports_iter == reexports_end) {
                             auto reexport_string = std::string(dylib_command_name, dylib_command_name_length);
-                            auto &reexport = this->reexports.emplace_back(1ull << architecture_info_index, ::utils::bits(file.containers.size()), std::move(reexport_string));
+                            auto &reexport = this->reexports.emplace_back(1ull << architecture_info_index, std::move(reexport_string));
 
                             reexport.add_architecture(architecture_info_index);
-                            reexport.add_container(container_index);
                         }
 
                         break;
@@ -651,7 +653,6 @@ namespace macho::utils {
                             }
 
                             sub_clients_iter->add_architecture(architecture_info_index);
-                            sub_clients_iter->add_container(container_index);
                         }
 
                         // In case a sub-client
@@ -659,10 +660,9 @@ namespace macho::utils {
 
                         if (sub_clients_iter == sub_clients_end) {
                             auto sub_client_string = std::string(sub_client_command_name, sub_client_command_name_length);
-                            auto &sub_client = sub_clients.emplace_back(1ull << architecture_info_index, ::utils::bits(file.containers.size()), std::move(sub_client_string));
+                            auto &sub_client = sub_clients.emplace_back(1ull << architecture_info_index, std::move(sub_client_string));
 
                             sub_client.add_architecture(architecture_info_index);
-                            sub_client.add_container(container_index);
                         }
 
                         break;
@@ -1113,17 +1113,14 @@ namespace macho::utils {
                             }
 
                             symbols_iter->add_architecture(architecture_info_index);
-                            symbols_iter->add_container(container_index);
-
                             break;
                         }
 
                         if (symbols_iter == symbols_end) {
                             auto symbol_string = std::string(string, string_length);
-                            auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, ::utils::bits(file.containers.size()), std::move(symbol_string), type);
+                            auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, std::move(symbol_string), type);
 
                             symbol.add_architecture(architecture_info_index);
-                            symbol.add_container(container_index);
                         }
                     }
                 } else {
@@ -1245,17 +1242,14 @@ namespace macho::utils {
                             }
 
                             symbols_iter->add_architecture(architecture_info_index);
-                            symbols_iter->add_container(container_index);
-
                             break;
                         }
 
                         if (symbols_iter == symbols_end) {
                             auto symbol_string = std::string(string, string_length);
-                            auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, ::utils::bits(file.containers.size()), std::move(symbol_string), type);
+                            auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, std::move(symbol_string), type);
 
                             symbol.add_architecture(architecture_info_index);
-                            symbol.add_container(container_index);
                         }
                     }
                 }
@@ -1294,8 +1288,13 @@ namespace macho::utils {
             return creation_result::unrecognized_container_cputype_subtype_pair;
         }
 
-        this->architectures |= (1ull << architecture_info_index);
-
+        const auto architecture_info_index_bit = (1ull << architecture_info_index);
+        if (this->architectures & architecture_info_index_bit) {
+            return creation_result::multiple_containers_for_same_architecture;
+        }
+        
+        this->architectures |= architecture_info_index_bit;
+        
         if (!options.ignore_unnecessary_fields_for_version) {
             if (!options.ignore_flags) {
                 if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
@@ -1512,7 +1511,7 @@ namespace macho::utils {
                     // Assume dylib_command_name is
                     // not null-terminated
 
-                    this->reexports.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(dylib_command_name, dylib_command_name_length));
+                    this->reexports.emplace_back(1ull << architecture_info_index, std::string(dylib_command_name, dylib_command_name_length));
                     break;
                 }
 
@@ -1813,7 +1812,7 @@ namespace macho::utils {
                         continue;
                     }
 
-                    this->sub_clients.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(sub_client_command_name, sub_client_command_name_length));
+                    this->sub_clients.emplace_back(1ull << architecture_info_index, std::string(sub_client_command_name, sub_client_command_name_length));
                     break;
                 }
 
@@ -2118,7 +2117,7 @@ namespace macho::utils {
                         break;
                 }
 
-                this->symbols.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(string, string_length), type);
+                this->symbols.emplace_back(1ull << architecture_info_index, std::string(string, string_length), type);
             }
 
             std::sort(this->reexports.begin(), this->reexports.end(), [](const reexport &lhs, const reexport &rhs) {

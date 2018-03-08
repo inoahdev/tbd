@@ -70,18 +70,6 @@ namespace macho::utils {
                 return 0;
             }
 
-            inline const ::utils::bits *containers() const noexcept {
-                if (this->reexport != nullptr) {
-                    return &this->reexport->containers;
-                }
-
-                if (this->symbol != nullptr) {
-                    return &this->symbol->containers;
-                }
-
-                return nullptr;
-            }
-
             inline bool operator==(const struct reexport &reexport) const noexcept {
                 return this->architectures() == reexport.architectures;
             }
@@ -180,12 +168,10 @@ namespace macho::utils {
 
         struct reexport {
             explicit reexport() = default;
-            explicit reexport(uint64_t architectures, ::utils::bits &containers, std::string &string) noexcept;
-            explicit reexport(uint64_t architectures, ::utils::bits &&containers, std::string &&string) noexcept;
+            explicit reexport(uint64_t architectures, std::string &string) noexcept;
+            explicit reexport(uint64_t architectures, std::string &&string) noexcept;
 
             uint64_t architectures = uint64_t();
-            ::utils::bits containers;
-
             std::string string;
 
             inline bool has_architecture(uint64_t index) const noexcept {
@@ -196,28 +182,12 @@ namespace macho::utils {
                 this->architectures |= 1ull << index;
             }
 
-            inline bool has_container(uint64_t index) const noexcept {
-                return this->containers.at(index);
-            }
-
-            void add_container(uint64_t index) noexcept {
-                this->containers.cast(index, true);
-            }
-
             inline bool operator==(const uint64_t &architectures) const noexcept {
                 return this->architectures == architectures;
             }
 
             inline bool operator!=(const uint64_t &architectures) const noexcept {
                 return this->architectures != architectures;
-            }
-
-            inline bool operator==(const ::utils::bits &containers) const noexcept {
-                return this->containers == containers;
-            }
-
-            inline bool operator!=(const ::utils::bits &containers) const noexcept {
-                return this->containers != containers;
             }
 
             inline bool operator==(const std::string &string) const noexcept {
@@ -229,22 +199,20 @@ namespace macho::utils {
             }
 
             inline bool operator==(const reexport &reexport) const noexcept {
-                return *this == reexport.containers && *this == reexport.string;
+                return this->architectures == reexport.architectures && this->string == reexport.string;
             }
 
             inline bool operator!=(const reexport &reexport) const noexcept {
-                return *this != reexport.containers || *this != reexport.string;
+                return this->architectures != reexport.architectures && this->string != reexport.string;
             }
         };
 
         struct sub_client {
             explicit sub_client() = default;
-            explicit sub_client(uint64_t architectures, ::utils::bits &containers, std::string &client) noexcept;
-            explicit sub_client(uint64_t architectures, ::utils::bits &&containers, std::string &&client) noexcept;
+            explicit sub_client(uint64_t architectures, std::string &client) noexcept;
+            explicit sub_client(uint64_t architectures, std::string &&client) noexcept;
 
             uint64_t architectures = uint64_t();
-            ::utils::bits containers;
-
             std::string client;
 
             inline bool has_architecture(uint64_t index) const noexcept {
@@ -255,28 +223,12 @@ namespace macho::utils {
                 this->architectures |= 1ull << index;
             }
 
-            inline bool has_container(uint64_t index) const noexcept {
-                return this->containers.at(index);
-            }
-
-            inline void add_container(uint64_t index) noexcept {
-                this->containers.cast(index, true);
-            }
-
             inline bool operator==(const uint64_t &architectures) const noexcept {
                 return this->architectures == architectures;
             }
 
             inline bool operator!=(const uint64_t &architectures) const noexcept {
                 return this->architectures != architectures;
-            }
-
-            inline bool operator==(const ::utils::bits &containers) const noexcept {
-                return this->containers == containers;
-            }
-
-            inline bool operator!=(const ::utils::bits &containers) const noexcept {
-                return this->containers != containers;
             }
 
             inline bool operator==(const std::string &client) const noexcept {
@@ -288,11 +240,11 @@ namespace macho::utils {
             }
 
             inline bool operator==(const sub_client &client) const noexcept {
-                return *this == client.containers && *this == client.client;
+                return this->architectures == client.architectures && this->client == client.client;
             }
 
             inline bool operator!=(const sub_client &client) const noexcept {
-                return *this != client.containers || *this != client.client;
+                return this->architectures != client.architectures || this->client != client.client;
             }
         };
 
@@ -307,11 +259,10 @@ namespace macho::utils {
             static type type_from_symbol_string(const char *& string, symbol_table::desc n_desc) noexcept;
 
             explicit symbol() = default;
-            explicit symbol(uint64_t architectures, ::utils::bits &containers, std::string &string, type type) noexcept;
-            explicit symbol(uint64_t architectures, ::utils::bits &&containers, std::string &&string, type type) noexcept;
+            explicit symbol(uint64_t architectures, std::string &string, type type) noexcept;
+            explicit symbol(uint64_t architectures, std::string &&string, type type) noexcept;
 
             uint64_t architectures = uint64_t();
-            ::utils::bits containers;
 
             std::string string;
             type type;
@@ -324,28 +275,12 @@ namespace macho::utils {
                 this->architectures |= 1ull << index;
             }
 
-            inline bool has_container(uint64_t index) const noexcept {
-                return this->containers.at(index);
-            }
-
-            inline void add_container(uint64_t index) noexcept {
-                this->containers.cast(index, true);
-            }
-
             inline bool operator==(const uint64_t &architectures) const noexcept {
                 return this->architectures == architectures;
             }
 
             inline bool operator!=(const uint64_t &architectures) const noexcept {
                 return this->architectures != architectures;
-            }
-
-            inline bool operator==(const ::utils::bits &containers) const noexcept {
-                return this->containers == containers;
-            }
-
-            inline bool operator!=(const ::utils::bits &containers) const noexcept {
-                return this->containers != containers;
             }
 
             inline bool operator==(const std::string &string) const noexcept {
@@ -357,11 +292,11 @@ namespace macho::utils {
             }
 
             inline bool operator==(const symbol &symbol) const noexcept {
-                return this->type == type && this->containers == symbol.containers && *this == symbol.string;
+                return this->type == type && this->architectures == symbol.architectures && this->string == symbol.string;
             }
 
             inline bool operator!=(const symbol &symbol) const noexcept {
-                return this->type != type || this->containers != symbol.containers || *this != symbol.string;
+                return this->type != type || this->architectures != symbol.architectures || this->string != symbol.string;
             }
         };
 
@@ -525,7 +460,9 @@ namespace macho::utils {
 
         enum class creation_result {
             ok,
-
+            
+            multiple_containers_for_same_architecture,
+            
             invalid_container_header_subtype,
             unrecognized_container_cputype_subtype_pair,
 

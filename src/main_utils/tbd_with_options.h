@@ -43,14 +43,6 @@ namespace main_utils {
 
         uint64_t architectures = uint64_t();
 
-        // containers is a bitset of indexes of
-        // containers to create tbd from
-
-        // XXX: Create code to handle custom
-        // containers for tbd-create
-
-        utils::bits containers;
-
         struct options {
             explicit inline options() = default;
             explicit inline options(uint64_t value) : value(value) {}
@@ -72,7 +64,7 @@ namespace main_utils {
                     // and remove, but only two bits are
                     // used (replaced, removed). add is
                     // used when replaced and removed
-                    // is 1, so having both replacing and
+                    // is 1, as having both replacing and
                     // removing is not allowed
 
                     // Replace options are set if

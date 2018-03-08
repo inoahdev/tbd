@@ -268,21 +268,21 @@ namespace macho::utils {
     tbd::export_group::export_group(const struct symbol *symbol) noexcept
     : symbol(symbol) {}
 
-    tbd::reexport::reexport(uint64_t architectures, ::utils::bits &containers, std::string &string) noexcept
-    : architectures(architectures), containers(containers), string(string) {}
+    tbd::reexport::reexport(uint64_t architectures, std::string &string) noexcept
+    : architectures(architectures), string(string) {}
 
-    tbd::reexport::reexport(uint64_t architectures, ::utils::bits &&containers, std::string &&string) noexcept
-    : architectures(architectures), containers(containers), string(string) {}
+    tbd::reexport::reexport(uint64_t architectures, std::string &&string) noexcept
+    : architectures(architectures), string(string) {}
 
-    tbd::sub_client::sub_client(uint64_t architectures, ::utils::bits &containers, std::string &client) noexcept
-    : architectures(architectures), containers(containers), client(client) {}
+    tbd::sub_client::sub_client(uint64_t architectures, std::string &client) noexcept
+    : architectures(architectures), client(client) {}
 
-    tbd::sub_client::sub_client(uint64_t architectures, ::utils::bits &&containers, std::string &&client) noexcept
-    : architectures(architectures), containers(containers), client(client) {}
+    tbd::sub_client::sub_client(uint64_t architectures, std::string &&client) noexcept
+    : architectures(architectures), client(client) {}
 
-    tbd::symbol::symbol(uint64_t architectures, ::utils::bits &containers, std::string &string, enum type type) noexcept
-    : architectures(architectures), containers(containers), string(string), type(type) {}
+    tbd::symbol::symbol(uint64_t architectures, std::string &string, enum type type) noexcept
+    : architectures(architectures), string(string), type(type) {}
 
-    tbd::symbol::symbol(uint64_t architectures, ::utils::bits &&containers, std::string &&string, enum type type) noexcept
-    : architectures(architectures), containers(containers), string(string), type(type) {}
+    tbd::symbol::symbol(uint64_t architectures, std::string &&string, enum type type) noexcept
+    : architectures(architectures), string(string), type(type) {}
 }
