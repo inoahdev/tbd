@@ -40,7 +40,7 @@ namespace utils {
 
             if (new_allocation_size != old_allocation_size) {
                 auto pointer = new bits_integer_t[new_allocation_size];
-                if (!old_allocation_size) {
+                if (old_allocation_size == 0) {
                     memcpy(pointer, &data.integer, this->byte_size());
                 } else {
                     memcpy(pointer, data.pointer, old_allocation_size < new_allocation_size ? old_allocation_size : new_allocation_size);

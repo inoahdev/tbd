@@ -65,7 +65,7 @@ namespace macho {
                 return open_result::stream_read_error;
             }
 
-            if (!nfat_arch) {
+            if (nfat_arch == 0) {
                 return open_result::zero_containers;
             }
 

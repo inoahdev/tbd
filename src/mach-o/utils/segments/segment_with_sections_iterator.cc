@@ -11,7 +11,7 @@
 namespace macho::utils::segments {
     command::command(const macho::segment_command *segment, bool is_big_endian) noexcept {
         auto segment_sections_count = segment->nsects;
-        if (!segment_sections_count) {
+        if (segment_sections_count == 0) {
             return;
         }
 
@@ -37,7 +37,7 @@ namespace macho::utils::segments {
 
     command_64::command_64(const macho::segment_command_64 *segment, bool is_big_endian) noexcept {
         auto segment_sections_count = segment->nsects;
-        if (!segment_sections_count) {
+        if (segment_sections_count == 0) {
             return;
         }
 

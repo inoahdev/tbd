@@ -17,7 +17,7 @@ namespace utils::path {
             elmt = *(iter++);
         }
 
-        if (!elmt) {
+        if (elmt == '\0') {
             return nullptr;
         }
 
@@ -32,7 +32,7 @@ namespace utils::path {
             elmt = *(iter++);
         }
 
-        if (!elmt) {
+        if (elmt == '\0') {
             return nullptr;
         }
 

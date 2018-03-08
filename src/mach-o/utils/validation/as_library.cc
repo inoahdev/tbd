@@ -20,15 +20,15 @@ namespace macho::utils::validation {
     }
 
     bool as_library(const file &file) noexcept {
-        auto result = true;
+        auto is_library = true;
         for (const auto &container : file.containers) {
-            result = as_library(container);
-            if (!result) {
+            is_library = as_library(container);
+            if (!is_library) {
                 break;
             }
         }
 
-        return result;
+        return is_library;
     }
 
     bool as_library(const char *path, file::open_result *error) noexcept {

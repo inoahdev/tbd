@@ -279,7 +279,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_swift_version) {
-            if (tbd.version == tbd::version::v2 || !options.ignore_unneeded_fields_for_version) {
+            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_swift_version_to_stream(stream, tbd.swift_version)) {
                     return tbd::write_result::failed_to_write_swift_version;
                 }
@@ -287,7 +287,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_objc_constraint) {
-            if (tbd.version == tbd::version::v2 || !options.ignore_unneeded_fields_for_version) {
+            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_objc_constraint_to_stream(stream, tbd.objc_constraint)) {
                     return tbd::write_result::failed_to_write_objc_constraint;
                 }
@@ -295,7 +295,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_parent_umbrella) {
-            if (tbd.version == tbd::version::v2 || !options.ignore_unneeded_fields_for_version) {
+            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_parent_umbrella_to_stream(stream, tbd.parent_umbrella)) {
                     return tbd::write_result::failed_to_write_parent_umbrella;
                 }

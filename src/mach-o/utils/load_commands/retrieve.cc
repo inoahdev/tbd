@@ -16,7 +16,7 @@ namespace macho::utils::load_commands {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
-        if (!load_commands_count) {
+        if (load_commands_count == 0) {
             if (result != nullptr) {
                 *result = retrieve_result::no_load_commands;
             }
@@ -24,7 +24,7 @@ namespace macho::utils::load_commands {
             return nullptr;
         }
 
-        if (!load_commands_size) {
+        if (load_commands_size == 0) {
             if (result != nullptr) {
                 *result = retrieve_result::load_commands_area_is_too_small;
             }
@@ -77,8 +77,8 @@ namespace macho::utils::load_commands {
             load_commands_begin += sizeof(uint32_t);
         }
 
-        const auto container_seek_result = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
-        if (!container_seek_result) {
+        const auto did_seek_container = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
+        if (!did_seek_container) {
             if (result != nullptr) {
                 *result = retrieve_result::stream_seek_error;
             }
@@ -91,9 +91,9 @@ namespace macho::utils::load_commands {
         auto size_taken = uint32_t();
         for (auto index = uint32_t(); index < load_commands_count; index++) {
             auto load_command = macho::load_command();
-            auto load_command_read_result = container.stream.read(&load_command, sizeof(load_command));
+            auto did_read_load_command = container.stream.read(&load_command, sizeof(load_command));
 
-            if (!load_command_read_result) {
+            if (!did_read_load_command) {
                 if (result != nullptr) {
                     *result = retrieve_result::stream_read_error;
                 }
@@ -140,9 +140,9 @@ namespace macho::utils::load_commands {
 
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
-                const auto container_seek_result = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
 
-                if (!container_seek_result) {
+                if (!did_seek_container) {
                     if (result != nullptr) {
                         *result = retrieve_result::stream_seek_error;
                     }
@@ -158,9 +158,9 @@ namespace macho::utils::load_commands {
 
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &full_load_command[1];
-                const auto container_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_container = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
-                if (!container_read_result) {
+                if (!did_read_container) {
                     if (result != nullptr) {
                         *result = retrieve_result::stream_read_error;
                     }
@@ -193,11 +193,11 @@ namespace macho::utils::load_commands {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
-        if (!load_commands_count) {
+        if (load_commands_count == 0) {
             return retrieve_result::no_load_commands;
         }
 
-        if (!load_commands_size) {
+        if (load_commands_size == 0) {
             return retrieve_result::load_commands_area_is_too_small;
         }
 
@@ -234,8 +234,8 @@ namespace macho::utils::load_commands {
             load_commands_begin += sizeof(uint32_t);
         }
 
-        const auto container_seek_result = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
-        if (!container_seek_result) {
+        const auto did_seek_container = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
+        if (!did_seek_container) {
             return retrieve_result::stream_seek_error;
         }
 
@@ -244,9 +244,9 @@ namespace macho::utils::load_commands {
         auto size_taken = uint32_t();
         for (auto index = uint32_t(); index < load_commands_count; index++) {
             auto load_command = macho::load_command();
-            auto load_command_read_result = container.stream.read(&load_command, sizeof(load_command));
+            auto did_read_load_commands = container.stream.read(&load_command, sizeof(load_command));
 
-            if (!load_command_read_result) {
+            if (!did_read_load_commands) {
                 return retrieve_result::stream_read_error;
             }
 
@@ -280,8 +280,8 @@ namespace macho::utils::load_commands {
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
                 if (load_command_remaining_size != 0) {
-                    const auto container_seek_result = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
-                    if (!container_seek_result) {
+                    const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                    if (!did_seek_container) {
                         return retrieve_result::stream_seek_error;
                     }
                 }
@@ -296,9 +296,9 @@ namespace macho::utils::load_commands {
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &buffer[1];
-                const auto load_command_remaining_data_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
-                if (!load_command_remaining_data_read_result) {
+                if (!did_read_remaining_load_command) {
                     return retrieve_result::stream_read_error;
                 }
             }
@@ -318,7 +318,7 @@ namespace macho::utils::load_commands {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
-        if (!load_commands_count) {
+        if (load_commands_count == 0) {
             if (result != nullptr) {
                 *result = retrieve_result::no_load_commands;
             }
@@ -326,7 +326,7 @@ namespace macho::utils::load_commands {
             return nullptr;
         }
 
-        if (!load_commands_size) {
+        if (load_commands_size == 0) {
             if (result != nullptr) {
                 *result = retrieve_result::load_commands_area_is_too_small;
             }
@@ -379,8 +379,8 @@ namespace macho::utils::load_commands {
             load_commands_begin += sizeof(uint32_t);
         }
 
-        const auto container_seek_result = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
-        if (!container_seek_result) {
+        const auto did_seek_container = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
+        if (!did_seek_container) {
             if (result != nullptr) {
                 *result = retrieve_result::stream_seek_error;
             }
@@ -395,9 +395,9 @@ namespace macho::utils::load_commands {
 
         for (auto index = uint32_t(); index < load_commands_count; index++) {
             auto load_command = macho::load_command();
-            auto load_command_read_result = container.stream.read(&load_command, sizeof(load_command));
+            auto did_read_load_command = container.stream.read(&load_command, sizeof(load_command));
 
-            if (!load_command_read_result) {
+            if (!did_read_load_command) {
                 if (result != nullptr) {
                     *result = retrieve_result::stream_read_error;
                 }
@@ -444,9 +444,9 @@ namespace macho::utils::load_commands {
 
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
-                const auto container_seek_result = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                const auto did_seek_load_command = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
 
-                if (!container_seek_result) {
+                if (!did_seek_load_command) {
                     if (result != nullptr) {
                         *result = retrieve_result::stream_seek_error;
                     }
@@ -470,9 +470,9 @@ namespace macho::utils::load_commands {
 
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &full_load_command[1];
-                const auto container_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
-                if (!container_read_result) {
+                if (!did_read_remaining_load_command) {
                     if (result != nullptr) {
                         *result = retrieve_result::stream_read_error;
                     }
@@ -505,11 +505,11 @@ namespace macho::utils::load_commands {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
-        if (!load_commands_count) {
+        if (load_commands_count == 0) {
             return retrieve_result::no_load_commands;
         }
 
-        if (!load_commands_size) {
+        if (load_commands_size == 0) {
             return retrieve_result::load_commands_area_is_too_small;
         }
 
@@ -546,21 +546,21 @@ namespace macho::utils::load_commands {
             load_commands_begin += sizeof(uint32_t);
         }
 
-        const auto container_seek_result = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
-        if (!container_seek_result) {
+        const auto did_seek_container = container.stream.seek(load_commands_begin, stream::file::seek_type::beginning);
+        if (!did_seek_container) {
             return retrieve_result::stream_seek_error;
         }
 
         const auto load_commands_max_index = load_commands_count - 1;
 
         auto size_taken = uint32_t();
-        auto found = false;
+        auto found_load_command = false;
 
         for (auto index = uint32_t(); index < load_commands_count; index++) {
             auto load_command = macho::load_command();
-            auto load_command_read_result = container.stream.read(&load_command, sizeof(load_command));
+            auto did_read_load_command = container.stream.read(&load_command, sizeof(load_command));
 
-            if (!load_command_read_result) {
+            if (!did_read_load_command) {
                 return retrieve_result::stream_read_error;
             }
 
@@ -594,8 +594,8 @@ namespace macho::utils::load_commands {
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
                 if (load_command_remaining_size != 0) {
-                    const auto container_seek_result = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
-                    if (!container_seek_result) {
+                    const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                    if (!did_seek_container) {
                         return retrieve_result::stream_seek_error;
                     }
                 }
@@ -603,7 +603,7 @@ namespace macho::utils::load_commands {
                 continue;
             }
 
-            if (found) {
+            if (found_load_command) {
                 return retrieve_result::multiple_load_commands;
             }
 
@@ -614,9 +614,9 @@ namespace macho::utils::load_commands {
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &buffer[1];
-                const auto load_command_remaining_data_read_result = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
-                if (!load_command_remaining_data_read_result) {
+                if (!did_read_remaining_load_command) {
                     return retrieve_result::stream_read_error;
                 }
             }
@@ -626,10 +626,10 @@ namespace macho::utils::load_commands {
             }
 
             *buffer = load_command;
-            found = true;
+            found_load_command = true;
         }
 
-        if (!found) {
+        if (!found_load_command) {
             return retrieve_result::no_instance_of_specified_load_command;
         }
 

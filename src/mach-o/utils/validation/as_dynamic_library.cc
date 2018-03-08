@@ -13,8 +13,8 @@
 
 namespace macho::utils::validation {
     bool as_dynamic_library(const container &container) noexcept {
-        const auto library_validation_result = as_library(container);
-        if (!library_validation_result) {
+        const auto is_library = as_library(container);
+        if (!is_library) {
             return false;
         }
 
@@ -36,15 +36,15 @@ namespace macho::utils::validation {
     }
 
     bool as_dynamic_library(const file &file) noexcept {
-        auto result = true;
+        auto is_dynamic_library = true;
         for (const auto &container : file.containers) {
-            result = as_dynamic_library(container);
-            if (!result) {
+            is_dynamic_library = as_dynamic_library(container);
+            if (!is_dynamic_library) {
                 break;
             }
         }
 
-        return result;
+        return is_dynamic_library;
     }
 
     bool as_dynamic_library(const char *path, file::open_result *error) noexcept {

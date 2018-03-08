@@ -39,20 +39,22 @@ namespace macho::utils {
 
             this->architectures |= (1ull << architecture_info_index);
 
-            if (!options.ignore_flags) {
-                if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                    struct tbd::flags flags;
-
-                    flags.flat_namespace = container.header.flags.two_level_namespaces;
-                    flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
-
-                    if (container_index != 0) {
-                        if (this->flags != flags) {
-                            return creation_result::flags_mismatch;
+            if (!options.ignore_unnecessary_fields_for_version) {
+                if (!options.ignore_flags) {
+                    if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                        struct tbd::flags flags;
+                        
+                        flags.flat_namespace = container.header.flags.two_level_namespaces;
+                        flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
+                        
+                        if (container_index != 0) {
+                            if (this->flags != flags) {
+                                return creation_result::flags_mismatch;
+                            }
                         }
+                        
+                        this->flags = flags;
                     }
-
-                    this->flags = flags;
                 }
             }
 
@@ -160,27 +162,33 @@ namespace macho::utils {
                             ::utils::swap::uint32(dylib_command_compatibility_version);
                         }
 
-                        if (!options.ignore_current_version) {
-                            if (this->current_version.value != dylib_command_current_version) {
-                                if (found_container_identification) {
-                                    return creation_result::multiple_current_versions;
+                        if (!options.ignore_unnecessary_fields_for_version) {
+                            if (!options.ignore_current_version) {
+                                if (this->current_version.value != dylib_command_current_version) {
+                                    if (found_container_identification) {
+                                        return creation_result::multiple_current_versions;
+                                    }
+                                    
+                                    if (container_index != 0) {
+                                        return creation_result::current_versions_mismatch;
+                                    }
                                 }
-
-                                if (container_index != 0) {
-                                    return creation_result::current_versions_mismatch;
-                                }
+                                
+                                this->current_version.value = dylib_command_current_version;
                             }
-                        }
-
-                        if (!options.ignore_compatibility_version) {
-                            if (this->compatibility_version.value != dylib_command_compatibility_version) {
-                                if (found_container_identification) {
-                                    return creation_result::multiple_compatibility_versions;
+                            
+                            if (!options.ignore_compatibility_version) {
+                                if (this->compatibility_version.value != dylib_command_compatibility_version) {
+                                    if (found_container_identification) {
+                                        return creation_result::multiple_compatibility_versions;
+                                    }
+                                    
+                                    if (container_index != 0) {
+                                        return creation_result::compatibility_versions_mismatch;
+                                    }
                                 }
 
-                                if (container_index != 0) {
-                                    return creation_result::compatibility_versions_mismatch;
-                                }
+                                this->compatibility_version.value = dylib_command_compatibility_version;
                             }
                         }
 
@@ -235,27 +243,20 @@ namespace macho::utils {
                                     }
                                 }
                             }
-                        }
-
-                        found_container_identification = true;
-
-                        if (!options.ignore_current_version) {
-                            this->current_version.value = dylib_command_current_version;
-                        }
-
-                        if (!options.ignore_compatibility_version) {
-                            this->compatibility_version.value = dylib_command_compatibility_version;
-                        }
-
-                        if (!options.ignore_install_name) {
+                            
                             this->install_name.assign(dylib_command_name, dylib_command_name_length);
                         }
-
+                        
+                        found_container_identification = true;
                         break;
                     }
 
                     case macho::load_commands::reexport_dylib: {
                         if (options.ignore_reexports) {
+                            break;
+                        }
+                        
+                        if (options.ignore_exports) {
                             break;
                         }
 
@@ -335,18 +336,13 @@ namespace macho::utils {
                         if (container.is_64_bit()) {
                             continue;
                         }
-
+                        
                         if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
-
-                        // tbd fields objc-constraint and swift-version
-                        // are only found on tbd-version v2
-
-                        if (options.ignore_unneeded_fields_for_version) {
-                            if (this->version != version::v2) {
-                                break;
-                            }
+                        
+                        if (options.ignore_unnecessary_fields_for_version) {
+                            break;
                         }
 
                         const auto segment_command = static_cast<const struct segment_command *>(iter.load_command());
@@ -472,18 +468,13 @@ namespace macho::utils {
                         if (container.is_32_bit()) {
                             continue;
                         }
-
+                        
                         if (options.ignore_objc_constraint && options.ignore_swift_version) {
                             break;
                         }
-
-                        // tbd fields objc-constraint and swift-version
-                        // are only found on tbd-version v2
-
-                        if (options.ignore_unneeded_fields_for_version) {
-                            if (this->version != version::v2) {
-                                break;
-                            }
+                        
+                        if (options.ignore_unnecessary_fields_for_version) {
+                            break;
                         }
 
                         const auto segment_command = static_cast<const struct segment_command_64 *>(iter.load_command());
@@ -602,14 +593,9 @@ namespace macho::utils {
                         if (options.ignore_allowable_clients) {
                             break;
                         }
-
-                        // tbd field sub-clients is only
-                        // available on tbd version v2
-
-                        if (options.ignore_unneeded_fields_for_version) {
-                            if (this->version != version::v2) {
-                                break;
-                            }
+                        
+                        if (options.ignore_unnecessary_fields_for_version) {
+                            break;
                         }
 
                         const auto sub_client_command = static_cast<const struct sub_client_command *>(iter.load_command());
@@ -636,7 +622,7 @@ namespace macho::utils {
                         // Check for when sub_client_command_name_location
                         // is past end or goes past end of dylib-command
 
-                        if (!sub_client_command_name_estimated_length || sub_client_command_name_estimated_length >= sub_client_command_cmdsize) {
+                        if (sub_client_command_name_estimated_length == 0 || sub_client_command_name_estimated_length >= sub_client_command_cmdsize) {
                             return creation_result::invalid_sub_client_command;
                         }
 
@@ -686,14 +672,18 @@ namespace macho::utils {
                         if (options.ignore_parent_umbrella) {
                             break;
                         }
-
+                        
                         // tbd field parent-umbrella is
                         // only available on tbd-version v2
 
-                        if (options.ignore_unneeded_fields_for_version) {
+                        if (!options.parse_unsupported_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
+                        }
+                        
+                        if (options.ignore_unnecessary_fields_for_version) {
+                            break;
                         }
 
                         const auto sub_umbrella_command = static_cast<const struct sub_umbrella_command *>(iter.load_command());
@@ -794,10 +784,14 @@ namespace macho::utils {
                         // tbd field uuids is only
                         // available on tbd-version v2
 
-                        if (options.ignore_unneeded_fields_for_version) {
+                        if (!options.parse_unsupported_fields_for_version) {
                             if (this->version != version::v2) {
                                 break;
                             }
+                        }
+                        
+                        if (options.ignore_unnecessary_fields_for_version) {
+                            break;
                         }
 
                         const auto uuid_command = static_cast<const struct uuid_command *>(iter.load_command());
@@ -948,10 +942,12 @@ namespace macho::utils {
                 }
             }
 
-            if (!options.ignore_uuids && !options.ignore_missing_uuids) {
-                if (this->uuids.size() != (container_index + 1)) {
-                    if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                        return creation_result::container_is_missing_uuid;
+            if (!options.ignore_unnecessary_fields_for_version) {
+                if (!options.ignore_uuids && !options.ignore_missing_uuids) {
+                    if (this->uuids.size() != (container_index + 1)) {
+                        if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                            return creation_result::container_is_missing_uuid;
+                        }
                     }
                 }
             }
@@ -1300,14 +1296,16 @@ namespace macho::utils {
 
         this->architectures |= (1ull << architecture_info_index);
 
-        if (!options.ignore_flags) {
-            if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                struct tbd::flags flags;
-
-                flags.flat_namespace = container.header.flags.two_level_namespaces;
-                flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
-
-                this->flags = flags;
+        if (!options.ignore_unnecessary_fields_for_version) {
+            if (!options.ignore_flags) {
+                if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                    struct tbd::flags flags;
+                    
+                    flags.flat_namespace = container.header.flags.two_level_namespaces;
+                    flags.not_app_extension_safe = !container.header.flags.app_extension_safe;
+                    
+                    this->flags = flags;
+                }
             }
         }
 
@@ -1386,30 +1384,35 @@ namespace macho::utils {
                         ::utils::swap::uint32(dylib_command_compatibility_version);
                     }
 
-                    if (!options.ignore_current_version) {
-                        if (this->current_version.value != dylib_command_current_version) {
-                            // Use install-name to indicate whether
-                            // or not we've parsed identification in
-                            // the past, as there is no "no-value"
-                            // current-version
-
-                            if (this->install_name.length() != 0) {
-                                return creation_result::multiple_current_versions;
+                    if (!options.ignore_unnecessary_fields_for_version) {
+                        if (!options.ignore_current_version) {
+                            if (this->current_version.value != dylib_command_current_version) {
+                                // Use install-name to indicate whether
+                                // or not we've parsed identification in
+                                // the past, as there is no "no-value"
+                                // current-version
+                                
+                                if (this->install_name.length() != 0) {
+                                    return creation_result::multiple_current_versions;
+                                }
                             }
                         }
-                    }
-
-                    if (!options.ignore_compatibility_version) {
-                        if (this->compatibility_version.value != dylib_command_compatibility_version) {
-                            // Use install-name to indicate whether
-                            // or not we've parsed identification in
-                            // the past, as there is no "no-value"
-                            // compatibility-version
-
-                            if (this->install_name.length() != 0) {
-                                return creation_result::multiple_compatibility_versions;
+                        
+                        if (!options.ignore_compatibility_version) {
+                            if (this->compatibility_version.value != dylib_command_compatibility_version) {
+                                // Use install-name to indicate whether
+                                // or not we've parsed identification in
+                                // the past, as there is no "no-value"
+                                // compatibility-version
+                                
+                                if (this->install_name.length() != 0) {
+                                    return creation_result::multiple_compatibility_versions;
+                                }
                             }
                         }
+                        
+                        this->current_version.value = dylib_command_current_version;
+                        this->compatibility_version.value = dylib_command_compatibility_version;
                     }
 
                     // Check for when dylib_command_name_location
@@ -1453,17 +1456,7 @@ namespace macho::utils {
                                 return creation_result::multiple_install_names;
                             }
                         }
-                    }
-
-                    if (!options.ignore_current_version) {
-                        this->current_version.value = dylib_command_current_version;
-                    }
-
-                    if (!options.ignore_compatibility_version) {
-                        this->compatibility_version.value = dylib_command_compatibility_version;
-                    }
-
-                    if (!options.ignore_install_name) {
+                    
                         this->install_name.assign(dylib_command_name, dylib_command_name_length);
                     }
 
@@ -1472,6 +1465,10 @@ namespace macho::utils {
 
                 case macho::load_commands::reexport_dylib: {
                     if (options.ignore_reexports) {
+                        break;
+                    }
+                    
+                    if (options.ignore_exports) {
                         break;
                     }
 
@@ -1534,12 +1531,16 @@ namespace macho::utils {
                     // tbd fields objc-constraint and swift-version
                     // are only found on tbd-version v2
 
-                    if (options.ignore_unneeded_fields_for_version) {
+                    if (!options.parse_unsupported_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
                     }
 
+                    if (options.ignore_unnecessary_fields_for_version) {
+                        break;
+                    }
+                    
                     const auto segment_command = static_cast<const struct segment_command *>(iter.load_command());
 
                     // A check for whether cmdsize is valid is not needed
@@ -1658,14 +1659,9 @@ namespace macho::utils {
                     if (options.ignore_objc_constraint && options.ignore_swift_version) {
                         break;
                     }
-
-                    // tbd fields objc-constraint and swift-version
-                    // are only found on tbd-version v2
-
-                    if (options.ignore_unneeded_fields_for_version) {
-                        if (this->version != version::v2) {
-                            break;
-                        }
+                    
+                    if (!options.ignore_unnecessary_fields_for_version) {
+                        break;
                     }
 
                     const auto segment_command = static_cast<const struct segment_command_64 *>(iter.load_command());
@@ -1775,14 +1771,9 @@ namespace macho::utils {
                     if (options.ignore_allowable_clients) {
                         break;
                     }
-
-                    // tbd field sub-clients is only
-                    // available on tbd version v2
-
-                    if (options.ignore_unneeded_fields_for_version) {
-                        if (this->version != version::v2) {
-                            break;
-                        }
+                    
+                    if (options.ignore_unnecessary_fields_for_version) {
+                        break;
                     }
 
                     const auto sub_client_command = static_cast<const struct sub_client_command *>(iter.load_command());
@@ -1834,10 +1825,14 @@ namespace macho::utils {
                     // tbd field parent-umbrella is
                     // only available on tbd-version v2
 
-                    if (options.ignore_unneeded_fields_for_version) {
+                    if (!options.parse_unsupported_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
+                    }
+                    
+                    if (options.ignore_unnecessary_fields_for_version) {
+                        break;
                     }
 
                     const auto sub_umbrella_command = static_cast<const struct sub_umbrella_command *>(iter.load_command());
@@ -1899,10 +1894,14 @@ namespace macho::utils {
                     // tbd field uuids is only
                     // available on tbd-version v2
 
-                    if (options.ignore_unneeded_fields_for_version) {
+                    if (!options.parse_unsupported_fields_for_version) {
                         if (this->version != version::v2) {
                             break;
                         }
+                    }
+                    
+                    if (options.ignore_unnecessary_fields_for_version) {
+                        break;
                     }
 
                     const auto uuid_command = static_cast<const struct uuid_command *>(iter.load_command());
@@ -2027,19 +2026,17 @@ namespace macho::utils {
             }
         }
 
-        if (!options.ignore_uuids && !options.ignore_missing_uuids) {
-            if (this->uuids.size() != 1) {
-                if (this->version == version::v2 || !options.ignore_unneeded_fields_for_version) {
-                    return creation_result::container_is_missing_uuid;
+        if (!options.ignore_unnecessary_fields_for_version) {
+            if (!options.ignore_uuids && !options.ignore_missing_uuids) {
+                if (this->uuids.size() != 1) {
+                    if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                        return creation_result::container_is_missing_uuid;
+                    }
                 }
             }
         }
 
         if (!options.ignore_exports) {
-            std::sort(this->reexports.begin(), this->reexports.end(), [](const reexport &lhs, const reexport &rhs) {
-                return lhs.string.compare(rhs.string) < 0;
-            });
-
             const auto string_table_size = string_table.size();
             const auto symbol_table_size = symbol_table.size();
 
@@ -2124,6 +2121,10 @@ namespace macho::utils {
                 this->symbols.emplace_back(1ull << architecture_info_index, ::utils::bits(), std::string(string, string_length), type);
             }
 
+            std::sort(this->reexports.begin(), this->reexports.end(), [](const reexport &lhs, const reexport &rhs) {
+                return lhs.string.compare(rhs.string) < 0;
+            });
+            
             std::sort(this->symbols.begin(), this->symbols.end(), [](const symbol &lhs, const symbol &rhs) {
                 return lhs.string.compare(rhs.string) < 0;
             });

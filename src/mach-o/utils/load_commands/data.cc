@@ -34,11 +34,11 @@ namespace macho::utils::load_commands {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
-        if (!load_commands_count) {
+        if (load_commands_count == 0) {
             return creation_result::no_load_commands;
         }
 
-        if (!load_commands_size) {
+        if (load_commands_size == 0) {
             return creation_result::load_commands_area_is_too_small;
         }
 

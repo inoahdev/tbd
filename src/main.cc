@@ -44,10 +44,8 @@ int main(int argc, const char *argv[]) {
 
     // Apply "default" behavior and information for tbd
 
-    global.creation_options.ignore_unneeded_fields_for_version = true;
     global.info.version = macho::utils::tbd::version::v2;
 
-    global.write_options.ignore_unneeded_fields_for_version = true;
     global.write_options.order_by_architecture_info_table = true;
     global.write_options.enforce_has_exports = true;
 

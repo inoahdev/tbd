@@ -75,7 +75,7 @@ namespace macho::utils::symbols::table_64 {
 
     data::creation_result data::create(const container &container, const symtab_command &symtab, const options &options) noexcept {
         auto symbol_table_entry_count = symtab.nsyms;
-        if (!symbol_table_entry_count) {
+        if (symbol_table_entry_count == 0) {
             return creation_result::no_symbols;
         }
 

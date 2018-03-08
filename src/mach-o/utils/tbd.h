@@ -488,7 +488,12 @@ namespace macho::utils {
                     // tbd information fields for information
                     // ignored is not filled
 
-                    bool ignore_unneeded_fields_for_version : 1;
+                    // ignore_unnecessary_fields_for_version will
+                    // still parse exports, use ignore_exports to
+                    // ignore
+                    
+                    bool ignore_unnecessary_fields_for_version : 1;
+                    bool parse_unsupported_fields_for_version : 1;
 
                     // Ignore errors for required fields
 
@@ -626,10 +631,12 @@ namespace macho::utils {
                     bool ignore_objc_ivar_symbols     : 1;
                     bool ignore_weak_symbols          : 1;
 
-                    // Ignore any fields that are not
-                    // required for tbd.version
-
-                    bool ignore_unneeded_fields_for_version : 1;
+                    // ignore_unnecessary_fields_for_version will
+                    // still write exports, use ignore_exports to
+                    // ignore
+                    
+                    bool ignore_unnecessary_fields_for_version : 1;
+                    bool write_unsupported_fields_for_version : 1;
 
                     // Orders field information s by
                     // architecture-infe table, default
