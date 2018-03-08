@@ -296,7 +296,7 @@ namespace main_utils {
 
     bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
-            if (info->never_replace_swift_version) {
+            if (info->never_ignore_flags) {
                 return false;
             }
         }
@@ -313,7 +313,7 @@ namespace main_utils {
         }
 
         if (result == "never") {
-            info->never_replace_swift_version = true;
+            info->never_ignore_flags = true;
             return false;
         } else if (result == "no") {
             return false;

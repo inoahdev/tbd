@@ -151,7 +151,9 @@ int main(int argc, const char *argv[]) {
 
             // Keep track of whether or not the user
             // provided an output-path, as we cannot
-            // tell when iterating
+            // tell when iterating because we get the
+            // reference to our tbd_with_options object
+            // when parsing path
 
             auto user_did_provide_output_path = false;
 
