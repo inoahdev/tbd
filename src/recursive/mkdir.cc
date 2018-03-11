@@ -137,12 +137,17 @@ namespace recursive::mkdir {
         return create_directories_if_missing_ignoring_last(path, terminator);
     }
 
-    result perform_with_last_as_file(char *path, char **terminator, int *last_descriptor) noexcept {
+    result perform_with_last_as_file(char *path, bool must_create, char **terminator, int *last_descriptor) noexcept {
         if (const auto result = create_directories_if_missing_ignoring_last(path, terminator); result != result::ok) {
             return result;
         }
 
-        const auto descriptor = open(path, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+        auto options = O_WRONLY | O_CREAT | O_TRUNC;
+        if (must_create) {
+            options |= O_EXCL;
+        }
+        
+        const auto descriptor = open(path, options, DEFFILEMODE);
         if (descriptor != -1) {
             if (terminator != nullptr) {
                 if (*terminator == nullptr) {

@@ -173,6 +173,8 @@ int main(int argc, const char *argv[]) {
 
                     if (strcmp(option, "maintain-directories") == 0) {
                         options.maintain_directories = true;
+                    } else if (strcmp(option, "no-overwrite") == 0) {
+                        options.no_overwrite = true;
                     } else if (strcmp(option, "replace-path-extension") == 0) {
                         options.replace_path_extension = true;
                     } else {
@@ -650,8 +652,12 @@ int main(int argc, const char *argv[]) {
                     auto terminator = static_cast<char *>(nullptr);
                     auto descriptor = -1;
 
-                    main_utils::recursive_mkdir_last_as_file(write_path.data(), &terminator, &descriptor);
+                    main_utils::recursive_mkdir_last_as_file(write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
 
+                    if (descriptor == -1) {
+                        return true;
+                    }
+                    
                     switch (tbd.info.write_to(descriptor, tbd.write_options, tbd.version)) {
                         case macho::utils::tbd::write_result::ok:
                             break;
@@ -811,9 +817,12 @@ int main(int argc, const char *argv[]) {
 
             if (!tbd.write_path.empty()) {
                 auto descriptor = -1;
+                main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
 
-                main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), &terminator, &descriptor);
-
+                if (descriptor == -1) {
+                    continue;
+                }
+                
                 write_result = tbd.info.write_to(descriptor, tbd.write_options, tbd.version);
                 close(descriptor);
             } else {

@@ -26,5 +26,5 @@ namespace recursive::mkdir {
     result perform(char *path, char **terminator = nullptr) noexcept;
 
     result perform_ignorning_last(char *path, char **terminator = nullptr) noexcept;
-    result perform_with_last_as_file(char *path, char **terminator = nullptr, int *last_descriptor = nullptr) noexcept;
+    result perform_with_last_as_file(char *path, bool must_create = false, char **terminator = nullptr, int *last_descriptor = nullptr) noexcept;
 }

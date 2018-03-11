@@ -43,6 +43,7 @@ namespace main_utils {
         fputs("Outputting options:\n", stdout);
         fputs("Usage: tbd -o [--maintain-directories] /path/to/output/file\n", stdout);
         fputs("        --maintain-directories,   Maintain directories where mach-o library files were found in (subtracting the path provided)\n", stdout);
+        fputs("        --no-overwrite,           Don't overwrite files when writing out (This results in entire files being skipped)\n", stdout);
         fputs("        --replace-path-extension, Replace path-extension on provided mach-o file(s) when creating an output-file (Replace instead of appending .tbd)\n", stdout);
 
         fputc('\n', stdout);

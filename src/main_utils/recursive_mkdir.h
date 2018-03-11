@@ -7,5 +7,5 @@
 //
 
 namespace main_utils {
-    void recursive_mkdir_last_as_file(char *path, char **terminator, int *descriptor);
+    void recursive_mkdir_last_as_file(char *path, bool must_exist, char **terminator, int *descriptor);
 }

@@ -83,6 +83,7 @@ namespace main_utils {
                     // output-file
 
                     bool maintain_directories   : 1;
+                    bool no_overwrite           : 1;
                     bool replace_path_extension : 1;
 
                     bool replaced_objc_constraint : 1;                    

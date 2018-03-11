@@ -13,14 +13,17 @@
 #include "../recursive/mkdir.h"
 
 namespace main_utils {
-    void recursive_mkdir_last_as_file(char *path, char **terminator, int *descriptor) {
-        switch (recursive::mkdir::perform_with_last_as_file(path, terminator, descriptor)) {
+    void recursive_mkdir_last_as_file(char *path, bool must_exist, char **terminator, int *descriptor) {
+        switch (recursive::mkdir::perform_with_last_as_file(path, must_exist, terminator, descriptor)) {
             case recursive::mkdir::result::ok:
             case recursive::mkdir::result::failed_to_create_last_as_directory:
                 break;
 
             case recursive::mkdir::result::failed_to_create_last_as_file:
-                fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", path, strerror(errno));
+                if (!must_exist) {
+                    fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", path, strerror(errno));
+                }
+                
                 break;
 
             case recursive::mkdir::result::failed_to_create_intermediate_directories:
