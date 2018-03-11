@@ -167,6 +167,8 @@ namespace main_utils {
             this->creation_options.allow_private_objc_class_symbols = true;
         } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
             this->creation_options.allow_private_objc_ivar_symbols = true;
+        } else if (strcmp(option, "dont-print-warnings") == 0) {
+            this->options.ignore_warnings = true;
         } else if (strcmp(option, "ignore-everything") == 0) {
             this->creation_options.ignore_missing_symbol_table = true;
             this->creation_options.ignore_missing_uuids = true;

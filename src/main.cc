@@ -663,9 +663,11 @@ int main(int argc, const char *argv[]) {
                             break;
 
                         case macho::utils::tbd::write_result::has_no_exports:
-                            fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", path.c_str());
-                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
+                            if (!tbd.options.ignore_warnings) {
+                                fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", path.c_str());
+                            }
 
+                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, should_print_paths);
                             break;
 
                         default:
@@ -834,10 +836,12 @@ int main(int argc, const char *argv[]) {
                     break;
 
                 case macho::utils::tbd::write_result::has_no_exports:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", tbd.path.c_str());
-                    } else {
-                        fputs("Mach-o file at provided path has no reexports or symbols to be written out\n", stderr);
+                    if (!tbd.options.ignore_warnings) {
+                        if (should_print_paths) {
+                            fprintf(stderr, "Mach-o file (at path %s) has no reexports or symbols to be written out\n", tbd.path.c_str());
+                        } else {
+                            fputs("Mach-o file at provided path has no reexports or symbols to be written out\n", stderr);
+                        }
                     }
 
                     if (!tbd.write_path.empty()) {
