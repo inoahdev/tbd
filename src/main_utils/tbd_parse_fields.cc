@@ -34,7 +34,7 @@ namespace main_utils {
             }
         }
 
-        index = jndex;
+        index = jndex - 1;
     }
 
     enum macho::utils::tbd::objc_constraint parse_objc_constraint_from_argument(int &index, int argc, const char *argv[]) {

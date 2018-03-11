@@ -179,6 +179,10 @@ namespace macho::utils {
             inline void add_architecture(uint64_t index) noexcept {
                 this->architectures |= 1ull << index;
             }
+            
+            inline void set_all_architectures() noexcept {
+                this->architectures = ~0ull;
+            }
 
             inline bool operator==(const uint64_t &architectures) const noexcept {
                 return this->architectures == architectures;
@@ -219,6 +223,10 @@ namespace macho::utils {
 
             inline void add_architecture(uint64_t index) noexcept {
                 this->architectures |= 1ull << index;
+            }
+            
+            inline void set_all_architectures() noexcept {
+                this->architectures = ~0ull;
             }
 
             inline bool operator==(const uint64_t &architectures) const noexcept {
@@ -271,6 +279,10 @@ namespace macho::utils {
 
             inline void add_architecture(uint64_t index) noexcept {
                 this->architectures |= 1ull << index;
+            }
+            
+            inline void set_all_architectures() noexcept {
+                this->architectures = ~0ull;
             }
 
             inline bool operator==(const uint64_t &architectures) const noexcept {
@@ -377,8 +389,6 @@ namespace macho::utils {
         uint32_t swift_version = uint32_t();
 
         objc_constraint objc_constraint = objc_constraint::none;
-        version version = version::none;
-
         std::vector<uuid_pair> uuids;
 
         struct creation_options {
@@ -524,10 +534,10 @@ namespace macho::utils {
             failed_to_retrieve_symbol_table
         };
 
-        creation_result create(const file &file, const creation_options &options) noexcept;
+        creation_result create(const file &file, const creation_options &options, const version &version) noexcept;
 
-        creation_result create(const container &container, load_commands::data &data, symbols::table::data &symbols, strings::table::data &strings, const creation_options &options) noexcept;
-        creation_result create(const container &container, load_commands::data &data, symbols::table_64::data &symbols, strings::table::data &strings, const creation_options &options) noexcept;
+        creation_result create(const container &container, load_commands::data &data, symbols::table::data &symbols, strings::table::data &strings, const creation_options &options, const version &version) noexcept;
+        creation_result create(const container &container, load_commands::data &data, symbols::table_64::data &symbols, strings::table::data &strings, const creation_options &options, const version &version) noexcept;
 
         std::vector<export_group> export_groups() const noexcept;
 
@@ -565,6 +575,11 @@ namespace macho::utils {
                     bool ignore_objc_class_symbols    : 1;
                     bool ignore_objc_ivar_symbols     : 1;
                     bool ignore_weak_symbols          : 1;
+                    
+                    // Ignore each reexport, symbol's architecture
+                    // for tbd's architectures
+                    
+                    bool ignore_export_architectures  : 1;
 
                     // ignore_unnecessary_fields_for_version will
                     // still write exports, use ignore_exports to
@@ -573,8 +588,8 @@ namespace macho::utils {
                     bool ignore_unnecessary_fields_for_version : 1;
                     bool write_unsupported_fields_for_version : 1;
 
-                    // Orders field information s by
-                    // architecture-infe table, default
+                    // Orders field information by
+                    // architecture-info table, default
                     // behavior ordering by container
 
                     bool order_by_architecture_info_table : 1;
@@ -591,7 +606,7 @@ namespace macho::utils {
         enum class write_result {
             ok,
             failed_to_open_stream,
-
+            
             failed_to_write_architectures,
             failed_to_write_current_version,
             failed_to_write_compatibility_version,
@@ -615,13 +630,13 @@ namespace macho::utils {
             failed_to_write_weak_symbols
         };
 
-        write_result write_to(const char *path, const write_options &options) const noexcept;
-        write_result write_to(int descriptor, const write_options &options) const noexcept;
-        write_result write_to(FILE *file, const write_options &options) const noexcept;
+        write_result write_to(const char *path, const write_options &options, const version &version) const noexcept;
+        write_result write_to(int descriptor, const write_options &options, const version &version) const noexcept;
+        write_result write_to(FILE *file, const write_options &options, const version &version) const noexcept;
 
-        write_result write_with_export_groups_to(const char *path, const write_options &options, const std::vector<export_group> &groups) const noexcept;
-        write_result write_with_export_groups_to(int descriptor, const write_options &options, const std::vector<export_group> &groups) const noexcept;
-        write_result write_with_export_groups_to(FILE *file, const write_options &options, const std::vector<export_group> &groups) const noexcept;
+        write_result write_with_export_groups_to(const char *path, const write_options &options, const version &version, const std::vector<export_group> &groups) const noexcept;
+        write_result write_with_export_groups_to(int descriptor, const write_options &options, const version &version, const std::vector<export_group> &groups) const noexcept;
+        write_result write_with_export_groups_to(FILE *file, const write_options &options, const version &version, const std::vector<export_group> &groups) const noexcept;
 
         void clear() noexcept;
     };

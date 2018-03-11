@@ -16,10 +16,11 @@ namespace main_utils {
         // information for the tool's use
 
         macho::utils::tbd info;
+        macho::utils::tbd::version version;
 
         macho::utils::tbd::creation_options creation_options;
         macho::utils::tbd::write_options write_options;
-
+        
         // path is main argument provided
         // to option -p.
 
@@ -36,13 +37,7 @@ namespace main_utils {
         // Used to apply any options for writing
 
         int local_option_start = 0;
-
-        // architectures is a bitset of indexes to the
-        // architecture_info_table to supply as architecture
-        // list
-
-        uint64_t architectures = uint64_t();
-
+        
         struct options {
             explicit inline options() = default;
             explicit inline options(uint64_t value) : value(value) {}
@@ -111,9 +106,11 @@ namespace main_utils {
             struct macho::utils::tbd::write_options write_options;
 
             struct options options;
-        };
-
+        } donts;
+        
+        void apply_dont_options() noexcept;
+        
         bool parse_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept;
-        bool parse_dont_option_from_argv(const char *option, int &index, int argc, const char *argv[], dont_options &donts) noexcept;
+        bool parse_dont_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept;
     };
 }

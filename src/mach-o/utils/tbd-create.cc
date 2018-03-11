@@ -16,7 +16,7 @@
 #include "tbd.h"
 
 namespace macho::utils {
-    tbd::creation_result tbd::create(const macho::file &file, const creation_options &options) noexcept {
+    tbd::creation_result tbd::create(const macho::file &file, const creation_options &options, const version &version) noexcept {
         auto container_index = uint32_t();
         for (const auto &container : file.containers) {
             auto container_cputype = container.header.cputype;
@@ -36,17 +36,19 @@ namespace macho::utils {
             if (architecture_info_index == -1) {
                 return creation_result::unrecognized_container_cputype_subtype_pair;
             }
-
-            const auto architecture_info_index_bit = (1ull << architecture_info_index);
-            if (this->architectures & architecture_info_index_bit) {
-                return creation_result::multiple_containers_for_same_architecture;
-            }
             
-            this->architectures |= architecture_info_index_bit;
+            if (!options.ignore_architectures) {
+                const auto architecture_info_index_bit = (1ull << architecture_info_index);
+                if (this->architectures & architecture_info_index_bit) {
+                    return creation_result::multiple_containers_for_same_architecture;
+                }
+                
+                this->architectures |= architecture_info_index_bit;
+            }
 
             if (!options.ignore_unnecessary_fields_for_version) {
                 if (!options.ignore_flags) {
-                    if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                    if (version == version::v2 || options.parse_unsupported_fields_for_version) {
                         struct tbd::flags flags;
                         
                         flags.flat_namespace = container.header.flags.two_level_namespaces;
@@ -317,7 +319,10 @@ namespace macho::utils {
                                 continue;
                             }
 
-                            reexports_iter->add_architecture(architecture_info_index);
+                            if (!options.ignore_architectures) {
+                                reexports_iter->add_architecture(architecture_info_index);
+                            }
+
                             break;
                         }
 
@@ -325,7 +330,11 @@ namespace macho::utils {
                             auto reexport_string = std::string(dylib_command_name, dylib_command_name_length);
                             auto &reexport = this->reexports.emplace_back(1ull << architecture_info_index, std::move(reexport_string));
 
-                            reexport.add_architecture(architecture_info_index);
+                            if (options.ignore_architectures) {
+                                reexport.set_all_architectures();
+                            } else {
+                                reexport.add_architecture(architecture_info_index);
+                            }
                         }
 
                         break;
@@ -652,7 +661,9 @@ namespace macho::utils {
                                 continue;
                             }
 
-                            sub_clients_iter->add_architecture(architecture_info_index);
+                            if (!options.ignore_architectures) {
+                                sub_clients_iter->add_architecture(architecture_info_index);
+                            }
                         }
 
                         // In case a sub-client
@@ -662,7 +673,11 @@ namespace macho::utils {
                             auto sub_client_string = std::string(sub_client_command_name, sub_client_command_name_length);
                             auto &sub_client = sub_clients.emplace_back(1ull << architecture_info_index, std::move(sub_client_string));
 
-                            sub_client.add_architecture(architecture_info_index);
+                            if (options.ignore_architectures) {
+                                sub_client.set_all_architectures();
+                            } else {
+                                sub_client.add_architecture(architecture_info_index);
+                            }
                         }
 
                         break;
@@ -677,7 +692,7 @@ namespace macho::utils {
                         // only available on tbd-version v2
 
                         if (!options.parse_unsupported_fields_for_version) {
-                            if (this->version != version::v2) {
+                            if (version != version::v2) {
                                 break;
                             }
                         }
@@ -780,12 +795,12 @@ namespace macho::utils {
                         if (options.ignore_uuids) {
                             break;
                         }
-
+                        
                         // tbd field uuids is only
                         // available on tbd-version v2
 
                         if (!options.parse_unsupported_fields_for_version) {
-                            if (this->version != version::v2) {
+                            if (version != version::v2) {
                                 break;
                             }
                         }
@@ -795,7 +810,6 @@ namespace macho::utils {
                         }
 
                         const auto uuid_command = static_cast<const struct uuid_command *>(iter.load_command());
-                        const auto uuids_end = this->uuids.cend();
 
                         if (this->uuids.size() != container_index) {
                             // Ignore if multiple uuid-commands
@@ -814,6 +828,8 @@ namespace macho::utils {
                             // in order to guarantee uniqueness
 
                             auto uuids_iter = this->uuids.cbegin();
+                            const auto uuids_end = this->uuids.cend();
+
                             for (; uuids_iter != uuids_end; uuids_iter++) {
                                 if (memcmp(uuids_iter->uuid(), uuid_command->uuid, sizeof(uuid_command->uuid)) != 0) {
                                     continue;
@@ -945,7 +961,7 @@ namespace macho::utils {
             if (!options.ignore_unnecessary_fields_for_version) {
                 if (!options.ignore_uuids && !options.ignore_missing_uuids) {
                     if (this->uuids.size() != (container_index + 1)) {
-                        if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                        if (version == version::v2 || options.parse_unsupported_fields_for_version) {
                             return creation_result::container_is_missing_uuid;
                         }
                     }
@@ -1112,7 +1128,10 @@ namespace macho::utils {
                                 continue;
                             }
 
-                            symbols_iter->add_architecture(architecture_info_index);
+                            if (!options.ignore_architectures) {
+                                symbols_iter->add_architecture(architecture_info_index);
+                            }
+                            
                             break;
                         }
 
@@ -1120,7 +1139,11 @@ namespace macho::utils {
                             auto symbol_string = std::string(string, string_length);
                             auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, std::move(symbol_string), type);
 
-                            symbol.add_architecture(architecture_info_index);
+                            if (options.ignore_architectures) {
+                                symbol.set_all_architectures();
+                            } else {
+                                symbol.add_architecture(architecture_info_index);
+                            }
                         }
                     }
                 } else {
@@ -1241,7 +1264,10 @@ namespace macho::utils {
                                 continue;
                             }
 
-                            symbols_iter->add_architecture(architecture_info_index);
+                            if (!options.ignore_architectures) {
+                                symbols_iter->add_architecture(architecture_info_index);
+                            }
+                            
                             break;
                         }
 
@@ -1249,7 +1275,11 @@ namespace macho::utils {
                             auto symbol_string = std::string(string, string_length);
                             auto &symbol = this->symbols.emplace_back(1ull << architecture_info_index, std::move(symbol_string), type);
 
-                            symbol.add_architecture(architecture_info_index);
+                            if (options.ignore_architectures) {
+                                symbol.set_all_architectures();
+                            } else {
+                                symbol.add_architecture(architecture_info_index);
+                            }
                         }
                     }
                 }
@@ -1269,7 +1299,7 @@ namespace macho::utils {
         return creation_result::ok;
     }
 
-    tbd::creation_result tbd::create(const container &container, load_commands::data &load_commands, symbols::table::data &symbol_table, strings::table::data &string_table, const creation_options &options) noexcept {
+    tbd::creation_result tbd::create(const container &container, load_commands::data &load_commands, symbols::table::data &symbol_table, strings::table::data &string_table, const creation_options &options, const version &version) noexcept {
         auto container_cputype = container.header.cputype;
         auto container_cpusubtype = container.header.cpusubtype;
 
@@ -1283,21 +1313,23 @@ namespace macho::utils {
             return creation_result::invalid_container_header_subtype;
         }
 
-        const auto architecture_info_index = macho::architecture_info_index_from_cputype(macho::cputype(container_cputype), container_subtype);
+        auto architecture_info_index = macho::architecture_info_index_from_cputype(macho::cputype(container_cputype), container_subtype);
         if (architecture_info_index == -1) {
             return creation_result::unrecognized_container_cputype_subtype_pair;
         }
-
-        const auto architecture_info_index_bit = (1ull << architecture_info_index);
-        if (this->architectures & architecture_info_index_bit) {
-            return creation_result::multiple_containers_for_same_architecture;
-        }
         
-        this->architectures |= architecture_info_index_bit;
+        if (!options.ignore_architectures) {
+            const auto architecture_info_index_bit = (1ull << architecture_info_index);
+            if (this->architectures & architecture_info_index_bit) {
+                return creation_result::multiple_containers_for_same_architecture;
+            }
+            
+            this->architectures |= architecture_info_index_bit;
+        }
         
         if (!options.ignore_unnecessary_fields_for_version) {
             if (!options.ignore_flags) {
-                if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
                     struct tbd::flags flags;
                     
                     flags.flat_namespace = container.header.flags.two_level_namespaces;
@@ -1511,7 +1543,12 @@ namespace macho::utils {
                     // Assume dylib_command_name is
                     // not null-terminated
 
-                    this->reexports.emplace_back(1ull << architecture_info_index, std::string(dylib_command_name, dylib_command_name_length));
+                    if (options.ignore_architectures) {
+                        this->reexports.emplace_back(~0ull, std::string(dylib_command_name, dylib_command_name_length));
+                    } else {
+                        this->reexports.emplace_back(1ull << architecture_info_index, std::string(dylib_command_name, dylib_command_name_length));
+                    }
+                    
                     break;
                 }
 
@@ -1531,7 +1568,7 @@ namespace macho::utils {
                     // are only found on tbd-version v2
 
                     if (!options.parse_unsupported_fields_for_version) {
-                        if (this->version != version::v2) {
+                        if (version != version::v2) {
                             break;
                         }
                     }
@@ -1812,7 +1849,12 @@ namespace macho::utils {
                         continue;
                     }
 
-                    this->sub_clients.emplace_back(1ull << architecture_info_index, std::string(sub_client_command_name, sub_client_command_name_length));
+                    if (options.ignore_architectures) {
+                        this->sub_clients.emplace_back(~0ull, std::string(sub_client_command_name, sub_client_command_name_length));
+                    } else {
+                        this->sub_clients.emplace_back(1ull << architecture_info_index, std::string(sub_client_command_name, sub_client_command_name_length));
+                    }
+                    
                     break;
                 }
 
@@ -1825,7 +1867,7 @@ namespace macho::utils {
                     // only available on tbd-version v2
 
                     if (!options.parse_unsupported_fields_for_version) {
-                        if (this->version != version::v2) {
+                        if (version != version::v2) {
                             break;
                         }
                     }
@@ -1894,7 +1936,7 @@ namespace macho::utils {
                     // available on tbd-version v2
 
                     if (!options.parse_unsupported_fields_for_version) {
-                        if (this->version != version::v2) {
+                        if (version != version::v2) {
                             break;
                         }
                     }
@@ -2028,7 +2070,7 @@ namespace macho::utils {
         if (!options.ignore_unnecessary_fields_for_version) {
             if (!options.ignore_uuids && !options.ignore_missing_uuids) {
                 if (this->uuids.size() != 1) {
-                    if (this->version == version::v2 || options.parse_unsupported_fields_for_version) {
+                    if (version == version::v2 || options.parse_unsupported_fields_for_version) {
                         return creation_result::container_is_missing_uuid;
                     }
                 }
@@ -2117,7 +2159,11 @@ namespace macho::utils {
                         break;
                 }
 
-                this->symbols.emplace_back(1ull << architecture_info_index, std::string(string, string_length), type);
+                if (options.ignore_architectures) {
+                    this->symbols.emplace_back(~0ull, std::string(string, string_length), type);
+                } else {
+                    this->symbols.emplace_back(1ull << architecture_info_index, std::string(string, string_length), type);
+                }
             }
 
             std::sort(this->reexports.begin(), this->reexports.end(), [](const reexport &lhs, const reexport &rhs) {
@@ -2145,7 +2191,6 @@ namespace macho::utils {
         this->symbols.clear();
         this->swift_version = 0;
         this->objc_constraint = objc_constraint::none;
-        this->version = version::none;
         this->uuids.clear();
     }
 }

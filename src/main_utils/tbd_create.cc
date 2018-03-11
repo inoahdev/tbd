@@ -11,7 +11,7 @@
 namespace main_utils {
     bool create_tbd(tbd_with_options &all, tbd_with_options &tbd, macho::file &file, const create_tbd_options &options, create_tbd_retained_user_info *user_input_info, const char *path) {
         do {
-            switch (tbd.info.create(file, tbd.creation_options)) {
+            switch (tbd.info.create(file, tbd.creation_options, tbd.version)) {
                 case macho::utils::tbd::creation_result::ok:
                     return true;
 

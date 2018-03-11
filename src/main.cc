@@ -44,7 +44,7 @@ int main(int argc, const char *argv[]) {
 
     // Apply "default" behavior and information for tbd
 
-    global.info.version = macho::utils::tbd::version::v2;
+    global.version = macho::utils::tbd::version::v2;
 
     global.write_options.order_by_architecture_info_table = true;
     global.write_options.enforce_has_exports = true;
@@ -55,22 +55,20 @@ int main(int argc, const char *argv[]) {
     // two variables, one for adding, and one referred to as "re", for
     // removing and replacing
 
-    // Since it is not possible to remove x values of a field and replace
+    // Since we don't allow removing x values of a field and replace
     // the contents of field x, we use bits remove_x and replace_x being
     // both 1 to indicate adding flags, which is store in variable x_add
     // while removing or replacing is in the second "_re" variable, depending
     // on the option bits
+    
+    // Reimplement these here as there is no sense of "local" options
+    // we can parse later from
 
     auto global_architectures_to_override_to_add = uint64_t();
     auto global_architectures_to_override_to_re = uint64_t();
 
     struct macho::utils::tbd::flags global_tbd_flags_to_add;
     struct macho::utils::tbd::flags global_tbd_flags_to_re;
-
-    // Keep a bitset of dont options to
-    // and later with individual tbds
-
-    struct main_utils::tbd_with_options::dont_options global_donts;
 
     for (auto index = 1; index != argc; index++) {
         const auto argument = argv[index];
@@ -94,12 +92,20 @@ int main(int argc, const char *argv[]) {
             // provided earlier in a 'replace-archs' options. This may not
             // be wanted behavior
 
-            if (global.options.remove_architectures) {
-                fputs("Can't both replace and remove architectures\n", stderr);
+            if (global.options.replace_architectures && !global.options.remove_architectures) {
+                fputs("Can't both replace architectures found and add onto architectures found\n", stderr);
                 return 1;
             }
 
             global_architectures_to_override_to_add |= main_utils::parse_architectures_list(++index, argc, argv);
+            
+            global.options.remove_architectures = true;
+            global.options.replace_architectures = true;
+            
+            // Write out replaced architectures
+            // over each export's architectures
+            
+            global.write_options.ignore_export_architectures = true;
         } else if (strcmp(option, "add-flags") == 0) {
             index++;
             if (index == argc) {
@@ -107,7 +113,7 @@ int main(int argc, const char *argv[]) {
                 return 1;
             }
 
-            if (global.options.replace_flags) {
+            if (global.options.replace_flags && !global.options.remove_flags) {
                 fputs("Can't both replace flags found and add onto flags found\n", stderr);
                 return 1;
             }
@@ -278,35 +284,7 @@ int main(int argc, const char *argv[]) {
                         option = &option[1];
                     }
 
-                    if (strcmp(option, "add-archs") == 0) {
-                        // XXX: add-archs will add onto replaced architecture overrides
-                        // provided earlier in a 'replace-archs' options. This may not
-                        // be wanted behavior
-
-                        if (tbd.options.replace_architectures) {
-                            fputs("Can't both add architectures to list found and replace architectures found\n", stderr);
-                            return 1;
-                        }
-
-                        tbd.info.architectures |= main_utils::parse_architectures_list(++index, argc, argv);
-                    } else if (strcmp(option, "add-flags") == 0) {
-                        if (index == argc - 1) {
-                            fputs("Please provide a list of flags to add\n", stderr);
-                            return 1;
-                        }
-
-                        if (tbd.options.replace_flags) {
-                            fputs("Can't both replace flags found and add onto flags found\n", stderr);
-                            return 1;
-                        }
-
-                        // Ignore this argument for now, just validating now
-                        // and parsing later after creation of tbd, but before
-                        // output
-
-                        tbd.options.remove_flags = true;
-                        tbd.options.replace_flags = true;
-                    } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
+                    if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
                         tbd.options.recurse_directories_at_path = true;
 
                         if (index + 1 < argc) {
@@ -322,48 +300,9 @@ int main(int argc, const char *argv[]) {
                                 }
                             }
                         }
-                    } else if (strcmp(option, "remove-flags") == 0) {
-                        if (index == argc - 1) {
-                            fputs("Please provide a list of flags to remove\n", stderr);
-                            return 1;
-                        }
-
-                        if (tbd.options.replace_flags) {
-                            fputs("Can't both remove select flags from flags found and replace flags found\n", stderr);
-                            return 1;
-                        }
-
-                        tbd.options.remove_flags = true;
-                    } else if (strcmp(option, "replace-flags") == 0) {
-                        index++;
-                        if (index == argc) {
-                            fputs("Please provide a list of flags to replace ones found\n", stderr);
-                            return 1;
-                        }
-
-                        if (tbd.options.remove_flags) {
-                            if (tbd.options.replace_flags) {
-                                fputs("Can't both replace flags found and add flags to flags found\n", stderr);
-                            } else {
-                                fputs("Can't both replace flags found and remove select flags from flags found\n", stderr);
-                            }
-
-                            return 1;
-                        }
-
-                        // Only validate following flag arguments,
-                        // We will parse these again later
-
-                        main_utils::parse_flags(nullptr, index, argc, argv);
-
-                        // We need to stop tbd::create from
-                        // overiding these replaced flags
-
-                        tbd.options.replace_flags = true;
-                        tbd.creation_options.ignore_flags = true;
                     } else if (tbd.parse_option_from_argv(option, index, argc, argv)) {
                         continue;
-                    } else if (tbd.parse_dont_option_from_argv(option, index, argc, argv, donts)) {
+                    } else if (tbd.parse_dont_option_from_argv(option, index, argc, argv)) {
                         continue;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", argument);
@@ -402,6 +341,8 @@ int main(int argc, const char *argv[]) {
                     fprintf(stderr, "Unrecognized object at path (%s). tbd current only supports regular files\n", path.c_str());
                     return 1;
                 }
+                
+                tbd.apply_dont_options();
 
                 // Check if any options overlap with one another
                 // This can occur in any of the following situations
@@ -431,18 +372,54 @@ int main(int argc, const char *argv[]) {
             }
 
             tbds.emplace_back(std::move(tbd));
+        } else if (strcmp(option, "remove-archs") == 0) {
+            if (global.options.replace_architectures && !global.options.remove_architectures) {
+                fputs("Can't both remove architectures and replace select architectures from list found\n", stderr);
+                exit(1);
+            }
+            
+            global_architectures_to_override_to_re = main_utils::parse_architectures_list(++index, argc, argv);
+            global.options.remove_architectures = true;
+            
+            // Write out replaced architectures
+            // over each export's architectures
+            
+            global.write_options.ignore_export_architectures = true;
+        } else if (strcmp(option, "remove-flags") == 0) {
+            if (global.options.replace_flags && !global.options.remove_flags) {
+                fputs("Can't both remove flags and replace select flags from list found\n", stderr);
+                exit(1);
+            }
+            
+            // Simply validate flags for now
+            
+            main_utils::parse_flags(&global_tbd_flags_to_re, ++index, argc, argv);
+            global.options.remove_flags = true;
         } else if (strcmp(option, "replace-archs") == 0) {
             // Replacing architectures 'resets' the global architectures
             // list, replacing not only add-archs options, but earlier provided
             // global archs options
 
             if (global.options.remove_architectures) {
-                fputs("Can't both replace and remove architectures\n", stderr);
+                fputs("Can't both replace and add/remove architectures\n", stderr);
                 return 1;
             }
 
             global_architectures_to_override_to_re = main_utils::parse_architectures_list(++index, argc, argv);
+            
+            global.creation_options.ignore_architectures = true;
             global.options.replace_architectures = true;
+            
+            // Don't write out uuids for
+            // architectures we don't have
+            
+            global.creation_options.ignore_uuids = true;
+            global.write_options.ignore_uuids = true;
+            
+            // Write out replaced architectures
+            // over each export's architectures
+            
+            global.write_options.ignore_export_architectures = true;
         } else if (strcmp(option, "replace-flags") == 0) {
             index++;
             if (index == argc) {
@@ -451,7 +428,7 @@ int main(int argc, const char *argv[]) {
             }
 
             if (global.options.remove_flags) {
-                fputs("Can't both replace flags found and remove select flags from flags found\n", stderr);
+                fputs("Can't both replace flags found and add/remove select flags from flags found\n", stderr);
                 return 1;
             }
 
@@ -464,7 +441,7 @@ int main(int argc, const char *argv[]) {
             global.options.replace_flags = true;
         } else if (global.parse_option_from_argv(option, index, argc, argv)) {
             continue;
-        } else if (global.parse_dont_option_from_argv(option, index, argc, argv, global_donts)) {
+        } else if (global.parse_dont_option_from_argv(option, index, argc, argv)) {
             continue;
         } else if (main_utils::parse_list_argument(argument, index, argc, argv)) {
             continue;
@@ -557,6 +534,8 @@ int main(int argc, const char *argv[]) {
     }
 
     auto should_print_paths = tbds.size() != 1;
+    auto failed_to_create_tbd = false;
+    
     for (auto &tbd : tbds) {
 
         // Apply global variables from global tbd
@@ -571,18 +550,9 @@ int main(int argc, const char *argv[]) {
 
         // Apply global "don't" options
 
-        tbd.creation_options.value &= ~global_donts.creation_options.value;
-        tbd.write_options.value &= ~global_donts.write_options.value;
-        tbd.options.value &= ~global_donts.options.value;
-
-        // Apply other global variables
-
-        if (global.options.remove_architectures) {
-            tbd.architectures |= global_architectures_to_override_to_add;
-            tbd.architectures &= ~global_architectures_to_override_to_re;
-        } else {
-            tbd.architectures = global_architectures_to_override_to_re;
-        }
+        tbd.creation_options.value &= ~global.donts.creation_options.value;
+        tbd.write_options.value &= ~global.donts.write_options.value;
+        tbd.options.value &= ~global.donts.options.value;
 
         // Parse global-flags after creating tbd as local
         // flags options are parsed after the fact, and
@@ -631,6 +601,22 @@ int main(int argc, const char *argv[]) {
 
                 const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
                 if (creation_result) {
+                    tbd.apply_local_options(argc, argv);
+                    
+                    if (global.options.remove_architectures) {
+                        tbd.info.architectures |= global_architectures_to_override_to_add;
+                        tbd.info.architectures &= ~global_architectures_to_override_to_re;
+                    } else if (global.options.replace_architectures) {
+                        tbd.info.architectures = global_architectures_to_override_to_re;
+                    }
+                    
+                    if (global.options.remove_flags) {
+                        tbd.info.flags.value |= global_tbd_flags_to_add.value;
+                        tbd.info.flags.value &= ~global_tbd_flags_to_re.value;
+                    } else if (global.options.replace_flags) {
+                        tbd.info.flags.value = global_tbd_flags_to_re.value;
+                    }
+                    
                     // directories_front is an index to the start of the
                     // directories we are supposed to maintain (if needed)
 
@@ -666,15 +652,7 @@ int main(int argc, const char *argv[]) {
 
                     main_utils::recursive_mkdir_last_as_file(write_path.data(), &terminator, &descriptor);
 
-                    // Parse local-options for modification of tbd-fields
-                    // after creation and before write to avoid any extra hoops
-
-                    // Do this before applying any global variables as global
-                    // variables have preference over local variables
-
-                    tbd.apply_local_options(argc, argv);
-
-                    switch (tbd.info.write_to(descriptor, tbd.write_options)) {
+                    switch (tbd.info.write_to(descriptor, tbd.write_options, tbd.version)) {
                         case macho::utils::tbd::write_result::ok:
                             break;
 
@@ -694,13 +672,7 @@ int main(int argc, const char *argv[]) {
                     close(descriptor);
                 }
 
-                // tbd.info.version is set to none when
-                // tbd.info is cleared, so keep a copy here
-
-                auto version = tbd.info.version;
-
                 tbd.info.clear();
-                tbd.info.version = version;
                 tbd.apply_missing_from(global);
 
                 return true;
@@ -808,6 +780,7 @@ int main(int argc, const char *argv[]) {
 
             const auto creation_result = main_utils::create_tbd(tbd, tbd, file, options, nullptr, tbd.path.c_str());
             if (!creation_result) {
+                failed_to_create_tbd = true;
                 continue;
             }
 
@@ -820,9 +793,16 @@ int main(int argc, const char *argv[]) {
             tbd.apply_local_options(argc, argv);
 
             if (global.options.remove_architectures) {
+                tbd.info.architectures |= global_architectures_to_override_to_add;
+                tbd.info.architectures &= ~global_architectures_to_override_to_re;
+            } else if (global.options.replace_architectures) {
+                tbd.info.architectures = global_architectures_to_override_to_re;
+            }
+            
+            if (global.options.remove_flags) {
                 tbd.info.flags.value |= global_tbd_flags_to_add.value;
                 tbd.info.flags.value &= ~global_tbd_flags_to_re.value;
-            } else {
+            } else if (global.options.replace_flags) {
                 tbd.info.flags.value = global_tbd_flags_to_re.value;
             }
 
@@ -834,10 +814,10 @@ int main(int argc, const char *argv[]) {
 
                 main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), &terminator, &descriptor);
 
-                write_result = tbd.info.write_to(descriptor, tbd.write_options);
+                write_result = tbd.info.write_to(descriptor, tbd.write_options, tbd.version);
                 close(descriptor);
             } else {
-                write_result = tbd.info.write_to(stdout, tbd.write_options);
+                write_result = tbd.info.write_to(stdout, tbd.write_options, tbd.version);
             }
 
             switch (write_result) {
@@ -873,6 +853,10 @@ int main(int argc, const char *argv[]) {
                     break;
             }
         }
+    }
+    
+    if (failed_to_create_tbd) {
+        return 1;
     }
 
     return 0;

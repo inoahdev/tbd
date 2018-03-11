@@ -20,11 +20,11 @@ namespace macho::utils {
 
         explicit inline stream_helper(int descriptor) : descriptor(descriptor) {}
 
-        inline bool print(const char *str) const noexcept {
+        inline bool write(const char *str) const noexcept {
             return dprintf(this->descriptor, "%s", str) != -1;
         }
 
-        __attribute__((format(printf, 2, 3))) inline auto printf(const char *str, ...) const noexcept {
+        __attribute__((format(printf, 2, 3))) inline auto writef(const char *str, ...) const noexcept {
             va_list list;
 
             va_start(list, str);
@@ -34,7 +34,7 @@ namespace macho::utils {
             return result != -1;
         }
 
-        inline bool print(const char ch) const noexcept {
+        inline bool write(const char ch) const noexcept {
             return dprintf(this->descriptor, "%c", ch) != -1;
         }
     };
@@ -45,11 +45,11 @@ namespace macho::utils {
 
         explicit inline stream_helper(FILE *file) : file(file) {}
 
-        inline bool print(const char *str) const noexcept {
+        inline bool write(const char *str) const noexcept {
             return fputs(str, this->file) != -1;
         }
 
-        __attribute__((format(printf, 2, 3))) inline bool printf(const char *str, ...) const noexcept {
+        __attribute__((format(printf, 2, 3))) inline bool writef(const char *str, ...) const noexcept {
             va_list list;
 
             va_start(list, str);
@@ -59,13 +59,16 @@ namespace macho::utils {
             return result != -1;
         }
 
-        inline bool print(const char ch) const noexcept {
+        inline bool write(const char ch) const noexcept {
             return fputc(ch, this->file) != -1;
         }
     };
+    
+    template <typename T>
+    bool write_string_with_quotes_if_needed(const stream_helper<T> &stream, const char *string);
 
     template <typename T>
-    tbd::write_result tbd_write_with_export_groups_to(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept;
+    tbd::write_result tbd_write_with_export_groups_to(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups) noexcept;
 
     template <typename T>
     bool write_architectures_to_stream(const stream_helper<T> &stream, uint64_t architectures, bool dash) noexcept;
@@ -181,38 +184,38 @@ namespace macho::utils {
         return groups;
     }
 
-    tbd::tbd::write_result tbd::write_to(const char *path, const tbd::write_options &options) const noexcept {
+    tbd::tbd::write_result tbd::write_to(const char *path, const tbd::write_options &options, const version &version) const noexcept {
         const auto file = fopen(path, "w");
         if (!file) {
             return write_result::failed_to_open_stream;
         }
 
-        const auto result = this->write_to(file, options);
+        const auto result = this->write_to(file, options, version);
         fclose(file);
 
         return result;
     }
 
-    tbd::write_result tbd::write_to(int descriptor, const tbd::write_options &options) const noexcept {
-        return this->write_with_export_groups_to(descriptor, options, this->export_groups());
+    tbd::write_result tbd::write_to(int descriptor, const tbd::write_options &options, const version &version) const noexcept {
+        return this->write_with_export_groups_to(descriptor, options, version, this->export_groups());
     }
 
-    tbd::write_result tbd::write_to(FILE *file, const tbd::write_options &options) const noexcept {
-        return this->write_with_export_groups_to(file, options, this->export_groups());
+    tbd::write_result tbd::write_to(FILE *file, const tbd::write_options &options, const version &version) const noexcept {
+        return this->write_with_export_groups_to(file, options, version, this->export_groups());
     }
 
-    tbd::write_result tbd::write_with_export_groups_to(int descriptor, const write_options &options, const std::vector<export_group> &groups) const noexcept {
-        return tbd_write_with_export_groups_to(*this, stream_helper<int>(descriptor), options, groups);
+    tbd::write_result tbd::write_with_export_groups_to(int descriptor, const write_options &options, const version &version, const std::vector<export_group> &groups) const noexcept {
+        return tbd_write_with_export_groups_to(*this, stream_helper<int>(descriptor), options, version, groups);
     }
 
-    tbd::write_result tbd::write_with_export_groups_to(FILE *file, const write_options &options, const std::vector<export_group> &groups) const noexcept {
-        return tbd_write_with_export_groups_to(*this, stream_helper<FILE *>(file), options, groups);
+    tbd::write_result tbd::write_with_export_groups_to(FILE *file, const write_options &options, const version &version, const std::vector<export_group> &groups) const noexcept {
+        return tbd_write_with_export_groups_to(*this, stream_helper<FILE *>(file), options, version, groups);
     }
 
     template <typename T>
-    tbd::write_result tbd_write_with_export_groups_to(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept {
+    tbd::write_result tbd_write_with_export_groups_to(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups) noexcept {
         if (!options.ignore_header) {
-            if (!write_header_to_stream(stream, tbd.version)) {
+            if (!write_header_to_stream(stream, version)) {
                 return tbd::write_result::failed_to_write_header;
             }
         }
@@ -260,7 +263,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_swift_version) {
-            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_swift_version_to_stream(stream, tbd.swift_version)) {
                     return tbd::write_result::failed_to_write_swift_version;
                 }
@@ -268,7 +271,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_objc_constraint) {
-            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_objc_constraint_to_stream(stream, tbd.objc_constraint)) {
                     return tbd::write_result::failed_to_write_objc_constraint;
                 }
@@ -276,7 +279,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_parent_umbrella) {
-            if (tbd.version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
                 if (!write_parent_umbrella_to_stream(stream, tbd.parent_umbrella)) {
                     return tbd::write_result::failed_to_write_parent_umbrella;
                 }
@@ -298,15 +301,130 @@ namespace macho::utils {
 
         return tbd::write_result::ok;
     }
+    
+    template <typename T>
+    bool write_string_with_quotes_if_needed(const stream_helper<T> &stream, const char *string) {
+        bool needs_single_quotes = false;
+        bool needs_double_quotes = false;
+
+        const char only_beginning[] = { '@', '`', '%' };
+        const char special_characters[] = { ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=', '!', '\\', '\"', '$' };
+        const char double_quotes_characters[] = { '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\x0e', '\x0f', '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a', '\e', '\x1c', '\x1d', '\x1e', '\x1f', '\'' };
+        
+        const char *reserved_keywords[] = { "true", "false", "null", "~" };
+        
+        char ch = *string;
+        for (const auto &special : special_characters) {
+            if (ch != special) {
+                continue;
+            }
+            
+            needs_single_quotes = true;
+            break;
+        }
+        
+        for (const auto &special : double_quotes_characters) {
+            if (ch != special) {
+                continue;
+            }
+            
+            needs_double_quotes = true;
+            break;
+        }
+        
+        if (!needs_single_quotes && !needs_double_quotes) {
+            ch = string[1];
+            for (const char *iter = string + 1; ch != '\0'; iter++, ch = *iter) {
+                for (const auto &beginning : only_beginning) {
+                    if (ch != beginning) {
+                        continue;
+                    }
+                    
+                    needs_single_quotes = true;
+                    break;
+                }
+                
+                for (const auto &special : special_characters) {
+                    if (ch != special) {
+                        continue;
+                    }
+                    
+                    needs_single_quotes = true;
+                    break;
+                }
+                
+                for (const auto &special : double_quotes_characters) {
+                    if (ch != special) {
+                        continue;
+                    }
+                    
+                    needs_double_quotes = true;
+                    break;
+                }
+                
+                if (ch == '\'') {
+                    needs_double_quotes = true;
+                }
+            }
+        }
+        
+        if (!needs_single_quotes && !needs_double_quotes) {
+            for (const auto &keyword : reserved_keywords) {
+                if (strcmp(string, keyword) != 0) {
+                    continue;
+                }
+                
+                needs_single_quotes = true;
+            }
+        }
+        
+        if (needs_single_quotes && needs_double_quotes) {
+            if (!stream.write('\'')) {
+                return false;
+            }
+            
+            for (char ch = *string; ch != '\0'; ch = *++string) {
+                if (ch != '\'' && ch != '\"') {
+                    if (!stream.write(ch)) {
+                        return false;
+                    }
+                }
+                
+                if (!stream.writef("\\%c", ch)) {
+                    return false;
+                }
+            }
+            
+            if (!stream.write('\'')) {
+                return false;
+            }
+        } else {
+            if (needs_single_quotes) {
+                if (!stream.writef("\'%s\'", string)) {
+                    return false;
+                }
+            } else if (needs_double_quotes) {
+                if (!stream.writef("\"%s\"", string)) {
+                    return false;
+                }
+            } else {
+                if (!stream.write(string)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
 
     template <typename T>
     bool write_architectures_to_stream(const stream_helper<T> &stream, uint64_t architectures, bool dash) noexcept {
         // Check if the relevant bits of architectures,
         // the bits 0..get_architecture_info_table_size(),
         // are empty
-
+        
         const auto bit_size = sizeof(uint64_t) * 8;
-        const auto architecture_info_size = get_architecture_info_table_size();
+        const auto architecture_info_size = get_architecture_info_table_size() - 1;
 
         if (!(architectures << (bit_size - architecture_info_size))) {
             return false;
@@ -315,11 +433,11 @@ namespace macho::utils {
         // Find first architecture to write out, then
         // write out the rest with a leading comma
 
-        auto first_architecture_index = 1ull;
-        auto first_architecture_index_bit = 1ull;
+        auto first_architecture_index = 0ull;
+        auto architecture_index_bit = 1ull;
         
-        for (; first_architecture_index < architecture_info_size; first_architecture_index++, first_architecture_index_bit <<= 1) {
-            if (!(architectures & first_architecture_index_bit)) {
+        for (; first_architecture_index != architecture_info_size; first_architecture_index++, architecture_index_bit <<= 1) {
+            if (!(architectures & architecture_index_bit)) {
                 continue;
             }
 
@@ -330,27 +448,30 @@ namespace macho::utils {
             return false;
         }
         
-        const auto architecture_info = architecture_info_from_index(first_architecture_index);
+        auto architecture_info = architecture_info_from_index(first_architecture_index);
         if (dash) {
-            if (!stream.printf("  - archs:%-14s[ %s", "", architecture_info->name)) {
+            if (!stream.writef("  - archs:%-14s[ %s", "", architecture_info->name)) {
                 return false;
             }
-        } else if (!stream.printf("archs:%-17s[ %s", "", architecture_info->name)) {
+        } else if (!stream.writef("archs:%-17s[ %s", "", architecture_info->name)) {
             return false;
         }
 
-        for (auto index = first_architecture_index + 1; index < architecture_info_size; index++) {
-            if (!(architectures & (1ull << index))) {
+        architecture_index_bit <<= 1;
+        first_architecture_index += 1;
+        
+        for (auto index = first_architecture_index; index != architecture_info_size; index++, architecture_index_bit <<= 1) {
+            if (!(architectures & architecture_index_bit)) {
                 continue;
             }
 
-            const auto architecture_info = architecture_info_from_index(index);
-            if (!stream.printf(", %s", architecture_info->name)) {
+            architecture_info = architecture_info_from_index(index);
+            if (!stream.writef(", %s", architecture_info->name)) {
                 return false;
             }
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -359,7 +480,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_compatibility_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept {
-        if (!stream.print("compatibility-version: ")) {
+        if (!stream.write("compatibility-version: ")) {
             return false;
         }
 
@@ -368,7 +489,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_current_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept {
-        if (!stream.printf("current-version:%-7s", "")) {
+        if (!stream.writef("current-version:%-7s", "")) {
             return false;
         }
 
@@ -401,7 +522,7 @@ namespace macho::utils {
             return tbd::write_result::ok;
         }
 
-        if (!stream.print("exports:\n")) {
+        if (!stream.write("exports:\n")) {
             return tbd::write_result::failed_to_write_exports;
         }
 
@@ -423,29 +544,29 @@ namespace macho::utils {
             return true;
         }
 
-        if (!stream.printf("flags:%-17s[ ", "")) {
+        if (!stream.writef("flags:%-17s[ ", "")) {
             return false;
         }
 
         if (flags.flat_namespace) {
-            if (!stream.print("flat_namespace")) {
+            if (!stream.write("flat_namespace")) {
                 return false;
             }
         }
 
         if (flags.not_app_extension_safe) {
             if (flags.flat_namespace) {
-                if (!stream.print(", ")) {
+                if (!stream.write(", ")) {
                     return false;
                 }
             }
 
-            if (!stream.print("not_app_extension_safe")) {
+            if (!stream.write("not_app_extension_safe")) {
                 return false;
             }
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -454,22 +575,22 @@ namespace macho::utils {
 
     template <typename T>
     bool write_footer_to_stream(const stream_helper<T> &stream) noexcept {
-        return stream.print("...\n");
+        return stream.write("...\n");
     }
 
     template <typename T>
     bool write_header_to_stream(const stream_helper<T> &stream, const enum tbd::version &version) noexcept {
-        if (!stream.print("---")) {
+        if (!stream.write("---")) {
             return false;
         }
 
         if (version == tbd::version::v2) {
-            if (!stream.print(" !tapi-tbd-v2")) {
+            if (!stream.write(" !tapi-tbd-v2")) {
                 return false;
             }
         }
 
-        if (!stream.print('\n')) {
+        if (!stream.write('\n')) {
             return false;
         }
 
@@ -482,7 +603,19 @@ namespace macho::utils {
             return true;
         }
 
-        return stream.printf("install-name:%-10s\'%s\'\n", "", install_name.c_str());
+        if (!stream.writef("install-name:%-10s", "")) {
+            return false;
+        }
+        
+        if (!write_string_with_quotes_if_needed(stream, install_name.data())) {
+            return false;
+        }
+        
+        if (!stream.write('\n')) {
+            return false;
+        }
+        
+        return true;
     }
 
     template <typename T>
@@ -578,8 +711,14 @@ namespace macho::utils {
             return tbd::write_result::ok;
         }
 
-        if (!write_architectures_to_stream(stream, architectures, true)) {
-            return tbd::write_result::failed_to_write_architectures;
+        if (options.ignore_export_architectures) {
+            if (!write_architectures_to_stream(stream, tbd.architectures, true)) {
+                return tbd::write_result::failed_to_write_architectures;
+            }
+        } else {
+            if (!write_architectures_to_stream(stream, architectures, true)) {
+                return tbd::write_result::failed_to_write_architectures;
+            }
         }
 
         if (reexports_iter != reexports_end) {
@@ -617,29 +756,29 @@ namespace macho::utils {
 
     template <typename T>
     bool write_packed_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept {
-        if (!stream.printf("%u", version.components.major)) {
+        if (!stream.writef("%u", version.components.major)) {
             return false;
         }
 
         if (version.components.minor != 0) {
-            if (!stream.printf(".%u", version.components.minor)) {
+            if (!stream.writef(".%u", version.components.minor)) {
                 return false;
             }
         }
 
         if (version.components.revision != 0) {
             if (version.components.minor == 0) {
-                if (!stream.print(".0")) {
+                if (!stream.write(".0")) {
                     return false;
                 }
             }
 
-            if (!stream.printf(".%u", version.components.revision)) {
+            if (!stream.writef(".%u", version.components.revision)) {
                 return false;
             }
         }
 
-        if (!stream.print('\n')) {
+        if (!stream.write('\n')) {
             return false;
         }
 
@@ -652,7 +791,7 @@ namespace macho::utils {
             return true;
         }
 
-        return stream.printf("parent-umbrella:%-7s%s\n", "", parent_umbrella.c_str());
+        return stream.writef("parent-umbrella:%-7s%s\n", "", parent_umbrella.c_str());
     }
 
     template <typename T>
@@ -661,7 +800,7 @@ namespace macho::utils {
             return true;
         }
 
-        return stream.printf("platform:%-14s%s\n", "", tbd::platform_to_string(platform));
+        return stream.writef("platform:%-14s%s\n", "", tbd::platform_to_string(platform));
     }
 
     template <typename T>
@@ -670,7 +809,7 @@ namespace macho::utils {
             return true;
         }
 
-        return stream.printf("objc-constraint:%-7s%s\n", "", tbd::objc_constraint_to_string(constraint));
+        return stream.writef("objc-constraint:%-7s%s\n", "", tbd::objc_constraint_to_string(constraint));
     }
 
     template <typename T>
@@ -679,27 +818,27 @@ namespace macho::utils {
             return true;
         }
 
-        if (!stream.printf("swift-version:%-9s", "")) {
+        if (!stream.writef("swift-version:%-9s", "")) {
             return false;
         }
 
         switch (version) {
             case 1:
-                if (!stream.print("1\n")) {
+                if (!stream.write("1\n")) {
                     return false;
                 }
 
                 break;
 
             case 2:
-                if (!stream.print("1.2\n")) {
+                if (!stream.write("1.2\n")) {
                     return false;
                 }
 
                 break;
 
             default:
-                if (!stream.printf("%d\n", version - 1)) {
+                if (!stream.writef("%d\n", version - 1)) {
                     return false;
                 }
 
@@ -724,32 +863,22 @@ namespace macho::utils {
         auto new_line_length = line_length + total_string_length;
         if (line_length != 0) {
             if (new_line_length >= line_length_max) {
-                if (!stream.printf(",\n%-26s", "")) {
+                if (!stream.writef(",\n%-26s", "")) {
                     return false;
                 }
 
                 new_line_length = total_string_length;
             } else {
-                if (!stream.print(", ")) {
+                if (!stream.write(", ")) {
                     return false;
                 }
             }
         }
 
-        // Strings are printed with quotations
-        // if they start out with $ld in Apple's
-        // official, not sure if needed though
-
-        if (strncmp(string.c_str(), "$ld", 3) == 0) {
-            if (!stream.printf("\'%s\'", string.c_str())) {
-                return false;
-            }
-        } else {
-            if (!stream.printf("%s", string.c_str())) {
-                return false;
-            }
+        if (!write_string_with_quotes_if_needed(stream, string.c_str())) {
+            return false;
         }
-
+        
         line_length = new_line_length;
         return true;
     }
@@ -760,7 +889,7 @@ namespace macho::utils {
             return true;
         }
 
-        if (!stream.printf("uuids:%-17s[ ", "")) {
+        if (!stream.writef("uuids:%-17s[ ", "")) {
             return false;
         }
 
@@ -811,7 +940,34 @@ namespace macho::utils {
                 }
 
                 const auto &uuid = resulting_iter->uuid();
-                const auto result = stream.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", resulting_architecture->name,
+                const auto result = stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", resulting_architecture->name,
+                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
+                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                if (!result) {
+                    return false;
+                }
+
+                last_architecture = resulting_architecture;
+                
+                tracker++;
+                if (tracker != uuids_size) {
+                    if (!stream.write(", ")) {
+                        return false;
+                    }
+
+                    if (!(tracker & 1)) {
+                        if (!stream.writef("%-26s", "\n")) {
+                            return false;
+                        }
+                    }
+                } else {
+                    break;
+                }
+            } while (true);
+        } else {
+            for (auto pair = uuids.cbegin(); pair != uuids_end; pair++) {
+                const auto &uuid = pair->uuid();
+                const auto result = stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
                                                   uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
                                                   uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 if (!result) {
@@ -820,37 +976,12 @@ namespace macho::utils {
 
                 tracker++;
                 if (tracker != uuids_size) {
-                    if (!stream.print(", ")) {
+                    if (!stream.write(", ")) {
                         return false;
                     }
 
                     if (!(tracker & 1)) {
-                        if (!stream.printf("%-26s", "\n")) {
-                            return false;
-                        }
-                    }
-                }
-
-                last_architecture = resulting_architecture;
-            } while (tracker != uuids_size);
-        } else {
-            for (auto pair = uuids.cbegin(); pair != uuids_end; pair++) {
-                const auto &uuid = pair->uuid();
-                const auto result = stream.printf("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
-                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
-                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-                if (result) {
-                    return false;
-                }
-
-                tracker++;
-                if (tracker != uuids_size) {
-                    if (!stream.print(", ")) {
-                        return false;
-                    }
-
-                    if (!(tracker & 1)) {
-                        if (!stream.printf("%-26s", "\n")) {
+                        if (!stream.writef("%-26s", "\n")) {
                             return false;
                         }
                     }
@@ -858,7 +989,7 @@ namespace macho::utils {
             }
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -867,7 +998,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_reexports_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::reexport>::const_iterator &begin, const std::vector<tbd::reexport>::const_iterator &end, uint64_t architectures) noexcept {
-        if (!stream.printf("%-4sre-exports:%9s[ ", "", "")) {
+        if (!stream.writef("%-4sre-exports:%9s[ ", "", "")) {
             return false;
         }
 
@@ -881,7 +1012,7 @@ namespace macho::utils {
             iter = std::find(iter, end, architectures);
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -890,7 +1021,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_normal_symbols_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures) noexcept {
-        if (!stream.printf("%-4ssymbols:%12s[ ", "", "")) {
+        if (!stream.writef("%-4ssymbols:%12s[ ", "", "")) {
             return false;
         }
 
@@ -904,7 +1035,7 @@ namespace macho::utils {
             iter = next_iterator_for_symbol(iter, end, architectures, tbd::symbol::type::normal);
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -913,7 +1044,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_objc_class_symbols_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures) noexcept {
-        if (!stream.printf("%-4sobjc-classes:%7s[ ", "", "")) {
+        if (!stream.writef("%-4sobjc-classes:%7s[ ", "", "")) {
             return false;
         }
 
@@ -927,7 +1058,7 @@ namespace macho::utils {
             iter = next_iterator_for_symbol(iter, end, architectures, tbd::symbol::type::objc_class);
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -936,7 +1067,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_objc_ivar_symbols_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures) noexcept {
-        if (!stream.printf("%-4sobjc-ivars:%9s[ ", "", "")) {
+        if (!stream.writef("%-4sobjc-ivars:%9s[ ", "", "")) {
             return false;
         }
 
@@ -950,7 +1081,7 @@ namespace macho::utils {
             iter = next_iterator_for_symbol(iter, end, architectures, tbd::symbol::type::objc_ivar);
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 
@@ -959,7 +1090,7 @@ namespace macho::utils {
 
     template <typename T>
     bool write_weak_symbols_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures) noexcept {
-        if (!stream.printf("%-4sweak-def-symbols:%3s[ ", "", "")) {
+        if (!stream.writef("%-4sweak-def-symbols:%3s[ ", "", "")) {
             return false;
         }
 
@@ -973,7 +1104,7 @@ namespace macho::utils {
             iter = next_iterator_for_symbol(iter, end, architectures, tbd::symbol::type::weak);
         }
 
-        if (!stream.print(" ]\n")) {
+        if (!stream.write(" ]\n")) {
             return false;
         }
 

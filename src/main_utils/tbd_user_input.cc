@@ -62,7 +62,12 @@ namespace main_utils {
             }
         }
 
+        tbd.info.clear();
+        
         if (all.creation_options.ignore_platform && all.info.platform != macho::utils::tbd::platform::none) {
+            tbd.creation_options.ignore_platform = true;
+            tbd.info.platform = all.info.platform;
+
             return true;
         }
 
@@ -111,7 +116,12 @@ namespace main_utils {
             }
         }
 
+        tbd.info.clear();
+        
         if (all.creation_options.ignore_install_name && all.info.install_name.size() != 0) {
+            tbd.creation_options.ignore_install_name = true;
+            tbd.info.install_name = all.info.install_name;
+            
             return true;
         }
 
@@ -153,9 +163,13 @@ namespace main_utils {
                 return false;
             }
         }
+        
+        tbd.info.clear();
 
-        if (all.creation_options.ignore_objc_constraint &&
-            all.info.objc_constraint != macho::utils::tbd::objc_constraint::none) {
+        if (all.creation_options.ignore_objc_constraint && all.info.objc_constraint != macho::utils::tbd::objc_constraint::none) {
+            tbd.creation_options.ignore_objc_constraint = true;
+            tbd.info.objc_constraint = all.info.objc_constraint;
+            
             return true;
         }
 
@@ -203,8 +217,13 @@ namespace main_utils {
                 return false;
             }
         }
+        
+        tbd.info.clear();
 
         if (all.creation_options.ignore_parent_umbrella && all.info.parent_umbrella.size() != 0) {
+            tbd.creation_options.ignore_parent_umbrella = true;
+            tbd.info.parent_umbrella = all.info.parent_umbrella;
+            
             return true;
         }
 
@@ -246,7 +265,12 @@ namespace main_utils {
             }
         }
 
+        tbd.info.clear();
+
         if (all.creation_options.ignore_swift_version && all.info.swift_version != 0) {
+            tbd.creation_options.ignore_swift_version = all.creation_options.ignore_swift_version;
+            tbd.info.swift_version = all.info.swift_version;
+            
             return true;
         }
 
@@ -273,6 +297,7 @@ namespace main_utils {
 
             if (result == "1.2") {
                 new_swift_version = 2;
+                break;
             } else {
                 if (result.find_first_not_of("0123456789") != std::string::npos) {
                     continue;
@@ -301,7 +326,12 @@ namespace main_utils {
             }
         }
 
-        if (all.creation_options.ignore_flags) {
+        tbd.info.clear();
+        
+        if (all.creation_options.ignore_flags && all.write_options.ignore_flags) {
+            tbd.creation_options.ignore_flags = true;
+            tbd.write_options.ignore_flags = true;
+
             return true;
         }
 
@@ -337,7 +367,12 @@ namespace main_utils {
             }
         }
 
-        if (all.creation_options.ignore_uuids) {
+        tbd.info.clear();
+
+        if (all.creation_options.ignore_uuids && all.write_options.ignore_uuids) {
+            tbd.creation_options.ignore_uuids = true;
+            tbd.write_options.ignore_uuids = true;
+            
             return true;
         }
 
@@ -373,7 +408,10 @@ namespace main_utils {
             }
         }
 
+        tbd.info.clear();
+
         if (all.creation_options.ignore_non_unique_uuids) {
+            tbd.creation_options.ignore_non_unique_uuids = true;
             return true;
         }
 
@@ -407,7 +445,10 @@ namespace main_utils {
             }
         }
 
+        tbd.info.clear();
+
         if (all.creation_options.ignore_missing_uuids) {
+            tbd.creation_options.ignore_missing_uuids = true;
             return true;
         }
 
