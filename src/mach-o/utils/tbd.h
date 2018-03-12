@@ -605,6 +605,10 @@ namespace macho::utils {
 
         enum class write_result {
             ok,
+            
+            has_no_architectures,
+            has_no_exports,
+            
             failed_to_open_stream,
             
             failed_to_write_architectures,
@@ -620,8 +624,6 @@ namespace macho::utils {
             failed_to_write_platform,
             failed_to_write_swift_version,
             failed_to_write_uuids,
-
-            has_no_exports,
 
             failed_to_write_reexports,
             failed_to_write_normal_symbols,

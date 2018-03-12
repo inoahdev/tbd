@@ -64,6 +64,8 @@ namespace macho::utils {
         }
     };
     
+    tbd::write_result tbd_check_prerequisites_before_writing(const tbd &tbd, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups);
+    
     template <typename T>
     bool write_string_with_quotes_if_needed(const stream_helper<T> &stream, const char *string);
 
@@ -214,6 +216,11 @@ namespace macho::utils {
 
     template <typename T>
     tbd::write_result tbd_write_with_export_groups_to(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups) noexcept {
+        const auto prerequisites_result = tbd_check_prerequisites_before_writing(tbd, options, version, groups);
+        if (prerequisites_result != tbd::write_result::ok) {
+            return prerequisites_result;
+        }
+        
         if (!options.ignore_header) {
             if (!write_header_to_stream(stream, version)) {
                 return tbd::write_result::failed_to_write_header;
@@ -299,6 +306,35 @@ namespace macho::utils {
             }
         }
 
+        return tbd::write_result::ok;
+    }
+    
+    tbd::write_result tbd_check_prerequisites_before_writing(const tbd &tbd, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups) {
+        if (!options.ignore_architectures) {
+            // Check if the relevant bits of architectures,
+            // the bits 0..get_architecture_info_table_size(),
+            // are empty
+            
+            const auto architecture_info_size = get_architecture_info_table_size();
+            const auto architecture_bits = ~(-(1 << architecture_info_size));
+            
+            if ((tbd.architectures & architecture_bits) == 0) {
+                return tbd::write_result::has_no_architectures;
+            }
+        }
+        
+        if (!options.ignore_exports) {
+            if (options.enforce_has_exports) {
+                if (tbd.reexports.empty() && tbd.symbols.empty()) {
+                    return tbd::write_result::has_no_exports;
+                }
+                
+                if (groups.empty()) {
+                    return tbd::write_result::has_no_exports;
+                }
+            }
+        }
+        
         return tbd::write_result::ok;
     }
     
@@ -419,24 +455,15 @@ namespace macho::utils {
 
     template <typename T>
     bool write_architectures_to_stream(const stream_helper<T> &stream, uint64_t architectures, bool dash) noexcept {
-        // Check if the relevant bits of architectures,
-        // the bits 0..get_architecture_info_table_size(),
-        // are empty
-        
-        const auto bit_size = sizeof(uint64_t) * 8;
-        const auto architecture_info_size = get_architecture_info_table_size() - 1;
-
-        if (!(architectures << (bit_size - architecture_info_size))) {
-            return false;
-        }
-
         // Find first architecture to write out, then
         // write out the rest with a leading comma
 
+        const auto architecture_info_max_index = get_architecture_info_table_size() - 1;
+        
         auto first_architecture_index = 0ull;
         auto architecture_index_bit = 1ull;
         
-        for (; first_architecture_index != architecture_info_size; first_architecture_index++, architecture_index_bit <<= 1) {
+        for (; first_architecture_index != architecture_info_max_index; first_architecture_index++, architecture_index_bit <<= 1) {
             if (!(architectures & architecture_index_bit)) {
                 continue;
             }
@@ -444,7 +471,7 @@ namespace macho::utils {
             break;
         }
 
-        if (first_architecture_index == architecture_info_size) {
+        if (first_architecture_index == architecture_info_max_index) {
             return false;
         }
         
@@ -460,7 +487,7 @@ namespace macho::utils {
         architecture_index_bit <<= 1;
         first_architecture_index += 1;
         
-        for (auto index = first_architecture_index; index != architecture_info_size; index++, architecture_index_bit <<= 1) {
+        for (auto index = first_architecture_index; index != architecture_info_max_index; index++, architecture_index_bit <<= 1) {
             if (!(architectures & architecture_index_bit)) {
                 continue;
             }
@@ -498,27 +525,8 @@ namespace macho::utils {
 
     template <typename T>
     tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept {
-        // Don't check if options.ignore_exports() as
-        // caller is supposed to check if it's configured
-
         if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
             options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
-            return tbd::write_result::ok;
-        }
-
-        if (tbd.reexports.empty() && tbd.symbols.empty()) {
-            if (options.enforce_has_exports) {
-                return tbd::write_result::has_no_exports;
-            }
-
-            return tbd::write_result::ok;
-        }
-
-        if (groups.empty()) {
-            if (options.enforce_has_exports) {
-                return tbd::write_result::has_no_exports;
-            }
-
             return tbd::write_result::ok;
         }
 
@@ -920,7 +928,7 @@ namespace macho::utils {
                 // up the ordering as we are to select only from [last_architecture+1...uuids_end]
 
                 // The way to remedy this is to store the architecture-info of the result iter
-                // in a seperate variable, initially set to NULL architecture-info (the last
+                // in a separate variable, initially set to NULL architecture-info (the last
                 // architecture-info in the table)
 
                 auto resulting_iter = uuids_begin;
