@@ -1049,18 +1049,18 @@ namespace macho::utils {
                         if (*string == '\0') {
                             continue;
                         }
-
+                        
                         // Skip empty strings
-
+                        
                         // Assume that the string isn't null-terminated to
                         // avoid resulting in undefined behavior when copying
-
-                        const auto string_length = strnlen(string, string_table_size - index);
+                        
+                        auto string_length = strnlen(string, string_table_size - index);
                         if (std::all_of(string, &string[string_length], isspace)) {
                             continue;
                         }
 
-                        const auto type = symbol::type_from_symbol_string(string, n_desc);
+                        const auto type = symbol::type_from_symbol_string(string, string_length, n_desc);
                         switch (type) {
                             case symbol::type::normal:
                                 if (!options.allow_private_normal_symbols) {
@@ -1188,8 +1188,16 @@ namespace macho::utils {
                         if (*string == '\0') {
                             continue;
                         }
+                        
+                        // Assume that the string isn't null-terminated to
+                        // avoid resulting in undefined behavior when copying
+                        
+                        auto string_length = strnlen(string, string_table_size - index);
+                        if (std::all_of(string, &string[string_length], isspace)) {
+                            continue;
+                        }
 
-                        const auto type = symbol::type_from_symbol_string(string, n_desc);
+                        const auto type = symbol::type_from_symbol_string(string, string_length, n_desc);
                         switch (type) {
                             case symbol::type::normal:
                                 if (!options.allow_private_normal_symbols) {
@@ -1228,10 +1236,6 @@ namespace macho::utils {
                                 break;
                         }
 
-                        // Assume that the string isn't null-terminated to
-                        // avoid resulting in undefined behavior when copying
-
-                        const auto string_length = strnlen(string, string_table_size - index);
                         const auto symbols_end = this->symbols.end();
 
                         // An optimization can be made here to remove
@@ -2125,12 +2129,12 @@ namespace macho::utils {
                 // Assume that the string isn't null-terminated to
                 // avoid resulting in undefined behavior when copying
 
-                const auto string_length = strnlen(string, string_table_size - index);
+                auto string_length = strnlen(string, string_table_size - index);
                 if (std::all_of(string, &string[string_length], isspace)) {
                     continue;
                 }
 
-                const auto type = symbol::type_from_symbol_string(string, desc);
+                const auto type = symbol::type_from_symbol_string(string, string_length, desc);
                 switch (type) {
                     case symbol::type::normal:
                         if (!options.allow_private_normal_symbols) {

@@ -265,7 +265,7 @@ namespace macho::utils {
                 weak
             };
 
-            static type type_from_symbol_string(const char *& string, symbol_table::desc n_desc) noexcept;
+            static type type_from_symbol_string(const char *& string, size_t &string_length, symbol_table::desc n_desc) noexcept;
 
             explicit symbol() = default;
             explicit symbol(uint64_t architectures, std::string &string, type type) noexcept;

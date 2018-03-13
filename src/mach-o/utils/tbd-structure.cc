@@ -174,28 +174,36 @@ namespace macho::utils {
         return nullptr;
     }
 
-    enum tbd::symbol::type tbd::symbol::type_from_symbol_string(const char *& string, symbol_table::desc n_desc) noexcept {
+    enum tbd::symbol::type tbd::symbol::type_from_symbol_string(const char *& string, size_t &string_length, symbol_table::desc n_desc) noexcept {
         if (n_desc.weak_definition) {
             return symbol::type::weak;
         }
 
         if (strncmp(string, "_OBJC_CLASS_$", 13) == 0) {
             string = &string[13];
+            string_length -= 13;
+            
             return symbol::type::objc_class;
         }
 
         if (strncmp(string, ".objc_class_name", 16) == 0) {
             string = &string[16];
+            string_length -= 16;
+            
             return symbol::type::objc_class;
         }
 
         if (strncmp(string, "_OBJC_METACLASS_$", 17) == 0) {
             string = &string[17];
+            string_length -= 17;
+            
             return symbol::type::objc_class;
         }
 
         if (strncmp(string, "_OBJC_IVAR_$", 12) == 0) {
             string = &string[12];
+            string_length -= 12;
+            
             return symbol::type::objc_ivar;
         }
 
