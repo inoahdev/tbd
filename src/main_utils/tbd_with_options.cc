@@ -186,9 +186,9 @@ namespace main_utils {
             this->creation_options.ignore_non_unique_uuids = true;
         } else if (strcmp(option, "ignore-warnings") == 0) {
             this->options.ignore_warnings = true;
-        } else if (strcmp(option, "remove-allowable-clients") == 0) {
-            this->creation_options.ignore_allowable_clients = true;
-            this->write_options.ignore_allowable_clients = true;
+        } else if (strcmp(option, "remove-clients") == 0) {
+            this->creation_options.ignore_clients = true;
+            this->write_options.ignore_clients = true;
         } else if (strcmp(option, "remove-archs") == 0) {
             if (this->options.replace_architectures && !this->options.remove_architectures) {
                 fputs("Can't both remove architectures and replace select architectures from list found\n", stderr);
@@ -340,9 +340,9 @@ namespace main_utils {
         } else if (strcmp(option, "dont-ignore-warnings") == 0) {
             this->options.ignore_warnings = false;
            this->donts.options.ignore_warnings = true;
-        } else if (strcmp(option, "dont-remove-allowable-clients-field") == 0) {
-            this->creation_options.ignore_allowable_clients = false;
-           this->donts.creation_options.ignore_allowable_clients = true;
+        } else if (strcmp(option, "dont-remove-clients") == 0) {
+            this->creation_options.ignore_clients = false;
+           this->donts.creation_options.ignore_clients = true;
         } else if (strcmp(option, "dont-remove-current-version") == 0) {
             this->creation_options.ignore_current_version = false;
             this->write_options.ignore_current_version = false;

@@ -158,7 +158,7 @@ namespace macho::utils {
         static enum objc_constraint objc_constraint_from_string(const char *string) noexcept;
         static const char *objc_constraint_to_string(const objc_constraint &constraint) noexcept;
 
-        // reexport, sub_client, and symbol are the three structures holding data
+        // client, reexport, and symbol are the three structures holding data
         // that serve as the core of a .tbd file, forming an export-group.
 
         // All three maintain a bitset of indexs of containers which they are
@@ -421,7 +421,7 @@ namespace macho::utils {
                     // in tbd fields
 
                     bool ignore_architectures         : 1;
-                    bool ignore_allowable_clients     : 1;
+                    bool ignore_clients               : 1;
                     bool ignore_current_version       : 1;
                     bool ignore_compatibility_version : 1;
                     bool ignore_exports               : 1;
@@ -567,7 +567,6 @@ namespace macho::utils {
                     // not printing it out
 
                     bool ignore_architectures         : 1;
-                    bool ignore_allowable_clients     : 1;
                     bool ignore_current_version       : 1;
                     bool ignore_compatibility_version : 1;
                     bool ignore_exports               : 1;
@@ -581,6 +580,7 @@ namespace macho::utils {
                     bool ignore_swift_version         : 1;
                     bool ignore_uuids                 : 1;
 
+                    bool ignore_clients               : 1;
                     bool ignore_reexports             : 1;
                     bool ignore_normal_symbols        : 1;
                     bool ignore_objc_class_symbols    : 1;

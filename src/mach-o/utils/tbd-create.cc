@@ -601,7 +601,11 @@ namespace macho::utils {
                     }
 
                     case macho::load_commands::sub_client: {
-                        if (options.ignore_allowable_clients) {
+                        if (options.ignore_exports) {
+                            break;
+                        }
+                        
+                        if (options.ignore_clients) {
                             break;
                         }
                         
@@ -1806,7 +1810,11 @@ namespace macho::utils {
                 }
 
                 case macho::load_commands::sub_client: {
-                    if (options.ignore_allowable_clients) {
+                    if (options.ignore_exports) {
+                        break;
+                    }
+                    
+                    if (options.ignore_clients) {
                         break;
                     }
                     

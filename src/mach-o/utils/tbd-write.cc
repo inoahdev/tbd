@@ -652,8 +652,9 @@ namespace macho::utils {
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
-        if (options.ignore_allowable_clients && options.ignore_reexports && options.ignore_normal_symbols &&
-            options.ignore_weak_symbols && options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
+        if (options.ignore_clients && options.ignore_reexports &&
+            options.ignore_normal_symbols && options.ignore_weak_symbols &&
+            options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
@@ -741,7 +742,8 @@ namespace macho::utils {
             clients_iter = std::find(clients_begin, clients_end, architectures);
         }
 
-        if ((!options.ignore_reexports && reexports_iter == reexports_end) &&
+        if ((!options.ignore_clients && clients_iter == clients_end) &&
+            (!options.ignore_reexports && reexports_iter == reexports_end) &&
             (!options.ignore_normal_symbols && normal_symbols_iter == symbols_end) &&
             (!options.ignore_objc_class_symbols && objc_class_symbols_iter == symbols_end) &&
             (!options.ignore_objc_ivar_symbols && objc_ivar_symbols_iter == symbols_end) &&
@@ -759,39 +761,51 @@ namespace macho::utils {
             }
         }
         
-        if (clients_iter != clients_end) {
-            if (!write_clients_array_to_stream(stream, clients_iter, clients_end, version, architectures)) {
-                return tbd::write_result::failed_to_write_clients;
+        if (!options.ignore_clients) {
+            if (clients_iter != clients_end) {
+                if (!write_clients_array_to_stream(stream, clients_iter, clients_end, version, architectures)) {
+                    return tbd::write_result::failed_to_write_clients;
+                }
+            }
+        }
+        
+        if (!options.ignore_reexports) {
+            if (reexports_iter != reexports_end) {
+                if (!write_reexports_array_to_stream(stream, reexports_iter, reexports_end, architectures)) {
+                    return tbd::write_result::failed_to_write_reexports;
+                }
             }
         }
 
-        if (reexports_iter != reexports_end) {
-            if (!write_reexports_array_to_stream(stream, reexports_iter, reexports_end, architectures)) {
-                return tbd::write_result::failed_to_write_reexports;
+        if (!options.ignore_normal_symbols) {
+            if (normal_symbols_iter != symbols_end) {
+                if (!write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, architectures)) {
+                    return tbd::write_result::failed_to_write_normal_symbols;
+                }
+            }
+        }
+        
+        if (!options.ignore_objc_class_symbols) {
+            if (objc_class_symbols_iter != symbols_end) {
+                if (!write_objc_class_symbols_array_to_stream(stream, objc_class_symbols_iter, symbols_end, architectures)) {
+                    return tbd::write_result::failed_to_write_objc_class_symbols;
+                }
+            }
+        }
+        
+        if (!options.ignore_objc_ivar_symbols) {
+            if (objc_ivar_symbols_iter != symbols_end) {
+                if (!write_objc_ivar_symbols_array_to_stream(stream, objc_ivar_symbols_iter, symbols_end, architectures)) {
+                    return tbd::write_result::failed_to_write_objc_ivar_symbols;
+                }
             }
         }
 
-        if (normal_symbols_iter != symbols_end) {
-            if (!write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, architectures)) {
-                return tbd::write_result::failed_to_write_normal_symbols;
-            }
-        }
-
-        if (objc_class_symbols_iter != symbols_end) {
-            if (!write_objc_class_symbols_array_to_stream(stream, objc_class_symbols_iter, symbols_end, architectures)) {
-                return tbd::write_result::failed_to_write_objc_class_symbols;
-            }
-        }
-
-        if (objc_ivar_symbols_iter != symbols_end) {
-            if (!write_objc_ivar_symbols_array_to_stream(stream, objc_ivar_symbols_iter, symbols_end, architectures)) {
-                return tbd::write_result::failed_to_write_objc_ivar_symbols;
-            }
-        }
-
-        if (weak_symbols_iter != symbols_end) {
-            if (!write_weak_symbols_array_to_stream(stream, weak_symbols_iter, symbols_end, architectures)) {
-                return tbd::write_result::failed_to_write_weak_symbols;
+        if (!options.ignore_weak_symbols) {
+            if (weak_symbols_iter != symbols_end) {
+                if (!write_weak_symbols_array_to_stream(stream, weak_symbols_iter, symbols_end, architectures)) {
+                    return tbd::write_result::failed_to_write_weak_symbols;
+                }
             }
         }
 
