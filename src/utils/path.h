@@ -273,10 +273,21 @@ namespace utils::path {
 
     template <typename T>
     T find_extension(const T &begin, const T &end) noexcept {
+        if (begin == end) {
+            return end;
+        }
+        
+        auto last_path_component_begin = find_last_slash_in_front_of_pattern(begin, end);
+        if (last_path_component_begin == end) {
+            last_path_component_begin = begin;
+        } else {
+            last_path_component_begin += 1;
+        }
+        
         auto iter = end - 1;
         auto elmt = *iter;
-
-        while (iter != begin && elmt != '.') {
+        
+        while (iter != last_path_component_begin && elmt != '.') {
             iter--;
             elmt = *iter;
         }
