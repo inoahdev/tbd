@@ -360,7 +360,7 @@ namespace macho::utils {
         
         if (!options.ignore_exports) {
             if (options.enforce_has_exports) {
-                if (tbd.reexports.empty() && tbd.symbols.empty()) {
+                if (tbd.clients.empty() && tbd.reexports.empty() && tbd.symbols.empty()) {
                     return tbd::write_result::has_no_exports;
                 }
                 
@@ -552,6 +552,10 @@ namespace macho::utils {
     tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version,const std::vector<tbd::export_group> &groups) noexcept {
         if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
             options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
+            return tbd::write_result::ok;
+        }
+        
+        if (tbd.clients.empty() && tbd.reexports.empty() && tbd.symbols.empty()) {
             return tbd::write_result::ok;
         }
 
