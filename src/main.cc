@@ -537,6 +537,20 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
+    auto is_writing_to_stdout = false;
+    for (const auto &tbd : tbds) {
+        if (!tbd.write_path.empty()) {
+            continue;
+        }
+        
+        if (is_writing_to_stdout) {
+            fputs("Can't allow more than one mach-o file to be written as a tbd to stdout\n", stderr);
+            return 1;
+        }
+        
+        is_writing_to_stdout = true;
+    }
+    
     auto should_print_paths = tbds.size() != 1;
     auto failed_to_create_tbd = false;
     
