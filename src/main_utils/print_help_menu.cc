@@ -33,8 +33,6 @@ namespace main_utils {
         fputc('\n', stdout);
         fputs("Path options:\n", stdout);
         fputs("Usage: tbd -p [-a/--arch architectures] [--archs architecture-overrides] [--platform platform] [-r/--recurse/ -r=once/all / --recurse=once/all] [-v/--version v1/v2] /path/to/macho/library\n", stdout);
-        fputs("    -a, --arch,     Specify architecture(s) to output to tbd\n", stdout);
-        fputs("        --archs,    Specify architecture(s) to use, instead of the ones in the provided mach-o file(s)\n", stdout);
         fputs("        --platform, Specify platform for all mach-o library files provided\n", stdout);
         fputs("    -r, --recurse,  Specify directory to recurse and find mach-o library files in\n", stdout);
         fputs("    -v, --version,  Specify version of tbd to convert to (default is v2)\n", stdout);
@@ -48,8 +46,6 @@ namespace main_utils {
 
         fputc('\n', stdout);
         fputs("Global options:\n", stdout);
-        fputs("    -a, --arch,     Specify architecture(s) to output to tbd (where architectures were not already specified)\n", stdout);
-        fputs("        --archs,    Specify architecture(s) to override architectures found in file (where default architecture-overrides were not already provided)\n", stdout);
         fputs("        --platform, Specify platform for all mach-o library files provided (applying to all mach-o library files where platform was not provided)\n", stdout);
         fputs("    -v, --version,  Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not provided)\n", stdout);
 
@@ -73,6 +69,13 @@ namespace main_utils {
 
         fputc('\n', stdout);
         fputs("tbd field remove options: (Both path and global options)\n", stdout);
+        fputs("        --add-archs,                         Specify architecture(s) to add onto architectures found in file\n", stdout);
+        fputs("        --remove-archs,                      Specify architecture(s) to remove from architectures found in file\n", stdout);
+        fputs("        --replace-archs,                     Specify architecture(s) to replace architectures found in file\n", stdout);
+        fputs("        --add-flags,                         Specify flag(s) to add onto flags found in file\n", stdout);
+        fputs("        --remove-flags,                      Specify flag(s) to remove from flags found in file\n", stdout);
+        fputs("        --remove-flags-field,                Remove flags field from written tbds\n", stdout);
+        fputs("        --replace-flags,                     Specify flag(s) to replace flags found in file\n", stdout);
         fputs("        --remove-clients,                    Remove clients field from written tbds\n", stdout);
         fputs("        --remove-current-version,            Remove current-version field from written tbds\n", stdout);
         fputs("        --remove-compatibility-version,      Remove compatibility-version field from written tbds\n", stdout);
