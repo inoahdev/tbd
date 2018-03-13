@@ -179,6 +179,7 @@ namespace main_utils {
             // symbol-table is missing
 
             this->creation_options.ignore_missing_symbol_table = true;
+            this->write_options.enforce_has_exports = false;
         } else if (strcmp(option, "ignore-missing-uuids") == 0) {
             this->creation_options.ignore_missing_uuids = true;
         } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
@@ -326,7 +327,10 @@ namespace main_utils {
             // symbol-table is missing
 
             this->creation_options.ignore_missing_symbol_table = false;
-           this->donts.creation_options.ignore_missing_symbol_table = true;
+            this->donts.creation_options.ignore_missing_symbol_table = true;
+            
+            this->write_options.enforce_has_exports = true;
+            this->donts.write_options.enforce_has_exports = false;
         } else if (strcmp(option, "dont-ignore-missing-uuids") == 0) {
             this->creation_options.ignore_missing_uuids = false;
            this->donts.creation_options.ignore_missing_uuids = true;
