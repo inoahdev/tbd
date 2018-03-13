@@ -15,14 +15,13 @@
 
 #include "main_utils/tbd_create.h"
 #include "main_utils/tbd_parse_fields.h"
+#include "main_utils/tbd_write.h"
 
 #include "main_utils/recursive_mkdir.h"
 #include "main_utils/recursive_remove_with_terminator.h"
 
 #include "misc/current_directory.h"
 #include "misc/recurse.h"
-
-static const char *source_code_link = "https://github.com/inoahdev/tbd";
 
 int main(int argc, const char *argv[]) {
     if (argc < 2) {
@@ -552,7 +551,7 @@ int main(int argc, const char *argv[]) {
     }
     
     auto should_print_paths = tbds.size() != 1;
-    auto failed_to_create_tbd = false;
+    auto failed_to_process_tbd = false;
     
     for (auto &tbd : tbds) {
 
@@ -669,107 +668,15 @@ int main(int argc, const char *argv[]) {
                     auto descriptor = -1;
 
                     main_utils::recursive_mkdir_last_as_file(write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
-
                     if (descriptor == -1) {
                         return true;
                     }
                     
-                    switch (tbd.info.write_to(descriptor, tbd.write_options, tbd.version)) {
-                        case macho::utils::tbd::write_result::ok:
-                            break;
-
-                        case macho::utils::tbd::write_result::has_no_architectures:
-                            fprintf(stderr, "No architectures were retrieved while parsing mach-o file (at path %s). This is likely an internal error, Please create an issue with contextual information at %s\n", path.c_str(), source_code_link);
-                            
-                            break;
-                            
-                        case macho::utils::tbd::write_result::has_no_exports:
-                            if (!tbd.options.ignore_warnings) {
-                                fprintf(stderr, "Mach-o file (at path %s) has no clients, reexports or symbols to be written out\n", path.c_str());
-                            }
-                            
-                            break;
-                            
-                        case macho::utils::tbd::write_result::failed_to_open_stream:
-                            break;
-                            
-                        case macho::utils::tbd::write_result::failed_to_write_architectures:
-                            fprintf(stderr, "Failed to write architectures of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_current_version:
-                            fprintf(stderr, "Failed to write current-version of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_compatibility_version:
-                            fprintf(stderr, "Failed to write compatibility-version of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_exports:
-                            fprintf(stderr, "Failed to write exports of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_flags:
-                            fprintf(stderr, "Failed to write flags of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_footer:
-                            fprintf(stderr, "Failed to write footer of tbd-file to file (at path %s)\n", write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_header:
-                            fprintf(stderr, "Failed to write header of tbd-file to file (at path %s)\n", write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_install_name:
-                            fprintf(stderr, "Failed to write install-name of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_objc_constraint:
-                            fprintf(stderr, "Failed to write objc-constraint of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_parent_umbrella:
-                            fprintf(stderr, "Failed to write parent-umbrella of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_platform:
-                            fprintf(stderr, "Failed to write platform of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-
-                        case macho::utils::tbd::write_result::failed_to_write_swift_version:
-                            fprintf(stderr, "Failed to write swift-version of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_uuids:
-                            fprintf(stderr, "Failed to write uuids of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_reexports:
-                            fprintf(stderr, "Failed to write re-exports of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_normal_symbols:
-                            fprintf(stderr, "Failed to write ordinary symbols of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_objc_class_symbols:
-                            fprintf(stderr, "Failed to write objc-class symbols of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_objc_ivar_symbols:
-                            fprintf(stderr, "Failed to write objc-ivar symbols of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-
-                        case macho::utils::tbd::write_result::failed_to_write_weak_symbols:
-                            fprintf(stderr, "Failed to write weak symbols of mach-o file (at path %s) to file (at path %s)\n", path.c_str(), write_path.c_str());
-                            goto recurse_tbd_internal_error;
-                            
-                        default:
-                        recurse_tbd_internal_error:
-                            fprintf(stderr, "This is likely a stream error, please try again. If the issue persists, and other causes have been eliminated (e.g No storage space left), Please create an issue with contextual infromation at %s\n", source_code_link);
-                            break;
+                    if (!main_utils::tbd_write(descriptor, tbd, path, options.print_paths)) {
+                        main_utils::recursively_remove_with_terminator(write_path.data(), terminator, options.print_paths);
+                        failed_to_process_tbd = true;
                     }
-
+                    
                     close(descriptor);
                 }
 
@@ -881,7 +788,7 @@ int main(int argc, const char *argv[]) {
 
             const auto creation_result = main_utils::create_tbd(tbd, tbd, file, options, nullptr, tbd.path.c_str());
             if (!creation_result) {
-                failed_to_create_tbd = true;
+                failed_to_process_tbd = true;
                 continue;
             }
 
@@ -907,7 +814,6 @@ int main(int argc, const char *argv[]) {
                 tbd.info.flags.value = global_tbd_flags_to_re.value;
             }
 
-            auto write_result = macho::utils::tbd::write_result::ok;
             auto terminator = static_cast<char *>(nullptr);
 
             if (!tbd.write_path.empty()) {
@@ -918,188 +824,21 @@ int main(int argc, const char *argv[]) {
                     continue;
                 }
                 
-                write_result = tbd.info.write_to(descriptor, tbd.write_options, tbd.version);
+                if (!main_utils::tbd_write(descriptor, tbd, tbd.path, should_print_paths)) {
+                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    failed_to_process_tbd = true;
+                }
+                
                 close(descriptor);
             } else {
-                write_result = tbd.info.write_to(stdout, tbd.write_options, tbd.version);
-            }
-
-            switch (write_result) {
-                case macho::utils::tbd::write_result::ok:
-                    break;
-                    
-                case macho::utils::tbd::write_result::has_no_architectures:
-                    if (should_print_paths) {
-                        fprintf(stderr, "No architectures were retrieved while parsing mach-o file (at path %s). This is likely an internal error, Please create an issue with contextual information at %s\n", tbd.path.c_str(), source_code_link);
-                    } else {
-                        fprintf(stderr, "No architectures were retrieved while parsing mach-o file at provided path. This is likely an internal error, Please create an issue with contextual information at %s\n", source_code_link);
-                    }
-                    
-                    break;
-                    
-                case macho::utils::tbd::write_result::has_no_exports:
-                    if (!tbd.options.ignore_warnings) {
-                        fprintf(stderr, "Mach-o file (at path %s) has no reexports and symbols to be written out\n", tbd.path.c_str());
-                    }
-                    
-                    break;
-                    
-                case macho::utils::tbd::write_result::failed_to_open_stream:
-                    break;
-                    
-                case macho::utils::tbd::write_result::failed_to_write_architectures:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write architectures of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write architectures of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_current_version:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write current-version of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write current-version of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_compatibility_version:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write compatibility-version of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write compatibility-version of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_exports:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write exports of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write exports of mach-o file (at path %s) to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_flags:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write flags of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write flags of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_footer:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write footer of tbd-file to file (at path %s)\n", tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write footer of tbd-file to file at provided path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_header:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write header of tbd-file to file (at path %s)\n", tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write header of tbd-file to file at provided path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_install_name:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write install-name of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write install-name of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_objc_constraint:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write objc-constraint of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write objc-constraint of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_parent_umbrella:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write parent-umbrella of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write parent-umbrella of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_platform:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write platform of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write platform of mach-o file at provided path to file provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_swift_version:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write swift-version of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write swift-version of mach-o file at provided path to file provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_uuids:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write uuids of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write uuids of mach-o file at provided path to file provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_reexports:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write re-exports of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write re-exports of mach-o file at provided path to file (at path %s)\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_normal_symbols:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write ordinary symbols of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write ordinary symbols of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_objc_class_symbols:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write objc-class symbols of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write objc-class symbols of mach-o file at provided path to file at provided output-path\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_objc_ivar_symbols:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write objc-ivar symbols of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write objc-ivar symbols of mach-o file (at path %s) to file (at path %s)\n", stderr);
-                    }
-                    
-                    goto single_tbd_internal_error_notice;
-                case macho::utils::tbd::write_result::failed_to_write_weak_symbols:
-                    if (should_print_paths) {
-                        fprintf(stderr, "Failed to write weak symbols of mach-o file (at path %s) to file (at path %s)\n", tbd.path.c_str(), tbd.write_path.c_str());
-                    } else {
-                        fputs("Failed to write weak symbols of mach-o file (at path %s) to file (at path %s)\n", stderr);
-                    }
-
-                    goto single_tbd_internal_error_notice;
-                default:
-                single_tbd_internal_error_notice:
-                    fprintf(stderr, "This is likely a stream error, please try again. If the issue persists, and other causes have been eliminated (e.g No storage space left), Please create an issue with contextual infromation at %s\n", source_code_link);
-                    break;
+                if (!main_utils::tbd_write(STDOUT_FILENO, tbd, tbd.path, should_print_paths)) {
+                    failed_to_process_tbd = true;
+                }
             }
         }
     }
     
-    if (failed_to_create_tbd) {
+    if (failed_to_process_tbd) {
         return 1;
     }
 
