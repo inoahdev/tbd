@@ -649,34 +649,36 @@ namespace macho::utils {
                         // Assume sub_client_command_name
                         // is not null-terminated
 
-                        auto sub_clients_iter = this->sub_clients.begin();
-                        const auto sub_clients_end = this->sub_clients.end();
+                        auto clients_iter = this->clients.begin();
+                        const auto clients_end = this->clients.end();
 
-                        for (; sub_clients_iter != sub_clients_end; sub_clients_iter++) {
-                            if (sub_clients_iter->client.length() != sub_client_command_name_length) {
+                        for (; clients_iter != clients_end; clients_iter++) {
+                            if (clients_iter->string.length() != sub_client_command_name_length) {
                                 continue;
                             }
 
-                            if (strncmp(sub_clients_iter->client.c_str(), sub_client_command_name, sub_client_command_name_length) != 0) {
+                            if (strncmp(clients_iter->string.c_str(), sub_client_command_name, sub_client_command_name_length) != 0) {
                                 continue;
                             }
 
                             if (!options.ignore_architectures) {
-                                sub_clients_iter->add_architecture(architecture_info_index);
+                                clients_iter->add_architecture(architecture_info_index);
                             }
+                            
+                            break;
                         }
 
                         // In case a sub-client
                         // was not found
 
-                        if (sub_clients_iter == sub_clients_end) {
-                            auto sub_client_string = std::string(sub_client_command_name, sub_client_command_name_length);
-                            auto &sub_client = sub_clients.emplace_back(1ull << architecture_info_index, std::move(sub_client_string));
+                        if (clients_iter == clients_end) {
+                            auto client_string = std::string(sub_client_command_name, sub_client_command_name_length);
+                            auto &client = this->clients.emplace_back(1ull << architecture_info_index, std::move(client_string));
 
                             if (options.ignore_architectures) {
-                                sub_client.set_all_architectures();
+                                client.set_all_architectures();
                             } else {
-                                sub_client.add_architecture(architecture_info_index);
+                                client.add_architecture(architecture_info_index);
                             }
                         }
 
@@ -1848,11 +1850,11 @@ namespace macho::utils {
                     if (std::all_of(sub_client_command_name, sub_client_command_end, isspace)) {
                         continue;
                     }
-
+                    
                     if (options.ignore_architectures) {
-                        this->sub_clients.emplace_back(~0ull, std::string(sub_client_command_name, sub_client_command_name_length));
+                        this->clients.emplace_back(~0ull, std::string(sub_client_command_name, sub_client_command_name_length));
                     } else {
-                        this->sub_clients.emplace_back(1ull << architecture_info_index, std::string(sub_client_command_name, sub_client_command_name_length));
+                        this->clients.emplace_back(1ull << architecture_info_index, std::string(sub_client_command_name, sub_client_command_name_length));
                     }
                     
                     break;
@@ -2186,7 +2188,7 @@ namespace macho::utils {
         this->platform = platform::none;
         this->install_name.clear();
         this->parent_umbrella.clear();
-        this->sub_clients.clear();
+        this->clients.clear();
         this->reexports.clear();
         this->symbols.clear();
         this->swift_version = 0;

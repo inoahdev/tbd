@@ -43,9 +43,11 @@ namespace macho::utils {
         };
 
         struct reexport;
+        struct client;
         struct symbol;
 
         struct export_group {
+            explicit export_group(const client *client) noexcept;
             explicit export_group(const reexport *reexport) noexcept;
             explicit export_group(const symbol *symbol) noexcept;
 
@@ -54,6 +56,7 @@ namespace macho::utils {
             // we need with no extra cost
 
             const reexport *reexport = nullptr;
+            const client *client = nullptr;
             const symbol *symbol = nullptr;
 
             inline uint64_t architectures() const noexcept {
@@ -66,6 +69,14 @@ namespace macho::utils {
                 }
 
                 return 0;
+            }
+            
+            inline bool operator==(const struct client &client) const noexcept {
+                return this->architectures() == client.architectures;
+            }
+            
+            inline bool operator!=(const struct client &client) const noexcept {
+                return this->architectures() != client.architectures;
             }
 
             inline bool operator==(const struct reexport &reexport) const noexcept {
@@ -164,6 +175,51 @@ namespace macho::utils {
         // and reading only architecture-infos indexs bitset and ignoring the container indexes
         // bitset entirely
 
+        struct client {
+            explicit client() = default;
+            explicit client(uint64_t architectures, std::string &string) noexcept;
+            explicit client(uint64_t architectures, std::string &&string) noexcept;
+            
+            uint64_t architectures = uint64_t();
+            std::string string;
+            
+            inline bool has_architecture(uint64_t index) const noexcept {
+                return this->architectures & 1ull << index;
+            }
+            
+            inline void add_architecture(uint64_t index) noexcept {
+                this->architectures |= 1ull << index;
+            }
+            
+            inline void set_all_architectures() noexcept {
+                this->architectures = ~0ull;
+            }
+            
+            inline bool operator==(const uint64_t &architectures) const noexcept {
+                return this->architectures == architectures;
+            }
+            
+            inline bool operator!=(const uint64_t &architectures) const noexcept {
+                return this->architectures != architectures;
+            }
+            
+            inline bool operator==(const std::string &client) const noexcept {
+                return this->string == client;
+            }
+            
+            inline bool operator!=(const std::string &client) const noexcept {
+                return this->string != client;
+            }
+            
+            inline bool operator==(const struct client &client) const noexcept {
+                return this->architectures == client.architectures && this->string == client.string;
+            }
+            
+            inline bool operator!=(const struct client &client) const noexcept {
+                return this->architectures != client.architectures || this->string != client.string;
+            }
+        };
+        
         struct reexport {
             explicit reexport() = default;
             explicit reexport(uint64_t architectures, std::string &string) noexcept;
@@ -206,51 +262,6 @@ namespace macho::utils {
 
             inline bool operator!=(const reexport &reexport) const noexcept {
                 return this->architectures != reexport.architectures && this->string != reexport.string;
-            }
-        };
-
-        struct sub_client {
-            explicit sub_client() = default;
-            explicit sub_client(uint64_t architectures, std::string &client) noexcept;
-            explicit sub_client(uint64_t architectures, std::string &&client) noexcept;
-
-            uint64_t architectures = uint64_t();
-            std::string client;
-
-            inline bool has_architecture(uint64_t index) const noexcept {
-                return this->architectures & 1ull << index;
-            }
-
-            inline void add_architecture(uint64_t index) noexcept {
-                this->architectures |= 1ull << index;
-            }
-            
-            inline void set_all_architectures() noexcept {
-                this->architectures = ~0ull;
-            }
-
-            inline bool operator==(const uint64_t &architectures) const noexcept {
-                return this->architectures == architectures;
-            }
-
-            inline bool operator!=(const uint64_t &architectures) const noexcept {
-                return this->architectures != architectures;
-            }
-
-            inline bool operator==(const std::string &client) const noexcept {
-                return this->client == client;
-            }
-
-            inline bool operator!=(const std::string &client) const noexcept {
-                return this->client != client;
-            }
-
-            inline bool operator==(const sub_client &client) const noexcept {
-                return this->architectures == client.architectures && this->client == client.client;
-            }
-
-            inline bool operator!=(const sub_client &client) const noexcept {
-                return this->architectures != client.architectures || this->client != client.client;
             }
         };
 
@@ -381,7 +392,7 @@ namespace macho::utils {
         std::string install_name;
         std::string parent_umbrella;
 
-        std::vector<sub_client> sub_clients;
+        std::vector<client> clients;
 
         std::vector<reexport> reexports;
         std::vector<symbol> symbols;
@@ -625,6 +636,7 @@ namespace macho::utils {
             failed_to_write_swift_version,
             failed_to_write_uuids,
 
+            failed_to_write_clients,
             failed_to_write_reexports,
             failed_to_write_normal_symbols,
             failed_to_write_objc_class_symbols,

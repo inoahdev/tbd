@@ -82,7 +82,7 @@ namespace macho::utils {
     bool write_current_version_to_stream(const stream_helper<T> &file, const tbd::packed_version &version) noexcept;
 
     template <typename T>
-    tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept;
+    tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version, const std::vector<tbd::export_group> &groups) noexcept;
 
     template <typename T>
     bool write_flags_to_stream(const stream_helper<T> &stream, const struct tbd::flags &flags);
@@ -125,6 +125,9 @@ namespace macho::utils {
     // write_group_to_stream helpers
 
     template <typename T>
+    bool write_clients_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::client>::const_iterator &begin, const std::vector<tbd::client>::const_iterator &end, const tbd::version &version, uint64_t architectures) noexcept;
+    
+    template <typename T>
     bool write_reexports_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::reexport>::const_iterator &begin, const std::vector<tbd::reexport>::const_iterator &end, uint64_t architectures) noexcept;
 
     template <typename T>
@@ -148,12 +151,30 @@ namespace macho::utils {
         auto groups_end = groups.end();
 
         // Create groups by the architectures bit-set in each
-        // reexport and symbol.
+        // client, reexport and symbol.
+        
+        for (const auto &client : this->clients) {
+            auto groups_iter = std::find(groups_begin, groups_end, client);
+            if (groups_iter != groups_end) {
+                continue;
+            }
+            
+            groups.emplace_back(&client);
+            
+            groups_begin = groups.begin();
+            groups_end = groups.end();
+        }
         
         for (const auto &reexport : this->reexports) {
             auto groups_iter = std::find(groups_begin, groups_end, reexport);
             if (groups_iter != groups_end) {
-                continue;
+                // A group may have already been created
+                // for the reexport's architectures when iterating
+                // over clients
+                
+                if (!groups_iter->reexport) {
+                    groups_iter->reexport = &reexport;
+                }
             }
 
             groups.emplace_back(&reexport);
@@ -162,13 +183,12 @@ namespace macho::utils {
             groups_end = groups.end();
         }
 
-
         for (const auto &symbol : this->symbols) {
             auto groups_iter = std::find(groups_begin, groups_end, symbol);
             if (groups_iter != groups_end) {
                 // A group may have already been created
                 // for the symbol's architectures when iterating
-                // over reexports
+                // over clients or reeexports
                 
                 if (!groups_iter->symbol) {
                     groups_iter->symbol = &symbol;
@@ -294,7 +314,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_exports) {
-            const auto result = write_exports_to_stream(tbd, stream, options, tbd.export_groups());
+            const auto result = write_exports_to_stream(tbd, stream, options, version, tbd.export_groups());
             if (result != tbd::write_result::ok) {
                 return result;
             }
@@ -316,7 +336,7 @@ namespace macho::utils {
             // are empty
             
             const auto architecture_info_size = get_architecture_info_table_size();
-            const auto architecture_bits = ~(-(1 << architecture_info_size));
+            const auto architecture_bits = ~(-(1ull << architecture_info_size));
             
             if ((tbd.architectures & architecture_bits) == 0) {
                 return tbd::write_result::has_no_architectures;
@@ -524,7 +544,7 @@ namespace macho::utils {
     }
 
     template <typename T>
-    tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const std::vector<tbd::export_group> &groups) noexcept {
+    tbd::write_result write_exports_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::write_options &options, const tbd::version &version,const std::vector<tbd::export_group> &groups) noexcept {
         if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
             options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
@@ -535,7 +555,7 @@ namespace macho::utils {
         }
 
         for (const auto &group : groups) {
-            const auto result = write_group_to_stream(tbd, stream, group, options);
+            const auto result = write_group_to_stream(tbd, stream, group, options, version);
             if (result == tbd::write_result::ok) {
                 continue;
             }
@@ -627,7 +647,7 @@ namespace macho::utils {
     }
 
     template <typename T>
-    tbd::write_result write_group_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::export_group &group, const tbd::write_options &options) noexcept {
+        tbd::write_result write_group_to_stream(const tbd &tbd, const stream_helper<T> &stream, const tbd::export_group &group, const tbd::write_options &options, const tbd::version &version) noexcept {
         // We have to check that at least one category is written because
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
@@ -710,6 +730,16 @@ namespace macho::utils {
         } else {
             reexports_iter = std::find(reexports_begin, reexports_end, architectures);
         }
+        
+        const auto clients_begin = tbd.clients.cbegin();
+        const auto clients_end = tbd.clients.cend();
+        
+        auto clients_iter = clients_end;
+        if (group.client != nullptr) {
+            clients_iter = clients_begin + std::distance(tbd.clients.data(), group.client);
+        } else {
+            clients_iter = std::find(clients_begin, clients_end, architectures);
+        }
 
         if ((!options.ignore_reexports && reexports_iter == reexports_end) &&
             (!options.ignore_normal_symbols && normal_symbols_iter == symbols_end) &&
@@ -726,6 +756,12 @@ namespace macho::utils {
         } else {
             if (!write_architectures_to_stream(stream, architectures, true)) {
                 return tbd::write_result::failed_to_write_architectures;
+            }
+        }
+        
+        if (clients_iter != clients_end) {
+            if (!write_clients_array_to_stream(stream, clients_iter, clients_end, version, architectures)) {
+                return tbd::write_result::failed_to_write_clients;
             }
         }
 
@@ -1003,6 +1039,45 @@ namespace macho::utils {
 
         return true;
     }
+        
+    template <typename T>
+    bool write_clients_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::client>::const_iterator &begin, const std::vector<tbd::client>::const_iterator &end, const tbd::version &version, uint64_t architectures) noexcept {
+        switch (version) {
+            case tbd::version::none:
+                return false;
+                
+            case tbd::version::v1:
+                if (!stream.writef("%-4sallowed-clients:%-4s[ ", "", "")) {
+                    return false;
+                }
+                
+                break;
+                
+            case tbd::version::v2:
+                if (!stream.writef("%-4sallowable-clients:%-2s[ ", "", "")) {
+                    return false;
+                }
+                
+                break;
+        }
+        
+        auto line_length = size_t();
+        for (auto iter = begin; iter != end; ) {
+            if (!write_string_for_array_to_stream(stream, iter->string, line_length)) {
+                return false;
+            }
+            
+            iter++;
+            iter = std::find(iter, end, architectures);
+        }
+        
+        if (!stream.write(" ]\n")) {
+            return false;
+        }
+        
+        return true;
+    }
+
 
     template <typename T>
     bool write_reexports_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::reexport>::const_iterator &begin, const std::vector<tbd::reexport>::const_iterator &end, uint64_t architectures) noexcept {

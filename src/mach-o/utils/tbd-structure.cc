@@ -262,6 +262,9 @@ namespace macho::utils {
         return version::none;
     }
 
+    tbd::export_group::export_group(const struct client *client) noexcept
+    : client(client) {}
+
     tbd::export_group::export_group(const struct reexport *reexport) noexcept
     : reexport(reexport) {}
 
@@ -274,11 +277,11 @@ namespace macho::utils {
     tbd::reexport::reexport(uint64_t architectures, std::string &&string) noexcept
     : architectures(architectures), string(string) {}
 
-    tbd::sub_client::sub_client(uint64_t architectures, std::string &client) noexcept
-    : architectures(architectures), client(client) {}
+    tbd::client::client(uint64_t architectures, std::string &string) noexcept
+    : architectures(architectures), string(string) {}
 
-    tbd::sub_client::sub_client(uint64_t architectures, std::string &&client) noexcept
-    : architectures(architectures), client(client) {}
+    tbd::client::client(uint64_t architectures, std::string &&string) noexcept
+    : architectures(architectures), string(string) {}
 
     tbd::symbol::symbol(uint64_t architectures, std::string &string, enum type type) noexcept
     : architectures(architectures), string(string), type(type) {}
