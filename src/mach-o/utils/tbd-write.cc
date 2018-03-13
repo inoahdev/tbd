@@ -208,7 +208,7 @@ namespace macho::utils {
     
     std::vector<tbd::export_group> tbd::single_export_group() const noexcept {
         auto groups = std::vector<export_group>();
-        groups.emplace_back(this->architectures);
+        groups.emplace_back(~0ull);
         
         return groups;
     }
@@ -329,7 +329,7 @@ namespace macho::utils {
         }
 
         if (!options.ignore_exports) {
-            const auto result = write_exports_to_stream(tbd, stream, options, version, tbd.export_groups());
+            const auto result = write_exports_to_stream(tbd, stream, options, version, groups);
             if (result != tbd::write_result::ok) {
                 return result;
             }
