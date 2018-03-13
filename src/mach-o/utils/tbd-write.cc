@@ -378,8 +378,7 @@ namespace macho::utils {
         bool needs_single_quotes = false;
         bool needs_double_quotes = false;
 
-        const char only_beginning[] = { '@', '`', '%' };
-        const char special_characters[] = { ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=', '!', '\\', '\"', '$' };
+        const char special_characters[] = { ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=', '!', '\\', '\"', '$', '@', '`', '%' };
         const char double_quotes_characters[] = { '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\x0e', '\x0f', '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a', '\e', '\x1c', '\x1d', '\x1e', '\x1f', '\'' };
         
         const char *reserved_keywords[] = { "true", "false", "null", "~" };
@@ -406,15 +405,6 @@ namespace macho::utils {
         if (!needs_single_quotes && !needs_double_quotes) {
             ch = string[1];
             for (const char *iter = string + 1; ch != '\0'; iter++, ch = *iter) {
-                for (const auto &beginning : only_beginning) {
-                    if (ch != beginning) {
-                        continue;
-                    }
-                    
-                    needs_single_quotes = true;
-                    break;
-                }
-                
                 for (const auto &special : special_characters) {
                     if (ch != special) {
                         continue;
