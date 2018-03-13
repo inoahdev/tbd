@@ -262,6 +262,9 @@ namespace macho::utils {
         return version::none;
     }
 
+    tbd::export_group::export_group(uint64_t architectures) noexcept
+    : architectures(architectures) {}
+    
     tbd::export_group::export_group(const struct client *client) noexcept
     : client(client) {}
 

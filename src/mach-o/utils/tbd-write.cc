@@ -143,7 +143,7 @@ namespace macho::utils {
     bool write_weak_symbols_array_to_stream(const stream_helper<T> &stream, const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures) noexcept;
 
     std::vector<tbd::symbol>::const_iterator next_iterator_for_symbol(const std::vector<tbd::symbol>::const_iterator &begin, const std::vector<tbd::symbol>::const_iterator &end, uint64_t architectures, enum tbd::symbol::type type) noexcept;
-
+    
     std::vector<tbd::export_group> tbd::export_groups() const noexcept {
         auto groups = std::vector<export_group>();
 
@@ -205,6 +205,13 @@ namespace macho::utils {
 
         return groups;
     }
+    
+    std::vector<tbd::export_group> tbd::single_export_group() const noexcept {
+        auto groups = std::vector<export_group>();
+        groups.emplace_back(this->architectures);
+        
+        return groups;
+    }
 
     tbd::tbd::write_result tbd::write_to(const char *path, const tbd::write_options &options, const version &version) const noexcept {
         const auto file = fopen(path, "w");
@@ -219,10 +226,18 @@ namespace macho::utils {
     }
 
     tbd::write_result tbd::write_to(int descriptor, const tbd::write_options &options, const version &version) const noexcept {
+        if (options.ignore_export_architectures) {
+            return this->write_with_export_groups_to(descriptor, options, version, this->single_export_group());
+        }
+
         return this->write_with_export_groups_to(descriptor, options, version, this->export_groups());
     }
 
     tbd::write_result tbd::write_to(FILE *file, const tbd::write_options &options, const version &version) const noexcept {
+        if (options.ignore_export_architectures) {
+            return this->write_with_export_groups_to(file, options, version, this->single_export_group());
+        }
+        
         return this->write_with_export_groups_to(file, options, version, this->export_groups());
     }
 
@@ -658,14 +673,13 @@ namespace macho::utils {
             return tbd::write_result::ok;
         }
 
-        const auto architectures = group.architectures();
         const auto symbols_end = tbd.symbols.cend();
 
         auto group_symbols_begin = symbols_end;
         if (group.symbol != nullptr) {
             group_symbols_begin = tbd.symbols.cbegin() + std::distance(tbd.symbols.data(), group.symbol);
         } else {
-            group_symbols_begin = std::find(tbd.symbols.cbegin(), symbols_end, group.architectures());
+            group_symbols_begin = std::find(tbd.symbols.cbegin(), symbols_end, group.architectures);
         }
 
         auto normal_symbols_iter = symbols_end;
@@ -696,21 +710,20 @@ namespace macho::utils {
                 }
             }
 
-            const auto architectures = group.architectures();
             if (normal_symbols_iter != group_symbols_begin) {
-                normal_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::normal);
+                normal_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::normal);
             }
 
             if (objc_class_symbols_iter != group_symbols_begin) {
-                objc_class_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_class);
+                objc_class_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::objc_class);
             }
 
             if (objc_ivar_symbols_iter != group_symbols_begin) {
-                objc_ivar_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::objc_ivar);
+                objc_ivar_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::objc_ivar);
             }
 
             if (weak_symbols_iter != group_symbols_begin) {
-                weak_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, architectures, tbd::symbol::type::weak);
+                weak_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::weak);
             }
         }
 
@@ -729,7 +742,7 @@ namespace macho::utils {
         if (group.reexport != nullptr) {
             reexports_iter = reexports_begin + std::distance(tbd.reexports.data(), group.reexport);
         } else {
-            reexports_iter = std::find(reexports_begin, reexports_end, architectures);
+            reexports_iter = std::find(reexports_begin, reexports_end, group.architectures);
         }
         
         const auto clients_begin = tbd.clients.cbegin();
@@ -739,7 +752,7 @@ namespace macho::utils {
         if (group.client != nullptr) {
             clients_iter = clients_begin + std::distance(tbd.clients.data(), group.client);
         } else {
-            clients_iter = std::find(clients_begin, clients_end, architectures);
+            clients_iter = std::find(clients_begin, clients_end, group.architectures);
         }
 
         if ((!options.ignore_clients && clients_iter == clients_end) &&
@@ -756,14 +769,14 @@ namespace macho::utils {
                 return tbd::write_result::failed_to_write_architectures;
             }
         } else {
-            if (!write_architectures_to_stream(stream, architectures, true)) {
+            if (!write_architectures_to_stream(stream, group.architectures, true)) {
                 return tbd::write_result::failed_to_write_architectures;
             }
         }
         
         if (!options.ignore_clients) {
             if (clients_iter != clients_end) {
-                if (!write_clients_array_to_stream(stream, clients_iter, clients_end, version, architectures)) {
+                if (!write_clients_array_to_stream(stream, clients_iter, clients_end, version, group.architectures)) {
                     return tbd::write_result::failed_to_write_clients;
                 }
             }
@@ -771,7 +784,7 @@ namespace macho::utils {
         
         if (!options.ignore_reexports) {
             if (reexports_iter != reexports_end) {
-                if (!write_reexports_array_to_stream(stream, reexports_iter, reexports_end, architectures)) {
+                if (!write_reexports_array_to_stream(stream, reexports_iter, reexports_end, group.architectures)) {
                     return tbd::write_result::failed_to_write_reexports;
                 }
             }
@@ -779,7 +792,7 @@ namespace macho::utils {
 
         if (!options.ignore_normal_symbols) {
             if (normal_symbols_iter != symbols_end) {
-                if (!write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, architectures)) {
+                if (!write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, group.architectures)) {
                     return tbd::write_result::failed_to_write_normal_symbols;
                 }
             }
@@ -787,7 +800,7 @@ namespace macho::utils {
         
         if (!options.ignore_objc_class_symbols) {
             if (objc_class_symbols_iter != symbols_end) {
-                if (!write_objc_class_symbols_array_to_stream(stream, objc_class_symbols_iter, symbols_end, architectures)) {
+                if (!write_objc_class_symbols_array_to_stream(stream, objc_class_symbols_iter, symbols_end, group.architectures)) {
                     return tbd::write_result::failed_to_write_objc_class_symbols;
                 }
             }
@@ -795,7 +808,7 @@ namespace macho::utils {
         
         if (!options.ignore_objc_ivar_symbols) {
             if (objc_ivar_symbols_iter != symbols_end) {
-                if (!write_objc_ivar_symbols_array_to_stream(stream, objc_ivar_symbols_iter, symbols_end, architectures)) {
+                if (!write_objc_ivar_symbols_array_to_stream(stream, objc_ivar_symbols_iter, symbols_end, group.architectures)) {
                     return tbd::write_result::failed_to_write_objc_ivar_symbols;
                 }
             }
@@ -803,7 +816,7 @@ namespace macho::utils {
 
         if (!options.ignore_weak_symbols) {
             if (weak_symbols_iter != symbols_end) {
-                if (!write_weak_symbols_array_to_stream(stream, weak_symbols_iter, symbols_end, architectures)) {
+                if (!write_weak_symbols_array_to_stream(stream, weak_symbols_iter, symbols_end, group.architectures)) {
                     return tbd::write_result::failed_to_write_weak_symbols;
                 }
             }

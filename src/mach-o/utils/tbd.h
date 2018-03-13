@@ -47,6 +47,8 @@ namespace macho::utils {
         struct symbol;
 
         struct export_group {
+            explicit export_group(uint64_t architectures) noexcept;
+
             explicit export_group(const client *client) noexcept;
             explicit export_group(const reexport *reexport) noexcept;
             explicit export_group(const symbol *symbol) noexcept;
@@ -59,40 +61,30 @@ namespace macho::utils {
             const client *client = nullptr;
             const symbol *symbol = nullptr;
 
-            inline uint64_t architectures() const noexcept {
-                if (this->reexport != nullptr) {
-                    return this->reexport->architectures;
-                }
-
-                if (this->symbol != nullptr) {
-                    return this->symbol->architectures;
-                }
-
-                return 0;
-            }
+            uint64_t architectures = uint64_t();
             
             inline bool operator==(const struct client &client) const noexcept {
-                return this->architectures() == client.architectures;
+                return this->architectures == client.architectures;
             }
             
             inline bool operator!=(const struct client &client) const noexcept {
-                return this->architectures() != client.architectures;
+                return this->architectures != client.architectures;
             }
 
             inline bool operator==(const struct reexport &reexport) const noexcept {
-                return this->architectures() == reexport.architectures;
+                return this->architectures == reexport.architectures;
             }
 
             inline bool operator!=(const struct reexport &reexport) const noexcept {
-                return this->architectures() != reexport.architectures;
+                return this->architectures != reexport.architectures;
             }
 
             inline bool operator==(const struct symbol &symbol) const noexcept {
-                return this->architectures() == symbol.architectures;
+                return this->architectures == symbol.architectures;
             }
 
             inline bool operator!=(const struct symbol &symbol) const noexcept {
-                return this->architectures() != symbol.architectures;
+                return this->architectures != symbol.architectures;
             }
         };
 
@@ -551,6 +543,7 @@ namespace macho::utils {
         creation_result create(const container &container, load_commands::data &data, symbols::table_64::data &symbols, strings::table::data &strings, const creation_options &options, const version &version) noexcept;
 
         std::vector<export_group> export_groups() const noexcept;
+        std::vector<export_group> single_export_group() const noexcept;
 
         struct write_options {
             explicit inline write_options() = default;
