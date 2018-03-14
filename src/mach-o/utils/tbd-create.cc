@@ -1045,7 +1045,7 @@ namespace macho::utils {
 
                         // Skip size 0 strings
 
-                        auto string = &string_table[iter->n_un.n_strx];
+                        auto string = &string_table[index];
                         if (*string == '\0') {
                             continue;
                         }
@@ -1246,7 +1246,6 @@ namespace macho::utils {
                         string = &string[string_index];
                         string_length -= string_index;
 
-                        
                         const auto symbols_end = this->symbols.end();
 
                         // An optimization can be made here to remove
