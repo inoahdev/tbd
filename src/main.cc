@@ -672,7 +672,7 @@ int main(int argc, const char *argv[]) {
                         return true;
                     }
                     
-                    if (!main_utils::tbd_write(descriptor, tbd, path, options.print_paths)) {
+                    if (!main_utils::tbd_write(descriptor, tbd, path, write_path, options.print_paths)) {
                         main_utils::recursively_remove_with_terminator(write_path.data(), terminator, options.print_paths);
                         failed_to_process_tbd = true;
                     }
@@ -824,14 +824,14 @@ int main(int argc, const char *argv[]) {
                     continue;
                 }
                 
-                if (!main_utils::tbd_write(descriptor, tbd, tbd.path, should_print_paths)) {
+                if (!main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths)) {
                     main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                     failed_to_process_tbd = true;
                 }
                 
                 close(descriptor);
             } else {
-                if (!main_utils::tbd_write(STDOUT_FILENO, tbd, tbd.path, should_print_paths)) {
+                if (!main_utils::tbd_write(STDOUT_FILENO, tbd, tbd.path, tbd.write_path, should_print_paths)) {
                     failed_to_process_tbd = true;
                 }
             }

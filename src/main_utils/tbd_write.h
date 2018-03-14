@@ -10,5 +10,5 @@
 #include "tbd_with_options.h"
 
 namespace main_utils {
-    bool tbd_write(int descriptor, const tbd_with_options &tbd, const std::string &path, bool should_print_paths);
+    bool tbd_write(int descriptor, const tbd_with_options &tbd, const std::string &path, const std::string &write_path, bool should_print_paths);
 }
