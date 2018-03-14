@@ -278,13 +278,13 @@ namespace macho::utils {
     : architectures(architectures) {}
     
     tbd::export_group::export_group(const struct client *client) noexcept
-    : client(client) {}
+    : client(client), architectures(client->architectures) {}
 
     tbd::export_group::export_group(const struct reexport *reexport) noexcept
-    : reexport(reexport) {}
+    : reexport(reexport), architectures(reexport->architectures) {}
 
     tbd::export_group::export_group(const struct symbol *symbol) noexcept
-    : symbol(symbol) {}
+    : symbol(symbol), architectures(symbol->architectures) {}
 
     tbd::reexport::reexport(uint64_t architectures, std::string &string) noexcept
     : architectures(architectures), string(string) {}
