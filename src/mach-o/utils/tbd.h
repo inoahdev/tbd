@@ -265,7 +265,7 @@ namespace macho::utils {
                 weak
             };
 
-            static type type_from_symbol_string(const char *& string, size_t &string_length, symbol_table::desc n_desc) noexcept;
+            static type type_from_symbol_string(const char *string, symbol_table::desc n_desc, size_t *stripped_index = nullptr) noexcept;
 
             explicit symbol() = default;
             explicit symbol(uint64_t architectures, std::string &string, type type) noexcept;
@@ -538,9 +538,6 @@ namespace macho::utils {
         };
 
         creation_result create(const file &file, const creation_options &options, const version &version) noexcept;
-
-        creation_result create(const container &container, load_commands::data &data, symbols::table::data &symbols, strings::table::data &strings, const creation_options &options, const version &version) noexcept;
-        creation_result create(const container &container, load_commands::data &data, symbols::table_64::data &symbols, strings::table::data &strings, const creation_options &options, const version &version) noexcept;
 
         std::vector<export_group> export_groups() const noexcept;
         std::vector<export_group> single_export_group() const noexcept;

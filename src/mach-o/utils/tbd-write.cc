@@ -172,7 +172,7 @@ namespace macho::utils {
                 // for the reexport's architectures when iterating
                 // over clients
                 
-                if (!groups_iter->reexport) {
+                if (groups_iter->reexport == nullptr) {
                     groups_iter->reexport = &reexport;
                 }
             }
@@ -190,7 +190,7 @@ namespace macho::utils {
                 // for the symbol's architectures when iterating
                 // over clients or reeexports
                 
-                if (!groups_iter->symbol) {
+                if (groups_iter->symbol == nullptr) {
                     groups_iter->symbol = &symbol;
                 }
 
@@ -684,24 +684,22 @@ namespace macho::utils {
         if (group_symbols_begin != symbols_end) {
             const auto symbols_begin = group_symbols_begin + 1;
 
-            if (group.symbol != nullptr) {
-                switch (group.symbol->type) {
-                    case tbd::symbol::type::normal:
-                        normal_symbols_iter = group_symbols_begin;
-                        break;
-
-                    case tbd::symbol::type::objc_class:
-                        objc_class_symbols_iter = group_symbols_begin;
-                        break;
-
-                    case tbd::symbol::type::objc_ivar:
-                        objc_ivar_symbols_iter = group_symbols_begin;
-                        break;
-
-                    case tbd::symbol::type::weak:
-                        weak_symbols_iter = group_symbols_begin;
-                        break;
-                }
+            switch (group_symbols_begin->type) {
+                case tbd::symbol::type::normal:
+                    normal_symbols_iter = group_symbols_begin;
+                    break;
+                    
+                case tbd::symbol::type::objc_class:
+                    objc_class_symbols_iter = group_symbols_begin;
+                    break;
+                    
+                case tbd::symbol::type::objc_ivar:
+                    objc_ivar_symbols_iter = group_symbols_begin;
+                    break;
+                    
+                case tbd::symbol::type::weak:
+                    weak_symbols_iter = group_symbols_begin;
+                    break;
             }
 
             if (normal_symbols_iter != group_symbols_begin) {
