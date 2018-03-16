@@ -668,16 +668,14 @@ int main(int argc, const char *argv[]) {
                     auto descriptor = -1;
 
                     main_utils::recursive_mkdir_last_as_file(write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
-                    if (descriptor == -1) {
-                        return true;
-                    }
+                    if (descriptor != -1) {
+                        if (!main_utils::tbd_write(descriptor, tbd, path, write_path, options.print_paths)) {
+                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, options.print_paths);
+                            failed_to_process_tbd = true;
+                        }
                     
-                    if (!main_utils::tbd_write(descriptor, tbd, path, write_path, options.print_paths)) {
-                        main_utils::recursively_remove_with_terminator(write_path.data(), terminator, options.print_paths);
-                        failed_to_process_tbd = true;
+                        close(descriptor);
                     }
-                    
-                    close(descriptor);
                 }
 
                 tbd.info.clear();
