@@ -58,8 +58,7 @@ namespace macho {
             return open_result::stream_read_error;
         }
 
-        const auto magic_is_fat = macho::magic_is_fat(this->magic);
-        if (magic_is_fat) {
+        if (magic.is_fat()) {
             auto nfat_arch = uint32_t();
             if (!this->stream.read(&nfat_arch, sizeof(nfat_arch))) {
                 return open_result::stream_read_error;
@@ -69,13 +68,11 @@ namespace macho {
                 return open_result::zero_containers;
             }
 
-            const auto magic_is_big_endian = macho::magic_is_big_endian(this->magic);
-            if (magic_is_big_endian) {
+            if (magic.is_big_endian()) {
                 ::utils::swap::uint32(nfat_arch);
             }
 
-            const auto magic_is_fat_64 = macho::magic_is_fat_64(this->magic);
-            if (magic_is_fat_64) {
+            if (magic.is_fat_64()) {
                 const auto architectures_size = sizeof(architecture_64) * nfat_arch;
                 const auto occupied_header_space = sizeof(fat) + architectures_size;
 
@@ -89,7 +86,7 @@ namespace macho {
                     return open_result::stream_read_error;
                 }
 
-                if (magic_is_big_endian) {
+                if (magic.is_big_endian()) {
                     utils::swap::architectures_64(architectures, nfat_arch);
                 }
 
@@ -179,7 +176,7 @@ namespace macho {
                     return open_result::stream_read_error;
                 }
 
-                if (magic_is_big_endian) {
+                if (magic.is_big_endian()) {
                     utils::swap::architectures(architectures, nfat_arch);
                 }
 
@@ -257,8 +254,7 @@ namespace macho {
                 delete[] architectures;
             }
         } else {
-            const auto magic_is_thin = macho::magic_is_thin(this->magic);
-            if (magic_is_thin) {
+            if (magic.is_thin()) {
                 auto container = macho::container();
                 switch (container.open(this->stream, 0, stream_size)) {
                     case container::open_result::ok:

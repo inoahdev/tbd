@@ -6,13 +6,13 @@
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
-#include "../mach-o/utils/tbd.h"
+#include "../utils/tbd.h"
 
 namespace main_utils {
     void print_tbd_platforms() noexcept {
-       fputs(macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(1)), stdout);
+       fputs(utils::tbd::platform_to_string(static_cast<enum utils::tbd::platform>(1)), stdout);
        for (int i = 2; i < 31; i++) {
-           fprintf(stdout, ", %s", macho::utils::tbd::platform_to_string(static_cast<enum macho::utils::tbd::platform>(i)));
+           fprintf(stdout, ", %s", utils::tbd::platform_to_string(static_cast<enum utils::tbd::platform>(i)));
        }
 
        fputc('\n', stdout);

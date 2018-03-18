@@ -1,5 +1,5 @@
 //
-//  src/mach-o/utils/tbd-structure.cc
+//  src/utils/tbd-structure.cc
 //  tbd
 //
 //  Created by inoahdev on 1/7/18.
@@ -8,68 +8,68 @@
 
 #include "tbd.h"
 
-namespace macho::utils {
+namespace utils {
     enum tbd::platform tbd::platform_from_string(const char *string) noexcept {
         if (strcmp(string, "aix") == 0) {
-            return macho::utils::tbd::platform::aix;
+            return tbd::platform::aix;
         } else if (strcmp(string, "amdhsa") == 0) {
-            return macho::utils::tbd::platform::amdhsa;
+            return tbd::platform::amdhsa;
         } else if (strcmp(string, "ananas") == 0) {
-            return macho::utils::tbd::platform::ananas;
+            return tbd::platform::ananas;
         } else if (strcmp(string, "cloudabi") == 0) {
-            return macho::utils::tbd::platform::cloudabi;
+            return tbd::platform::cloudabi;
         } else if (strcmp(string, "cnk") == 0) {
-            return macho::utils::tbd::platform::cnk;
+            return tbd::platform::cnk;
         } else if (strcmp(string, "contiki") == 0) {
-            return macho::utils::tbd::platform::contiki;
+            return tbd::platform::contiki;
         } else if (strcmp(string, "cuda") == 0) {
-            return macho::utils::tbd::platform::cuda;
+            return tbd::platform::cuda;
         } else if (strcmp(string, "darwin") == 0) {
-            return macho::utils::tbd::platform::darwin;
+            return tbd::platform::darwin;
         } else if (strcmp(string, "dragonfly") == 0) {
-            return macho::utils::tbd::platform::dragonfly;
+            return tbd::platform::dragonfly;
         } else if (strcmp(string, "elfiamcu") == 0) {
-            return macho::utils::tbd::platform::elfiamcu;
+            return tbd::platform::elfiamcu;
         } else if (strcmp(string, "freebsd") == 0) {
-            return macho::utils::tbd::platform::freebsd;
+            return tbd::platform::freebsd;
         } else if (strcmp(string, "fuchsia") == 0) {
-            return macho::utils::tbd::platform::fuchsia;
+            return tbd::platform::fuchsia;
         } else if (strcmp(string, "haiku") == 0) {
-            return macho::utils::tbd::platform::haiku;
+            return tbd::platform::haiku;
         } else if (strcmp(string, "ios") == 0) {
-            return macho::utils::tbd::platform::ios;
+            return tbd::platform::ios;
         } else if (strcmp(string, "kfreebsd") == 0) {
-            return macho::utils::tbd::platform::kfreebsd;
+            return tbd::platform::kfreebsd;
         } else if (strcmp(string, "linux") == 0) {
-            return macho::utils::tbd::platform::linux;
+            return tbd::platform::linux;
         } else if (strcmp(string, "lv2") == 0) {
-            return macho::utils::tbd::platform::lv2;
+            return tbd::platform::lv2;
         } else if (strcmp(string, "macosx") == 0) {
-            return macho::utils::tbd::platform::macosx;
+            return tbd::platform::macosx;
         } else if (strcmp(string, "mesa3d") == 0) {
-            return macho::utils::tbd::platform::mesa3d;
+            return tbd::platform::mesa3d;
         } else if (strcmp(string, "minix") == 0) {
-            return macho::utils::tbd::platform::minix;
+            return tbd::platform::minix;
         } else if (strcmp(string, "nacl") == 0) {
-            return macho::utils::tbd::platform::nacl;
+            return tbd::platform::nacl;
         } else if (strcmp(string, "netbsd") == 0) {
-            return macho::utils::tbd::platform::netbsd;
+            return tbd::platform::netbsd;
         } else if (strcmp(string, "nvcl") == 0) {
-            return macho::utils::tbd::platform::nvcl;
+            return tbd::platform::nvcl;
         } else if (strcmp(string, "openbsd") == 0) {
-            return macho::utils::tbd::platform::openbsd;
+            return tbd::platform::openbsd;
         } else if (strcmp(string, "ps4") == 0) {
-            return macho::utils::tbd::platform::ps4;
+            return tbd::platform::ps4;
         } else if (strcmp(string, "rtems") == 0) {
-            return macho::utils::tbd::platform::rtems;
+            return tbd::platform::rtems;
         } else if (strcmp(string, "solaris") == 0) {
-            return macho::utils::tbd::platform::solaris;
+            return tbd::platform::solaris;
         } else if (strcmp(string, "tvos") == 0) {
-            return macho::utils::tbd::platform::tvos;
+            return tbd::platform::tvos;
         } else if (strcmp(string, "watchos") == 0) {
-            return macho::utils::tbd::platform::watchos;
+            return tbd::platform::watchos;
         } else if (strcmp(string, "windows") == 0) {
-            return macho::utils::tbd::platform::windows;
+            return tbd::platform::windows;
         }
 
         return platform::none;
@@ -174,7 +174,9 @@ namespace macho::utils {
         return nullptr;
     }
 
-    enum tbd::symbol::type tbd::symbol::type_from_symbol_string(const char *string, symbol_table::desc n_desc, size_t *stripped_index) noexcept {
+    enum tbd::symbol::type tbd::symbol::type_from_symbol_string(const char *string,
+                                                                macho::symbol_table::desc n_desc,
+                                                                size_t *stripped_index) noexcept {
         if (n_desc.weak_definition) {
             return symbol::type::weak;
         }
@@ -278,13 +280,13 @@ namespace macho::utils {
     : architectures(architectures) {}
     
     tbd::export_group::export_group(const struct client *client) noexcept
-    : client(client) {}
+    : client(client), architectures(client->architectures) {}
 
     tbd::export_group::export_group(const struct reexport *reexport) noexcept
-    : reexport(reexport) {}
+    : reexport(reexport), architectures(reexport->architectures) {}
 
     tbd::export_group::export_group(const struct symbol *symbol) noexcept
-    : symbol(symbol) {}
+    : symbol(symbol), architectures(symbol->architectures) {}
 
     tbd::reexport::reexport(uint64_t architectures, std::string &string) noexcept
     : architectures(architectures), string(string) {}

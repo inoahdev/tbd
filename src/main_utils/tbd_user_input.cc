@@ -64,7 +64,7 @@ namespace main_utils {
 
         tbd.info.clear();
         
-        if (all.creation_options.ignore_platform && all.info.platform != macho::utils::tbd::platform::none) {
+        if (all.creation_options.ignore_platform && all.info.platform != utils::tbd::platform::none) {
             tbd.creation_options.ignore_platform = true;
             tbd.info.platform = all.info.platform;
 
@@ -87,16 +87,16 @@ namespace main_utils {
         }
 
         auto apply_to_all = result == "all";
-        auto new_platform = macho::utils::tbd::platform::none;
+        auto new_platform = utils::tbd::platform::none;
 
         do {
             request_input(result, "Replacement platform: (--list-platform to see a list of platforms)", {});
             if (result == "--list-platform") {
                 print_tbd_platforms();
             } else {
-                new_platform = macho::utils::tbd::platform_from_string(result.c_str());
+                new_platform = utils::tbd::platform_from_string(result.c_str());
             }
-        } while (new_platform == macho::utils::tbd::platform::none);
+        } while (new_platform == utils::tbd::platform::none);
 
         tbd.info.platform = new_platform;
         tbd.creation_options.ignore_platform = true;
@@ -166,7 +166,7 @@ namespace main_utils {
         
         tbd.info.clear();
 
-        if (all.creation_options.ignore_objc_constraint && all.info.objc_constraint != macho::utils::tbd::objc_constraint::none) {
+        if (all.creation_options.ignore_objc_constraint && all.info.objc_constraint != utils::tbd::objc_constraint::none) {
             tbd.creation_options.ignore_objc_constraint = true;
             tbd.info.objc_constraint = all.info.objc_constraint;
             
@@ -189,11 +189,11 @@ namespace main_utils {
         }
 
         auto apply_to_all = result == "all";
-        auto new_objc_constraint = macho::utils::tbd::objc_constraint::none;
+        auto new_objc_constraint = utils::tbd::objc_constraint::none;
 
         do {
             request_input(result, "Replacement objc-constraint", {});
-            new_objc_constraint = macho::utils::tbd::objc_constraint_from_string(result.c_str());
+            new_objc_constraint = utils::tbd::objc_constraint_from_string(result.c_str());
 
             if (result == "none") {
                 break;

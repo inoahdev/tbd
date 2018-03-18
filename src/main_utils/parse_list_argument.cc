@@ -8,7 +8,7 @@
 
 #include <cerrno>
 
-#include "../mach-o/utils/tbd.h"
+#include "../utils/tbd.h"
 
 #include "../misc/current_directory.h"
 #include "../misc/recurse.h"

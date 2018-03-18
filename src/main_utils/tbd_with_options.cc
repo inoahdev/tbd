@@ -37,7 +37,7 @@ namespace main_utils {
             this->info.parent_umbrella = tbd.info.parent_umbrella;
         }
 
-        if (this->info.platform == macho::utils::tbd::platform::none) {
+        if (this->info.platform == utils::tbd::platform::none) {
             this->info.platform = tbd.info.platform;
         }
 
@@ -49,7 +49,7 @@ namespace main_utils {
             this->info.swift_version = tbd.info.swift_version;
         }
         
-        if (this->version == macho::utils::tbd::version::none) {
+        if (this->version == utils::tbd::version::none) {
             this->version = tbd.version;
         }
     }
@@ -62,8 +62,8 @@ namespace main_utils {
         uint64_t architectures_add = uint64_t();
         uint64_t architectures_re = uint64_t();
 
-        struct macho::utils::tbd::flags flags_add;
-        struct macho::utils::tbd::flags flags_re;
+        struct utils::tbd::flags flags_add;
+        struct utils::tbd::flags flags_re;
 
         for (auto index = this->local_option_start; index != argc; index++) {
             const auto &option = argv[index];
@@ -151,7 +151,7 @@ namespace main_utils {
             
             // Simply validate flag arguments for now
             
-            struct macho::utils::tbd::flags flags;
+            struct utils::tbd::flags flags;
             main_utils::parse_flags(&flags, index, argc, argv);
             
             this->options.remove_flags = true;
@@ -221,7 +221,7 @@ namespace main_utils {
             
             // Simply validate flags for now
             
-            struct macho::utils::tbd::flags flags;
+            struct utils::tbd::flags flags;
             main_utils::parse_flags(&flags, index, argc, argv);
             
             this->options.remove_flags = true;

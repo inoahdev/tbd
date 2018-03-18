@@ -7,7 +7,7 @@
 //
 
 #pragma once
-#include "../mach-o/utils/tbd.h"
+#include "../utils/tbd.h"
 
 namespace main_utils {
     struct tbd_with_options {
@@ -15,11 +15,11 @@ namespace main_utils {
         // relevant to tbd and other miscellaneous
         // information for the tool's use
 
-        macho::utils::tbd info;
-        macho::utils::tbd::version version;
+        utils::tbd info;
+        utils::tbd::version version;
 
-        macho::utils::tbd::creation_options creation_options;
-        macho::utils::tbd::write_options write_options;
+        utils::tbd::creation_options creation_options;
+        utils::tbd::write_options write_options;
         
         // path is main argument provided
         // to option -p.
@@ -103,8 +103,8 @@ namespace main_utils {
         void apply_local_options(int argc, const char *argv[]) noexcept;
 
         struct dont_options {
-            struct macho::utils::tbd::creation_options creation_options;
-            struct macho::utils::tbd::write_options write_options;
+            struct utils::tbd::creation_options creation_options;
+            struct utils::tbd::write_options write_options;
 
             struct options options;
         } donts;

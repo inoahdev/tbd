@@ -45,7 +45,7 @@ int main(int argc, const char *argv[]) {
 
     // Apply "default" behavior and information for tbd
 
-    global.version = macho::utils::tbd::version::v2;
+    global.version = utils::tbd::version::v2;
 
     global.write_options.order_by_architecture_info_table = true;
     global.write_options.enforce_has_exports = true;
@@ -68,8 +68,8 @@ int main(int argc, const char *argv[]) {
     auto global_architectures_to_override_to_add = uint64_t();
     auto global_architectures_to_override_to_re = uint64_t();
 
-    struct macho::utils::tbd::flags global_tbd_flags_to_add;
-    struct macho::utils::tbd::flags global_tbd_flags_to_re;
+    struct utils::tbd::flags global_tbd_flags_to_add;
+    struct utils::tbd::flags global_tbd_flags_to_re;
 
     for (auto index = 1; index != argc; index++) {
         const auto argument = argv[index];

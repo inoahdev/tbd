@@ -41,11 +41,11 @@ namespace macho {
         open_result open(const stream::file::shared &stream, long base, size_t size) noexcept;
         open_result open_copy(const container &container) noexcept;
 
-        inline const bool is_32_bit() const noexcept { return magic_is_32_bit(header.magic); }
-        inline const bool is_64_bit() const noexcept { return magic_is_64_bit(header.magic); }
+        inline const bool is_32_bit() const noexcept { return header.magic.is_32_bit(); }
+        inline const bool is_64_bit() const noexcept { return header.magic.is_64_bit(); }
 
-        inline const bool is_little_endian() const noexcept { return header.magic == magic::normal || header.magic == magic::bits64; }
-        inline const bool is_big_endian() const noexcept { return header.magic == magic::big_endian || header.magic == magic::bits64_big_endian; }
+        inline const bool is_little_endian() const noexcept { return header.magic.is_little_endian(); }
+        inline const bool is_big_endian() const noexcept { return header.magic.is_big_endian(); }
 
     protected:
         open_result validate_and_load_data() noexcept;

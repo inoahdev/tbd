@@ -124,8 +124,12 @@ namespace macho::utils::symbols::table_64 {
 
         ~data() noexcept;
 
+        inline size_t count() const noexcept {
+            return this->size() / sizeof(iterator::const_reference);
+        }
+        
         inline size_t size() const noexcept {
-            return (this->end - this->begin) / sizeof(iterator::const_reference);
+            return this->end - this->begin;
         }
     };
 }

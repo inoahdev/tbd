@@ -22,7 +22,7 @@ namespace macho {
         explicit file() = default;
 
         stream::file::shared stream;
-        magic magic = magic::normal;
+        magic magic;
 
         std::vector<container> containers = std::vector<container>();
 

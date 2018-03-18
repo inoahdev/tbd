@@ -46,9 +46,9 @@ namespace macho {
             return open_result::stream_read_error;
         }
         
-        if (magic_is_fat(this->header.magic)) {
+        if (this->header.magic.is_fat()) {
             return open_result::fat_container;
-        } else if (!magic_is_thin(this->header.magic)){
+        } else if (!this->header.magic.is_thin()){
             return open_result::not_a_macho;
         }
         

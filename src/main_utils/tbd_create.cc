@@ -9,13 +9,19 @@
 #include "tbd_create.h"
 
 namespace main_utils {
-    bool create_tbd(tbd_with_options &all, tbd_with_options &tbd, macho::file &file, const create_tbd_options &options, create_tbd_retained_user_info *user_input_info, const char *path) {
+    bool create_tbd(tbd_with_options &all,
+                    tbd_with_options &tbd,
+                    macho::file &file,
+                    const create_tbd_options &options,
+                    create_tbd_retained_user_info *user_input_info,
+                    const char *path)
+    {
         do {
-            switch (tbd.info.create(file, tbd.creation_options, tbd.version)) {
-                case macho::utils::tbd::creation_result::ok:
+            switch (tbd.info.create_from_macho_file(file, tbd.creation_options, tbd.version)) {
+                case utils::tbd::creation_from_macho_result::ok:
                     return true;
 
-                case macho::utils::tbd::creation_result::multiple_containers_for_same_architecture:
+                case utils::tbd::creation_from_macho_result::multiple_containers_for_same_architecture:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple containers for the same cputype and subtype\n", path);
                     } else {
@@ -24,7 +30,7 @@ namespace main_utils {
                     
                     return false;
                     
-                case macho::utils::tbd::creation_result::invalid_container_header_subtype:
+                case utils::tbd::creation_from_macho_result::invalid_container_header_subtype:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an unrecognized cpu-subtype\n", path);
                     } else {
@@ -33,7 +39,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::unrecognized_container_cputype_subtype_pair:
+                case utils::tbd::creation_from_macho_result::unrecognized_container_cputype_subtype_pair:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o fie (at path %s) has an unrecognized cputype-subtype pair\n", path);
                     } else {
@@ -42,7 +48,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::flags_mismatch: {
+                case utils::tbd::creation_from_macho_result::flags_mismatch: {
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different flags in different architectures\n", path);
                     } else {
@@ -56,7 +62,7 @@ namespace main_utils {
                     break;
                 }
 
-                case macho::utils::tbd::creation_result::failed_to_retrieve_load_cammands:
+                case utils::tbd::creation_from_macho_result::failed_to_retrieve_load_cammands:
                     if (options.print_paths) {
                         fprintf(stderr, "Failed to retrieve load-commands of mach-o file (at path %s)\n", path);
                     } else {
@@ -65,7 +71,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::unsupported_platform:
+                case utils::tbd::creation_from_macho_result::unsupported_platform:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an unsupported platform\n", path);
                     } else {
@@ -78,7 +84,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::unrecognized_platform:
+                case utils::tbd::creation_from_macho_result::unrecognized_platform:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an unrecognized platform\n", path);
                     } else {
@@ -91,7 +97,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::multiple_platforms:
+                case utils::tbd::creation_from_macho_result::multiple_platforms:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different platforms\n", path);
                     } else {
@@ -104,7 +110,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::platforms_mismatch:
+                case utils::tbd::creation_from_macho_result::platform_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different platforms for different architectures\n", path);
                     } else {
@@ -117,7 +123,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::invalid_build_version_command:
+                case utils::tbd::creation_from_macho_result::invalid_build_version_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid build-version load-command\n", path);
                     } else {
@@ -126,7 +132,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::invalid_dylib_command:
+                case utils::tbd::creation_from_macho_result::invalid_dylib_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid dylib-command load-command\n", path);
                     } else {
@@ -135,7 +141,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::invalid_segment_command:
+                case utils::tbd::creation_from_macho_result::invalid_segment_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid segment-command load-command\n", path);
                     } else {
@@ -144,7 +150,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::invalid_segment_command_64:
+                case utils::tbd::creation_from_macho_result::invalid_segment_command_64:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid 64-bit segment-command load-command\n", path);
                     } else {
@@ -153,7 +159,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::empty_install_name:
+                case utils::tbd::creation_from_macho_result::empty_install_name:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an empty installation-name\n", path);
                     } else {
@@ -166,7 +172,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::multiple_current_versions:
+                case utils::tbd::creation_from_macho_result::multiple_current_versions:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different current-versions\n", path);
                     } else {
@@ -175,7 +181,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::current_versions_mismatch:
+                case utils::tbd::creation_from_macho_result::current_versions_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different current-versions for different architectures\n", path);
                     } else {
@@ -184,7 +190,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::multiple_compatibility_versions:
+                case utils::tbd::creation_from_macho_result::multiple_compatibility_versions:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different compatibility-versions\n", path);
                     } else {
@@ -193,7 +199,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::compatibility_versions_mismatch:
+                case utils::tbd::creation_from_macho_result::compatibility_versions_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different compatibility-versions for different architectures\n", path);
                     } else {
@@ -202,7 +208,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::multiple_install_names:
+                case utils::tbd::creation_from_macho_result::multiple_install_names:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different installation-names\n", path);
                     } else {
@@ -215,7 +221,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::install_name_mismatch:
+                case utils::tbd::creation_from_macho_result::install_name_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different installation-names for different architectures\n", path);
                     } else {
@@ -228,7 +234,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::invalid_objc_imageinfo_segment_section:
+                case utils::tbd::creation_from_macho_result::invalid_objc_imageinfo_segment_section:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid objc image-info segment-section\n", path);
                     } else {
@@ -237,8 +243,8 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::stream_seek_error:
-                case macho::utils::tbd::creation_result::stream_read_error:
+                case utils::tbd::creation_from_macho_result::stream_seek_error:
+                case utils::tbd::creation_from_macho_result::stream_read_error:
                     if (options.print_paths) {
                         fprintf(stderr, "Encountered a stream error while parsing mach-o file (at path %s)\n", path);
                     } else {
@@ -247,7 +253,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::multiple_objc_constraint:
+                case utils::tbd::creation_from_macho_result::multiple_objc_constraint:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different objc-constraint types\n", path);
                     } else {
@@ -260,7 +266,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::objc_constraint_mismatch:
+                case utils::tbd::creation_from_macho_result::objc_constraint_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different objc-constraint types for different containers\n", path);
                     } else {
@@ -273,7 +279,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::multiple_swift_version:
+                case utils::tbd::creation_from_macho_result::multiple_swift_version:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different swift-versions\n", path);
                     } else {
@@ -286,7 +292,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::swift_version_mismatch:
+                case utils::tbd::creation_from_macho_result::swift_version_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different swift-versions for different architectures\n", path);
                     } else {
@@ -299,7 +305,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::invalid_sub_client_command:
+                case utils::tbd::creation_from_macho_result::invalid_sub_client_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid sub-client load-command\n", path);
                     } else {
@@ -308,7 +314,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::invalid_sub_umbrella_command:
+                case utils::tbd::creation_from_macho_result::invalid_sub_umbrella_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid sub-umbrella load-command\n", path);
                     } else {
@@ -317,7 +323,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::empty_parent_umbrella:
+                case utils::tbd::creation_from_macho_result::empty_parent_umbrella:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an empty parent-umbrella\n", path);
                     } else {
@@ -330,7 +336,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::multiple_parent_umbrella:
+                case utils::tbd::creation_from_macho_result::multiple_parent_umbrella:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple different parent-umbrellas\n", path);
                     } else {
@@ -343,7 +349,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::parent_umbrella_mismatch:
+                case utils::tbd::creation_from_macho_result::parent_umbrella_mismatch:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has different parent-umbrella for different containers\n", path);
                     } else {
@@ -355,8 +361,17 @@ namespace main_utils {
                     }
 
                     break;
+                    
+                case utils::tbd::creation_from_macho_result::invalid_dysymtab_command:
+                    if (options.print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) has an invalid dysymtab-command load-command\n", path);
+                    } else {
+                        fputs("Mach-o file at provided path has an invalid dysymtab-command load-command\n", stderr);
+                    }
+                    
+                    return false;
 
-                case macho::utils::tbd::creation_result::invalid_symtab_command:
+                case utils::tbd::creation_from_macho_result::invalid_symtab_command:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an invalid symtab-command load-command\n", path);
                     } else {
@@ -365,7 +380,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::multiple_symbol_tables:
+                case utils::tbd::creation_from_macho_result::multiple_symbol_tables:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has a container with multiple different symbol-tables\n", path);
                     } else {
@@ -374,7 +389,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::multiple_uuids: {
+                case utils::tbd::creation_from_macho_result::multiple_uuids: {
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has a container with multiple different uuids\n", path);
                     } else {
@@ -388,7 +403,7 @@ namespace main_utils {
                     break;
                 }
 
-                case macho::utils::tbd::creation_result::non_unique_uuid: {
+                case utils::tbd::creation_from_macho_result::non_unique_uuid: {
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has multiple containers with the same uuid\n", path);
                     } else {
@@ -402,7 +417,7 @@ namespace main_utils {
                     break;
                 }
 
-                case macho::utils::tbd::creation_result::container_is_missing_dynamic_library_identification:
+                case utils::tbd::creation_from_macho_result::container_is_missing_dynamic_library_identification:
                     if (options.ignore_missing_dynamic_library_information) {
                         return false;
                     }
@@ -415,7 +430,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::container_is_missing_platform:
+                case utils::tbd::creation_from_macho_result::container_is_missing_platform:
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an architecture that is missing a platform\n", path);
                     } else {
@@ -428,7 +443,7 @@ namespace main_utils {
 
                     break;
 
-                case macho::utils::tbd::creation_result::container_is_missing_uuid: {
+                case utils::tbd::creation_from_macho_result::container_is_missing_uuid: {
                     if (options.print_paths) {
                         fprintf(stderr, "Mach-o file (at path %s) has an architecture that is missing its uuid\n", path);
                     } else {
@@ -442,16 +457,25 @@ namespace main_utils {
                     break;
                 }
 
-                case macho::utils::tbd::creation_result::container_is_missing_symbol_table:
+                case utils::tbd::creation_from_macho_result::container_is_missing_dynamic_symbol_table:
                     if (options.print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has an architecture that is missing its symbol-table\n", path);
+                        fprintf(stderr, "Mach-o file (at path %s) has an architecture that is missing a dynamic symbol-table command\n", path);
                     } else {
-                        fputs("Mach-o file at provided path has an architecture that is missing its symbol-table\n", stderr);
+                        fputs("Mach-o file at provided path has an architecture that is missing a dynamic symbol-table command\n", stderr);
+                    }
+                    
+                    return false;
+                    
+                case utils::tbd::creation_from_macho_result::container_is_missing_symbol_table:
+                    if (options.print_paths) {
+                        fprintf(stderr, "Mach-o file (at path %s) has an architecture that is missing a symbol-table\n", path);
+                    } else {
+                        fputs("Mach-o file at provided path has an architecture that is missing a symbol-table\n", stderr);
                     }
 
                     return false;
 
-                case macho::utils::tbd::creation_result::failed_to_retrieve_string_table:
+                case utils::tbd::creation_from_macho_result::failed_to_retrieve_string_table:
                     if (options.print_paths) {
                         fprintf(stderr, "Failed to retrieve a string-table of one of mach-o file (at path %s)'s containers\n", path);
                     } else {
@@ -460,7 +484,7 @@ namespace main_utils {
 
                     return false;
 
-                case macho::utils::tbd::creation_result::failed_to_retrieve_symbol_table:
+                case utils::tbd::creation_from_macho_result::failed_to_retrieve_symbol_table:
                     if (options.print_paths) {
                         fprintf(stderr, "Failed to retrieve a symbol-table of one of mach-o file (at path %s)'s containers\n", path);
                     } else {
@@ -468,6 +492,12 @@ namespace main_utils {
                     }
 
                     return false;
+                    
+                // These are ignored (for now)
+                    
+                case utils::tbd::creation_from_macho_result::recursive_indirect_symbol:
+                case utils::tbd::creation_from_macho_result::invalid_indirect_symbol:
+                    break;
             }
         } while (true);
         
