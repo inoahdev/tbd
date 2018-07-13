@@ -1,5 +1,8 @@
 # tbd
 Convert Mach-O Libraries &amp; Frameworks to .tbd
+
+Note: Development is currently focused on the `rewrite` branch.
+
 ```
 Usage: tbd [-p file-paths] [-o/--output output-paths-or-stdout]
 Main options:
