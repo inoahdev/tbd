@@ -814,24 +814,26 @@ int main(int argc, const char *argv[]) {
 
             auto terminator = static_cast<char *>(nullptr);
 
-            if (!tbd.write_path.empty()) {
+            if (tbd.write_path.empty()) {
+                auto result = main_utils::tbd_write(STDOUT_FILENO, tbd, tbd.path, tbd.write_path, should_print_paths);
+                if (!result) {
+                    failed_to_process_tbd = true;
+                }
+            } else {
                 auto descriptor = -1;
                 main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
-
+                
                 if (descriptor == -1) {
                     continue;
                 }
                 
-                if (!main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths)) {
+                auto result = main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths);
+                if (!result) {
                     main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
                     failed_to_process_tbd = true;
                 }
                 
                 close(descriptor);
-            } else {
-                if (!main_utils::tbd_write(STDOUT_FILENO, tbd, tbd.path, tbd.write_path, should_print_paths)) {
-                    failed_to_process_tbd = true;
-                }
             }
         }
     }

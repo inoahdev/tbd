@@ -129,7 +129,7 @@ namespace macho::utils::symbols::table {
         ~data() noexcept;
 
         inline size_t count() const noexcept {
-            return this->size(); / sizeof(iterator::const_reference);
+            return this->size() / sizeof(iterator::const_reference);
         }
         
         inline size_t size() const noexcept {
