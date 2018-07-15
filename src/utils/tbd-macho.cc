@@ -444,10 +444,10 @@ namespace utils {
                         
                         enum creation_from_macho_result parse_objc_imageinfo_result =
                             this->parse_macho_objc_imageinfo_section(container,
-                                                               objc_image_info,
-                                                               options,
-                                                               found_container_objc_information,
-                                                               info_out);
+                                                                     objc_image_info,
+                                                                     options,
+                                                                     found_container_objc_information,
+                                                                     info_out);
                         
                         if (parse_objc_imageinfo_result != creation_from_macho_result::ok) {
                             return parse_objc_imageinfo_result;
@@ -776,8 +776,7 @@ namespace utils {
                         break;
                     }
                     
-                    // tbd field uuids is only
-                    // available on tbd-version v2
+                    // tbd field uuids is only available on tbd-version v2
                     
                     if (!options.parse_unsupported_fields_for_version) {
                         if (version != version::v2) {

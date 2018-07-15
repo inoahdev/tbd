@@ -782,7 +782,7 @@ int main(int argc, const char *argv[]) {
             auto options = main_utils::create_tbd_options();
 
             options.print_paths = should_print_paths;
-            options.ignore_missing_dynamic_library_information = true;
+            options.ignore_missing_dynamic_library_information = false;
 
             const auto creation_result = main_utils::create_tbd(tbd, tbd, file, options, nullptr, tbd.path.c_str());
             if (!creation_result) {
