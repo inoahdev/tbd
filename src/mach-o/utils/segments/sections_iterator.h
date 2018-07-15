@@ -63,8 +63,13 @@ namespace macho::utils::segments {
         inline const_reference operator*() const noexcept { return *ptr; }
         inline const_pointer operator->() const noexcept { return ptr; }
 
-        inline sections_64_iterator operator+(uint64_t index) noexcept { return sections_64_iterator(this->ptr + index); }
-        inline sections_64_iterator operator-(uint64_t index) noexcept { return sections_64_iterator(this->ptr - index); }
+        inline sections_64_iterator operator+(uint64_t index) noexcept {
+            return sections_64_iterator(this->ptr + index);
+        }
+
+        inline sections_64_iterator operator-(uint64_t index) noexcept {
+            return sections_64_iterator(this->ptr - index);
+        }
 
         inline sections_64_iterator &operator++() noexcept { this->ptr++; return *this; }
         inline sections_64_iterator &operator++(int) noexcept { return ++(*this); }

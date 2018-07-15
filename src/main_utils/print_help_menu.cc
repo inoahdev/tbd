@@ -26,7 +26,8 @@ namespace main_utils {
         fputs("Usage: tbd [-p file-paths] [-o/--output output-paths-or-stdout]\n", stdout);
         fputs("Main options:\n", stdout);
         fputs("    -h, --help,   Print this message\n", stdout);
-        fputs("    -o, --output, Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide \"stdout\" to print to stdout\n", stdout);
+        fputs("    -o, --output, Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden."
+              "Can also provide \"stdout\" to print to stdout\n", stdout);
         fputs("    -p, --path,   Path(s) to mach-o file(s) to convert to a tbd file. Can also provide \"stdin\" to use stdin\n", stdout);
         fputs("    -u, --usage,  Print this message\n", stdout);
 

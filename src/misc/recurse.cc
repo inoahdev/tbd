@@ -29,14 +29,22 @@ namespace misc::recurse {
         return macho::utils::validation::as_dynamic_library(file);
     }
 
-    bool is_valid_macho_file_at_path(macho::file &file, const char *path, const filetypes &filetypes, const options &options) {
+    bool
+    is_valid_macho_file_at_path(macho::file &file,
+                                const char *path,
+                                const filetypes &filetypes,
+                                const options &options)
+    {
         switch (file.open(path)) {
             case macho::file::open_result::ok:
                 break;
 
             case macho::file::open_result::failed_to_open_stream:
                 if (options.print_warnings) {
-                    fprintf(stderr, "Warning: Failed to open file (at path %s), failing with error: %s\n", path, strerror(errno));
+                    fprintf(stderr,
+                            "Warning: Failed to open file (at path %s), failing with error: %s\n",
+                            path,
+                            strerror(errno));
                 }
 
                 return false;

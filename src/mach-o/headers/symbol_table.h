@@ -90,15 +90,35 @@ namespace macho::symbol_table {
         indirect           = 0x5
     };
 
-    inline bool operator==(const flags &flags, const uint8_t &number) noexcept { return static_cast<uint8_t>(flags) == number; }
-    inline bool operator==(const uint8_t &number, const flags &flags) noexcept { return flags == static_cast<uint8_t>(number); }
+    inline bool operator==(const flags &flags, const uint8_t &number) noexcept {
+        return static_cast<uint8_t>(flags) == number;
+    }
 
-    inline bool operator!=(const flags &flags, const uint8_t &number) noexcept { return static_cast<uint8_t>(flags) != number; }
-    inline bool operator!=(const uint8_t &number, const flags &flags) noexcept { return number != static_cast<uint8_t>(flags); }
+    inline bool operator==(const uint8_t &number, const flags &flags) noexcept {
+        return flags == static_cast<uint8_t>(number);
+    }
 
-    inline bool operator==(const type &type, const uint8_t &number) noexcept { return static_cast<uint8_t>(type) == number; }
-    inline bool operator==(const uint8_t &number, type type) noexcept { return type == static_cast<uint8_t>(number); }
+    inline bool operator!=(const flags &flags, const uint8_t &number) noexcept {
+        return static_cast<uint8_t>(flags) != number;
+    }
 
-    inline bool operator!=(const type &type, const uint8_t &number) noexcept { return static_cast<uint8_t>(type) != number; }
-    inline bool operator!=(const uint8_t &number, type type) noexcept { return number != static_cast<uint8_t>(type); }
+    inline bool operator!=(const uint8_t &number, const flags &flags) noexcept {
+        return number != static_cast<uint8_t>(flags);
+    }
+
+    inline bool operator==(const type &type, const uint8_t &number) noexcept {
+        return static_cast<uint8_t>(type) == number;
+    }
+
+    inline bool operator==(const uint8_t &number, type type) noexcept {
+        return type == static_cast<uint8_t>(number);
+    }
+
+    inline bool operator!=(const type &type, const uint8_t &number) noexcept {
+        return static_cast<uint8_t>(type) != number;
+    }
+
+    inline bool operator!=(const uint8_t &number, type type) noexcept {
+        return number != static_cast<uint8_t>(type);
+    }
 }

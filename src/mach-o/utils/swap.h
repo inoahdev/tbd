@@ -60,8 +60,11 @@ namespace macho::utils::swap {
 
         struct linkedit_data_command &linkedit_data_command(struct linkedit_data_command &linkedit_data) noexcept;
 
-        struct encryption_info_command &encryption_info_command(struct encryption_info_command &encryption_info) noexcept;
-        struct encryption_info_command_64 &encryption_info_command_64(struct encryption_info_command_64 &encryption_info) noexcept;
+        struct encryption_info_command &
+        encryption_info_command(struct encryption_info_command &encryption_info) noexcept;
+
+        struct encryption_info_command_64 &
+        encryption_info_command_64(struct encryption_info_command_64 &encryption_info) noexcept;
 
         struct version_min_command &version_min_command(struct version_min_command &version_min) noexcept;
         struct dyld_info_command &dyld_info_command(struct dyld_info_command &dyld_info) noexcept;
@@ -83,7 +86,9 @@ namespace macho::utils::swap {
         struct macho::segments::section_64 &section_64(struct macho::segments::section_64 &section) noexcept;
 
         struct macho::segments::section *sections(struct macho::segments::section *section, uint32_t count) noexcept;
-        struct macho::segments::section_64 *sections_64(struct macho::segments::section_64 *section, uint32_t count) noexcept;
+
+        struct macho::segments::section_64 *
+        sections_64(struct macho::segments::section_64 *section, uint32_t count) noexcept;
     }
 
     namespace symbol_table {
@@ -91,6 +96,8 @@ namespace macho::utils::swap {
         struct macho::symbol_table::entry_64 &entry_64(struct macho::symbol_table::entry_64 &entry) noexcept;
 
         struct macho::symbol_table::entry *entries(struct macho::symbol_table::entry *entries, uint32_t count) noexcept;
-        struct macho::symbol_table::entry_64 *entries_64(struct macho::symbol_table::entry_64 *entries, uint32_t count) noexcept;
+
+        struct macho::symbol_table::entry_64 *
+        entries_64(struct macho::symbol_table::entry_64 *entries, uint32_t count) noexcept;
     }
 }

@@ -296,7 +296,8 @@ namespace macho::utils::swap {
             return linkedit_data;
         }
 
-        struct encryption_info_command &encryption_info_command(struct encryption_info_command &encryption_info) noexcept {
+        struct encryption_info_command &
+        encryption_info_command(struct encryption_info_command &encryption_info) noexcept {
             base(encryption_info);
 
             ::utils::swap::uint32(encryption_info.cryptoff);
@@ -306,7 +307,8 @@ namespace macho::utils::swap {
             return encryption_info;
         }
 
-        struct encryption_info_command_64 &encryption_info_command_64(struct encryption_info_command_64 &encryption_info) noexcept {
+        struct encryption_info_command_64 &
+        encryption_info_command_64(struct encryption_info_command_64 &encryption_info) noexcept {
             base(encryption_info);
 
             ::utils::swap::uint32(encryption_info.cryptoff);
@@ -442,7 +444,8 @@ namespace macho::utils::swap {
             return section;
         }
 
-        struct macho::segments::section_64 *sections_64(struct macho::segments::section_64 *section, uint32_t count) noexcept {
+        struct macho::segments::section_64 *
+        sections_64(struct macho::segments::section_64 *section, uint32_t count) noexcept {
             auto iter = section;
             while (count != 0) {
                 section_64(*iter);
@@ -474,7 +477,8 @@ namespace macho::utils::swap {
             return entry;
         }
 
-        struct macho::symbol_table::entry *entries(struct macho::symbol_table::entry *entries, uint32_t count) noexcept {
+        struct macho::symbol_table::entry *
+        entries(struct macho::symbol_table::entry *entries, uint32_t count) noexcept {
             auto iter = entries;
             while (count) {
                 entry(*iter);
@@ -486,7 +490,8 @@ namespace macho::utils::swap {
             return entries;
         }
 
-        struct macho::symbol_table::entry_64 *entries_64(struct macho::symbol_table::entry_64 *entries, uint32_t count) noexcept {
+        struct macho::symbol_table::entry_64 *
+        entries_64(struct macho::symbol_table::entry_64 *entries, uint32_t count) noexcept {
             auto iter = entries;
             while (count) {
                 entry_64(*iter);

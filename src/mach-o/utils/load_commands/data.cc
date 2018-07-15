@@ -274,9 +274,12 @@ namespace macho::utils::load_commands {
                 swap::load_commands::linkedit_data_command(static_cast<struct linkedit_data_command &>(load_command));
                 break;
 
-            case macho::load_commands::encryption_info:
-                swap::load_commands::encryption_info_command(static_cast<struct encryption_info_command &>(load_command));
+            case macho::load_commands::encryption_info: {
+                auto command = static_cast<struct encryption_info_command &>(load_command);
+                swap::load_commands::encryption_info_command(command);
+
                 break;
+            }
 
             case macho::load_commands::dyld_info:
             case macho::load_commands::dyld_info_only:
@@ -298,9 +301,12 @@ namespace macho::utils::load_commands {
                 swap::load_commands::source_version_command(static_cast<source_version_command &>(load_command));
                 break;
 
-            case macho::load_commands::encryption_info_64:
-                swap::load_commands::encryption_info_command_64(static_cast<struct encryption_info_command_64 &>(load_command));
+            case macho::load_commands::encryption_info_64: {
+                auto command = static_cast<struct encryption_info_command_64 &>(load_command);
+                swap::load_commands::encryption_info_command_64(command);
+
                 break;
+            }
 
             case macho::load_commands::linker_option:
                 swap::load_commands::linker_option_command(static_cast<linker_option_command &>(load_command));

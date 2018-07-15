@@ -211,7 +211,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_parent_umbrella(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_new_parent_umbrella(tbd_with_options &all,
+                                tbd_with_options &tbd,
+                                create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_replace_parent_umbrella) {
                 return false;
@@ -258,7 +262,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_swift_version(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_new_swift_version(tbd_with_options &all,
+                              tbd_with_options &tbd,
+                              create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_replace_swift_version) {
                 return false;
@@ -319,7 +327,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_if_should_ignore_flags(tbd_with_options &all,
+                                   tbd_with_options &tbd,
+                                   create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_ignore_flags) {
                 return false;
@@ -360,7 +372,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_if_should_ignore_uuids(tbd_with_options &all,
+                                   tbd_with_options &tbd,
+                                   create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_ignore_uuids) {
                 return false;
@@ -401,7 +417,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_if_should_ignore_non_unique_uuids(tbd_with_options &all,
+                                              tbd_with_options &tbd,
+                                              create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_ignore_non_unique_uuids) {
                 return false;
@@ -438,7 +458,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_if_should_ignore_missing_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_if_should_ignore_missing_uuids(tbd_with_options &all,
+                                           tbd_with_options &tbd,
+                                           create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_ignore_missing_uuids) {
                 return false;

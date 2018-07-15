@@ -156,8 +156,15 @@ namespace utils::string {
     }
 
     template <typename T1, typename T2>
-    T1 find_last_of_string_in_null_terminated_string(const T1 &lhs_begin, const T1 &lhs_end, const T2 &rhs_begin, const T2 &rhs_end) noexcept {
-        return find_last_of_string_in_string(lhs_begin, find_end_of_null_terminated_string(lhs_begin), rhs_begin, rhs_end);
+    T1 find_last_of_string_in_null_terminated_string(const T1 &lhs_begin,
+                                                     const T1 &lhs_end,
+                                                     const T2 &rhs_begin,
+                                                     const T2 &rhs_end) noexcept
+    {
+        const T1 &result =
+            find_last_of_string_in_string(lhs_begin, find_end_of_null_terminated_string(lhs_begin), rhs_begin, rhs_end);
+
+        return result;
     }
 
     template <typename S>

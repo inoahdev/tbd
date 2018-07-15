@@ -30,9 +30,23 @@ namespace macho::utils::load_commands {
         multiple_load_commands
     };
 
-    struct load_command *retrieve_first_of_load_command_in_container(const container &container, enum load_commands cmd, retrieve_result *result = nullptr) noexcept;
-    retrieve_result retrieve_first_of_load_command_in_container(const container &container, enum load_commands cmd, struct load_command *buffer, uint32_t cmdsize) noexcept;
+    struct load_command *
+    retrieve_first_of_load_command_in_container(const container &container,
+                                                enum load_commands cmd,
+                                                retrieve_result *result = nullptr) noexcept;
 
-    struct load_command *retrieve_only_load_command_of_cmd_in_container(const container &container, enum load_commands cmd, retrieve_result *result = nullptr) noexcept;
-    retrieve_result retrieve_only_load_command_of_cmd_in_container(const container &container, enum load_commands cmd, struct load_command *buffer, uint32_t cmdsize) noexcept;
+    retrieve_result
+    retrieve_first_of_load_command_in_container(const container &container,
+                                                enum load_commands cmd,
+                                                struct load_command *buffer, uint32_t cmdsize) noexcept;
+
+    struct load_command *
+    retrieve_only_load_command_of_cmd_in_container(const container &container,
+                                                   enum load_commands cmd,
+                                                   retrieve_result *result = nullptr) noexcept;
+
+    retrieve_result retrieve_only_load_command_of_cmd_in_container(const container &container,
+                                                                   enum load_commands cmd,
+                                                                   struct load_command *buffer,
+                                                                   uint32_t cmdsize) noexcept;
 }

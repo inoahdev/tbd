@@ -35,19 +35,56 @@ namespace main_utils {
         inline bool has_none() const noexcept { return this->value == 0; }
         inline void clear() noexcept { this->value = 0; }
 
-        inline bool operator==(const create_tbd_retained_user_info &retained) const noexcept { return this->value == retained.value; }
-        inline bool operator!=(const create_tbd_retained_user_info &retained) const noexcept { return this->value != retained.value; }
+        inline bool operator==(const create_tbd_retained_user_info &retained) const noexcept {
+            return this->value == retained.value;
+        }
+
+        inline bool operator!=(const create_tbd_retained_user_info &retained) const noexcept {
+            return this->value != retained.value;
+        }
     };
 
-    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_new_objc_constraint(tbd_with_options &all,   tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_new_parent_umbrella(tbd_with_options &all,   tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_new_platform(tbd_with_options &all,          tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_new_swift_version(tbd_with_options &all,     tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
+    bool
+    request_new_installation_name(tbd_with_options &all,
+                                  tbd_with_options &tbd,
+                                  create_tbd_retained_user_info *info) noexcept;
 
-    bool request_if_should_ignore_flags(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_if_should_ignore_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
+    bool
+    request_new_objc_constraint(tbd_with_options &all,
+                                tbd_with_options &tbd,
+                                create_tbd_retained_user_info *info) noexcept;
 
-    bool request_if_should_ignore_non_unique_uuids(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
-    bool request_if_should_ignore_missing_uuids(tbd_with_options &all,    tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept;
+    bool
+    request_new_parent_umbrella(tbd_with_options &all,
+                                tbd_with_options &tbd,
+                                create_tbd_retained_user_info *info) noexcept;
+
+    bool
+    request_new_platform(tbd_with_options &all,
+                         tbd_with_options &tbd,
+                         create_tbd_retained_user_info *info) noexcept;
+
+    bool request_new_swift_version(tbd_with_options &all,
+                                   tbd_with_options &tbd,
+                                   create_tbd_retained_user_info *info) noexcept;
+
+    bool
+    request_if_should_ignore_flags(tbd_with_options &all,
+                                   tbd_with_options &tbd,
+                                   create_tbd_retained_user_info *info) noexcept;
+
+    bool
+    request_if_should_ignore_uuids(tbd_with_options &all,
+                                   tbd_with_options &tbd,
+                                   create_tbd_retained_user_info *info) noexcept;
+
+    bool
+    request_if_should_ignore_non_unique_uuids(tbd_with_options &all,
+                                              tbd_with_options &tbd,
+                                              create_tbd_retained_user_info *info) noexcept;
+
+    bool
+    request_if_should_ignore_missing_uuids(tbd_with_options &all,
+                                           tbd_with_options &tbd,
+                                           create_tbd_retained_user_info *info) noexcept;
 }

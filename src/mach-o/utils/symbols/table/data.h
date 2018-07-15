@@ -29,11 +29,19 @@ namespace macho::utils::symbols::table {
             inline const_pointer operator-(uint64_t index) const noexcept { return this->ptr - index; }
 
             inline size_t operator+(const iterator &iter) const noexcept {
-                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) + reinterpret_cast<uintptr_t>(iter.ptr));
+                const auto result =
+                    reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) +
+                                             reinterpret_cast<uintptr_t>(iter.ptr));
+
+                return result;
             }
 
             inline size_t operator-(const iterator &iter) const noexcept {
-                return reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) - reinterpret_cast<uintptr_t>(iter.ptr));
+                const auto result =
+                    reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(this->ptr) -
+                                             reinterpret_cast<uintptr_t>(iter.ptr));
+
+                return result;
             }
 
             inline iterator &operator++() noexcept { ++this->ptr; return *this; }
@@ -123,8 +131,12 @@ namespace macho::utils::symbols::table {
         };
 
         creation_result create(const container &container, const options &options) noexcept;
-        creation_result create(const container &container, const load_commands::data &data, const options &options) noexcept;
-        creation_result create(const container &container, const symtab_command &symtab, const options &options) noexcept;
+
+        creation_result
+        create(const container &container, const load_commands::data &data, const options &options) noexcept;
+
+        creation_result
+        create(const container &container, const symtab_command &symtab, const options &options) noexcept;
 
         ~data() noexcept;
 

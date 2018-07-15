@@ -14,8 +14,12 @@
 namespace macho::utils::symbols::table_64 {
     data::creation_result data::create(const container &container, const options &options) noexcept {
         auto symbol_table = symtab_command();
-
-        const auto retrieve_result = load_commands::retrieve_only_load_command_of_cmd_in_container(container, macho::load_commands::symbol_table, &symbol_table, sizeof(symbol_table));
+        const auto retrieve_result =
+            load_commands::retrieve_only_load_command_of_cmd_in_container(container,
+                                                                          macho::load_commands::symbol_table,
+                                                                          &symbol_table,
+                                                                          sizeof(symbol_table));
+        
         switch (retrieve_result) {
             case load_commands::retrieve_result::ok:
                 break;
@@ -50,7 +54,8 @@ namespace macho::utils::symbols::table_64 {
         return this->create(container, symbol_table, options);
     }
 
-    data::creation_result data::create(const container &container, const load_commands::data &data, const options &options) noexcept {
+    data::creation_result
+    data::create(const container &container, const load_commands::data &data, const options &options) noexcept {
         auto symbol_table = static_cast<const symtab_command *>(nullptr);
         for (auto iter = data.begin; iter != data.end; iter++) {
             const auto cmd = iter.cmd();
@@ -73,7 +78,8 @@ namespace macho::utils::symbols::table_64 {
         return this->create(container, *symbol_table, options);
     }
 
-    data::creation_result data::create(const container &container, const symtab_command &symtab, const options &options) noexcept {
+    data::creation_result
+    data::create(const container &container, const symtab_command &symtab, const options &options) noexcept {
         auto symbol_table_entry_count = symtab.nsyms;
         if (symbol_table_entry_count == 0) {
             return creation_result::no_symbols;

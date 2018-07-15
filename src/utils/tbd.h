@@ -321,11 +321,35 @@ namespace utils {
             }
 
             inline bool operator==(const symbol &symbol) const noexcept {
-                return this->type == type && this->architectures == symbol.architectures && this->string == symbol.string;
+                if (this->type != type) {
+                    return false;
+                }
+
+                if (this->architectures != symbol.architectures) {
+                    return false;
+                }
+
+                if (this->string != symbol.string) {
+                    return false;
+                }
+
+                return true;
             }
 
             inline bool operator!=(const symbol &symbol) const noexcept {
-                return this->type != type || this->architectures != symbol.architectures || this->string != symbol.string;
+                if (this->type != type) {
+                    return true;
+                }
+
+                if (this->architectures != symbol.architectures) {
+                    return true;
+                }
+
+                if (this->string != symbol.string) {
+                    return true;
+                }
+
+                return false;
             }
         };
 
@@ -474,8 +498,13 @@ namespace utils {
             inline bool has_none() const noexcept { return this->value == 0; }
             inline void clear() noexcept { this->value = 0; }
 
-            inline bool operator==(const creation_options &options) const noexcept { return this->value == options.value; }
-            inline bool operator!=(const creation_options &options) const noexcept { return this->value != options.value; }
+            inline bool operator==(const creation_options &options) const noexcept {
+                return this->value == options.value;
+            }
+
+            inline bool operator!=(const creation_options &options) const noexcept {
+                return this->value != options.value;
+            }
         };
 
         // "Multiple" is to mean the same types of

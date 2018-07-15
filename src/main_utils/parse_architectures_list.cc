@@ -27,13 +27,18 @@ namespace main_utils {
             // Quickly filter out an option or path instead of a (relatively)
             // expensive call to macho::architecture_info_from_name().
 
-            if (architecture_string_front == '-' || architecture_string_front == '/' || architecture_string_front == '\\') {
+            if (architecture_string_front == '-' ||
+                architecture_string_front == '/' ||
+                architecture_string_front == '\\')
+            {
                 // If the architectures vector is empty, the user did not provide any architectures
                 // but did provided the architecture option, which requires at least one architecture
                 // being provided.
 
                 if (!architectures) {
-                    fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)\n", stderr);
+                    fputs("Please provide a list of architectures to override the ones in the provided mach-o file(s)"
+                          "\n",
+                          stderr);
                     exit(1);
                 }
 

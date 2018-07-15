@@ -85,7 +85,9 @@ namespace macho::utils::load_commands {
             inline const_pointer operator->() const noexcept { return this->ptr; }
 
             inline iterator &operator++() noexcept {
-                this->ptr = reinterpret_cast<iterator::const_pointer>(reinterpret_cast<const uint8_t *>(ptr) + this->cmdsize());
+                this->ptr =
+                    reinterpret_cast<iterator::const_pointer>(reinterpret_cast<const uint8_t *>(ptr) + this->cmdsize());
+
                 return *this;
             }
 
@@ -94,8 +96,13 @@ namespace macho::utils::load_commands {
             inline bool operator==(const iterator::const_pointer &ptr) const noexcept { return this->ptr == ptr; }
             inline bool operator!=(const iterator::const_pointer &ptr) const noexcept { return this->ptr != ptr; }
 
-            inline bool operator==(const iterator &iter) const noexcept { return this->ptr == iter.ptr && this->flags == iter.flags; }
-            inline bool operator!=(const iterator &iter) const noexcept { return this->ptr != iter.ptr || this->flags != iter.flags; }
+            inline bool operator==(const iterator &iter) const noexcept {
+                return this->ptr == iter.ptr && this->flags == iter.flags;
+            }
+
+            inline bool operator!=(const iterator &iter) const noexcept {
+                return this->ptr != iter.ptr || this->flags != iter.flags;
+            }
 
             inline const_pointer load_command() const noexcept { return this->ptr; }
 

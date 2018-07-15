@@ -119,8 +119,12 @@ namespace macho::utils::symbols::table_64 {
         };
 
         creation_result create(const container &container, const options &options) noexcept;
-        creation_result create(const container &container, const load_commands::data &data, const options &options) noexcept;
-        creation_result create(const container &container, const symtab_command &symtab, const options &options) noexcept;
+
+        creation_result
+        create(const container &container, const load_commands::data &data, const options &options) noexcept;
+
+        creation_result
+        create(const container &container, const symtab_command &symtab, const options &options) noexcept;
 
         ~data() noexcept;
 

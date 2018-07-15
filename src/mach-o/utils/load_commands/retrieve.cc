@@ -12,7 +12,11 @@
 #include "retrieve.h"
 
 namespace macho::utils::load_commands {
-    struct load_command *retrieve_first_of_load_command_in_container(const container &container, enum load_commands cmd, retrieve_result *result) noexcept {
+    struct load_command *
+    retrieve_first_of_load_command_in_container(const container &container,
+                                                enum load_commands cmd,
+                                                retrieve_result *result) noexcept
+    {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
@@ -130,7 +134,9 @@ namespace macho::utils::load_commands {
             }
 
             size_taken += load_command.cmdsize;
-            if (size_taken > load_commands_size || (size_taken == load_commands_size && index != load_commands_max_index)) {
+            if (size_taken > load_commands_size ||
+                (size_taken == load_commands_size && index != load_commands_max_index))
+            {
                 if (result != nullptr) {
                     *result = retrieve_result::invalid_load_command;
                 }
@@ -140,7 +146,8 @@ namespace macho::utils::load_commands {
 
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
-                const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                const auto did_seek_container =
+                    container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
 
                 if (!did_seek_container) {
                     if (result != nullptr) {
@@ -158,7 +165,8 @@ namespace macho::utils::load_commands {
 
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &full_load_command[1];
-                const auto did_read_container = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_container =
+                    container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!did_read_container) {
                     if (result != nullptr) {
@@ -185,7 +193,12 @@ namespace macho::utils::load_commands {
         return nullptr;
     }
 
-    retrieve_result find_first_of_load_command_in_container(const container &container, enum load_commands cmd, struct load_command *buffer, uint32_t cmdsize) noexcept {
+    retrieve_result
+    find_first_of_load_command_in_container(const container &container,
+                                            enum load_commands cmd,
+                                            struct load_command *buffer,
+                                            uint32_t cmdsize) noexcept
+    {
         if (cmdsize < sizeof(struct load_command)) {
             return retrieve_result::cmdsize_too_small_to_hold_load_command;
         }
@@ -280,7 +293,9 @@ namespace macho::utils::load_commands {
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
                 if (load_command_remaining_size != 0) {
-                    const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                    const auto did_seek_container =
+                        container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+
                     if (!did_seek_container) {
                         return retrieve_result::stream_seek_error;
                     }
@@ -296,7 +311,8 @@ namespace macho::utils::load_commands {
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &buffer[1];
-                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command =
+                    container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!did_read_remaining_load_command) {
                     return retrieve_result::stream_read_error;
@@ -314,7 +330,11 @@ namespace macho::utils::load_commands {
         return retrieve_result::no_instance_of_specified_load_command;
     }
 
-    struct load_command *retrieve_only_load_command_of_cmd_in_container(const container &container, enum load_commands cmd, retrieve_result *result) noexcept {
+    struct load_command *
+    retrieve_only_load_command_of_cmd_in_container(const container &container,
+                                                   enum load_commands cmd,
+                                                   retrieve_result *result) noexcept
+    {
         auto load_commands_count = container.header.ncmds;
         auto load_commands_size = container.header.sizeofcmds;
 
@@ -434,7 +454,9 @@ namespace macho::utils::load_commands {
             }
 
             size_taken += load_command.cmdsize;
-            if (size_taken > load_commands_size || (size_taken == load_commands_size && index != load_commands_max_index)) {
+            if (size_taken > load_commands_size ||
+                (size_taken == load_commands_size && index != load_commands_max_index))
+            {
                 if (result != nullptr) {
                     *result = retrieve_result::invalid_load_command;
                 }
@@ -444,7 +466,8 @@ namespace macho::utils::load_commands {
 
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
-                const auto did_seek_load_command = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                const auto did_seek_load_command =
+                    container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
 
                 if (!did_seek_load_command) {
                     if (result != nullptr) {
@@ -470,7 +493,8 @@ namespace macho::utils::load_commands {
 
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &full_load_command[1];
-                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command =
+                    container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!did_read_remaining_load_command) {
                     if (result != nullptr) {
@@ -497,7 +521,12 @@ namespace macho::utils::load_commands {
         return resulting_load_command;
     }
 
-    retrieve_result retrieve_only_load_command_of_cmd_in_container(const container &container, enum load_commands cmd, struct load_command *buffer, uint32_t cmdsize) noexcept {
+    retrieve_result
+    retrieve_only_load_command_of_cmd_in_container(const container &container,
+                                                   enum load_commands cmd,
+                                                   struct load_command *buffer,
+                                                   uint32_t cmdsize) noexcept
+    {
         if (cmdsize < sizeof(struct load_command)) {
             return retrieve_result::cmdsize_too_small_to_hold_load_command;
         }
@@ -594,7 +623,9 @@ namespace macho::utils::load_commands {
             if (load_command.cmd != cmd) {
                 const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
                 if (load_command_remaining_size != 0) {
-                    const auto did_seek_container = container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+                    const auto did_seek_container =
+                        container.stream.seek(load_command_remaining_size, stream::file::seek_type::current);
+
                     if (!did_seek_container) {
                         return retrieve_result::stream_seek_error;
                     }
@@ -614,7 +645,8 @@ namespace macho::utils::load_commands {
             const auto load_command_remaining_size = load_command.cmdsize - sizeof(load_command);
             if (load_command_remaining_size != 0) {
                 const auto load_command_remaining_data = &buffer[1];
-                const auto did_read_remaining_load_command = container.stream.read(load_command_remaining_data, load_command_remaining_size);
+                const auto did_read_remaining_load_command =
+                    container.stream.read(load_command_remaining_data, load_command_remaining_size);
 
                 if (!did_read_remaining_load_command) {
                     return retrieve_result::stream_read_error;

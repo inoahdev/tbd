@@ -197,7 +197,10 @@ int main(int argc, const char *argv[]) {
 
                 const auto tbds_size = tbds.size();
                 if (tbds_current_index == tbds_size) {
-                    fprintf(stderr, "Output arguments with path (%s) is missing a corresponding tbd input\n", path.c_str());
+                    fprintf(stderr,
+                            "Output arguments with path (%s) is missing a corresponding tbd input\n",
+                            path.c_str());
+
                     return 1;
                 }
 
@@ -205,7 +208,10 @@ int main(int argc, const char *argv[]) {
 
                 if (tbd.options.recurse_directories_at_path) {
                     if (path == "stdout") {
-                        fputs("Cannot write files found while recursing to stdout. Please provide a directory to write created tbd files to\n", stderr);
+                        fputs("Cannot write files found while recursing to stdout. Please provide a directory to write "
+                              "created tbd files to\n",
+                              stderr);
+
                         return 1;
                     }
                 } else {
@@ -215,7 +221,9 @@ int main(int argc, const char *argv[]) {
                     }
 
                     if (options.replace_path_extension) {
-                        fputs("Replacing path-extension is an option meant to use be used for recursing directories\n", stderr);
+                        fputs("Replacing path-extension is an option meant to use be used for recursing directories\n",
+                              stderr);
+
                         return 1;
                     }
                 }
@@ -224,12 +232,18 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.c_str(), &information) == 0) {
                     if (S_ISREG(information.st_mode)) {
                         if (tbd.options.recurse_directories_at_path) {
-                            fputs("Cannot write created tbd files found while recursing to a file. Please provide a directory to write created tbd files to\n", stderr);
+                            fputs("Cannot write created tbd files found while recursing to a file. Please provide a "
+                                  "directory to write created tbd files to\n",
+                                  stderr);
+
                             return 1;
                         }
                     } else if (S_ISDIR(information.st_mode)) {
                         if (!tbd.options.recurse_directories_at_path) {
-                            fputs("Cannot write a created tbd file to a directory object, Please provide a path to a file\n", stderr);
+                            fputs("Cannot write a created tbd file to a directory object, Please provide a path to a "
+                                  "file\n",
+                                  stderr);
+
                             return 1;
                         }
                     }
@@ -262,11 +276,6 @@ int main(int argc, const char *argv[]) {
             }
 
             auto tbd = main_utils::tbd_with_options();
-
-            // An unused structure that is only written
-            // to for parsing of local don't options
-
-            struct main_utils::tbd_with_options::dont_options donts;
 
             // Validate all local-options, but leave the multi-argument
             // local-options to be parsed after tbd-creation with
@@ -322,18 +331,30 @@ int main(int argc, const char *argv[]) {
 
                 struct stat information;
                 if (stat(path.c_str(), &information) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at path (%s), failing with error: %s\n", path.c_str(), strerror(errno));
+                    fprintf(stderr,
+                            "Failed to retrieve information on object at path (%s), failing with error: %s\n",
+                            path.c_str(),
+                            strerror(errno));
+
                     return 1;
                 }
 
                 if (S_ISREG(information.st_mode)) {
                     if (tbd.options.recurse_directories_at_path) {
-                        fprintf(stderr, "Cannot recurse file at path (%s). Please provide a path to a directory to recurse in\n", path.c_str());
+                        fprintf(stderr,
+                                "Cannot recurse file at path (%s). Please provide a path to a directory to recurse in"
+                                "\n",
+                                path.c_str());
+
                         return 1;
                     }
                 } else if (S_ISDIR(information.st_mode)) {
                     if (!tbd.options.recurse_directories_at_path) {
-                        fprintf(stderr, "Cannot open directory at path (%s) as a mach-o file. Please provide -r (--recurse) (with an optional recurse-type) to recurse the directory\n", path.c_str());
+                        fprintf(stderr,
+                                "Cannot open directory at path (%s) as a mach-o file. Please provide -r (--recurse) "
+                                "(with an optional recurse-type) to recurse the directory\n",
+                                path.c_str());
+
                         return 1;
                     }
 
@@ -341,7 +362,10 @@ int main(int argc, const char *argv[]) {
                         path.append(1, '/');
                     }
                 } else {
-                    fprintf(stderr, "Unrecognized object at path (%s). tbd current only supports regular files\n", path.c_str());
+                    fprintf(stderr,
+                            "Unrecognized object at path (%s). tbd current only supports regular files\n",
+                            path.c_str());
+
                     return 1;
                 }
                 
@@ -353,14 +377,21 @@ int main(int argc, const char *argv[]) {
 
                 if (tbd.write_options.ignore_architectures) {
                     if (tbd.options.replace_architectures || tbd.options.remove_architectures) {
-                        fprintf(stderr, "Cannot both modify tbd architectures field and remove the field entirely for path (%s)\n", path.c_str());
+                        fprintf(stderr,
+                                "Cannot both modify tbd architectures field and remove the field entirely for path "
+                                "(%s)\n",
+                                path.c_str());
+
                         return 1;
                     }
                 }
 
                 if (tbd.write_options.ignore_flags) {
                     if (tbd.options.replace_flags || tbd.options.remove_flags) {
-                        fprintf(stderr, "Cannot both modify tbd flags field and remove the field entirely for path (%s)\n", path.c_str());
+                        fprintf(stderr,
+                                "Cannot both modify tbd flags field and remove the field entirely for path (%s)\n",
+                                path.c_str());
+
                         return 1;
                     }
                 }
@@ -465,9 +496,13 @@ int main(int argc, const char *argv[]) {
                 if (stat(path.c_str(), &information) == 0) {
                     if (!S_ISREG(information.st_mode)) {
                         if (S_ISDIR(information.st_mode)) {
-                            fprintf(stderr, "Unable to open directory at path (%s). Please provide a path to a regular file\n", path.c_str());
+                            fprintf(stderr,
+                                    "Unable to open directory at path (%s). Please provide a path to a regular file\n",
+                                    path.c_str());
                         } else {
-                            fprintf(stderr, "Unable to open object at path (%s). Please provide a path to a regular file\n", path.c_str());
+                            fprintf(stderr,
+                                    "Unable to open object at path (%s). Please provide a path to a regular file\n",
+                                    path.c_str());
                         }
 
                         return 1;
@@ -488,7 +523,10 @@ int main(int argc, const char *argv[]) {
                         continue;
 
                     case macho::file::open_result::failed_to_open_stream:
-                        fprintf(stderr, "Failed to open file (at path %s), failing with error: %s\n", path.c_str(), strerror(file.stream.error()));
+                        fprintf(stderr,
+                                "Failed to open file (at path %s), failing with error: %s\n",
+                                path.c_str(),
+                                strerror(file.stream.error()));
                         continue;
 
                     case macho::file::open_result::stream_seek_error:
@@ -501,11 +539,17 @@ int main(int argc, const char *argv[]) {
                         continue;
 
                     case macho::file::open_result::too_many_containers:
-                        fprintf(stderr, "Mach-o file (at path %s) has too many architectures to fit inside the mach-o file\n", path.c_str());
+                        fprintf(stderr,
+                                "Mach-o file (at path %s) has too many architectures to fit inside the mach-o file\n",
+                                path.c_str());
+
                         continue;
 
                     case macho::file::open_result::overlapping_containers:
-                        fprintf(stderr, "Mach-o file (at path %s) has architectures overlap with one another\n", path.c_str());
+                        fprintf(stderr,
+                                "Mach-o file (at path %s) has architectures overlap with one another\n",
+                                path.c_str());
+
                         continue;
 
                     case macho::file::open_result::invalid_container:
@@ -582,7 +626,10 @@ int main(int argc, const char *argv[]) {
             // provided for a tbd
 
             if (tbd.write_path.empty()) {
-                fprintf(stderr, "Cannot write created tbd files found while recursing directory (at path %s) to stdout. Please provide a directory to write created tbd files to\n", tbd.path.c_str());
+                fprintf(stderr,
+                        "Cannot write created tbd files found while recursing directory (at path %s) to stdout. Please "
+                        "provide a directory to write created tbd files to\n", tbd.path.c_str());
+
                 continue;
             }
 
@@ -610,7 +657,12 @@ int main(int argc, const char *argv[]) {
             // unable to find an identification load-command
 
             filetypes.file = true;
-            const auto recurse_result = misc::recurse::macho_files(tbd.path.c_str(), filetypes, options, [&](macho::file &file, std::string &path) {
+            const auto recurse_result =
+                misc::recurse::macho_files(tbd.path.c_str(),
+                                           filetypes,
+                                           options,
+                                           [&](macho::file &file, std::string &path)
+            {
                 auto options = main_utils::create_tbd_options();
 
                 options.print_paths = true;
@@ -689,11 +741,18 @@ int main(int argc, const char *argv[]) {
                     break;
 
                 case misc::recurse::operation_result::failed_to_open_directory:
-                    fprintf(stderr, "Failed to open directory (at path %s), failing with error: %s\n", tbd.path.c_str(), strerror(errno));
+                    fprintf(stderr,
+                            "Failed to open directory (at path %s), failing with error: %s\n",
+                            tbd.path.c_str(),
+                            strerror(errno));
+
                     break;
 
                 case misc::recurse::operation_result::found_no_matching_files:
-                    fprintf(stderr, "Found no mach-o dynamic library files in directory at path: %s\n", tbd.path.c_str());
+                    fprintf(stderr,
+                            "Found no mach-o dynamic library files in directory at path: %s\n",
+                            tbd.path.c_str());
+
                     break;
 
                 default:
@@ -725,9 +784,14 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::failed_to_open_stream:
                     if (should_print_paths) {
-                        fprintf(stderr, "Failed to open stream for file (at path %s), failing with error: %s\n", tbd.path.c_str(), strerror(errno));
+                        fprintf(stderr,
+                                "Failed to open stream for file (at path %s), failing with error: %s\n",
+                                tbd.path.c_str(),
+                                strerror(errno));
                     } else {
-                        fprintf(stderr, "Failed to open stream for file at provided path, failing with error: %s\n", strerror(errno));
+                        fprintf(stderr,
+                                "Failed to open stream for file at provided path, failing with error: %s\n",
+                                strerror(errno));
                     }
 
                     continue;
@@ -753,16 +817,21 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::too_many_containers:
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has too many architectures to fit inside the mach-o file\n", tbd.path.c_str());
+                        fprintf(stderr,
+                                "Mach-o file (at path %s) has too many architectures to fit inside the mach-o file\n",
+                                tbd.path.c_str());
                     } else {
-                        fputs("Mach-o file at provided path has too many architectures to fit inside the provided mach-o file\n", stderr);
+                        fputs("Mach-o file at provided path has too many architectures to fit inside the provided "
+                              "mach-o file\n", stderr);
                     }
 
                     continue;
 
                 case macho::file::open_result::overlapping_containers:
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has architectures that overlap with one another\n", tbd.path.c_str());
+                        fprintf(stderr,
+                                "Mach-o file (at path %s) has architectures that overlap with one another\n",
+                                tbd.path.c_str());
                     } else {
                         fputs("Mach-o file at provided path has architectures that overlap with one another\n", stderr);
                     }
@@ -771,7 +840,9 @@ int main(int argc, const char *argv[]) {
 
                 case macho::file::open_result::invalid_container:
                     if (should_print_paths) {
-                        fprintf(stderr, "Mach-o file (at path %s) has an architecture that is invalid\n", tbd.path.c_str());
+                        fprintf(stderr,
+                                "Mach-o file (at path %s) has an architecture that is invalid\n",
+                                tbd.path.c_str());
                     } else {
                         fputs("Mach-o file at provided path has an architecture that is invalid\n", stderr);
                     }
@@ -821,15 +892,21 @@ int main(int argc, const char *argv[]) {
                 }
             } else {
                 auto descriptor = -1;
-                main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
+                main_utils::recursive_mkdir_last_as_file(tbd.write_path.data(),
+                                                         tbd.options.no_overwrite,
+                                                         &terminator,
+                                                         &descriptor);
                 
                 if (descriptor == -1) {
                     continue;
                 }
                 
-                auto result = main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths);
+                const auto result = main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths);
                 if (!result) {
-                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(), terminator, should_print_paths);
+                    main_utils::recursively_remove_with_terminator(tbd.write_path.data(),
+                                                                   terminator,
+                                                                   should_print_paths);
+
                     failed_to_process_tbd = true;
                 }
                 

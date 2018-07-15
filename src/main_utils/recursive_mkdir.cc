@@ -21,17 +21,27 @@ namespace main_utils {
 
             case recursive::mkdir::result::failed_to_create_last_as_file:
                 if (!must_exist) {
-                    fprintf(stderr, "Failed to create file (at path %s), failing with error: %s\n", path, strerror(errno));
+                    fprintf(stderr,
+                            "Failed to create file (at path %s), failing with error: %s\n",
+                            path,
+                            strerror(errno));
                 }
                 
                 break;
 
             case recursive::mkdir::result::failed_to_create_intermediate_directories:
-                fprintf(stderr, "Failed to create intermediate directories for file (at path %s), failing with error: %s\n", path, strerror(errno));
+                fprintf(stderr,
+                        "Failed to create intermediate directories for file (at path %s), failing with error: %s\n",
+                        path,
+                        strerror(errno));
+
                 break;
 
             case recursive::mkdir::result::last_already_exists_not_as_file:
-                fprintf(stderr, "Object at path (%s) already exists, but is not a file\n", path);
+                fprintf(stderr,
+                        "Object at path (%s) already exists, but is not a file\n",
+                        path);
+                
                 break;
 
             default:

@@ -114,8 +114,12 @@ namespace macho::utils::strings::table {
         };
 
         creation_result create(const macho::container &container, const options &options) noexcept;
-        creation_result create(const macho::container &container, const load_commands::data &data, const options &options) noexcept;
-        creation_result create(const macho::container &container, const symtab_command &symtab, const options &options) noexcept;
+
+        creation_result
+        create(const macho::container &container, const load_commands::data &data, const options &options) noexcept;
+
+        creation_result
+        create(const macho::container &container, const symtab_command &symtab, const options &options) noexcept;
 
         ~data() noexcept;
 

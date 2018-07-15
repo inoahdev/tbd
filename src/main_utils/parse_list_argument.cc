@@ -61,7 +61,10 @@ namespace main_utils {
 
                 struct stat sbuf;
                 if (stat(path.c_str(), &sbuf) != 0) {
-                    fprintf(stderr, "Failed to retrieve information on object at provided path, failing with error: %s\n", strerror(errno));
+                    fprintf(stderr,
+                            "Failed to retrieve information on object at provided path, failing with error: %s\n",
+                            strerror(errno));
+
                     exit(1);
                 }
 
@@ -83,7 +86,10 @@ namespace main_utils {
                         exit(1);
 
                     case macho::file::open_result::failed_to_open_stream:
-                        fprintf(stderr, "Failed to open stream for file at provided path, failing with error: %s\n", strerror(errno));
+                        fprintf(stderr,
+                                "Failed to open stream for file at provided path, failing with error: %s\n",
+                                strerror(errno));
+
                         exit(1);
 
                     case macho::file::open_result::stream_seek_error:
@@ -115,15 +121,24 @@ namespace main_utils {
                 auto names = std::vector<const char *>();
 
                 for (const auto &container : file.containers) {
-                    const auto container_subtype = macho::subtype_from_cputype(macho::cputype(container.header.cputype), container.header.cpusubtype);
+                    const auto container_subtype =
+                        macho::subtype_from_cputype(macho::cputype(container.header.cputype),
+                                                    container.header.cpusubtype);
+
                     if (container_subtype == macho::subtype::none) {
                         fprintf(stderr, "Unrecognized cpu-subtype for architecture at index %d\n", container_index);
                         exit(1);
                     }
 
-                    const auto architecture_info = macho::architecture_info_from_cputype(macho::cputype(container.header.cputype), container_subtype);
+                    const auto architecture_info =
+                        macho::architecture_info_from_cputype(macho::cputype(container.header.cputype),
+                                                              container_subtype);
+
                     if (!architecture_info) {
-                        fprintf(stderr, "Unrecognized cputype information for architecture at index %d\n", container_index);
+                        fprintf(stderr,
+                                "Unrecognized cputype information for architecture at index %d\n",
+                                container_index);
+
                         exit(1);
                     }
 
@@ -193,9 +208,14 @@ namespace main_utils {
                     struct stat sbuf;
                     if (stat(path.c_str(), &sbuf) != 0) {
                         if (index == argc - 1) {
-                            fprintf(stderr, "Failed to retrieve information on file at provided path, failing with error: %s\n", strerror(errno));
+                            fprintf(stderr,
+                                    "Failed to retrieve information on file at provided path, failing with error: %s\n",
+                                    strerror(errno));
                         } else {
-                            fprintf(stderr, "Failed to retrieve information on file (at path %s), failing with error: %s\n", path.c_str(), strerror(errno));
+                            fprintf(stderr,
+                                    "Failed to retrieve information on file (at path %s), failing with error: %s\n",
+                                    path.c_str(),
+                                    strerror(errno));
                         }
 
                         exit(1);
@@ -237,7 +257,10 @@ namespace main_utils {
                     auto filetypes = misc::recurse::filetypes();
                     filetypes.dynamic_library = true;
 
-                    const auto recursion_result = misc::recurse::macho_files(path.c_str(), filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
+                    const auto recursion_result =
+                        misc::recurse::macho_files(path.c_str(), filetypes, recurse_options, [](const macho::file &file,
+                                                                                                const std::string &path)
+                    {
                         fprintf(stdout, "%s\n", path.c_str());
                         return true;
                     });
@@ -248,9 +271,14 @@ namespace main_utils {
 
                         case misc::recurse::operation_result::failed_to_open_directory:
                             if (paths.size() != 1) {
-                                fprintf(stderr, "Failed to open directory (at path %s), failing with error: %s\n", path.c_str(), strerror(errno));
+                                fprintf(stderr,
+                                        "Failed to open directory (at path %s), failing with error: %s\n",
+                                        path.c_str(),
+                                        strerror(errno));
                             } else {
-                                fprintf(stderr, "Failed to open directory at provided path, failing with error: %s\n", strerror(errno));
+                                fprintf(stderr,
+                                        "Failed to open directory at provided path, failing with error: %s\n",
+                                        strerror(errno));
                             }
 
                             break;
@@ -258,15 +286,23 @@ namespace main_utils {
                         case misc::recurse::operation_result::found_no_matching_files:
                             if (options.recurse_subdirectories_at_path) {
                                 if (paths.size() != 1) {
-                                    fprintf(stderr, "Found no mach-o dynamic library files while recursing through directory and its sub-directories at path: %s\n", path.c_str());
+                                    fprintf(stderr,
+                                            "Found no mach-o dynamic library files while recursing through directory "
+                                            "and its sub-directories at path: %s\n",
+                                            path.c_str());
                                 } else {
-                                    fputs("Found no mach-o dynamic library files while recursing through directory and its sub-directories at provided path\n", stderr);
+                                    fputs("Found no mach-o dynamic library files while recursing through directory and "
+                                          "its sub-directories at provided path\n",
+                                          stderr);
                                 }
                             } else {
                                 if (paths.size() != 1) {
-                                    fprintf(stderr, "Found no mach-o dynamic library files while recursing through directory at path: %s\n", path.c_str());
+                                    fprintf(stderr,
+                                            "Found no mach-o dynamic library files while recursing through directory "
+                                            "at path: %s\n", path.c_str());
                                 } else {
-                                    fputs("Found no mach-o dynamic library files while recursing through directory at provided path\n", stderr);
+                                    fputs("Found no mach-o dynamic library files while recursing through directory at "
+                                          "provided path\n", stderr);
                                 }
                             }
 
@@ -291,7 +327,10 @@ namespace main_utils {
                 auto filetypes = misc::recurse::filetypes();
                 filetypes.dynamic_library = true;
 
-                const auto recursion_result = misc::recurse::macho_files(path, filetypes, recurse_options, [](const macho::file &file, const std::string &path) {
+                const auto recursion_result =
+                    misc::recurse::macho_files(path, filetypes, recurse_options, [](const macho::file &file,
+                                                                                    const std::string &path)
+                {
                     fprintf(stdout, "%s\n", path.c_str());
                     return true;
                 });
@@ -301,11 +340,16 @@ namespace main_utils {
                         break;
 
                     case misc::recurse::operation_result::failed_to_open_directory:
-                        fprintf(stderr, "Failed to open directory at current-directory, failing with error: %s\n", strerror(errno));
+                        fprintf(stderr,
+                                "Failed to open directory at current-directory, failing with error: %s\n",
+                                strerror(errno));
+
                         break;
 
                     case misc::recurse::operation_result::found_no_matching_files:
-                        fputs("Found no mach-o dynamic library files while recursing through directory and its sub-directories at provided path\n", stderr);
+                        fputs("Found no mach-o dynamic library files while recursing through directory and its "
+                              "sub-directories at provided path\n", stderr);
+
                         break;
 
                     default:

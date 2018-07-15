@@ -113,7 +113,12 @@ namespace main_utils {
         this->options.value &= ~this->donts.options.value;
     }
     
-    bool tbd_with_options::parse_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept {
+    bool
+    tbd_with_options::parse_option_from_argv(const char *option,
+                                             int &index,
+                                             int argc,
+                                             const char *argv[]) noexcept
+    {
         if (strcmp(option, "add-archs") == 0) {
             index++;
             if (index == argc) {
@@ -294,7 +299,12 @@ namespace main_utils {
         return true;
     }
 
-    bool tbd_with_options::parse_dont_option_from_argv(const char *option, int &index, int argc, const char *argv[]) noexcept {
+    bool
+    tbd_with_options::parse_dont_option_from_argv(const char *option,
+                                                  int &index,
+                                                  int argc,
+                                                  const char *argv[]) noexcept
+    {
         if (strcmp(option, "dont-allow-private-normal-symbols") == 0) {
             this->creation_options.allow_private_normal_symbols = false;
            this->donts.creation_options.allow_private_normal_symbols = true;

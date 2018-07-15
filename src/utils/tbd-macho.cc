@@ -192,7 +192,10 @@ namespace utils {
                 }
                     
                 case macho::load_commands::identification_dylib: {
-                    if (options.ignore_current_version && options.ignore_compatibility_version && options.ignore_install_name) {
+                    if (options.ignore_current_version &&
+                        options.ignore_compatibility_version &&
+                        options.ignore_install_name)
+                    {
                         break;
                     }
                     
@@ -247,14 +250,21 @@ namespace utils {
                     // Check for when dylib_command_name_location
                     // is past end or goes past end of dylib_command
                     
-                    if (dylib_command_name_estimated_length >= dylib_command_cmdsize || dylib_command_name_estimated_length == 0) {
+                    if (dylib_command_name_estimated_length >= dylib_command_cmdsize) {
                         return creation_from_macho_result::invalid_dylib_command;
                     }
-                    
-                    const auto dylib_command_name = &reinterpret_cast<const char *>(dylib_command)[dylib_command_name_location];
-                    const auto dylib_command_name_length = strnlen(dylib_command_name, dylib_command_name_estimated_length);
+
+                    if (dylib_command_name_estimated_length == 0) {
+                        return creation_from_macho_result::invalid_dylib_command;
+                    }
+
+                    const auto dylib_command_name =
+                        &reinterpret_cast<const char *>(dylib_command)[dylib_command_name_location];
+
+                    const auto dylib_command_name_length =
+                        strnlen(dylib_command_name, dylib_command_name_estimated_length);
+
                     const auto dylib_command_end = &dylib_command_name[dylib_command_name_length];
-                    
                     if (std::all_of(dylib_command_name, dylib_command_end, isspace)) {
                         return creation_from_macho_result::empty_install_name;
                     }
@@ -266,8 +276,9 @@ namespace utils {
                                     return creation_from_macho_result::multiple_install_names;
                                 }
                             }
-                            
-                            if (strncmp(info_out.install_name.c_str(), dylib_command_name, dylib_command_name_length) != 0) {
+
+                            const auto install_name = info_out.install_name.c_str();
+                            if (strncmp(install_name, dylib_command_name, dylib_command_name_length) != 0) {
                                 if (found_container_identification) {
                                     return creation_from_macho_result::multiple_install_names;
                                 }
@@ -305,7 +316,8 @@ namespace utils {
                     }
                     
                     const auto dylib_command_cmdsize = iter.cmdsize();
-                    const auto dylib_command_name_estimated_length = dylib_command_cmdsize - dylib_command_name_location;
+                    const auto dylib_command_name_estimated_length =
+                        dylib_command_cmdsize - dylib_command_name_location;
                     
                     if (dylib_command_cmdsize < sizeof(struct macho::dylib_command)) {
                         return creation_from_macho_result::invalid_dylib_command;
@@ -314,15 +326,21 @@ namespace utils {
                     // Check for when dylib_command_name_location overlaps with
                     // load-command, is past end or goes past end of dylib_command
                     
-                    if (dylib_command_name_estimated_length >= dylib_command_cmdsize || dylib_command_name_estimated_length == 0) {
+                    if (dylib_command_name_estimated_length >= dylib_command_cmdsize) {
+                        return creation_from_macho_result::invalid_dylib_command;
+                    }
+
+                    if (dylib_command_name_estimated_length == 0) {
                         return creation_from_macho_result::invalid_dylib_command;
                     }
                     
-                    const auto dylib_command_name = &reinterpret_cast<const char *>(dylib_command)[dylib_command_name_location];
+                    const auto dylib_command_name =
+                        &reinterpret_cast<const char *>(dylib_command)[dylib_command_name_location];
                     
-                    const auto dylib_command_name_length = strnlen(dylib_command_name, dylib_command_name_estimated_length);
+                    const auto dylib_command_name_length =
+                        strnlen(dylib_command_name, dylib_command_name_estimated_length);
+
                     const auto dylib_command_end = &dylib_command_name[dylib_command_name_length];
-                    
                     if (std::all_of(dylib_command_name, dylib_command_end, isspace)) {
                         continue;
                     }
@@ -337,8 +355,9 @@ namespace utils {
                         if (reexports_iter->string.length() != dylib_command_name_length) {
                             continue;
                         }
-                        
-                        if (strncmp(reexports_iter->string.c_str(), dylib_command_name, dylib_command_name_length) != 0) {
+
+                        const auto reexport_string = reexports_iter->string.c_str();
+                        if (strncmp(reexport_string, dylib_command_name, dylib_command_name_length) != 0) {
                             continue;
                         }
                         
@@ -351,7 +370,10 @@ namespace utils {
                     
                     if (reexports_iter == reexports_end) {
                         auto reexport_string = std::string(dylib_command_name, dylib_command_name_length);
-                        auto &reexport = info_out.reexports->emplace_back(1ull << architecture_info_index, std::move(reexport_string));
+                        auto reexport_architectures = 1ull << architecture_info_index;
+
+                        auto &reexport =
+                            info_out.reexports->emplace_back(reexport_architectures, std::move(reexport_string));
                         
                         if (options.ignore_architectures) {
                             reexport.set_all_architectures();
@@ -379,7 +401,8 @@ namespace utils {
                         break;
                     }
                     
-                    const auto segment_command = static_cast<const struct macho::segment_command *>(iter.load_command());
+                    const auto segment_command =
+                        static_cast<const struct macho::segment_command *>(iter.load_command());
                     
                     // A check for whether cmdsize is valid is not needed
                     // as utils::segments::command below does the check
@@ -391,7 +414,8 @@ namespace utils {
                     if (strncmp(segment_command->segname, "__DATA", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__DATA_CONST", sizeof(segment_command->segname)) != 0 &&
                         strncmp(segment_command->segname, "__DATA_DIRTY", sizeof(segment_command->segname)) != 0 &&
-                        strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0) {
+                        strncmp(segment_command->segname, "__OBJC", sizeof(segment_command->segname)) != 0)
+                    {
                         continue;
                     }
                     
@@ -405,7 +429,8 @@ namespace utils {
                         // need to validate section information ourselves
                         
                         if (strncmp(iter->sectname, "__objc_imageinfo", sizeof(iter->sectname)) != 0 &&
-                            strncmp(iter->sectname, "__image_info", sizeof(iter->sectname)) != 0) {
+                            strncmp(iter->sectname, "__image_info", sizeof(iter->sectname)) != 0)
+                        {
                             continue;
                         }
                         
@@ -428,12 +453,15 @@ namespace utils {
                         // XXX: We should validate section_data_range doesn't
                         // overlap container's header and load-commands buffer
                         
-                        const auto section_data_range = ::utils::range(section_location, section_location + section_size);
+                        const auto section_data_range =
+                            ::utils::range(section_location, section_location + section_size);
+
                         if (section_data_range.is_or_goes_past_end(container.size)) {
                             return creation_from_macho_result::invalid_objc_imageinfo_segment_section;
                         }
-                        
-                        if (!container.stream.seek(container.base + section_location, stream::file::seek_type::beginning)) {
+
+                        const auto container_section_location = container.base + section_location;
+                        if (!container.stream.seek(container_section_location, stream::file::seek_type::beginning)) {
                             return creation_from_macho_result::stream_seek_error;
                         }
                         
@@ -476,7 +504,8 @@ namespace utils {
                         break;
                     }
                     
-                    const auto segment_command = static_cast<const struct macho::segment_command_64 *>(iter.load_command());
+                    const auto segment_command =
+                        static_cast<const struct macho::segment_command_64 *>(iter.load_command());
                     
                     // A check for whether cmdsize is valid is not needed
                     // as utils::segments::command_64 below does the check
@@ -502,7 +531,8 @@ namespace utils {
                         // information ourselves
                         
                         if (strncmp(iter->sectname, "__objc_imageinfo", sizeof(iter->sectname)) != 0 &&
-                            strncmp(iter->sectname, "__image_info", sizeof(iter->sectname)) != 0) {
+                            strncmp(iter->sectname, "__image_info", sizeof(iter->sectname)) != 0)
+                        {
                             continue;
                         }
                         
@@ -525,8 +555,9 @@ namespace utils {
                         if (section_range.is_or_goes_past_end(container.size)) {
                             return creation_from_macho_result::invalid_objc_imageinfo_segment_section;
                         }
-                        
-                        if (!container.stream.seek(container.base + section_location, stream::file::seek_type::beginning)) {
+
+                        const auto container_section_location = container.base + section_location;
+                        if (!container.stream.seek(container_section_location, stream::file::seek_type::beginning)) {
                             return creation_from_macho_result::stream_seek_error;
                         }
                         
@@ -566,9 +597,10 @@ namespace utils {
                         break;
                     }
                     
-                    const auto sub_client_command = static_cast<const struct macho::sub_client_command *>(iter.load_command());
+                    const auto sub_client_command =
+                        static_cast<const struct macho::sub_client_command *>(iter.load_command());
+
                     auto sub_client_command_name_location = sub_client_command->client.offset;
-                    
                     if (container.is_big_endian()) {
                         ::utils::swap::uint32(sub_client_command_name_location);
                     }
@@ -581,7 +613,8 @@ namespace utils {
                     }
                     
                     const auto sub_client_command_cmdsize = iter.cmdsize();
-                    const auto sub_client_command_name_estimated_length = sub_client_command_cmdsize - sub_client_command_name_location;
+                    const auto sub_client_command_name_estimated_length =
+                        sub_client_command_cmdsize - sub_client_command_name_location;
                     
                     if (sub_client_command_cmdsize < sizeof(struct macho::sub_client_command)) {
                         return creation_from_macho_result::invalid_sub_client_command;
@@ -590,15 +623,21 @@ namespace utils {
                     // Check for when sub_client_command_name_location
                     // is past end or goes past end of dylib-command
                     
-                    if (sub_client_command_name_estimated_length == 0 || sub_client_command_name_estimated_length >= sub_client_command_cmdsize) {
+                    if (sub_client_command_name_estimated_length == 0) {
+                        return creation_from_macho_result::invalid_sub_client_command;
+                    }
+
+                    if (sub_client_command_name_estimated_length >= sub_client_command_cmdsize) {
                         return creation_from_macho_result::invalid_sub_client_command;
                     }
                     
-                    const auto sub_client_command_name = &reinterpret_cast<const char *>(sub_client_command)[sub_client_command_name_location];
+                    const auto sub_client_command_name =
+                        &reinterpret_cast<const char *>(sub_client_command)[sub_client_command_name_location];
                     
-                    const auto sub_client_command_name_length = strnlen(sub_client_command_name, sub_client_command_name_estimated_length);
+                    const auto sub_client_command_name_length =
+                        strnlen(sub_client_command_name, sub_client_command_name_estimated_length);
+
                     const auto sub_client_command_end = &sub_client_command_name[sub_client_command_name_length];
-                    
                     if (std::all_of(sub_client_command_name, sub_client_command_end, isspace)) {
                         continue;
                     }
@@ -613,8 +652,9 @@ namespace utils {
                         if (clients_iter->string.length() != sub_client_command_name_length) {
                             continue;
                         }
-                        
-                        if (strncmp(clients_iter->string.c_str(), sub_client_command_name, sub_client_command_name_length) != 0) {
+
+                        const auto client_string = clients_iter->string.c_str();
+                        if (strncmp(client_string, sub_client_command_name, sub_client_command_name_length) != 0) {
                             continue;
                         }
                         
@@ -629,9 +669,10 @@ namespace utils {
                     // was not found
                     
                     if (clients_iter == clients_end) {
+                        auto client_architectures = 1ull << architecture_info_index;
                         auto client_string = std::string(sub_client_command_name, sub_client_command_name_length);
-                        auto &client = info_out.clients->emplace_back(1ull << architecture_info_index, std::move(client_string));
-                        
+
+                        auto &client = info_out.clients->emplace_back(client_architectures, std::move(client_string));
                         if (options.ignore_architectures) {
                             client.set_all_architectures();
                         } else {
@@ -660,9 +701,10 @@ namespace utils {
                         break;
                     }
                     
-                    const auto sub_umbrella_command = static_cast<const struct macho::sub_umbrella_command *>(iter.load_command());
+                    const auto sub_umbrella_command =
+                        static_cast<const struct macho::sub_umbrella_command *>(iter.load_command());
+
                     auto sub_umbrella_command_name_location = sub_umbrella_command->sub_umbrella.offset;
-                    
                     if (container.is_big_endian()) {
                         ::utils::swap::uint32(sub_umbrella_command_name_location);
                     }
@@ -675,7 +717,8 @@ namespace utils {
                     }
                     
                     const auto sub_umbrella_command_cmdsize = iter.cmdsize();
-                    const auto sub_umbrella_command_name_estimated_length = sub_umbrella_command_cmdsize - sub_umbrella_command_name_location;
+                    const auto sub_umbrella_command_name_estimated_length =
+                        sub_umbrella_command_cmdsize - sub_umbrella_command_name_location;
                     
                     if (sub_umbrella_command_cmdsize < sizeof(struct macho::sub_umbrella_command)) {
                         return creation_from_macho_result::invalid_sub_umbrella_command;
@@ -684,15 +727,21 @@ namespace utils {
                     // Check for when sub_umbrella_command_name_location overlaps with
                     // load-command, is past end or goes past end of sub_umbrella_command
                     
-                    if (sub_umbrella_command_name_estimated_length >= sub_umbrella_command_cmdsize || sub_umbrella_command_name_estimated_length == 0) {
+                    if (sub_umbrella_command_name_estimated_length >= sub_umbrella_command_cmdsize) {
+                        return creation_from_macho_result::invalid_sub_umbrella_command;
+                    }
+
+                    if (sub_umbrella_command_name_estimated_length == 0) {
                         return creation_from_macho_result::invalid_sub_umbrella_command;
                     }
                     
-                    const auto sub_umbrella_command_name = &reinterpret_cast<const char *>(sub_umbrella_command)[sub_umbrella_command_name_location];
+                    const auto sub_umbrella_command_name =
+                        &reinterpret_cast<const char *>(sub_umbrella_command)[sub_umbrella_command_name_location];
                     
-                    const auto sub_umbrella_command_name_length = strnlen(sub_umbrella_command_name, sub_umbrella_command_name_estimated_length);
-                    const auto sub_umbrella_command_end = &sub_umbrella_command_name[sub_umbrella_command_name_length];
-                    
+                    const auto sub_umbrella_command_name_length =
+                        strnlen(sub_umbrella_command_name, sub_umbrella_command_name_estimated_length);
+
+                    const auto sub_umbrella_command_end = &sub_umbrella_command_name[sub_umbrella_command_name_length];                    
                     if (std::all_of(sub_umbrella_command_name, sub_umbrella_command_end, isspace)) {
                         return creation_from_macho_result::empty_parent_umbrella;
                     }
@@ -702,8 +751,9 @@ namespace utils {
                             return creation_from_macho_result::multiple_parent_umbrella;
                         }
                     }
-                    
-                    if (strncmp(info_out.parent_umbrella.c_str(), sub_umbrella_command_name, sub_umbrella_command_name_length) != 0) {
+
+                    const auto parent_umbrella = info_out.parent_umbrella.c_str();
+                    if (strncmp(parent_umbrella, sub_umbrella_command_name, sub_umbrella_command_name_length) != 0) {
                         if (found_container_parent_umbrella) {
                             return creation_from_macho_result::multiple_parent_umbrella;
                         }
@@ -877,7 +927,10 @@ namespace utils {
         // if provided options demand so
         
         if (!options.ignore_missing_identification) {
-            if (!options.ignore_current_version || !options.ignore_compatibility_version || !options.ignore_install_name) {
+            if (!options.ignore_current_version ||
+                !options.ignore_compatibility_version ||
+                !options.ignore_install_name)
+            {
                 if (!found_container_identification) {
                     return creation_from_macho_result::container_is_missing_dynamic_library_identification;
                 }
@@ -1177,9 +1230,10 @@ namespace utils {
         }
         
         if (symbols_iter == symbols_end) {
+            auto symbol_architectures = 1ull << architecture_info_index;
             auto symbol_string = std::string(string, string_length);
-            auto &symbol = info_out.symbols->emplace_back(1ull << architecture_info_index, std::move(symbol_string), symbol_type);
-            
+
+            auto &symbol = info_out.symbols->emplace_back(symbol_architectures, std::move(symbol_string), symbol_type);
             if (options.ignore_architectures) {
                 symbol.set_all_architectures();
             } else {

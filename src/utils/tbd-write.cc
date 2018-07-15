@@ -84,7 +84,8 @@ namespace utils {
     bool write_architectures_to_stream(const stream_helper<T> &stream, uint64_t architectures, bool dash) noexcept;
 
     template <typename T>
-    bool write_compatibility_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept;
+    bool write_compatibility_version_to_stream(const stream_helper<T> &stream,
+                                               const tbd::packed_version &version) noexcept;
 
     template <typename T>
     bool write_current_version_to_stream(const stream_helper<T> &file, const tbd::packed_version &version) noexcept;
@@ -124,7 +125,8 @@ namespace utils {
     bool write_platform_to_stream(const stream_helper<T> &stream, const enum tbd::platform &platform) noexcept;
 
     template <typename T>
-    bool write_objc_constraint_to_stream(const stream_helper<T> &stream, const enum tbd::objc_constraint &constraint) noexcept;
+    bool write_objc_constraint_to_stream(const stream_helper<T> &stream,
+                                         const enum tbd::objc_constraint &constraint) noexcept;
 
     template <typename T>
     bool write_swift_version_to_stream(const stream_helper<T> &stream, const uint32_t &version) noexcept;
@@ -132,7 +134,8 @@ namespace utils {
     static inline constexpr const auto line_length_max = 105ul;
 
     template <typename T>
-    bool write_string_for_array_to_stream(const stream_helper<T> &stream, const std::string &string, size_t &line_length) noexcept;
+    bool write_string_for_array_to_stream(const stream_helper<T> &stream,
+                                          const std::string &string, size_t &line_length) noexcept;
 
     template <typename T>
     bool write_uuids_to_stream(const stream_helper<T> &stream,
@@ -253,7 +256,8 @@ namespace utils {
         return groups;
     }
 
-    tbd::tbd::write_result tbd::write_to(const char *path, const tbd::write_options &options, const version &version) const noexcept {
+    tbd::tbd::write_result
+    tbd::write_to(const char *path, const tbd::write_options &options, const version &version) const noexcept {
         const auto file = fopen(path, "w");
         if (!file) {
             return write_result::failed_to_open_stream;
@@ -265,7 +269,8 @@ namespace utils {
         return result;
     }
 
-    tbd::write_result tbd::write_to(int descriptor, const tbd::write_options &options, const version &version) const noexcept {
+    tbd::write_result
+    tbd::write_to(int descriptor, const tbd::write_options &options, const version &version) const noexcept {
         if (options.ignore_export_architectures) {
             return this->write_with_export_groups_to(descriptor, options, version, this->single_export_group());
         }
@@ -273,7 +278,8 @@ namespace utils {
         return this->write_with_export_groups_to(descriptor, options, version, this->export_groups());
     }
 
-    tbd::write_result tbd::write_to(FILE *file, const tbd::write_options &options, const version &version) const noexcept {
+    tbd::write_result
+    tbd::write_to(FILE *file, const tbd::write_options &options, const version &version) const noexcept {
         if (options.ignore_export_architectures) {
             return this->write_with_export_groups_to(file, options, version, this->single_export_group());
         }
@@ -438,8 +444,16 @@ namespace utils {
         bool needs_single_quotes = false;
         bool needs_double_quotes = false;
 
-        const char special_characters[] = { ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=', '!', '\\', '\"', '$', '@', '`', '%' };
-        const char double_quotes_characters[] = { '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\x0e', '\x0f', '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a', '\e', '\x1c', '\x1d', '\x1e', '\x1f', '\'' };
+        const char special_characters[] = {
+            ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=', '!', '\\', '\"', '$', '@', '`',
+            '%'
+        };
+
+        const char double_quotes_characters[] = {
+            '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\x0e', '\x0f',
+            '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a', '\e', '\x1c',
+            '\x1d', '\x1e', '\x1f', '\''
+        };
         
         const char *reserved_keywords[] = { "true", "false", "null", "~" };
         
@@ -548,12 +562,12 @@ namespace utils {
         auto first_architecture_index = 0ull;
         auto architecture_index_bit = 1ull;
         
-        for (; first_architecture_index != architecture_info_max_index; first_architecture_index++, architecture_index_bit <<= 1) {
-            if (!(architectures & architecture_index_bit)) {
-                continue;
+        for (; first_architecture_index != architecture_info_max_index; first_architecture_index++) {
+            if (architectures & architecture_index_bit) {
+                break;
             }
 
-            break;
+            architecture_index_bit <<= 1;
         }
 
         if (first_architecture_index == architecture_info_max_index) {
@@ -572,8 +586,9 @@ namespace utils {
         architecture_index_bit <<= 1;
         first_architecture_index += 1;
         
-        for (auto index = first_architecture_index; index != architecture_info_max_index; index++, architecture_index_bit <<= 1) {
+        for (auto index = first_architecture_index; index != architecture_info_max_index; index++) {
             if (!(architectures & architecture_index_bit)) {
+                architecture_index_bit <<= 1;
                 continue;
             }
 
@@ -591,7 +606,9 @@ namespace utils {
     }
 
     template <typename T>
-    bool write_compatibility_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept {
+    bool write_compatibility_version_to_stream(const stream_helper<T> &stream,
+                                               const tbd::packed_version &version) noexcept
+    {
         if (!stream.write("compatibility-version: ")) {
             return false;
         }
@@ -600,7 +617,9 @@ namespace utils {
     }
 
     template <typename T>
-    bool write_current_version_to_stream(const stream_helper<T> &stream, const tbd::packed_version &version) noexcept {
+    bool write_current_version_to_stream(const stream_helper<T> &stream,
+                                         const tbd::packed_version &version) noexcept
+    {
         if (!stream.writef("current-version:%-7s", "")) {
             return false;
         }
@@ -773,19 +792,34 @@ namespace utils {
             }
 
             if (normal_symbols_iter != group_symbols_begin) {
-                normal_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::normal);
+                normal_symbols_iter =
+                    next_iterator_for_symbol(symbols_begin,
+                                             symbols_end,
+                                             group.architectures,
+                                             tbd::symbol::type::normal);
             }
 
             if (objc_class_symbols_iter != group_symbols_begin) {
-                objc_class_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::objc_class);
+                objc_class_symbols_iter =
+                    next_iterator_for_symbol(symbols_begin,symbols_end,
+                                             group.architectures,
+                                             tbd::symbol::type::objc_class);
             }
 
             if (objc_ivar_symbols_iter != group_symbols_begin) {
-                objc_ivar_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::objc_ivar);
+                objc_ivar_symbols_iter =
+                    next_iterator_for_symbol(symbols_begin,
+                                             symbols_end,
+                                             group.architectures,
+                                             tbd::symbol::type::objc_ivar);
             }
 
             if (weak_symbols_iter != group_symbols_begin) {
-                weak_symbols_iter = next_iterator_for_symbol(symbols_begin, symbols_end, group.architectures, tbd::symbol::type::weak);
+                weak_symbols_iter =
+                    next_iterator_for_symbol(symbols_begin,
+                                             symbols_end,
+                                             group.architectures,
+                                             tbd::symbol::type::weak);
             }
         }
 
@@ -854,7 +888,10 @@ namespace utils {
 
         if (!options.ignore_normal_symbols) {
             if (normal_symbols_iter != symbols_end) {
-                if (!write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, group.architectures)) {
+                const auto write_result =
+                    write_normal_symbols_array_to_stream(stream, normal_symbols_iter, symbols_end, group.architectures);
+
+                if (!write_result) {
                     return tbd::write_result::failed_to_write_normal_symbols;
                 }
             }
@@ -862,7 +899,13 @@ namespace utils {
         
         if (!options.ignore_objc_class_symbols) {
             if (objc_class_symbols_iter != symbols_end) {
-                if (!write_objc_class_symbols_array_to_stream(stream, objc_class_symbols_iter, symbols_end, group.architectures)) {
+                const auto write_result =
+                    write_objc_class_symbols_array_to_stream(stream,
+                                                             objc_class_symbols_iter,
+                                                             symbols_end,
+                                                             group.architectures);
+
+                if (!write_result) {
                     return tbd::write_result::failed_to_write_objc_class_symbols;
                 }
             }
@@ -870,7 +913,13 @@ namespace utils {
         
         if (!options.ignore_objc_ivar_symbols) {
             if (objc_ivar_symbols_iter != symbols_end) {
-                if (!write_objc_ivar_symbols_array_to_stream(stream, objc_ivar_symbols_iter, symbols_end, group.architectures)) {
+                const auto write_result =
+                    write_objc_ivar_symbols_array_to_stream(stream,
+                                                            objc_ivar_symbols_iter,
+                                                            symbols_end,
+                                                            group.architectures);
+
+                if (!write_result) {
                     return tbd::write_result::failed_to_write_objc_ivar_symbols;
                 }
             }
@@ -937,7 +986,9 @@ namespace utils {
     }
 
     template <typename T>
-    bool write_objc_constraint_to_stream(const stream_helper<T> &stream, const enum tbd::objc_constraint &constraint) noexcept {
+    bool write_objc_constraint_to_stream(const stream_helper<T> &stream,
+                                         const enum tbd::objc_constraint &constraint) noexcept
+    {
         if (constraint == tbd::objc_constraint::none) {
             return true;
         }
@@ -982,7 +1033,10 @@ namespace utils {
     }
 
     template <typename T>
-    bool write_string_for_array_to_stream(const stream_helper<T> &stream, const std::string &string, size_t &line_length) noexcept {
+    bool write_string_for_array_to_stream(const stream_helper<T> &stream,
+                                          const std::string &string,
+                                          size_t &line_length) noexcept
+    {
         const auto total_string_length = string.length() + 2; // comma + trailing space
 
         // Go to a new-line either if the current-line is or is about to be
@@ -1017,7 +1071,10 @@ namespace utils {
     }
 
     template <typename T>
-    bool write_uuids_to_stream(const stream_helper<T> &stream, const std::vector<tbd::uuid_pair> &uuids, const tbd::write_options &options) noexcept {
+    bool write_uuids_to_stream(const stream_helper<T> &stream,
+                               const std::vector<tbd::uuid_pair> &uuids,
+                               const tbd::write_options &options) noexcept
+    {
         if (uuids.empty()) {
             return true;
         }
@@ -1073,9 +1130,11 @@ namespace utils {
                 }
 
                 const auto &uuid = resulting_iter->uuid();
-                const auto result = stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", resulting_architecture->name,
-                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
-                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                const auto result =
+                    stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'",
+                                  resulting_architecture->name,
+                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
+                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
                 if (!result) {
                     return false;
                 }
@@ -1100,9 +1159,12 @@ namespace utils {
         } else {
             for (auto pair = uuids.cbegin(); pair != uuids_end; pair++) {
                 const auto &uuid = pair->uuid();
-                const auto result = stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'", pair->architecture->name,
-                                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
-                                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                const auto result =
+                    stream.writef("'%s: %.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X%.2X%.2X%.2X%.2X'",
+                                  pair->architecture->name,
+                                  uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8],
+                                  uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
+                
                 if (!result) {
                     return false;
                 }

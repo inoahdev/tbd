@@ -127,7 +127,11 @@ namespace macho {
             return -1;
         }
 
-        return (reinterpret_cast<uint64_t>(architecture_info) - reinterpret_cast<uint64_t>(architecture_info_table)) / sizeof(macho::architecture_info);
+        const auto index =
+            (reinterpret_cast<uint64_t>(architecture_info) - reinterpret_cast<uint64_t>(architecture_info_table)) /
+            sizeof(macho::architecture_info);
+
+        return index;
     }
 
     size_t architecture_info_index_from_cputype(cputype cputype, subtype subtype) {
@@ -136,6 +140,10 @@ namespace macho {
             return -1;
         }
 
-        return (reinterpret_cast<uint64_t>(architecture_info) - reinterpret_cast<uint64_t>(architecture_info_table)) / sizeof(macho::architecture_info);
+        const auto index =
+            (reinterpret_cast<uint64_t>(architecture_info) - reinterpret_cast<uint64_t>(architecture_info_table)) /
+            sizeof(macho::architecture_info);
+
+        return index;
     }
 }

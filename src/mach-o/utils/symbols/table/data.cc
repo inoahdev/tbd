@@ -14,8 +14,12 @@
 namespace macho::utils::symbols::table {
     data::creation_result data::create(const container &container, const options &options) noexcept {
         auto symbol_table = symtab_command();
+        const auto retrieve_result =
+            load_commands::retrieve_only_load_command_of_cmd_in_container(container,
+                                                                          macho::load_commands::symbol_table,
+                                                                          &symbol_table,
+                                                                          sizeof(symbol_table));
 
-        const auto retrieve_result = load_commands::retrieve_only_load_command_of_cmd_in_container(container, macho::load_commands::symbol_table, &symbol_table, sizeof(symbol_table));
         switch (retrieve_result) {
             case load_commands::retrieve_result::ok:
                 break;
@@ -50,7 +54,8 @@ namespace macho::utils::symbols::table {
         return this->create(container, symbol_table, options);
     }
 
-    data::creation_result data::create(const container &container, const load_commands::data &data, const options &options) noexcept {
+    data::creation_result
+    data::create(const container &container, const load_commands::data &data, const options &options) noexcept {
         auto symbol_table = static_cast<const symtab_command *>(nullptr);
         for (auto iter = data.begin; iter != data.end; iter++) {
             const auto cmd = iter.cmd();
@@ -73,7 +78,8 @@ namespace macho::utils::symbols::table {
         return this->create(container, *symbol_table, options);
     }
 
-    data::creation_result data::create(const container &container, const symtab_command &symtab, const options &options) noexcept {
+    data::creation_result
+    data::create(const container &container, const symtab_command &symtab, const options &options) noexcept {
         auto symbol_table_entry_count = symtab.nsyms;
         if (!symbol_table_entry_count) {
             return creation_result::no_symbols;
@@ -109,8 +115,9 @@ namespace macho::utils::symbols::table {
         // as symbol_entry_table_location is guaranteed here to be less than container.size, which is guaranteed
         // to be not overflow with container.base
 
-        // Also no check is needed to make sure container.base goes past end of container.stream as symbol_entry_table_location
-        // is guarantted to be in the container's range, which is guaranteed to be in the stream's range
+        // Also no check is needed to make sure container.base goes past end of container.stream as
+        // symbol_entry_table_location is guarantted to be in the container's range, which is guaranteed to be in the
+        // stream's range
 
         if (!container.stream.seek(container.base + symbol_entry_table_location, stream::file::seek_type::beginning)) {
             return creation_result::stream_seek_error;
