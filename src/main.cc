@@ -668,7 +668,9 @@ int main(int argc, const char *argv[]) {
                 options.print_paths = true;
                 options.ignore_missing_dynamic_library_information = true;
 
-                const auto creation_result = main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
+                const auto creation_result =
+                    main_utils::create_tbd(all, tbd, file, options, &user_input_info, path.c_str());
+                
                 if (creation_result) {
                     tbd.apply_local_options(argc, argv);
                     
@@ -710,7 +712,9 @@ int main(int argc, const char *argv[]) {
                     auto extracted_directories_end = extracted_directories_begin + extracted_directories_length;
 
                     if (tbd.options.replace_path_extension) {
-                        extracted_directories_end = utils::path::find_extension(extracted_directories_begin, extracted_directories_end);
+                        extracted_directories_end =
+                            utils::path::find_extension(extracted_directories_begin,
+                                                        extracted_directories_end);
                     }
 
                     utils::path::append_component(write_path, extracted_directories_begin, extracted_directories_end);
@@ -719,10 +723,16 @@ int main(int argc, const char *argv[]) {
                     auto terminator = static_cast<char *>(nullptr);
                     auto descriptor = -1;
 
-                    main_utils::recursive_mkdir_last_as_file(write_path.data(), tbd.options.no_overwrite, &terminator, &descriptor);
+                    main_utils::recursive_mkdir_last_as_file(write_path.data(),
+                                                             tbd.options.no_overwrite,
+                                                             &terminator,
+                                                             &descriptor);
+                    
                     if (descriptor != -1) {
                         if (!main_utils::tbd_write(descriptor, tbd, path, write_path, options.print_paths)) {
-                            main_utils::recursively_remove_with_terminator(write_path.data(), terminator, options.print_paths);
+                            main_utils::recursively_remove_with_terminator(write_path.data(),
+                                                                           terminator,
+                                                                           options.print_paths);
                             failed_to_process_tbd = true;
                         }
                     
@@ -901,7 +911,9 @@ int main(int argc, const char *argv[]) {
                     continue;
                 }
                 
-                const auto result = main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths);
+                const auto result =
+                    main_utils::tbd_write(descriptor, tbd, tbd.path, tbd.write_path, should_print_paths);
+                
                 if (!result) {
                     main_utils::recursively_remove_with_terminator(tbd.write_path.data(),
                                                                    terminator,

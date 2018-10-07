@@ -120,13 +120,13 @@ namespace main_utils {
         }
 
         const auto argument = argv[index];
-        if (strcmp(argument, "v1") == 0) {
-            return utils::tbd::version::v1;
-        } else if (strcmp(argument, "v2") == 0) {
-            return utils::tbd::version::v2;
+        const auto version = utils::tbd::version_from_string(argument);
+        
+        if (version == utils::tbd::version::none) {
+            fprintf(stderr, "Unrecognized tbd-version: %s\n", argument);
+            exit(1);
         }
-
-        fprintf(stderr, "Unrecognized tbd-version: %s\n", argument);
-        exit(1);
+        
+        return version;
     }
 }

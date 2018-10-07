@@ -10,7 +10,11 @@
 #include "tbd_user_input.h"
 
 namespace main_utils {
-    void request_input(std::string &string, const char *prompt, const std::initializer_list<const char *> &acceptable_inputs) noexcept {
+    void
+    request_input(std::string &string,
+                  const char *prompt,
+                  const std::initializer_list<const char *> &acceptable_inputs) noexcept
+    {
         do {
             // fflush is required here otherwise
             // its printed out of order (at least in
@@ -55,7 +59,8 @@ namespace main_utils {
         } while (true);
     }
 
-    bool request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_new_platform(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
         if (info != nullptr) {
             if (info->never_replace_platform) {
                 return false;
@@ -109,7 +114,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_installation_name(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_new_installation_name(tbd_with_options &all,
+                                  tbd_with_options &tbd,
+                                  create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_replace_installation_name) {
                 return false;
@@ -157,7 +166,11 @@ namespace main_utils {
         return true;
     }
 
-    bool request_new_objc_constraint(tbd_with_options &all, tbd_with_options &tbd, create_tbd_retained_user_info *info) noexcept {
+    bool
+    request_new_objc_constraint(tbd_with_options &all,
+                                tbd_with_options &tbd,
+                                create_tbd_retained_user_info *info) noexcept
+    {
         if (info != nullptr) {
             if (info->never_replace_objc_constraint) {
                 return false;
@@ -166,7 +179,9 @@ namespace main_utils {
         
         tbd.info.clear();
 
-        if (all.creation_options.ignore_objc_constraint && all.info.objc_constraint != utils::tbd::objc_constraint::none) {
+        if (all.creation_options.ignore_objc_constraint &&
+            all.info.objc_constraint != utils::tbd::objc_constraint::none)
+        {
             tbd.creation_options.ignore_objc_constraint = true;
             tbd.info.objc_constraint = all.info.objc_constraint;
             

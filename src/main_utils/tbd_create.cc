@@ -8,6 +8,8 @@
 
 #include "tbd_create.h"
 
+extern const char *source_code_link;
+
 namespace main_utils {
     bool create_tbd(tbd_with_options &all,
                     tbd_with_options &tbd,
@@ -20,6 +22,15 @@ namespace main_utils {
             switch (tbd.info.create_from_macho_file(file, tbd.creation_options, tbd.version)) {
                 case utils::tbd::creation_from_macho_result::ok:
                     return true;
+                    
+                case utils::tbd::creation_from_macho_result::has_no_version:
+                    fprintf(stderr,
+                            "tbd.info.create_from_macho_file() was called with tbd::version::none. This is an internal"
+                            "error, Please contact the developer at %s by creating an issue with contextual "
+                            "information",
+                            source_code_link);
+                    
+                    return false;
 
                 case utils::tbd::creation_from_macho_result::multiple_containers_for_same_architecture:
                     if (options.print_paths) {

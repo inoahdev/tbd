@@ -411,7 +411,8 @@ namespace utils {
             none,
 
             v1,
-            v2
+            v2,
+            v3
         };
 
         static const char *version_to_string(version version) noexcept;
@@ -520,6 +521,7 @@ namespace utils {
 
         enum class creation_from_macho_result {
             ok,
+            has_no_version,
             
             multiple_containers_for_same_architecture,
             
@@ -672,6 +674,7 @@ namespace utils {
             
             has_no_architectures,
             has_no_exports,
+            has_no_version,
             
             failed_to_open_stream,
             

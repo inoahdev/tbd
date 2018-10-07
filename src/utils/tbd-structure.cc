@@ -261,6 +261,9 @@ namespace utils {
 
             case version::v2:
                 return "v2";
+                
+            case version::v3:
+                return "v3";
         }
     }
 
@@ -271,6 +274,8 @@ namespace utils {
             return version::v1;
         } else if (strcmp(string, "v2") == 0) {
             return version::v2;
+        } else if (strcmp(string, "v3") == 0) {
+            return version::v3;
         }
 
         return version::none;

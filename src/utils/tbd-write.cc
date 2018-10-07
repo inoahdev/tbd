@@ -366,7 +366,7 @@ namespace utils {
         }
 
         if (!options.ignore_swift_version) {
-            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version != tbd::version::v1 || options.write_unsupported_fields_for_version) {
                 if (!write_swift_version_to_stream(stream, tbd.swift_version)) {
                     return tbd::write_result::failed_to_write_swift_version;
                 }
@@ -374,7 +374,7 @@ namespace utils {
         }
 
         if (!options.ignore_objc_constraint) {
-            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version != tbd::version::v1 || options.write_unsupported_fields_for_version) {
                 if (!write_objc_constraint_to_stream(stream, tbd.objc_constraint)) {
                     return tbd::write_result::failed_to_write_objc_constraint;
                 }
@@ -382,7 +382,7 @@ namespace utils {
         }
 
         if (!options.ignore_parent_umbrella) {
-            if (version == tbd::version::v2 || options.write_unsupported_fields_for_version) {
+            if (version != tbd::version::v1 || options.write_unsupported_fields_for_version) {
                 if (!write_parent_umbrella_to_stream(stream, tbd.parent_umbrella)) {
                     return tbd::write_result::failed_to_write_parent_umbrella;
                 }
@@ -411,6 +411,10 @@ namespace utils {
                                            const tbd::version &version,
                                            const std::vector<tbd::export_group> &groups)
     {
+        if (version == tbd::version::none) {
+            return tbd::write_result::has_no_version;
+        }
+        
         if (!options.ignore_architectures) {
             // Check if the relevant bits of architectures,
             // the bits 0..get_architecture_info_table_size(),
@@ -596,6 +600,8 @@ namespace utils {
             if (!stream.writef(", %s", architecture_info->name)) {
                 return false;
             }
+            
+            architecture_index_bit <<= 1;
         }
 
         if (!stream.write(" ]\n")) {
@@ -634,8 +640,11 @@ namespace utils {
                                               const tbd::version &version,
                                               const std::vector<tbd::export_group> &groups) noexcept
     {
-        if (options.ignore_reexports && options.ignore_normal_symbols && options.ignore_weak_symbols &&
-            options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
+        if (options.ignore_reexports &&
+            options.ignore_normal_symbols &&
+            options.ignore_weak_symbols &&
+            options.ignore_objc_class_symbols &&
+            options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
         
@@ -701,14 +710,32 @@ namespace utils {
 
     template <typename T>
     bool write_header_to_stream(const stream_helper<T> &stream, const enum tbd::version &version) noexcept {
+        if (version == tbd::version::none) {
+            return false;
+        }
+        
         if (!stream.write("---")) {
             return false;
         }
 
-        if (version == tbd::version::v2) {
-            if (!stream.write(" !tapi-tbd-v2")) {
-                return false;
-            }
+        switch (version) {
+            case tbd::version::none:
+            case tbd::version::v1:
+                break;
+                
+            case tbd::version::v2:
+                if (!stream.write(" !tapi-tbd-v2")) {
+                    return false;
+                }
+                
+                break;
+                
+            case tbd::version::v3:
+                if (!stream.write(" !tapi-tbd-v3")) {
+                    return false;
+                }
+                
+                break;
         }
 
         if (!stream.write('\n')) {
@@ -750,9 +777,12 @@ namespace utils {
         // we need to write the architectures list of this group first
         // and we can't just write architectures and nothing else
 
-        if (options.ignore_clients && options.ignore_reexports &&
-            options.ignore_normal_symbols && options.ignore_weak_symbols &&
-            options.ignore_objc_class_symbols && options.ignore_objc_ivar_symbols) {
+        if (options.ignore_clients &&
+            options.ignore_reexports &&
+            options.ignore_normal_symbols &&
+            options.ignore_weak_symbols &&
+            options.ignore_objc_class_symbols &&
+            options.ignore_objc_ivar_symbols) {
             return tbd::write_result::ok;
         }
 
@@ -1209,6 +1239,7 @@ namespace utils {
                 break;
                 
             case tbd::version::v2:
+            case tbd::version::v3:
                 if (!stream.writef("%-4sallowable-clients:%-2s[ ", "", "")) {
                     return false;
                 }

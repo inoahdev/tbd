@@ -8,7 +8,7 @@
 
 #include "tbd_write.h"
 
-static const char *source_code_link = "https://github.com/inoahdev/tbd";
+const char *source_code_link = "https://github.com/inoahdev/tbd";
 
 namespace main_utils {
     bool
@@ -27,7 +27,9 @@ namespace main_utils {
                     fprintf(stderr,
                             "No architectures were retrieved while parsing mach-o file (at path %s). This is likely an "
                             "internal error, Please create an issue with contextual information at %s"
-                            "\n", path.c_str(), source_code_link);
+                            "\n",
+                            path.c_str(),
+                            source_code_link);
                 } else {
                     fprintf(stderr,
                             "No architectures were retrieved while parsing mach-o file at provided path. This is "
@@ -45,6 +47,14 @@ namespace main_utils {
                 }
                 
                 return false;
+                
+            case utils::tbd::write_result::has_no_version:
+                fprintf(stderr,
+                        "An internal error occurred where the tbd-version was not properly set, Please create an "
+                        "issue with contextual information at %s\n",
+                        source_code_link);
+                
+                break;
                 
             case utils::tbd::write_result::failed_to_open_stream:
                 return false;

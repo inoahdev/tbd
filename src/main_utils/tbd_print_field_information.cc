@@ -21,5 +21,6 @@ namespace main_utils {
     void print_tbd_versions() noexcept {
         fputs("v1\n", stdout);
         fputs("v2\n", stdout);
+        fputs("v3\n", stdout);
     }
 }

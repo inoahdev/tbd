@@ -23,6 +23,10 @@ namespace utils {
                                 const creation_options &options,
                                 const version &version) noexcept
     {
+        if (version == version::none) {
+            return tbd::creation_from_macho_result::has_no_version;
+        }
+        
         auto container_index = uint32_t();
         for (const auto &container : file.containers) {
             auto info = macho_core_information();
@@ -70,7 +74,7 @@ namespace utils {
             }
             
             if (!options.ignore_flags) {
-                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version != version::v1 || options.parse_unsupported_fields_for_version) {
                     if (!options.ignore_unnecessary_fields_for_version) {
                         return creation_from_macho_result::flags_mismatch;
                     }
@@ -90,7 +94,7 @@ namespace utils {
             }
             
             if (!options.ignore_parent_umbrella) {
-                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version != version::v1 || options.parse_unsupported_fields_for_version) {
                     if (!options.ignore_unnecessary_fields_for_version) {
                         return creation_from_macho_result::parent_umbrella_mismatch;
                     }
@@ -98,7 +102,7 @@ namespace utils {
             }
             
             if (!options.ignore_swift_version) {
-                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version != version::v1 || options.parse_unsupported_fields_for_version) {
                     if (!options.ignore_unnecessary_fields_for_version) {
                         return creation_from_macho_result::swift_version_mismatch;
                     }
@@ -106,7 +110,7 @@ namespace utils {
             }
             
             if (!options.ignore_objc_constraint) {
-                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version != version::v1 || options.parse_unsupported_fields_for_version) {
                     if (!options.ignore_unnecessary_fields_for_version) {
                         return creation_from_macho_result::objc_constraint_mismatch;
                     }
@@ -114,7 +118,7 @@ namespace utils {
             }
             
             if (!options.ignore_uuids && !info.uuid.empty()) {
-                if (version == version::v2 || options.parse_unsupported_fields_for_version) {
+                if (version != version::v1 || options.parse_unsupported_fields_for_version) {
                     if (!options.ignore_unnecessary_fields_for_version) {
                         for (const auto &uuid : this->uuids) {
                             if (uuid != info.uuid) {

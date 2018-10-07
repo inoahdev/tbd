@@ -139,7 +139,9 @@ namespace utils {
                         break;
                     }
                     
-                    const auto build_version_command = static_cast<const struct macho::build_version_command *>(iter.load_command());
+                    const auto build_version_command =
+                        static_cast<const struct macho::build_version_command *>(iter.load_command());
+                    
                     auto build_version_platform = build_version_command->platform;
                     
                     if (container.is_big_endian()) {
@@ -778,10 +780,12 @@ namespace utils {
                     }
                     
                     if (dysymtab_command != nullptr) {
-                        // Ignore multiple symbol-tables
-                        // if they both match up
+                        // Ignore multiple symbol-tables if they both match up
                         
-                        if (memcmp(dysymtab_command, iter.load_command(), sizeof(struct macho::dysymtab_command)) == 0) {
+                        const auto memcmp_ret =
+                            memcmp(dysymtab_command, iter.load_command(), sizeof(struct macho::dysymtab_command));
+                        
+                        if (memcmp_ret == 0) {
                             break;
                         }
                         
