@@ -2,7 +2,7 @@
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 
 ```
-Usage: tbd [-p/--path file-paths] [-o/--output output-paths-or-stdout]
+Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [[output-paths-or-stdout]
 Main options:
     -h, --help,   Print this message
     -o, --output, Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide "stdout" to print to stdout
@@ -10,7 +10,7 @@ Main options:
     -u, --usage,  Print this message
 
 Path options:
-Usage: tbd [options] /path/to/mach-o/library
+Usage: tbd [-p] [options] /path/to/mach-o/library
     -r, --recurse, Specify directory to recurse and find mach-o library files in
 
 Outputting options:
@@ -42,7 +42,7 @@ Symbol options: (Both path and global options)
         --allow-private-objc-classes,   Allow all non-external objc-classes
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
 
-tbd field remove options: (Both path and global options)
+Field options: (Both path and global options)
         --add-archs,     Provide architecture(s) to add onto architectures found in provided mach-o file(s)
         --remove-archs,  Provide architecture(s) to remove from architectures found in provided mach-o file(s)
         --replace-archs, Provide architecture(s) to replace architectures found in provided mach-o file(s)
@@ -50,7 +50,7 @@ tbd field remove options: (Both path and global options)
         --remove-flags,  Provide flag(s) to remove from flags found in provided mach-o file(s)
         --replace-flags, Provide flag(s) to replace flags found in provided mach-o file(s)
 
-tbd field warning ignore options: (Both path and global options)
+Ignore field warning options: (Both path and global options)
         --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in provided mach-o file(s)
         --ignore-missing-uuids,    Ignore if uuids are not found in provided mach-o file(s)
         --ignore-non-unique-uuids, Ignore if uuids found in provided mach-o file(s) are not unique

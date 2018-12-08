@@ -56,7 +56,7 @@ void print_usage(void) {
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
 
     fputc('\n', stdout);
-    fputs("tbd field remove options: (Both path and global options)\n", stdout);
+    fputs("Field options: (Both path and global options)\n", stdout);
     fputs("        --add-archs,     Provide architecture(s) to add onto architectures found in provided mach-o file(s)\n", stdout);
     fputs("        --remove-archs,  Provide architecture(s) to remove from architectures found in provided mach-o file(s)\n", stdout);
     fputs("        --replace-archs, Provide architecture(s) to replace architectures found in provided mach-o file(s)\n", stdout);
@@ -65,7 +65,7 @@ void print_usage(void) {
     fputs("        --replace-flags, Provide flag(s) to replace flags found in provided mach-o file(s)\n", stdout);
 
     fputc('\n', stdout);
-    fputs("tbd field warning ignore options: (Both path and global options)\n", stdout);
+    fputs("Ignore field warning options: (Both path and global options)\n", stdout);
     fputs("        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in provided mach-o file(s)\n", stdout);
     fputs("        --ignore-missing-uuids,    Ignore if uuids are not found in provided mach-o file(s)\n", stdout);
     fputs("        --ignore-non-unique-uuids, Ignore if uuids found in provided mach-o file(s) are not unique\n", stdout);
