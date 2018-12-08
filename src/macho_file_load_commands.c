@@ -299,6 +299,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     parse_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION &&
                     parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)
                 {
+                    found_identification = true;
                     break;
                 }
                 
@@ -328,6 +329,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (name_offset < sizeof(struct dylib_command)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        found_identification = true;
                         break;
                     }
 
@@ -337,6 +339,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (name_offset >= load_cmd.cmdsize) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        found_identification = true;
                         break;
                     }
 
