@@ -43,7 +43,9 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
      * After writing the first arch, write the following archs with a
      * preceding comma.
      * 
-     * Start counter off as one, as we just wrote the first arch.
+     * Count the amount of archs on one line, starting off with one as we just
+     * wrote one before looping over the rest. When the counter reaches 7, print
+     * a newline and reset the counter.
      */
 
     uint64_t counter = 1;
@@ -63,10 +65,12 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
         */
 
         counter++;
-        if (counter % 7 == 0) {
+        if (counter == 7) {
             if (fprintf(file, "\n%-19s", "") < 0) {
                 return 1;
             }
+
+            counter = 0;
         }
     }
 
@@ -113,7 +117,9 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
      * After writing the first arch, write the following archs with a
      * preceding comma.
      * 
-     * Start counter off as one, as we just wrote the first arch
+     * Count the amount of archs on one line, starting off with one as we just
+     * wrote one before looping over the rest. When the counter reaches 7, print
+     * a newline and reset the counter.
      */
 
     uint64_t counter = 1;
@@ -142,10 +148,12 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
         */
 
         counter++;
-        if (counter % 7 == 0) {
+        if (counter == 7) {
             if (fprintf(file, "\n%-24s", "") < 0) {
                 return 1;
             }
+
+            counter = 0;
         }
     }
 
@@ -554,6 +562,12 @@ tbd_write_uuids(FILE *const file,
         return 1;
     }
 
+    /*
+     * Count the amount of archs on one line, starting off with one as we just
+     * wrote one before looping over the rest. When the counter reaches 2, print
+     * a newline and reset the counter.
+     */
+
     uint64_t counter = 1;
     bool needs_comma = true;
         
@@ -573,11 +587,12 @@ tbd_write_uuids(FILE *const file,
          */
 
         counter++;
-        if (!(counter & 1)) {
+        if (counter == 2) {
             if (fprintf(file, ",%-26s", "\n") < 0) {
                 return 1;
             }
 
+            counter = 0;
             needs_comma = false;
         } else {
             needs_comma = true;
