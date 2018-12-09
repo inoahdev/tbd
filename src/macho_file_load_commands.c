@@ -373,6 +373,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (c_str_is_all_whitespace(install_name)) {
+                    free(install_name);
+
                     /*
                      * If we're ignoring invalid fields, simply goto the next
                      * load-command.
@@ -383,9 +385,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                         break;
                     }
 
-                    free(install_name);
                     free(load_cmd_buffer);
-
                     return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
                 }
 
@@ -490,8 +490,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (c_str_is_all_whitespace(reexport_string)) {
                     free(reexport_string);
-                    free(load_cmd_buffer);
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        break;
+                    }
 
+                    free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
 
@@ -784,8 +787,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * Verify the size and integrity of the sections.
                  */
 
-                const uint32_t sections_size =
-                    sizeof(struct section) * nsects;
+                const uint32_t sections_size = sizeof(struct section) * nsects;
 
                 /*
                  * Ensure no overflow occurs when calculating the total sections
@@ -999,8 +1001,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (c_str_is_all_whitespace(client_string)) {
                     free(client_string);
-                    free(load_cmd_buffer);
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        break;
+                    }
 
+                    free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
 
@@ -1088,13 +1093,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (c_str_is_all_whitespace(umbrella_string)) {
+                    free(umbrella_string);
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
                     
-                    free(umbrella_string);
                     free(load_cmd_buffer);
-
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
 
