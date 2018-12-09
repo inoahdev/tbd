@@ -13,6 +13,8 @@
 
 /*
  * Get an absolute path from a relative path (relative to current-directory).
+ * Returns either a pointer to the newly allocated string, the path provided,
+ * or NULL to indicate allocation failure.
  */
 
 char *path_get_absolute_path_if_necessary(const char *path);

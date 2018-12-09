@@ -57,12 +57,12 @@ const char *path_get_end_of_row_of_slashes(const char *const path) {
     const char *iter = path;
     char ch = *path;
 
-    while (path_is_slash_ch(ch)) {
+    do {
         ch = *(++iter);
         if (ch == '\0') {
             return NULL;
         }
-    }
+    } while (path_is_slash_ch(ch));
 
     return iter;
 }
@@ -143,6 +143,10 @@ path_append_component_with_len(const char *const path,
         return strdup(path);
     }
 
+    /*
+     * We prefer either path having a back-slash, or adding the slash ourselves.
+     */
+
     bool needs_back_slash = false;
     if (!path_is_slash_ch(path[path_length - 1])) {
         needs_back_slash = true;
@@ -159,13 +163,24 @@ path_append_component_with_len(const char *const path,
 
     uint64_t component_copy_length = component_length;
     if (path_is_slash_ch(component_front)) {
+        /*
+         * We prefer the componet to not have a front-slash, with instead the
+         * path having a back-slash, or we providing the slash ourselves.
+         */
+
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
             return strdup(path);
         }
 
+        /*
+         * Calculate the "drift" the path experienced when removing the row
+         * of slashes in front, and re-calculate the length for the new
+         * component.
+         */
+
         const uint64_t drift = component_iter - component;
-        component_copy_length = component_length - drift;
+        component_copy_length -= drift;
     }
 
     uint64_t combined_length = path_length + component_length;
@@ -173,14 +188,18 @@ path_append_component_with_len(const char *const path,
         combined_length += 1;
     }
 
+    /*
+     * Add one to the length for the null-terminator.
+     */
+
     char *const combined = calloc(1, combined_length + 1);
     if (combined == NULL) {
         return NULL;
     }
 
     /*
-     * Write the slash-separator between the original path and the provided
-     * component before writing the original path and the component.
+     * If needed, write the slash-separator between the original path and the
+     * provided component before writing the original path and the component.
      */
 
     char *combined_component_iter = combined + path_length;
@@ -218,6 +237,10 @@ path_append_component_and_extension_with_len(const char *const path,
         return strdup(path);
     }
 
+    /*
+     * We prefer either path having a back-slash, or adding the slash ourselves.
+     */
+
     bool needs_back_slash = false;
     if (!path_is_slash_ch(path[path_length - 1])) {
         needs_back_slash = true;
@@ -234,13 +257,24 @@ path_append_component_and_extension_with_len(const char *const path,
 
     uint64_t component_copy_length = component_length;
     if (path_is_slash_ch(component_front)) {
+        /*
+         * We prefer the componet to not have a front-slash, with instead the
+         * path having a back-slash, or we providing the slash ourselves.
+         */
+        
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
             return strdup(path);
         }
 
+        /*
+         * Calculate the "drift" the path experienced when removing the row
+         * of slashes in front, and re-calculate the length for the new
+         * component.
+         */
+
         const uint64_t drift = component_iter - component;
-        component_copy_length = component_length - drift;
+        component_copy_length -= drift;
     }
 
     uint64_t combined_length =
@@ -264,14 +298,18 @@ path_append_component_and_extension_with_len(const char *const path,
         }
     }
 
+    /*
+     * Add one to the length for the null-terminator.
+     */
+
     char *const combined = calloc(1, combined_length + 1);
     if (combined == NULL) {
         return NULL;
     }
 
     /*
-     * Write the slash-separator between the original path and the provided
-     * component before writing the original path and the component.
+     * If needed, write the slash-separator between the original path and the
+     * provided component before writing the original path and the component.
      */
 
     char *combined_component_iter = combined + path_length;
@@ -284,27 +322,19 @@ path_append_component_and_extension_with_len(const char *const path,
     memcpy(combined_component_iter, component_iter, component_copy_length);
 
     if (extension != NULL) {
-        const char *extension_copy_iter = extension;
-        uint64_t extension_copy_length = extension_length;
-
         char *combined_extension_iter =
             combined_component_iter + component_copy_length;
 
         /*
-         * Only copy the front dot if it doesn't exists already. 
+         * Only copy the front dot if one doesn't exists already. 
          */
 
         if (needs_extension_dot) {
             *combined_extension_iter = '.';
             combined_extension_iter += 1;
-        } else {
-            extension_copy_iter += 1;
-            extension_copy_length -= 1;
         }
 
-        memcpy(combined_extension_iter,
-               extension_copy_iter,
-               extension_copy_length);
+        memcpy(combined_extension_iter, extension, extension_length);
     }
 
     return combined;
