@@ -123,14 +123,16 @@ tbd_uuid_info_comparator(const void *const array_item, const void *const item) {
     const struct tbd_uuid_info *const uuid_info =
         (const struct tbd_uuid_info *)item;
 
-    /*
-     * Cast to const char * to avoid warnings of pointer and integer signs.
-     */
+    const struct arch_info *const array_arch_info = array_uuid_info->arch;
+    const struct arch_info *const arch_info = uuid_info->arch;
 
-    const char *const array_uuid = (const char *)array_uuid_info->uuid;
-    const char *const uuid = (const char *)uuid_info->uuid;
+    if (array_arch_info > arch_info) {
+        return 1;
+    } else if (array_arch_info < arch_info) {
+        return -1;
+    }
 
-    return strncmp(array_uuid, uuid, 16);
+    return 0;
 }
 
 static void destroy_exports_array(struct array *const list) {
