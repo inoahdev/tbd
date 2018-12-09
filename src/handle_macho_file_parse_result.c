@@ -482,8 +482,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
             case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
                 /*
                  * No identification means that the mach-o file is not a library
-                 * file, which we check for only here, at the last moment, so
-                 * no errors are printed.
+                 * file, which we check for only here, at the last moment.
+                 * No errors are printed, and this is simply inored
                  */
 
                 return false;

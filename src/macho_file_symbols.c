@@ -216,9 +216,9 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
         }
 
         /*
-        * Ensure that each symbol connects back to __TEXT, or is an indirect
-        * symbol.
-        */
+         * Ensure that each symbol connects back to __TEXT, or is an indirect
+         * symbol.
+         */
 
         const uint32_t type = n_type & N_TYPE;
         if (type != N_SECT && type != N_INDR) {
@@ -226,9 +226,9 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
         }
 
         /*
-        * For leniency reasons, ignore invalid symbol-references instead of
-        * erroring out.
-        */
+         * For leniency reasons, ignore invalid symbol-references instead of
+         * erroring out.
+         */
 
         if (index >= strsize) {
             continue;
@@ -239,16 +239,16 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
             strnlen(symbol_string, strsize - index);
 
         /*
-        * Ignore empty strings.
-        */
+         * Ignore empty strings.
+         */
 
         if (symbol_string_length == 0) {
             continue;
         }
 
         /*
-        * Ignore strings that are just whitespace.
-        */    
+         * Ignore strings that are just whitespace.
+         */    
 
         if (c_str_is_all_whitespace(symbol_string)) {
             continue;
@@ -353,9 +353,9 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
         }
 
         /*
-        * Ensure that each symbol connects back to __TEXT, or is an indirect
-        * symbol.
-        */
+         * Ensure that each symbol connects back to __TEXT, or is an indirect
+         * symbol.
+         */
 
         const uint32_t type = n_type & N_TYPE;
         if (type != N_SECT && type != N_INDR) {
@@ -363,9 +363,9 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
         }
 
         /*
-        * For leniency reasons, ignore invalid symbol-references instead of
-        * erroring out.
-        */
+         * For leniency reasons, ignore invalid symbol-references instead of
+         * erroring out.
+         */
 
         if (index >= strsize) {
             continue;
@@ -376,16 +376,16 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
             strnlen(symbol_string, strsize - index);
 
         /*
-        * Ignore empty strings.
-        */
+         * Ignore empty strings.
+         */
 
         if (symbol_string_length == 0) {
             continue;
         }
 
         /*
-        * Ignore strings that are just whitespace.
-        */    
+         * Ignore strings that are just whitespace.
+         */    
 
         if (c_str_is_all_whitespace(symbol_string)) {
             continue;

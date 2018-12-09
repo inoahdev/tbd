@@ -43,7 +43,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
      * After writing the first arch, write the following archs with a
      * preceding comma.
      * 
-     * Start counter off as one, as we just wrote the first arch
+     * Start counter off as one, as we just wrote the first arch.
      */
 
     uint64_t counter = 1;
@@ -168,17 +168,16 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
     const uint8_t revision = version & 0xff;
 
     /*
-     * The minor for a packe-version is stored in the second-most LSB byte.
+     * The minor for a packed-version is stored in the second LSB byte.
      */
 
     const uint8_t minor = (version & 0xff00) >> 8;
 
     /*
-     * The major for a packed-version is stored in the two MSB bytes.
+     * The major for a packed-version is stored in the two MSB.
      */
 
     const uint16_t major = (version & 0xffff0000) >> 16;
-
     if (fprintf(file, "%u", major) < 0) {
         return 1;
     }
@@ -190,6 +189,11 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
     }
 
     if (revision != 0) {
+        /*
+         * Write out a .0 version-component as if minor was zero, we didn't
+         * write it as a component.
+         */
+
         if (minor == 0) {
             if (fprintf(file, ".0") < 0) {
                 return 1;
@@ -201,7 +205,7 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
         }
     }
 
-    if (fputc('\n', file) == EOF) {
+    if (fputc('\n', file) < 0) {
         return 1;
     }
 
@@ -248,6 +252,11 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
     }
 
     if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        /*
+         * If flags was also marked flat_namespace, we need to write out a comma
+         * first for a valid yaml-list.
+         */
+
         if (flags & TBD_FLAG_FLAT_NAMESPACE) {
             if (fprintf(file, ", not_app_extension_safe") < 0) {
                 return 1;
@@ -558,6 +567,11 @@ tbd_write_uuids(FILE *const file,
             return 1;
         }
 
+        /*
+         * We place a limit on the number of uuid-arch pairs on one line to just
+         * two to maintain short line-lengths.
+         */
+
         counter++;
         if (!(counter & 1)) {
             if (fprintf(file, ",%-26s", "\n") < 0) {
@@ -836,7 +850,6 @@ tbd_write_exports(FILE *const file,
 
             switch (write_comma_result) {
                 case E_WRITE_COMMA_OK:
-                
                     break;
 
                 case E_WRITE_COMMA_WRITE_FAIL:
