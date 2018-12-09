@@ -160,19 +160,6 @@ recurse_directory_callback(const char *const parse_path,
         }
     }
 
-    if (options & O_TBD_FOR_MAIN_NO_OVERWRITE) {
-        if (access(write_path, F_OK) == 0) {
-            fprintf(stderr,
-                    "Warning: Skipping over mach-o file (at path: %s), as its"
-                    "output-file (at path: %s) already exists: %s\n",
-                    parse_path,
-                    write_path,
-                    strerror(errno));
-        }
-
-        return true;
-    }
-
     const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
     const int write_fd =
         open_r(write_path, O_WRONLY | flags, 0755, &terminator);
