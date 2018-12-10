@@ -89,7 +89,7 @@ parse_flags_list(const int argc,
             }
         } else if (strcmp(arg, "not_app_extension_safe") == 0) {
             if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
-                fputs("Notice: tbd-flag not_app_extension_safe was provided"
+                fputs("Notice: tbd-flag not_app_extension_safe was provided "
                       "twice\n",
                       stderr);
             } else {
