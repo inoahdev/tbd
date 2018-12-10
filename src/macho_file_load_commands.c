@@ -625,11 +625,6 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                     const uint32_t original_pos = lseek(fd, 0, SEEK_CUR);
 
-                    /*
-                     * This is an ugly hack, but we don't really have any other
-                     * choice for this right now.
-                     */
-
                     if (size != 0) {
                         if (sect_offset > size) {
                             free(load_cmd_buffer);
@@ -839,11 +834,6 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      */
 
                     const uint32_t original_pos = lseek(fd, 0, SEEK_CUR);
-
-                    /*
-                     * This is an ugly hack, but we don't really have any other
-                     * choice for this right now.
-                     */
 
                     if (size != 0) {
                         if (sect_offset > size) {
