@@ -1006,9 +1006,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                        client_string);
 
                 if (add_client_result != E_MACHO_FILE_PARSE_OK) {
-                    free(client_string);
                     free(load_cmd_buffer);
-
                     return add_client_result;
                 }
 
