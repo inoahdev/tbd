@@ -78,7 +78,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
      * Write the end bracket for the arch-info list and return.
      */
 
-    if (fprintf(file, " ]\n") < 0) {
+    if (fputs(" ]\n", file) < 0) {
         return 1;
     }
 
@@ -161,7 +161,7 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
      * Write the end bracket for the arch-info list and return.
      */
 
-    if (fprintf(file, " ]\n") < 0) {
+    if (fputs(" ]\n", file) < 0) {
         return 1;
     }
 
@@ -203,7 +203,7 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
          */
 
         if (minor == 0) {
-            if (fprintf(file, ".0") < 0) {
+            if (fputs(".0", file) < 0) {
                 return 1;
             }
         }
@@ -229,7 +229,7 @@ int tbd_write_current_version(FILE *const file, const uint32_t version) {
 }
 
 int tbd_write_compatibility_version(FILE *const file, const uint32_t version) {
-    if (fprintf(file, "compatibility-version: ") < 0) {
+    if (fputs("compatibility-version: ", file) < 0) {
         return 1;
     }
 
@@ -254,7 +254,7 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
     }
 
     if (flags & TBD_FLAG_FLAT_NAMESPACE) {
-        if (fprintf(file, "flat_namespace") < 0) {
+        if (fputs("flat_namespace", file) < 0) {
             return 1;
         }
     }
@@ -266,17 +266,17 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
          */
 
         if (flags & TBD_FLAG_FLAT_NAMESPACE) {
-            if (fprintf(file, ", not_app_extension_safe") < 0) {
+            if (fputs(", not_app_extension_safe", file) < 0) {
                 return 1;
             }
         } else {
-            if (fprintf(file, "not_app_extension_safe") < 0) {
+            if (fputs("not_app_extension_safe", file) < 0) {
                 return 1;
             }
         }
     }
 
-    if (fprintf(file, " ]\n") < 0) {
+    if (fputs(" ]\n", file) < 0) {
         return 1;
     }
 
@@ -350,21 +350,21 @@ tbd_write_objc_constraint(FILE *const file,
 int tbd_write_magic(FILE *const file, const enum tbd_version version) {
     switch (version) {
         case TBD_VERSION_V1:
-            if (fprintf(file, "---\n") < 0) {
+            if (fputs("---\n", file) < 0) {
                 return 1;
             }
 
             break;
 
         case TBD_VERSION_V2:
-            if (fprintf(file, "--- !tapi-tbd-v2\n") < 0) {
+            if (fputs("--- !tapi-tbd-v2\n", file) < 0) {
                 return 1;
             }
 
             break;
     
         case TBD_VERSION_V3:
-            if (fprintf(file, "--- !tapi-tbd-v3\n") < 0) {
+            if (fputs("--- !tapi-tbd-v3\n", file) < 0) {
                 return 1;
             }
 
@@ -452,14 +452,14 @@ tbd_write_swift_version(FILE *const file,
 
     switch (swift_version) {
         case 1:
-            if (fprintf(file, "1\n") < 0) {
+            if (fputs("1\n", file) < 0) {
                 return 1;
             }
 
             break;
 
         case 2:
-            if (fprintf(file, "1.2\n") < 0) {
+            if (fputs("1.2\n", file) < 0) {
                 return 1;
             }
 
@@ -599,7 +599,7 @@ tbd_write_uuids(FILE *const file,
         }
     } while (true);
 
-    if (fprintf(file, " ]\n") < 0) {
+    if (fputs(" ]\n", file) < 0) {
         return 1;
     }
 
@@ -754,7 +754,7 @@ tbd_write_exports(FILE *const file,
         return 0;
     }
 
-    if (fprintf(file, "exports:\n") < 0) {
+    if (fputs("exports:\n", file) < 0) {
         return 1;
     }
 
