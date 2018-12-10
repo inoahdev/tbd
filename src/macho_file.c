@@ -146,20 +146,12 @@ static enum macho_file_parse_result
 handle_fat_32_file(struct tbd_create_info *const info,
                    const int fd,
                    const bool is_big_endian,
+                   const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
                    const uint64_t parse_options,
                    const uint64_t options)
 {
-    uint32_t nfat_arch = 0;
-    if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
-        return E_MACHO_FILE_PARSE_READ_FAIL;
-    }
-
-    if (is_big_endian) {
-        nfat_arch = swap_uint32(nfat_arch);
-    }
-
     /*
      * Calculate the total-size of the architectures given.
      */
@@ -233,16 +225,12 @@ static enum macho_file_parse_result
 handle_fat_64_file(struct tbd_create_info *const info,
                    const int fd,
                    const bool is_big_endian,
+                   const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
                    const uint64_t parse_options,
                    const uint64_t options)
 {
-    uint32_t nfat_arch = 0;
-    if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
-        return E_MACHO_FILE_PARSE_READ_FAIL;
-    }
-
     /*
      * Calculate the total-size of the architectures given.
      */
@@ -331,12 +319,22 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
         const bool is_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
         const bool is_big_endian = magic == FAT_CIGAM || magic == FAT_CIGAM_64;
 
+        uint32_t nfat_arch = 0;
+        if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+            return E_MACHO_FILE_PARSE_READ_FAIL;
+        }
+
+        if (is_big_endian) {
+            nfat_arch = swap_uint32(nfat_arch);
+        }
+
         enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
         if (is_64) {
             ret =
                 handle_fat_64_file(info,
                                    fd,
                                    is_big_endian,
+                                   nfat_arch,
                                    0,
                                    0,
                                    parse_options,
@@ -346,6 +344,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
                 handle_fat_32_file(info,
                                    fd,
                                    is_big_endian,
+                                   nfat_arch,
                                    0,
                                    0,
                                    parse_options,
