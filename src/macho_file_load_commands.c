@@ -362,26 +362,22 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const uint32_t install_name_length =
-                    load_cmd.cmdsize - name_offset;
+                const uint32_t length = load_cmd.cmdsize - name_offset;
+                const char *const install_name_ptr =
+                    (const char *)dylib_command + name_offset;
 
-                char *const install_name = calloc(1, install_name_length + 1);
+                char *const install_name = strndup(install_name_ptr, length);
                 if (install_name == NULL) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                 }
-
-                const char *const install_name_ptr =
-                    (const char *)dylib_command + name_offset;
-
-                memcpy(install_name, install_name_ptr, install_name_length);
 
                 /*
                  * Do a quick check here to ensure that install_name is in fact
                  * filled with *non-whitespace* characters.
                  */
 
-                if (c_str_is_all_whitespace(install_name)) {
+                if (c_str_with_len_is_all_whitespace(install_name, length)) {
                     free(install_name);
 
                     /*
@@ -485,13 +481,15 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 const char *const reexport_string =
                     (const char *)reexport_dylib + reexport_offset;
+
+                const uint32_t length = load_cmd.cmdsize - reexport_offset;
                 
                 /*
                  * Do a quick check here to ensure that the reexport-string is 
                  * in fact filled with *non-whitespace* characters.
                  */
 
-                if (c_str_is_all_whitespace(reexport_string)) {
+                if (c_str_with_len_is_all_whitespace(reexport_string, length)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
@@ -500,15 +498,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
 
-                const uint32_t reexport_length =
-                    load_cmd.cmdsize - reexport_offset;
-
                 const enum macho_file_parse_result add_reexport_result =
                     add_export_to_info(info,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_REEXPORT,
                                        reexport_string,
-                                       reexport_length);
+                                       length);
 
                 if (add_reexport_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -979,12 +974,14 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const char *const client_string =
                     (const char *)client_command + client_offset;
 
+                const uint32_t length = load_cmd.cmdsize - client_offset;
+
                 /*
                  * Do a quick check here to ensure that the client-string is in
                  * fact filled with *non-whitespace* characters.
                  */
 
-                if (c_str_is_all_whitespace(client_string)) {
+                if (c_str_with_len_is_all_whitespace(client_string, length)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
@@ -992,16 +989,13 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
-                
-                const uint32_t client_string_length =
-                    load_cmd.cmdsize - client_offset;
 
                 const enum macho_file_parse_result add_client_result =
                     add_export_to_info(info,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_CLIENT,
                                        client_string,
-                                       client_string_length);
+                                       length);
 
                 if (add_client_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -1057,28 +1051,22 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const uint32_t umbrella_string_length =
-                    load_cmd.cmdsize - umbrella_offset;
+                const uint32_t length = load_cmd.cmdsize - umbrella_offset;
+                const char *const umbrella_ptr =
+                    (const char *)load_cmd_iter + umbrella_offset;
 
-                char *const umbrella_string =
-                    calloc(1, umbrella_string_length + 1);
-
+                char *const umbrella_string = strndup(umbrella_ptr, length);
                 if (umbrella_string == NULL) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                 }
-
-                const char *const umbrella_ptr =
-                    (const char *)load_cmd_iter + umbrella_offset;
-
-                memcpy(umbrella_string, umbrella_ptr, umbrella_string_length);
 
                 /*
                  * Do a quick check here to ensure that the umbrella-string is
                  * in fact filled with *non-whitespace* characters.
                  */
 
-                if (c_str_is_all_whitespace(umbrella_string)) {
+                if (c_str_with_len_is_all_whitespace(umbrella_string, length)) {
                     free(umbrella_string);
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;

@@ -15,6 +15,8 @@
 bool c_str_is_all_whitespace(const char *str);
 bool c_str_is_all_digits(const char *str);
 
+bool c_str_with_len_is_all_whitespace(const char *str, uint64_t length);
+
 bool c_str_has_whitespace(const char *str);
 bool c_str_has_prefix(const char *str, const char *prefix);
 
