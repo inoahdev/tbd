@@ -372,14 +372,14 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
         }
 
         const char *symbol_string = string_table + index;
-        const uint32_t symbol_string_length =
+        const uint32_t string_length =
             strnlen(symbol_string, strsize - index);
 
         /*
          * Ignore empty strings.
          */
 
-        if (symbol_string_length == 0) {
+        if (string_length == 0) {
             continue;
         }
 
@@ -387,7 +387,7 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
          * Ignore strings that are just whitespace.
          */    
 
-        if (c_str_is_all_whitespace(symbol_string)) {
+        if (c_str_with_len_is_all_whitespace(symbol_string, string_length)) {
             continue;
         }
 
