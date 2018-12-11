@@ -34,14 +34,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Failed to seek to a location while parsing mach-o "
-                            "file (at path: %s), error: %s\n",
-                            path,
-                            strerror(errno));
+                            "file (at path: %s)\n",
+                            path);
                 } else {
-                    fprintf(stderr,
-                            "Failed to seek to a location while parsing the "
-                            "provided mach-o file, error: %s\n",
-                            strerror(errno));
+                    fputs("Failed to seek to a location while parsing the "
+                          "provided mach-o file\n",
+                          stderr);
                 }
 
                 return false;
@@ -50,14 +48,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Failed to read data while parsing mach-o file "
-                            "(at path: %s), error: %s\n",
-                            path,
-                            strerror(errno));
+                            "(at path: %s)\n",
+                            path);
                 } else {
-                    fprintf(stderr,
-                            "Failed to read data while parsing mach-o file, "
-                            "error: %s\n",
-                            strerror(errno));
+                    fputs("Failed to read data while parsing mach-o file at "
+                          "the provided path\n",
+                          stderr);
                 }
 
                 return false;
