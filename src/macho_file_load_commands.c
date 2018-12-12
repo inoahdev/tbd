@@ -362,9 +362,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const uint32_t length = load_cmd.cmdsize - name_offset;
                 const char *const install_name_ptr =
                     (const char *)dylib_command + name_offset;
+
+                const uint32_t max_length = load_cmd.cmdsize - name_offset;
+                const uint32_t length = strnlen(install_name_ptr, max_length);
 
                 char *const install_name = strndup(install_name_ptr, length);
                 if (install_name == NULL) {
@@ -482,7 +484,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const char *const reexport_string =
                     (const char *)reexport_dylib + reexport_offset;
 
-                const uint32_t length = load_cmd.cmdsize - reexport_offset;
+                const uint32_t max_length = load_cmd.cmdsize - reexport_offset;
+                const uint32_t length = strnlen(reexport_string, max_length);
                 
                 /*
                  * Do a quick check here to ensure that the reexport-string is 
@@ -974,7 +977,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const char *const client_string =
                     (const char *)client_command + client_offset;
 
-                const uint32_t length = load_cmd.cmdsize - client_offset;
+                const uint32_t max_length = load_cmd.cmdsize - client_offset;
+                const uint32_t length = strnlen(client_string, max_length);
 
                 /*
                  * Do a quick check here to ensure that the client-string is in
@@ -1051,9 +1055,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const uint32_t length = load_cmd.cmdsize - umbrella_offset;
                 const char *const umbrella_ptr =
                     (const char *)load_cmd_iter + umbrella_offset;
+
+                const uint32_t max_length = load_cmd.cmdsize - umbrella_offset;
+                const uint32_t length = strnlen(umbrella_ptr, max_length);
 
                 char *const umbrella_string = strndup(umbrella_ptr, length);
                 if (umbrella_string == NULL) {
