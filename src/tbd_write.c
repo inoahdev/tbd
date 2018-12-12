@@ -22,22 +22,36 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
      */ 
 
     const struct arch_info *arch_info_list = arch_info_get_list();
-    const uint64_t arch_info_list_size = arch_info_list_get_size();
 
     uint64_t index = 0;
-    for (; index < arch_info_list_size; index++) {
-        const uint64_t mask = 1ull << index;
-        if (!(archs & mask)) {
-            continue;
+    uint64_t archs_iter = archs;
+
+    do {
+        if (archs_iter & 1) {
+            const struct arch_info *const arch = arch_info_list + index;
+            if (fprintf(file, "archs:%-17s[ %s", "", arch->name) < 0) {
+                return 1;
+            }
+
+            archs_iter >>= 1;
+            break;
         }
-    
-        const struct arch_info *const arch = arch_info_list + index;
-        if (fprintf(file, "archs:%-17s[ %s", "", arch->name) < 0) {
-            return 1;
+        
+        archs_iter >>= 1;
+        if (archs_iter == 0) {
+            /*
+             * Write the end bracket for the arch-info list and return.
+             */
+
+            if (fputs(" ]\n", file) < 0) {
+                return 1;
+            }
+
+            return 0;
         }
 
-        break;
-    }
+        index += 1;
+    } while (true);
 
     /*
      * After writing the first arch, write the following archs with a
@@ -49,30 +63,35 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
      */
 
     uint64_t counter = 1;
-    for (index++; index < arch_info_list_size; index++) {
-        const uint64_t mask = 1ull << index;
-        if (!(archs & mask)) {
-            continue;
-        }
-    
-        const struct arch_info *const arch = arch_info_list + index;
-        if (fprintf(file, ", %s", arch->name) < 0) {
-            return 1;
-        }
 
-       /*
-        * Break lines for every seven archs written out.
-        */
-
-        counter++;
-        if (counter == 7) {
-            if (fprintf(file, "\n%-19s", "") < 0) {
+    do {
+        index += 1;
+        
+        if (archs_iter & 1) {
+            const struct arch_info *const arch = arch_info_list + index;
+            if (fprintf(file, ", %s", arch->name) < 0) {
                 return 1;
             }
 
-            counter = 0;
+            /*
+             * Break lines for every seven archs written out.
+             */
+
+            counter++;
+            if (counter == 7) {
+                if (fprintf(file, "\n%-19s", "") < 0) {
+                    return 1;
+                }
+
+                counter = 0;
+            }
         }
-    }
+
+        archs_iter >>= 1;
+        if (archs_iter == 0) {
+            break;
+        }
+    } while (true);
 
     /*
      * Write the end bracket for the arch-info list and return.
@@ -96,22 +115,36 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
      */ 
 
     const struct arch_info *arch_info_list = arch_info_get_list();
-    const uint64_t arch_info_list_size = arch_info_list_get_size();
 
     uint64_t index = 0;
-    for (; index < arch_info_list_size; index++) {
-        const uint64_t mask = 1ull << index;
-        if (!(archs & mask)) {
-            continue;
+    uint64_t archs_iter = archs;
+
+    do {
+        if (archs_iter & 1) {
+            const struct arch_info *const arch = arch_info_list + index;
+            if (fprintf(file, "  - archs:%-14s[ %s", "", arch->name) < 0) {
+                return 1;
+            }
+
+            archs_iter >>= 1;
+            break;
         }
-    
-        const struct arch_info *const arch = arch_info_list + index;
-        if (fprintf(file, "  - archs:%-14s[ %s", "", arch->name) < 0) {
-            return 1;
+        
+        archs_iter >>= 1;
+        if (archs_iter == 0) {
+            /*
+             * Write the end bracket for the arch-info list and return.
+             */
+
+            if (fputs(" ]\n", file) < 0) {
+                return 1;
+            }
+
+            return 0;
         }
 
-        break;
-    }
+        index += 1;
+    } while (true);
 
     /*
      * After writing the first arch, write the following archs with a
@@ -123,39 +156,35 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
      */
 
     uint64_t counter = 1;
-    for (index++; index < arch_info_list_size; index++) {
-        const uint64_t mask = 1ull << index;
-        if (!(archs & mask)) {
-            continue;
-        }
-    
-        const struct arch_info *const arch = arch_info_list + index;
-        if (fprintf(file, ", %s", arch->name) < 0) {
-            return 1;
-        }
 
-        /*
-         * Shift out all the archs parsed, and see if any archs are left.
-         */
-
-        const uint64_t remainder_archs = archs >> index;
-        if (remainder_archs == 0) {
-            break;
-        }
-
-       /*
-        * Break lines for every seven archs written out.
-        */
-
-        counter++;
-        if (counter == 7) {
-            if (fprintf(file, "\n%-24s", "") < 0) {
+    do {
+        index += 1;
+        
+        if (archs_iter & 1) {
+            const struct arch_info *const arch = arch_info_list + index;
+            if (fprintf(file, ", %s", arch->name) < 0) {
                 return 1;
             }
 
-            counter = 0;
+            /*
+             * Break lines for every seven archs written out.
+             */
+
+            counter++;
+            if (counter == 7) {
+                if (fprintf(file, "\n%-19s", "") < 0) {
+                    return 1;
+                }
+
+                counter = 0;
+            }
         }
-    }
+
+        archs_iter >>= 1;
+        if (archs_iter == 0) {
+            break;
+        }
+    } while (true);
 
     /*
      * Write the end bracket for the arch-info list and return.
