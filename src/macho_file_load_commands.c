@@ -362,16 +362,20 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const char *const install_name_ptr =
+                const char *const dylib_name_ptr =
                     (const char *)dylib_command + name_offset;
 
                 const uint32_t max_length = load_cmd.cmdsize - name_offset;
-                const uint32_t length = strnlen(install_name_ptr, max_length);
+                const uint32_t length = strnlen(dylib_name_ptr, max_length);
 
-                char *const install_name = strndup(install_name_ptr, length);
-                if (install_name == NULL) {
+                if (length == 0) {
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        found_identification = true;
+                        break;
+                    }
+                    
                     free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+                    return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
                 }
 
                 /*
@@ -379,9 +383,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * filled with *non-whitespace* characters.
                  */
 
-                if (c_str_with_len_is_all_whitespace(install_name, length)) {
-                    free(install_name);
-
+                if (c_str_with_len_is_all_whitespace(dylib_name_ptr, length)) {
                     /*
                      * If we're ignoring invalid fields, simply goto the next
                      * load-command.
@@ -394,6 +396,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
+                }
+                
+                char *const install_name = strndup(dylib_name_ptr, length);
+                if (install_name == NULL) {
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                 }
 
                 /*
@@ -487,6 +495,15 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t max_length = load_cmd.cmdsize - reexport_offset;
                 const uint32_t length = strnlen(reexport_string, max_length);
                 
+                if (length == 0) {
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        break;
+                    }
+
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
+                }
+
                 /*
                  * Do a quick check here to ensure that the reexport-string is 
                  * in fact filled with *non-whitespace* characters.
@@ -498,7 +515,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     }
 
                     free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_CLIENT;
+                    return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
                 }
 
                 const enum macho_file_parse_result add_reexport_result =
@@ -980,6 +997,15 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t max_length = load_cmd.cmdsize - client_offset;
                 const uint32_t length = strnlen(client_string, max_length);
 
+                if (length == 0) {
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        break;
+                    }
+
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_CLIENT;
+                }
+
                 /*
                  * Do a quick check here to ensure that the client-string is in
                  * fact filled with *non-whitespace* characters.
@@ -1061,10 +1087,13 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t max_length = load_cmd.cmdsize - umbrella_offset;
                 const uint32_t length = strnlen(umbrella_ptr, max_length);
 
-                char *const umbrella_string = strndup(umbrella_ptr, length);
-                if (umbrella_string == NULL) {
+                if (length == 0) {
+                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                        break;
+                    }
+                    
                     free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+                    return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
                 }
 
                 /*
@@ -1072,25 +1101,27 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * in fact filled with *non-whitespace* characters.
                  */
 
-                if (c_str_with_len_is_all_whitespace(umbrella_string, length)) {
-                    free(umbrella_string);
+                if (c_str_with_len_is_all_whitespace(umbrella_ptr, length)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
                     
                     free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_CLIENT;
+                    return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
+                }
+
+                char *const umbrella_string = strndup(umbrella_ptr, length);
+                if (umbrella_string == NULL) {
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                 }
 
                 if (info->parent_umbrella != NULL) {
-                    if (strcmp(info->parent_umbrella, umbrella_string) != 0) {
-                        free(umbrella_string);
+                    free(umbrella_string);
+                    if (strcmp(info->parent_umbrella, umbrella_ptr) != 0) {
                         free(load_cmd_buffer);
-
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
-                
-                    free(umbrella_string);
                 } else {
                     info->parent_umbrella = umbrella_string;
                 }
