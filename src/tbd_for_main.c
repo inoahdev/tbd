@@ -277,3 +277,13 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     dst->write_options |= src->write_options;
     dst->options |= src->options;
 }
+
+void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
+    tbd_create_info_destroy(&tbd->info);
+
+    free(tbd->parse_path);
+    free(tbd->write_path);
+
+    tbd->parse_path = NULL;
+    tbd->write_path = NULL;
+}

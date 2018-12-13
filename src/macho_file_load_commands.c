@@ -22,6 +22,8 @@
 #include "path.h"
 #include "swap.h"
 
+#include "yaml.h"
+
 static enum macho_file_parse_result 
 parse_objc_constraint(struct tbd_create_info *const info,
                       const uint32_t flags)
@@ -54,7 +56,8 @@ add_export_to_info(struct tbd_create_info *const info,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
                    const char *const string,
-                   const uint32_t string_length)
+                   const uint32_t string_length,
+                   const bool needs_quotes)
 {
     struct tbd_export_info export_info = {
         .archs = arch_bit,
@@ -62,6 +65,10 @@ add_export_to_info(struct tbd_create_info *const info,
         .string = (char *)string,
         .type = type
     };
+
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+    }
 
     struct array *const exports = &info->exports;
     struct array_cached_index_info cached_info = {};
@@ -362,11 +369,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const char *const dylib_name_ptr =
+                const char *const name_ptr =
                     (const char *)dylib_command + name_offset;
 
                 const uint32_t max_length = load_cmd.cmdsize - name_offset;
-                const uint32_t length = strnlen(dylib_name_ptr, max_length);
+                const uint32_t length = strnlen(name_ptr, max_length);
 
                 if (length == 0) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
@@ -379,11 +386,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 /*
-                 * Do a quick check here to ensure that install_name is in fact
-                 * filled with *non-whitespace* characters.
+                 * Do a quick check here to ensure that install_name is a valid
+                 * yaml-string (with some additional boundaries).
                  */
 
-                if (c_str_with_len_is_all_whitespace(dylib_name_ptr, length)) {
+                bool needs_quotes = false;
+                if (yaml_verify_c_str(name_ptr, length, &needs_quotes)) {
                     /*
                      * If we're ignoring invalid fields, simply goto the next
                      * load-command.
@@ -397,8 +405,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
                 }
+
+                if (needs_quotes) {
+                    info->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+                }
                 
-                char *const install_name = strndup(dylib_name_ptr, length);
+                char *const install_name = strndup(name_ptr, length);
                 if (install_name == NULL) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_ALLOC_FAIL;
@@ -414,10 +426,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 const struct dylib dylib = dylib_command->dylib;
                 if (info->install_name != NULL) {
-                    if (info->current_version != dylib.current_version) {
-                        free(install_name);
-                        free(load_cmd_buffer);
+                    free(install_name);
 
+                    if (info->current_version != dylib.current_version) {
+                        free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
@@ -425,20 +437,19 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                         dylib.compatibility_version;
 
                     if (compatibility_version != dylib.compatibility_version) {
-                        free(install_name);
                         free(load_cmd_buffer);
-
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    if (strcmp(info->install_name, install_name) != 0) {
-                        free(install_name);
+                    if (info->install_name_length != length) {
                         free(load_cmd_buffer);
-
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    free(install_name);
+                    if (strcmp(info->install_name, name_ptr) != 0) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
+                    }
                 } else {
                     if (!(parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION)) {
                         info->current_version = dylib.current_version;
@@ -454,6 +465,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                     if (!(parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
                         info->install_name = install_name;
+                        info->install_name_length = length;
                     }
                 }
 
@@ -505,11 +517,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 /*
-                 * Do a quick check here to ensure that the reexport-string is 
-                 * in fact filled with *non-whitespace* characters.
+                 * Do a quick check here to ensure that the re-export is a
+                 * valid yaml-string (with some additional boundaries).
                  */
 
-                if (c_str_with_len_is_all_whitespace(reexport_string, length)) {
+                bool needs_quotes = false;
+                if (yaml_verify_c_str(reexport_string, length, &needs_quotes)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
@@ -523,7 +536,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_REEXPORT,
                                        reexport_string,
-                                       length);
+                                       length,
+                                       needs_quotes);
 
                 if (add_reexport_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -991,11 +1005,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_CLIENT;
                 }
 
-                const char *const client_string =
+                const char *const string =
                     (const char *)client_command + client_offset;
 
                 const uint32_t max_length = load_cmd.cmdsize - client_offset;
-                const uint32_t length = strnlen(client_string, max_length);
+                const uint32_t length = strnlen(string, max_length);
 
                 if (length == 0) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
@@ -1007,11 +1021,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 /*
-                 * Do a quick check here to ensure that the client-string is in
-                 * fact filled with *non-whitespace* characters.
+                 * Do a quick check here to ensure that the client-string is a
+                 * valid yaml-string (with some additional boundaries).
                  */
 
-                if (c_str_with_len_is_all_whitespace(client_string, length)) {
+                bool needs_quotes = false;
+                if (yaml_verify_c_str(string, length, &needs_quotes)) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
@@ -1024,8 +1039,9 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     add_export_to_info(info,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_CLIENT,
-                                       client_string,
-                                       length);
+                                       string,
+                                       length,
+                                       needs_quotes);
 
                 if (add_client_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -1081,11 +1097,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * load-command.
                  */
 
-                const char *const umbrella_ptr =
+                const char *const umbrella =
                     (const char *)load_cmd_iter + umbrella_offset;
 
                 const uint32_t max_length = load_cmd.cmdsize - umbrella_offset;
-                const uint32_t length = strnlen(umbrella_ptr, max_length);
+                const uint32_t length = strnlen(umbrella, max_length);
 
                 if (length == 0) {
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
@@ -1097,20 +1113,31 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 /*
-                 * Do a quick check here to ensure that the umbrella-string is
-                 * in fact filled with *non-whitespace* characters.
+                 * Do a quick check here to ensure that parent-umbrella is a
+                 * valid yaml-string (with some additional boundaries).
                  */
 
-                if (c_str_with_len_is_all_whitespace(umbrella_ptr, length)) {
+                bool needs_quotes = false;
+                if (yaml_verify_c_str(umbrella, length, &needs_quotes)) {
+                    /*
+                     * If we're ignoring invalid fields, simply goto the next
+                     * load-command.
+                     */
+
                     if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
-                    
+
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
                 }
 
-                char *const umbrella_string = strndup(umbrella_ptr, length);
+                if (needs_quotes) {
+                    info->flags |=
+                        F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
+                }
+
+                char *const umbrella_string = strndup(umbrella, length);
                 if (umbrella_string == NULL) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_ALLOC_FAIL;
@@ -1118,12 +1145,19 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (info->parent_umbrella != NULL) {
                     free(umbrella_string);
-                    if (strcmp(info->parent_umbrella, umbrella_ptr) != 0) {
+
+                    if (info->parent_umbrella_length != length) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
+                    }
+
+                    if (strcmp(info->parent_umbrella, umbrella) != 0) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
                 } else {
                     info->parent_umbrella = umbrella_string;
+                    info->parent_umbrella_length = length;
                 }
 
                 break;

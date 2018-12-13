@@ -195,13 +195,13 @@ tbd_create_with_info(const struct tbd_create_info *const info,
     
     if (version != TBD_VERSION_V1) {
         if (!(options & O_TBD_CREATE_IGNORE_FLAGS)) {
-            if (tbd_write_flags(file, info->flags)) {
+            if (tbd_write_flags(file, info->flags_field)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
     }
 
-    if (tbd_write_install_name(file, info->install_name)) {
+    if (tbd_write_install_name(file, info)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
@@ -232,7 +232,7 @@ tbd_create_with_info(const struct tbd_create_info *const info,
         }
 
         if (!(options & O_TBD_CREATE_IGNORE_PARENT_UMBRELLA)) {
-            if (tbd_write_parent_umbrella(file, info->parent_umbrella)) {
+            if (tbd_write_parent_umbrella(file, info)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }

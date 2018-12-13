@@ -22,9 +22,11 @@ tbd_write_exports(FILE *file,
 
 int tbd_write_flags(FILE *file, uint64_t flags);
 int tbd_write_footer(FILE *file);
-int tbd_write_install_name(FILE *file, const char *install_name);
+
+int tbd_write_install_name(FILE *file, const struct tbd_create_info *info);
 int tbd_write_magic(FILE *file, enum tbd_version version);
-int tbd_write_parent_umbrella(FILE *file, const char *parent_umbrella);
+
+int tbd_write_parent_umbrella(FILE *file, const struct tbd_create_info *info);                    
 int tbd_write_platform(FILE *file, enum tbd_platform platform);
 int tbd_write_objc_constraint(FILE *file, enum tbd_objc_constraint constraint);
 int tbd_write_uuids(FILE *file, const struct array *uuids, uint64_t options);

@@ -172,6 +172,7 @@ recurse_directory_callback(const char *const parse_path,
                 strerror(errno));
 
         clear_create_info(info, &original_info);
+        
         free(write_path);
         close(fd);
 
@@ -219,12 +220,23 @@ recurse_directory_callback(const char *const parse_path,
     }
 
     clear_create_info(info, &original_info);
+    close(fd);
 
     fclose(write_file);
     free(write_path);
 
-    close(fd);
     return true;
+}
+
+static void destroy_tbds_array(struct array *const tbds) {
+    struct tbd_for_main *tbd = tbds->data;
+    const struct tbd_for_main *const end = tbds->data_end;
+
+    for (; tbd != end; tbd++) {
+        tbd_for_main_destroy(tbd);
+    }
+
+    array_destroy(tbds);
 }
 
 int main(const int argc, const char *const argv[]) {
@@ -990,5 +1002,6 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
+    destroy_tbds_array(&tbds);
     return 0;
 }

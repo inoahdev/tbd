@@ -78,12 +78,18 @@ enum tbd_export_type {
     TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL
 };
 
+enum tbd_export_info_flags {
+    F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES = 1 << 0
+};
+
 struct tbd_export_info {
     uint32_t archs;
     uint32_t length;
 
     enum tbd_export_type type;
     char *string;
+
+    uint64_t flags;
 };
 
 int tbd_export_info_comparator(const void *array_item, const void *item);
@@ -103,11 +109,16 @@ enum tbd_version {
     TBD_VERSION_V3
 };
 
+enum tbd_create_info_flags {
+    F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1 << 0,
+    F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1 << 1,
+};
+
 struct tbd_create_info {
     enum tbd_version version;
 
     uint64_t archs;
-    uint32_t flags;
+    uint32_t flags_field;
 
     enum tbd_platform platform;
     enum tbd_objc_constraint objc_constraint;
@@ -115,12 +126,17 @@ struct tbd_create_info {
     char *install_name;
     char *parent_umbrella;
 
+    uint32_t install_name_length;
+    uint32_t parent_umbrella_length;
+
     uint32_t current_version;
     uint32_t compatibility_version;
     uint32_t swift_version;
 
     struct array exports;
     struct array uuids;
+
+    uint64_t flags;
 };
 
 void tbd_create_info_destroy(struct tbd_create_info *info);

@@ -18,8 +18,11 @@
 
 #include "arch_info.h"
 #include "macho_file_symbols.h"
+
 #include "swap.h"
+
 #include "tbd.h"
+#include "yaml.h"
 
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *const info,
@@ -109,6 +112,19 @@ handle_symbol(struct tbd_create_info *const info,
     if (existing_info != NULL) {
         existing_info->archs |= arch_bit;
         return E_MACHO_FILE_PARSE_OK;
+    }
+
+    bool needs_quotes = false;
+    if (yaml_verify_c_str(string, export_info.length, &needs_quotes)) {
+        /*
+         * For leniency purposes, simply ignore any invalid symbols.
+         */
+
+        return E_MACHO_FILE_PARSE_OK;
+    }
+
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
     /*
@@ -246,14 +262,6 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
             continue;
         }
 
-        /*
-         * Ignore strings that are just whitespace.
-         */    
-
-        if (c_str_with_len_is_all_whitespace(symbol_string, string_length)) {
-            continue;
-        }
-
         const enum macho_file_parse_result handle_symbol_result =
             handle_symbol(info,
                           arch_bit,
@@ -380,14 +388,6 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
          */
 
         if (string_length == 0) {
-            continue;
-        }
-
-        /*
-         * Ignore strings that are just whitespace.
-         */    
-
-        if (c_str_with_len_is_all_whitespace(symbol_string, string_length)) {
             continue;
         }
 

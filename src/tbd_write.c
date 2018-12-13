@@ -312,16 +312,46 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
     return 0;
 }
 
-int tbd_write_install_name(FILE *const file, const char *const install_name) {
+static int
+write_yaml_string(FILE *const file,
+                  const char *const string,
+                  const uint64_t length,
+                  const bool needs_quotes)
+{
+    if (needs_quotes) {
+        if (fprintf(file, "\"%s\"", string) < 0) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    if (fwrite(string, length, 1, file) != 1) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int
+tbd_write_install_name(FILE *const file,
+                       const struct tbd_create_info *const info)
+{
     if (fprintf(file, "install-name:%-10s", "") < 0) {
         return 1;
     }
 
-    if (yaml_write_string(file, install_name)) {
+    const char *const install_name = info->install_name;
+    const uint32_t length = info->install_name_length;
+
+    const bool needs_quotes =
+        info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+
+    if (write_yaml_string(file, install_name, length, needs_quotes)) {
         return 1;
     }
 
-    if (fputc('\n', file) == EOF) {
+    if (fputc('\n', file) < 0) {
         return 1;
     }
 
@@ -404,12 +434,27 @@ int tbd_write_magic(FILE *const file, const enum tbd_version version) {
 }
 
 int
-tbd_write_parent_umbrella(FILE *const file, const char *const parent_umbrella) {
-    if (parent_umbrella == NULL) {
+tbd_write_parent_umbrella(FILE *const file,
+                          const struct tbd_create_info *const info)
+{
+    const char *const umbrella = info->parent_umbrella;
+    if (umbrella == NULL) {
         return 0;
     }
 
-    if (fprintf(file, "parent-umbrella:%-7s%s\n", "", parent_umbrella) < 0) {
+    if (fprintf(file, "parent-umbrella:%-7s", "") < 0) {
+        return 1;
+    }
+
+    const uint32_t length = info->parent_umbrella_length;
+    const bool needs_quotes =
+        info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
+
+    if (write_yaml_string(file, umbrella, length, needs_quotes)) {
+        return 1;
+    }
+
+    if (fputc('\n', file) < 0) {
         return 1;
     }
 
@@ -771,6 +816,16 @@ write_comma_or_newline(FILE *const file,
     return E_WRITE_COMMA_OK;
 }
 
+static inline int
+write_export_info(FILE *const file,
+                  const struct tbd_export_info *const info)
+{
+    const bool needs_quotes =
+        info->flags & F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+
+    return write_yaml_string(file, info->string, info->length, needs_quotes);
+}
+
 int
 tbd_write_exports(FILE *const file,
                   const struct array *const exports,
@@ -805,14 +860,11 @@ tbd_write_exports(FILE *const file,
             return 1;
         }
 
-        const char *const string = info->string;
-        const uint64_t length = info->length;
-
-        if (yaml_write_string_with_len(file, string, length)) {
+        if (write_export_info(file, info)) {
             return 1;
         }
 
-        line_length = length;
+        line_length = info->length;
 
         /*
          * Iterate over the rest of the export-infos, writing all the
@@ -865,10 +917,7 @@ tbd_write_exports(FILE *const file,
                     return 1;
                 }
 
-                const char *const string = info->string;
-                const uint64_t length = info->length;
-
-                if (yaml_write_string_with_len(file, string, length)) {
+                if (write_export_info(file, info)) {
                     return 1;
                 }
 
@@ -877,7 +926,7 @@ tbd_write_exports(FILE *const file,
                  * array.
                  */
                 
-                line_length = length;
+                line_length = info->length;
                 type = inner_type;
 
                 continue;
@@ -888,9 +937,9 @@ tbd_write_exports(FILE *const file,
              * to preserve a limit on line-lengths
              */
 
-            const uint64_t inner_length = info->length;
+            const uint64_t length = info->length;
             const enum write_comma_result write_comma_result =
-                write_comma_or_newline(file, line_length, inner_length);
+                write_comma_or_newline(file, line_length, length);
 
             switch (write_comma_result) {
                 case E_WRITE_COMMA_OK:
@@ -904,12 +953,11 @@ tbd_write_exports(FILE *const file,
                     break;
             }
 
-            const char *const inner_string = info->string;
-            if (yaml_write_string_with_len(file, inner_string, inner_length)) {
+            if (write_export_info(file, info)) {
                 return 1;
             }
 
-            line_length += inner_length;
+            line_length += info->length;
         } while (true);
     } while (info != end);
 

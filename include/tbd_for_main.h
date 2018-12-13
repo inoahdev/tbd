@@ -67,4 +67,6 @@ void
 tbd_for_main_apply_from(struct tbd_for_main *dst,
                         const struct tbd_for_main *src);
 
+void tbd_for_main_destroy(struct tbd_for_main *tbd);
+
 #endif /* TBD_FOR_MAIN_H */

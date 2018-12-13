@@ -12,10 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int yaml_write_string(FILE *file, const char *string);
 int
-yaml_write_string_with_len(FILE *file,
-                           const char *string,
-                           uint32_t len);
+yaml_verify_c_str(const char *string, uint64_t length, bool *needs_quotes_out);
 
 #endif /* YAML_H */
