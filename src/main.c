@@ -162,7 +162,10 @@ recurse_directory_callback(const char *const parse_path,
 
     const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
     const int write_fd =
-        open_r(write_path, O_WRONLY | O_TRUNC | flags, 0755, &terminator);
+        open_r(write_path,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               &terminator);
     
     if (write_fd < 0) {
         fprintf(stderr,
@@ -926,7 +929,10 @@ int main(const int argc, const char *const argv[]) {
             FILE *write_file = stdout;
             if (write_path != NULL) {
                 const int write_fd =
-                    open_r(write_path, O_WRONLY | O_TRUNC, 0755, &terminator);
+                    open_r(write_path,
+                           O_WRONLY | O_TRUNC,
+                           DEFFILEMODE,
+                           &terminator);
 
                 if (write_fd < 0) {
                     if (should_print_paths) {
@@ -989,7 +995,7 @@ int main(const int argc, const char *const argv[]) {
                 if (terminator != NULL) {
                     /*
                      * Ignore the return value as we cannot be sure if the 
-                     * emove failed as the directories we created (that are
+                     * remove failed as the directories we created (that are
                      * pointed to by terminator) may now be populated with
                      * multiple files.
                      */
