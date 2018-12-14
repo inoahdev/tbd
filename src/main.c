@@ -497,6 +497,7 @@ int main(const int argc, const char *const argv[]) {
                 tbd->write_path_length = strlen(path_copy);
 
                 found_path = true;
+                break;
             }
 
             if (!found_path) {
