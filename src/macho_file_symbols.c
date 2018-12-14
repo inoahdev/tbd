@@ -24,10 +24,128 @@
 #include "tbd.h"
 #include "yaml.h"
 
+/*
+ * For performance, compare strings using the largest byte-size integers
+ * possible, instead of iterating with strncmp.
+ */
+
+static bool
+is_objc_class_symbol(const char **const symbol_in,
+                     uint64_t *const length_in)
+{
+    const char *const symbol = *symbol_in;
+    const uint64_t length = *length_in;
+
+    if (length < 8) {
+        return false;
+    }
+
+    const uint64_t first = *(uint64_t *)symbol;
+
+    /*
+     * Objc-class symbols can have different prefixes.
+     */
+
+    if (first == 5495340712935444319) {
+        if (length < 13) {
+            return false;
+        }
+
+        /*
+         * The check here is `if (first == "_OBJC_CL")`, checking of whether
+         * the prefix is "_OBJC_CLASS_$".
+         * 
+         * The check below is `if (second == "ASS_")`.
+         */
+
+        const uint32_t second = *(uint32_t *)(symbol + 8);
+        if (second != 1599296321) {
+            return false;
+        }
+
+        if (symbol[12] != '$') {
+            return false;
+        }
+
+        *symbol_in = symbol + 13;
+        *length_in = length - 13;
+    } else if (first == 4993752304437055327) {
+        if (length < 17) {
+            return false;
+        }
+
+        /*
+         * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
+         * is "_OBJC_METACLASS_$".
+         * 
+         * The check below is `if (second == "TACLASS")`.
+         */
+
+        const uint64_t second = *(uint64_t *)(symbol + 8);
+        if (second != 6868925396587594068) {
+            return false;
+        }
+
+        if (symbol[16] != '$') {
+            return false;
+        }
+
+        *symbol_in = symbol + 17;
+        *length_in = length - 17;
+    } else if (first == 7810191059381808942) {
+        if (length < 16) {
+            return false;
+        }
+
+        /*
+         * The check here is `if (first == ".objc_cl")`, checking if the prefix
+         * is ".objc_class_name".
+         * 
+         * The check below is `if (second == ".ass_name")`.
+         */
+
+        const uint64_t second = *(uint64_t *)(symbol + 8);
+        if (second != 7308604896967881569) {
+            return false;
+        }
+
+        *symbol_in = symbol + 16;
+        *length_in = length - 16;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+static int
+is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
+    /*
+     * The check here is `if (first == "_OBJC_IV")`.
+     */
+
+    const uint64_t first = *(uint64_t *)symbol;
+    if (first != 6217605503174987615) {
+        return false;
+    }
+
+    /*
+     * The check here is `if (second == "AR_$")`.
+     */
+
+    const uint32_t second = *(uint32_t *)(symbol + 8);
+    if (second != 610226753) {
+        return false;
+    }
+
+    return true;
+}
+
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *const info,
               const uint64_t arch_bit,
               const char *const string,
+              const uint64_t length,
               const uint32_t n_desc,
               const uint32_t n_type,
               const uint64_t options)
@@ -40,6 +158,7 @@ handle_symbol(struct tbd_create_info *const info,
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
     const char *symbol_string = string;
 
+    uint64_t symbol_length = length;
     if (n_desc & N_WEAK_DEF) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
@@ -48,34 +167,15 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-    } else if (strncmp(symbol_string, "_OBJC_CLASS_$", 13) == 0) {
+    } else if (is_objc_class_symbol(&symbol_string, &symbol_length)) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
                 return E_MACHO_FILE_PARSE_OK;
             }
         }
 
-        symbol_string += 13;
-        symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL; 
-    } else if (strncmp(symbol_string, "_OBJC_METACLASS_$",17) == 0) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
-            }
-        }
-
-        symbol_string += 17;
         symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-    } else if (strncmp(symbol_string, ".objc_class_name", 16) == 0) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
-            }
-        }
-
-        symbol_string += 16;
-        symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-    } else if (strncmp(symbol_string, "_OBJC_IVAR_$", 12) == 0) {
+    } else if (is_objc_ivar_symbol(symbol_string, length)) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
                 return E_MACHO_FILE_PARSE_OK;
@@ -83,7 +183,9 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_string += 12;
-        symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL; 
+        symbol_length -= 12;
+        
+        symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
     } else {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
@@ -94,7 +196,7 @@ handle_symbol(struct tbd_create_info *const info,
     
     struct tbd_export_info export_info = {
         .archs = arch_bit,
-        .length = strlen(symbol_string),
+        .length = symbol_length,
         .string = (char *)symbol_string,
         .type = symbol_type,
     };
@@ -266,6 +368,7 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
             handle_symbol(info,
                           arch_bit,
                           symbol_string,
+                          string_length,
                           n_desc,
                           n_type,
                           parse_options);
@@ -395,6 +498,7 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
             handle_symbol(info,
                           arch_bit,
                           symbol_string,
+                          string_length,
                           n_desc,
                           n_type,
                           parse_options);
