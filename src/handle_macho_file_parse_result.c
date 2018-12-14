@@ -72,6 +72,18 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
 
                 return false;
 
+            case E_MACHO_FILE_PARSE_NO_ARCHITECTURES:
+                if (print_paths) {
+                    fprintf(stderr,
+                            "Mach-o file (at path %s) has no architectures\n",
+                            path);
+                } else {
+                    fputs("Mach-o file at provided path has no architectures\n",
+                          stderr);
+                }
+
+                return false;
+
             case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
                 if (print_paths) {
                     fprintf(stderr,
@@ -79,10 +91,37 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architectures to fit inside a mach-o file\n",
                             path);
                 } else {
+                    fputs("Mach-o file at provided path has too many "
+                          "architectures to fit inside a mach-o file\n",
+                          stderr);
+                }
+
+                return false;
+
+            case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
+                if (print_paths) {
                     fprintf(stderr,
-                            "Failed to read data while parsing mach-o file, "
-                            "error: %s\n",
-                            strerror(errno));
+                            "Mach-o file (at path %s) has an invalid "
+                            "architecture\n",
+                            path);
+                } else {
+                    fputs("Mach-o file at provided path has an invalid "
+                          "architecture\n",
+                          stderr);
+                }
+
+                return false;
+
+            case E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES:
+                if (print_paths) {
+                    fprintf(stderr,
+                            "Mach-o file (at path %s) has overlapping "
+                            "architectures\n",
+                            path);
+                } else {
+                    fputs("Mach-o file at provided path has overlapping "
+                          "architectures\n",
+                          stderr);
                 }
 
                 return false;
@@ -94,10 +133,9 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architectures for the same cpu-type\n",
                             path);
                 } else {
-                    fprintf(stderr,
-                            "Failed to read data while parsing mach-o file, "
-                            "error: %s\n",
-                            strerror(errno));
+                    fputs("Mach-o file at provided path has multiple "
+                          "architectures for the same cpu-type\n",
+                          stderr);
                 }
 
                 return false;
@@ -134,12 +172,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures, has no load-commands, and thus no "
+                            "architectures, has no load-commands; No "
                             "information was extracted\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
-                          "architectures, has no load-commands, and thus no "
+                          "architectures, has no load-commands; No "
                           "information was extracted\n",
                           stderr);
                 }
@@ -339,14 +377,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
             case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
                 if (print_paths) {
                     fprintf(stderr,
-                            "Mach-o file (at path %s) has an conflicting, "
-                            "different information on one of it's "
-                            "architecture's cpu-type\n",
+                            "Mach-o file (at path %s) has architectures with "
+                            "conflicting cpu-types\n",
                             path);
                 } else {
-                    fputs("The provided mach-o file has an conflicting, "
-                          "different information on one of it's architecture's "
-                          "cpu-type\n",
+                    fputs("The provided mach-o file has architectures with "
+                          "conflicting cpu-types\n",
                           stderr);
                 }
 
@@ -356,11 +392,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its tbd-flags\n",
+                            "conflicting information for its tbd-flags\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                          "conflicting information on its tbd-flags\n",
+                          "conflicting information for its tbd-flags\n",
                           stderr);
                 }
 
@@ -374,14 +410,14 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its identification "
+                            "conflicting information for its identification "
                             "(install-name, current-version, "
                             "comatibility-version)"
                             "\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                          "conflicting information on its identification "
+                          "conflicting information for its identification "
                           "(install-name, current-version, "
                           "comatibility-version)\n",
                           stderr);
@@ -393,11 +429,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its objc-constraint\n",
+                            "conflicting information for its objc-constraint\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                          "conflicting information on its objc-constraint\n",
+                          "conflicting information for its objc-constraint\n",
                           stderr);
                 }
 
@@ -411,11 +447,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its parent-umbrella\n",
+                            "conflicting information for its parent-umbrella\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information on its parent-umbrella\n",
+                        "conflicting information for its parent-umbrella\n",
                         stderr);
                 }
 
@@ -429,11 +465,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its platform\n",
+                            "conflicting information for its platform\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information on its platform\n",
+                        "conflicting information for its platform\n",
                         stderr);
                 }
 
@@ -447,11 +483,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
-                            "conflicting information on its swift-version\n",
+                            "conflicting information for its swift-version\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information on its swift-version\n",
+                        "conflicting information for its swift-version\n",
                         stderr);
                 }
 
@@ -567,24 +603,39 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
      * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from
      * the user.
      * 
-     * Ignore objc-constraint, swift-version, parent-umbrella as they aren't
+     * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
      * mandatory fields and aren't always provided.
      */
 
     if (tbd->info.install_name == NULL) {
-        if (request_install_name(global, tbd, info_in)) {
-            return true;
+        if (print_paths) {
+            fprintf(stderr,
+                    "Mach-o file (at path %s), does not have an install-name\n",
+                    path);
+        } else {
+            fputs("The provided mach-o file does not have an "
+                  "install-name\n",
+                  stderr);
         }
 
-        return false;
+        if (!request_install_name(global, tbd, info_in)) {
+            return false;
+        }
     }
 
     if (tbd->info.platform == 0) {
-        if (request_platform(global, tbd, info_in)) {
-            return true;
+        if (print_paths) {
+            fprintf(stderr,
+                    "Mach-o file (at path %s), does not have a platform\n",
+                    path);
+        } else {
+            fputs("The provided mach-o file does not have a platform\n",
+                  stderr);
         }
 
-        return false;
+        if (!request_platform(global, tbd, info_in)) {
+            return false;
+        }
     }
 
     return true;

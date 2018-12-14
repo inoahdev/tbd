@@ -142,6 +142,43 @@ parse_thin_file(struct tbd_create_info *const info,
     return E_MACHO_FILE_PARSE_OK;
 }
 
+static inline bool
+fat_arch_overlaps(struct fat_arch *const arch, struct fat_arch *const inner) {
+    /*
+     * inner's start offset is inside arch's range.
+     */
+
+    const uint32_t arch_offset = arch->offset;
+    const uint32_t arch_size = arch->size;
+
+    const uint32_t inner_offset = inner->offset;
+    const uint32_t inner_size = inner->size;
+
+    const uint32_t arch_end = arch_offset + arch_size;
+    if (inner_offset >= arch_offset && inner_offset < arch_end) {
+        return true;
+    }
+
+    /*
+     * inner's end offset is inside arch's range.
+     */
+
+    const uint32_t inner_end = inner_offset + inner_size;
+    if (inner_end > arch_offset && inner_end <= arch_end) {
+        return true;
+    }
+
+    /*
+     * inner completely contains arch.
+     */
+
+    if (inner_offset < arch_offset && inner_end >= arch_end) {
+        return true;
+    }
+
+    return false;
+}
+
 static enum macho_file_parse_result
 handle_fat_32_file(struct tbd_create_info *const info,
                    const int fd,
@@ -156,7 +193,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
      * Calculate the total-size of the architectures given.
      */
 
-    const uint32_t archs_size = sizeof(struct fat_arch) * nfat_arch;
+    const uint64_t archs_size = sizeof(struct fat_arch) * nfat_arch;
     
     /*
      * Check for any overflows if there exists too many architectures.
@@ -176,16 +213,87 @@ handle_fat_32_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    for (uint32_t i = 0; i < nfat_arch; i++) {
-        struct fat_arch arch = archs[i];
-        if (is_big_endian) {
-            arch.cputype = swap_uint32(arch.cputype);
-            arch.cpusubtype = swap_uint32(arch.cpusubtype);
+    /*
+     * First loop over only to swap the arch-header's fields. We also do some
+     * basic verification to ensure no architectures overflow.
+     */
 
-            arch.offset = swap_uint32(arch.offset);
-            arch.size = swap_uint32(arch.size);
+    if (is_big_endian) {
+        struct fat_arch *const arch = archs;
+
+        arch->cputype = swap_uint32(arch->cputype);
+        arch->cpusubtype = swap_uint32(arch->cpusubtype);
+
+        arch->offset = swap_uint32(arch->offset);
+        arch->size = swap_uint32(arch->size);
+    }
+
+    /*
+     * Before parsing, verify each architecture.
+     */
+
+    const uint64_t headers_size = sizeof(struct fat_header) + archs_size;
+    for (uint32_t i = 1; i < nfat_arch; i++) {
+        struct fat_arch *const arch = archs + i;
+
+        uint32_t arch_offset = arch->offset;
+        uint32_t arch_size = arch->size;
+
+        if (is_big_endian) {
+            arch->cputype = swap_uint32(arch->cputype);
+            arch->cpusubtype = swap_uint32(arch->cpusubtype);
+
+            arch_offset = swap_uint32(arch_offset);
+            arch_size = swap_uint32(arch_size);
+
+            arch->offset = arch_offset;
+            arch->size = arch_size;
         }
 
+        /*
+         * Ensure the arch's mach-o isn't within the fat-header or the
+         * arch-headers.
+         */
+
+        if (arch_offset < headers_size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
+         * Verify that no overflow occurs when finding arch's end.
+         */
+
+        const uint32_t arch_end = arch_offset + arch_size;
+        if (arch_end < arch_offset) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
+         * Verify that the architecture does not go beyond end of file (if the
+         * size has been provided).
+         */
+
+        if (size != 0) {
+            const uint32_t arch_end = arch_offset + arch_size;
+            if (arch_end > size) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+        }
+
+        for (uint32_t j = 0; j < i ; j++) {
+            struct fat_arch inner = archs[j];
+            if (fat_arch_overlaps(arch, &inner)) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < nfat_arch; i++) {
+        struct fat_arch arch = archs[i];
         const enum macho_file_parse_result handle_arch_result =
             parse_thin_file(info,
                             fd,
@@ -221,6 +329,45 @@ handle_fat_32_file(struct tbd_create_info *const info,
     return E_MACHO_FILE_PARSE_OK;
 }
 
+static inline bool
+fat_arch_64_overlaps(struct fat_arch_64 *const arch,
+                     struct fat_arch_64 *const inner)
+{
+    /*
+     * inner's start offset is inside arch's range.
+     */
+
+    const uint64_t arch_offset = arch->offset;
+    const uint64_t arch_size = arch->size;
+
+    const uint64_t inner_offset = inner->offset;
+    const uint64_t inner_size = inner->size;
+
+    const uint64_t arch_end = arch_offset + arch_size;
+    if (inner_offset >= arch_offset && inner_offset < arch_end) {
+        return true;
+    }
+
+    /*
+     * inner's end offset is inside arch's range.
+     */
+
+    const uint64_t inner_end = inner_offset + inner_size;
+    if (inner_end > arch_offset && inner_end <= arch_end) {
+        return true;
+    }
+
+    /*
+     * inner completely contains arch.
+     */
+
+    if (inner_offset < arch_offset && inner_end >= arch_end) {
+        return true;
+    }
+
+    return false;
+}
+
 static enum macho_file_parse_result
 handle_fat_64_file(struct tbd_create_info *const info,
                    const int fd,
@@ -235,7 +382,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
      * Calculate the total-size of the architectures given.
      */
 
-    const uint32_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
+    const uint64_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
     
     /*
      * Check for any overflows if there exists too many architectures.
@@ -255,16 +402,87 @@ handle_fat_64_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    for (uint32_t i = 0; i < nfat_arch; i++) {
-        struct fat_arch_64 arch = archs[i];
-        if (is_big_endian) {
-            arch.cputype = swap_uint32(arch.cputype);
-            arch.cpusubtype = swap_uint32(arch.cpusubtype);
+    /*
+     * First loop over only to swap the arch-header's fields. We also do some
+     * basic verification to ensure no architectures overflow.
+     */
 
-            arch.offset = swap_uint64(arch.offset);
-            arch.size = swap_uint64(arch.size);
+    if (is_big_endian) {
+        struct fat_arch_64 *const arch = archs;
+
+        arch->cputype = swap_uint32(arch->cputype);
+        arch->cpusubtype = swap_uint32(arch->cpusubtype);
+
+        arch->offset = swap_uint64(arch->offset);
+        arch->size = swap_uint64(arch->size);
+    }
+
+    /*
+     * Before parsing, verify each architecture.
+     */
+
+    const uint64_t headers_size = sizeof(struct fat_header) + archs_size;
+    for (uint32_t i = 1; i < nfat_arch; i++) {
+        struct fat_arch_64 *const arch = archs + i;
+
+        uint64_t arch_offset = arch->offset;
+        uint64_t arch_size = arch->size;
+
+        if (is_big_endian) {
+            arch->cputype = swap_uint32(arch->cputype);
+            arch->cpusubtype = swap_uint32(arch->cpusubtype);
+
+            arch_offset = swap_uint64(arch_offset);
+            arch_size = swap_uint64(arch_size);
+
+            arch->offset = arch_offset;
+            arch->size = arch_size;
         }
 
+        /*
+         * Ensure the arch's mach-o isn't within the fat-header or the
+         * arch-headers.
+         */
+
+        if (arch_offset < headers_size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
+         * Verify that no overflow occurs when finding arch's end.
+         */
+
+        const uint64_t arch_end = arch_offset + arch_size;
+        if (arch_end < arch_offset) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
+         * Verify that the architecture does not go beyond end of file (if the
+         * size has been provided).
+         */
+
+        if (size != 0) {
+            const uint64_t arch_end = arch_offset + arch_size;
+            if (arch_end > size) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+        }
+
+        for (uint32_t j = 0; j < i ; j++) {
+            struct fat_arch_64 inner = archs[j];
+            if (fat_arch_64_overlaps(arch, &inner)) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < nfat_arch; i++) {
+        struct fat_arch_64 arch = archs[i];
         const enum macho_file_parse_result handle_arch_result =
             parse_thin_file(info,
                             fd,
@@ -324,6 +542,10 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
+        if (nfat_arch == 0) {
+            return E_MACHO_FILE_PARSE_NO_ARCHITECTURES;
+        }
+
         if (is_big_endian) {
             nfat_arch = swap_uint32(nfat_arch);
         }
@@ -380,21 +602,26 @@ void macho_file_print_archs(const int fd) {
         uint32_t nfat_arch = 0;
         if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
             fprintf(stderr,
-                "Failed to read data from mach-o, error: %s\n",
-                strerror(errno));
+                    "Failed to read data from mach-o, error: %s\n",
+                    strerror(errno));
 
             exit(1);
         }
 
-        /*
-        * Calculate the total-size of the architectures given.
-        */
+        if (nfat_arch == 0) {
+            fputs("File has no architectures\n", stderr);
+            exit(1);
+        }
 
-        const uint32_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
+        /*
+         * Calculate the total-size of the architectures given.
+         */
+
+        const uint64_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
         
         /*
-        * Check for any overflows if there exists too many architectures.
-        */
+         * Check for any overflows if there exists too many architectures.
+         */
 
         if (archs_size / sizeof(struct fat_arch_64) != nfat_arch) {
             fputs("File has too many architectures\n", stderr);
@@ -445,11 +672,16 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
+        if (nfat_arch == 0) {
+            fputs("File has no architectures\n", stderr);
+            exit(1);
+        }
+
        /*
         * Calculate the total-size of the architectures given.
         */
 
-        const uint32_t archs_size = sizeof(struct fat_arch) * nfat_arch;
+        const uint64_t archs_size = sizeof(struct fat_arch) * nfat_arch;
         
        /*
         * Check for any overflows if there exists too many architectures.

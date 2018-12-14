@@ -193,7 +193,16 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
     for (uint32_t i = 0; i < ncmds; i++) {
         /*
-         * Big-endian mach-o fds have load-commands whose information is also
+         * Verify that we still have space for a load-command.
+         */
+
+        if (size_left < sizeof(struct load_command)) {
+            free(load_cmd_buffer);
+            return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
+        }
+
+        /*
+         * Big-endian mach-o files have load-commands whose information is also
          * big-endian.
          */
         
@@ -236,7 +245,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (load_cmd.cmdsize != sizeof(struct build_version_command)) {
-                    break;
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
                 /*
@@ -321,8 +331,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 
                 /*
                  * Ensure that dylib_command can fit its basic structure and
-                 * information. Note that dylib_command includes a install-name
-                 * string in its cmdsize.
+                 * information.
+                 * 
+                 * An exact match cannot be made as dylib_command includes a
+                 * full install-name string in its cmdsize.
                  */
 
                 if (load_cmd.cmdsize < sizeof(struct dylib_command)) {
@@ -476,6 +488,19 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
             case LC_REEXPORT_DYLIB: {
                 if (parse_options & O_TBD_PARSE_IGNORE_REEXPORTS) {
                     break;
+                }
+
+                /*
+                 * Ensure that dylib_command can fit its basic structure and
+                 * information.
+                 * 
+                 * An exact match cannot be made as dylib_command includes the
+                 * full re-export string in its cmdsize.
+                 */
+
+                if (load_cmd.cmdsize < sizeof(struct dylib_command)) {
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
                 const struct dylib_command *const reexport_dylib =
@@ -698,7 +723,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                         free(load_cmd_buffer);
                         
                         /*
-                         * It's possible the fd is too small as we haven't
+                         * It's possible the file is too small as we haven't
                          * checked if the image_info can be fully contained
                          * within.
                          */
@@ -977,6 +1002,19 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 /*
+                 * Ensure that sub_client_command can fit its basic structure
+                 * and information.
+                 * 
+                 * An exact match cannot be made as sub_client_command includes
+                 * a full client-string in its cmdsize.
+                 */
+
+                if (load_cmd.cmdsize < sizeof(struct sub_client_command)) {
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
+                }
+
+                /*
                  * Ensure that the client is located fully within the
                  * load-command and after the basic information of a
                  * sub_client_command load-command structure.
@@ -1058,6 +1096,19 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 if (parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
                     break;
+                }
+
+                /*
+                 * Ensure that sub_framework_command can fit its basic structure
+                 * and information.
+                 * 
+                 * An exact match cannot be made as sub_framework_command
+                 * includes a full umbrella-string in its cmdsize.
+                 */
+
+                if (load_cmd.cmdsize < sizeof(struct sub_framework_command)) {
+                    free(load_cmd_buffer);
+                    return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
                 const struct sub_framework_command *const framework_command =
