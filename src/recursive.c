@@ -280,30 +280,6 @@ open_r(char *const path,
     return fd;
 }
 
-int
-mkdir_r(char *const path, const mode_t mode, char **const first_terminator_out)
-{
-    if (mkdir(path, mode) < 0) {
-        if (errno == EEXIST) {
-            return 0;
-        }
-
-        if (errno != ENOENT) {
-            return 1;
-        }
-    }
-
-    if (reverse_mkdir_ignoring_last(path, mode, first_terminator_out)) {
-        return 1;
-    }
-
-    if (mkdir(path, mode) < 0) {
-        return 1;
-    }
-
-    return 0;
-}
-
 int remove_parial_r(char *const path, char *const from) {
     if (remove(path) != 0) {
         return 1;
