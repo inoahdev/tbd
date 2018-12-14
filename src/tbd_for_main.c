@@ -84,6 +84,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_REEXPORTS;
     } else if (strcmp(option, "ignore-swift-version") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+    } else if (strcmp(option, "ignore-requests") == 0) {
+        tbd->options |= O_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->options |= O_TBD_FOR_MAIN_IGNORE_WARNINGS;
     } else if (strcmp(option, "remove-archs") == 0) {

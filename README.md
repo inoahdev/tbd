@@ -32,7 +32,10 @@ Ignore options:
         --ignore-reexports,             Ignore swift-version field
         --ignore-swift-version,         Ignore swift-version field
         --ignore-uuids,                 Ignore uuids field
-        --ignore-warnings,              Ignore any warnings (both path and global option)
+
+General ignore options:
+        --ignore-requests, Ignore requests of all kinds (both path and global option)
+        --ignore-warnings, Ignore any warnings (both path and global option)
 
 Symbol options: (Both path and global options)
         --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)
