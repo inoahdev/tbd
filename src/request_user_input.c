@@ -96,12 +96,12 @@ request_install_name(struct tbd_for_main *const global,
 
     request_input("Replace install-name?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
@@ -109,7 +109,7 @@ request_install_name(struct tbd_for_main *const global,
     request_input("Replacement install-name?", NULL, &tbd->info.install_name);
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->info.install_name = tbd->info.install_name;
         global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     }
@@ -149,12 +149,12 @@ request_objc_constraint(struct tbd_for_main *const global,
 
     request_input("Replace objc-constraint?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
         
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
@@ -192,7 +192,7 @@ request_objc_constraint(struct tbd_for_main *const global,
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->info.objc_constraint = tbd->info.objc_constraint;
         global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
@@ -234,12 +234,12 @@ request_parent_umbrella(struct tbd_for_main *const global,
 
     request_input("Replace parent-umbrella?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
@@ -250,7 +250,7 @@ request_parent_umbrella(struct tbd_for_main *const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
@@ -289,12 +289,12 @@ request_platform(struct tbd_for_main *const global,
 
     request_input("Replace platform?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
@@ -332,7 +332,7 @@ request_platform(struct tbd_for_main *const global,
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->info.platform = tbd->info.platform;
         global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
@@ -384,12 +384,12 @@ request_swift_version(struct tbd_for_main *const global,
 
     request_input("Replace swift-version?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
@@ -422,7 +422,7 @@ request_swift_version(struct tbd_for_main *const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
         global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
@@ -456,18 +456,18 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
 
     request_input("Ignore flags?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
         
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     }
 
@@ -501,18 +501,18 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
 
     request_input("Ignore non-unique uuids?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never") == 0) {
+    if (strcmp(should_replace, "never\n") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "none") == 0) {
+    } else if (strcmp(should_replace, "no\n") == 0) {
         free(should_replace);
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (strcmp(should_replace, "for all\n") == 0) {
         global->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     }
 
