@@ -164,7 +164,7 @@ recurse_directory_callback(const char *const parse_path,
     const int write_fd =
         open_r(write_path,
                O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
+               0755,
                &terminator);
     
     if (write_fd < 0) {
@@ -931,7 +931,7 @@ int main(const int argc, const char *const argv[]) {
                 const int write_fd =
                     open_r(write_path,
                            O_WRONLY | O_TRUNC,
-                           DEFFILEMODE,
+                           0755,
                            &terminator);
 
                 if (write_fd < 0) {
