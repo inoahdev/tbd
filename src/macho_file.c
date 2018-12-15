@@ -309,8 +309,12 @@ handle_fat_32_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (!(options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES)) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+            
+            continue;
         }
 
         /*
@@ -550,8 +554,12 @@ handle_fat_64_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (!(options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES)) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+            
+            continue;
         }
 
         /*

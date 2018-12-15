@@ -34,8 +34,9 @@ Ignore options:
         --ignore-uuids,                 Ignore uuids field
 
 General ignore options:
-        --ignore-requests, Ignore requests of all kinds (both path and global option)
-        --ignore-warnings, Ignore any warnings (both path and global option)
+        --ignore-requests,    Ignore requests of all kinds (both path and global option)
+        --ignore-warnings,    Ignore any warnings (both path and global option)
+        --skip-invalid-archs, Skip (Ignore) any architectures that are invalid
 
 Symbol options: (Both path and global options)
         --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)

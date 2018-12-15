@@ -46,8 +46,9 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("General ignore options:\n", stdout);
-    fputs("        --ignore-requests, Ignore requests of all kinds (both path and global option)\n", stdout);
-    fputs("        --ignore-warnings, Ignore any warnings (both path and global option)\n", stdout);
+    fputs("        --ignore-requests,    Ignore requests of all kinds (both path and global option)\n", stdout);
+    fputs("        --ignore-warnings,    Ignore any warnings (both path and global option)\n", stdout);
+    fputs("        --skip-invalid-archs, Skip (Ignore) any architectures that are invalid\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
