@@ -153,7 +153,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
     if (size != 0) {
         uint32_t header_size = sizeof(struct mach_header);
         if (is_64) {
-            header_size = sizeof(struct mach_header_64);
+            header_size += sizeof(uint32_t);
         }
 
         const uint32_t remaining_size = size - header_size;
@@ -229,6 +229,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
         size_left -= load_cmd.cmdsize;
 
+        /*
+         * We can't check size_left here, as this could be the last
+         * load-command, so we have to check at the very beginning of the loop.
+         */
+
         switch (load_cmd.cmd) {
             case LC_BUILD_VERSION: {
                 /*
@@ -299,9 +304,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (info->platform != 0) {
-                    if (info->platform != build_version_platform) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->platform != build_version_platform) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                        }
                     }
                 } else {
                     info->platform = build_version_platform;
@@ -438,6 +445,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 const struct dylib dylib = dylib_command->dylib;
                 if (info->install_name != NULL) {
+                    if (options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS) {
+                        found_identification = true;
+                        break;
+                    }
+
                     free(install_name);
 
                     if (info->current_version != dylib.current_version) {
@@ -652,6 +664,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS;
                 }
 
+                uint32_t swift_version = 0;
                 const uint8_t *const sect_ptr =
                     load_cmd_iter + sizeof(struct segment_command);
 
@@ -761,22 +774,33 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     }
 
                     const uint32_t mask = objc_image_info_swift_version_mask;
-                    const uint32_t swift_version =
+                    const uint32_t image_swift_version =
                         (image_info.flags & mask) >> 8;
 
-                    if (info->swift_version != 0) {
-                        if (info->swift_version != swift_version) {
+                    if (swift_version != 0) {
+                        if (swift_version != image_swift_version) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
                         }
                     } else {
-                        info->swift_version = swift_version;
+                        swift_version = image_swift_version;
                     }
 
                     /*
                      * Don't break here to ensure no other image-info section
                      * has different information.
                      */
+                }
+
+                if (info->swift_version != 0) {
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->swift_version != swift_version) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
+                        }
+                    }
+                } else {
+                    info->swift_version = swift_version;
                 }
 
                 break;
@@ -862,6 +886,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS;
                 }
 
+                uint32_t swift_version = 0;
                 const uint8_t *const sect_ptr =
                     load_cmd_iter + sizeof(struct segment_command_64);
 
@@ -971,22 +996,33 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     }
 
                     const uint32_t mask = objc_image_info_swift_version_mask;
-                    const uint32_t swift_version =
+                    const uint32_t image_swift_version =
                         (image_info.flags & mask) >> 8;
 
-                    if (info->swift_version != 0) {
-                        if (info->swift_version != swift_version) {
+                    if (swift_version != 0) {
+                        if (swift_version != image_swift_version) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
                         }
                     } else {
-                        info->swift_version = swift_version;
+                        swift_version = image_swift_version;
                     }
 
                     /*
                      * Don't break here to ensure no other image-info section
                      * has different information.
                      */
+                }
+
+                if (info->swift_version != 0) {
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->swift_version != swift_version) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
+                        }
+                    }
+                } else {
+                    info->swift_version = swift_version;
                 }
 
                 break;
@@ -1197,6 +1233,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 if (info->parent_umbrella != NULL) {
                     free(umbrella_string);
 
+                    if (options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS) {
+                        break;
+                    }
+
                     if (info->parent_umbrella_length != length) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
@@ -1263,9 +1303,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     const char *const uuid_cmd_uuid =
                         (const char *)uuid_cmd->uuid;
 
-                    if (strncmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (strncmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+                        }
                     }
                 } else {
                     memcpy(uuid_info.uuid, uuid_cmd->uuid, 16);
@@ -1295,9 +1337,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (info->platform != 0) {
-                    if (info->platform != TBD_PLATFORM_MACOS) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->platform != TBD_PLATFORM_MACOS) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                        }
                     }
                 } else {
                     info->platform = TBD_PLATFORM_MACOS;
@@ -1326,9 +1370,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (info->platform != 0) {
-                    if (info->platform != TBD_PLATFORM_IOS) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->platform != TBD_PLATFORM_IOS) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                        }
                     }
                 } else {
                     info->platform = TBD_PLATFORM_IOS;
@@ -1357,9 +1403,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (info->platform != 0) {
-                    if (info->platform != TBD_PLATFORM_WATCHOS) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->platform != TBD_PLATFORM_WATCHOS) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                        }
                     }
                 } else {
                     info->platform = TBD_PLATFORM_WATCHOS;
@@ -1388,9 +1436,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (info->platform != 0) {
-                    if (info->platform != TBD_PLATFORM_TVOS) {
-                        free(load_cmd_buffer);
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                        if (info->platform != TBD_PLATFORM_TVOS) {
+                            free(load_cmd_buffer);
+                            return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                        }
                     }
                 } else {
                     info->platform = TBD_PLATFORM_TVOS;

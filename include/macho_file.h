@@ -20,7 +20,8 @@ enum macho_file_options {
      * Ignore any errors where an invalid field was produced.
      */
 
-    O_MACHO_FILE_IGNORE_INVALID_FIELDS = 1 << 0
+    O_MACHO_FILE_IGNORE_INVALID_FIELDS     = 1 << 0,
+    O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS = 1 << 1
 };
 
 struct macho_arch_group_specific_info {
