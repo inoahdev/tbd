@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 
+uint16_t swap_uint16(uint16_t num);
 uint32_t swap_uint32(uint32_t num);
 uint64_t swap_uint64(uint64_t num);
 

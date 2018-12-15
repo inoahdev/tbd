@@ -146,8 +146,8 @@ handle_symbol(struct tbd_create_info *const info,
               const uint64_t arch_bit,
               const char *const string,
               const uint64_t length,
-              const uint32_t n_desc,
-              const uint32_t n_type,
+              const uint16_t n_desc,
+              const uint8_t n_type,
               const uint64_t options)
 {
     /*
@@ -323,13 +323,11 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
     const struct nlist *const end = symbol_table + nsyms;
 
     for (; nlist != end; nlist++) {
-        uint32_t n_type = nlist->n_type;
-        uint32_t n_desc = nlist->n_desc;
+        uint16_t n_desc = nlist->n_desc;
         uint32_t index = nlist->n_un.n_strx;
 
         if (is_big_endian) {
-            n_type = swap_uint32(n_type);
-            n_desc = swap_uint32(n_desc);
+            n_desc = swap_uint16(n_desc);
             index = swap_uint32(index);
         }
 
@@ -338,7 +336,9 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
          * symbol.
          */
 
-        const uint32_t type = n_type & N_TYPE;
+        const uint8_t n_type = nlist->n_type;
+        const uint8_t type = n_type & N_TYPE;
+
         if (type != N_SECT && type != N_INDR) {
             continue;
         }
@@ -353,8 +353,7 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
         }
 
         const char *const symbol_string = string_table + index;
-        const uint32_t string_length =
-            strnlen(symbol_string, strsize - index);
+        const uint32_t string_length = strnlen(symbol_string, strsize - index);
 
         /*
          * Ignore empty strings.
@@ -453,13 +452,11 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
     const struct nlist_64 *const nlist_end = symbol_table + nsyms;
 
     for (; nlist != nlist_end; nlist++) {
-        uint32_t n_type = nlist->n_type;
-        uint32_t n_desc = nlist->n_desc;
+        uint16_t n_desc = nlist->n_desc;
         uint32_t index = nlist->n_un.n_strx;
 
         if (is_big_endian) {
-            n_type = swap_uint32(n_type);
-            n_desc = swap_uint32(n_desc);
+            n_desc = swap_uint16(n_desc);
             index = swap_uint32(index);
         }
 
@@ -468,7 +465,9 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
          * symbol.
          */
 
-        const uint32_t type = n_type & N_TYPE;
+        const uint8_t n_type = nlist->n_type;
+        const uint8_t type = n_type & N_TYPE;
+
         if (type != N_SECT && type != N_INDR) {
             continue;
         }
@@ -482,9 +481,8 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
             continue;
         }
 
-        const char *symbol_string = string_table + index;
-        const uint32_t string_length =
-            strnlen(symbol_string, strsize - index);
+        const char *const symbol_string = string_table + index;
+        const uint32_t string_length = strnlen(symbol_string, strsize - index);
 
         /*
          * Ignore empty strings.

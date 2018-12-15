@@ -8,8 +8,13 @@
 
 #include "swap.h"
 
+uint16_t swap_uint16(uint16_t num) {
+    num = ((num >> 8) & 0x00ff) | ((num << 8) & 0xff00);
+    return num;
+}
+
 uint32_t swap_uint32(uint32_t num) {
-    num = ((num >> 8) & 0x00ff00ff)  | ((num << 8) & 0xff00ff00);
+    num = ((num >> 8) & 0x00ff00ff) | ((num << 8) & 0xff00ff00);
     num = ((num >> 16) & 0x0000ffff) | ((num << 16) & 0xffff0000);
 
     return num;
