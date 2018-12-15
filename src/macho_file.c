@@ -35,6 +35,12 @@ parse_thin_file(struct tbd_create_info *const info,
         mach_header.magic == MH_MAGIC_64 || mach_header.magic == MH_CIGAM_64;
     
     if (is_64) {
+        if (size != 0) {
+            if (size < sizeof(struct mach_header_64)) {
+                return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
+            }
+        }
+
         /*
          * 64-bit mach-o files have a different header (struct mach_header_64),
          * which only differs by having an extra uint32_t field at the end.
@@ -89,7 +95,7 @@ parse_thin_file(struct tbd_create_info *const info,
         arch_info_for_cputype(header.cputype, header.cpusubtype);
 
     if (arch == NULL) {
-        return E_MACHO_FILE_UNSUPPORTED_CPUTYPE;        
+        return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;        
     }
 
     const struct arch_info *const arch_info_list = arch_info_get_list();
@@ -98,7 +104,7 @@ parse_thin_file(struct tbd_create_info *const info,
     const uint64_t arch_bit = 1ull << arch_index;
 
     if (info->archs & arch_bit) {
-        return E_MACHO_FILE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+        return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
     const enum macho_file_parse_result parse_load_commands_result =    
@@ -247,7 +253,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
 
         if (arch_size < sizeof(struct mach_header)) {
             free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
         }
 
         /*
@@ -468,7 +474,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
 
         if (arch_size < sizeof(struct mach_header)) {
             free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
         }
 
         /*
