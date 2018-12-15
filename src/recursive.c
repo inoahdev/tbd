@@ -257,6 +257,7 @@ int
 open_r(char *const path,
        const mode_t flags,
        const mode_t mode,
+       const mode_t dir_mode,
        char **const first_terminator_out)
 {
     int fd = open(path, O_CREAT | flags, mode);
@@ -268,7 +269,7 @@ open_r(char *const path,
         return -1;
     }
 
-    if (reverse_mkdir_ignoring_last(path, mode, first_terminator_out)) {
+    if (reverse_mkdir_ignoring_last(path, dir_mode, first_terminator_out)) {
         return -1;
     }
 

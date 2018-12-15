@@ -13,12 +13,11 @@
 #include <stdio.h>
 
 int
-open_r(char *const path,
-       const mode_t flags,
-       const mode_t mode,
-       char **const first_terminator_out);
-
-int mkdir_r(char *path, mode_t mode, char **first_terminator_out);
+open_r(char *path,
+       mode_t flags,
+       mode_t mode,
+       mode_t dir_mode,
+       char **first_terminator_out);
 
 /*
  * Remove only directories whose path-strings are formed when terminating

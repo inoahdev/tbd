@@ -164,6 +164,7 @@ recurse_directory_callback(const char *const parse_path,
     const int write_fd =
         open_r(write_path,
                O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
                0755,
                &terminator);
     
@@ -483,7 +484,7 @@ int main(const int argc, const char *const argv[]) {
                 }
 
                 /*
-                 * Copy the path to allow fopen_r to create the file (and
+                 * Copy the path to allow open_r to create the file (and
                  * directory hierarchy if needed).
                  */
 
@@ -656,7 +657,7 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     /*
-                     * Copy the path to allow fopen_r to create the file (and
+                     * Copy the path to allow open_r to create the file (and
                      * directory hierarchy if needed).
                      */
 
@@ -932,6 +933,7 @@ int main(const int argc, const char *const argv[]) {
                 const int write_fd =
                     open_r(write_path,
                            O_WRONLY | O_TRUNC,
+                           DEFFILEMODE,
                            0755,
                            &terminator);
 
