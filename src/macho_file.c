@@ -25,14 +25,14 @@
 static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *const info,
                 const int fd,
-                const struct mach_header mach_header,
+                const struct mach_header header,
                 const uint64_t start,
                 const uint64_t size,
                 const uint64_t parse_options,
                 const uint64_t options)
 {
     const bool is_64 =
-        mach_header.magic == MH_MAGIC_64 || mach_header.magic == MH_CIGAM_64;
+        header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
     
     if (is_64) {
         if (size != 0) {
@@ -51,19 +51,8 @@ parse_thin_file(struct tbd_create_info *const info,
         }
     }
 
-    struct mach_header header = mach_header;
     const bool is_big_endian =
         header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
-
-    if (is_big_endian) {
-        header.cputype = swap_uint32(header.cputype);
-        header.cpusubtype = swap_uint32(header.cpusubtype);
-
-        header.ncmds = swap_uint32(header.ncmds);
-        header.sizeofcmds = swap_uint32(header.sizeofcmds);
-
-        header.flags = swap_uint32(header.flags);
-    }
 
     if (!is_64 && !is_big_endian && header.magic != MH_MAGIC) {
         return E_MACHO_FILE_PARSE_NOT_A_MACHO;
@@ -164,6 +153,10 @@ fat_arch_overlaps(struct fat_arch *const arch, struct fat_arch *const inner) {
     }
 
     return false;
+}
+
+static inline bool thin_magic_is_valid(const uint32_t magic) {
+    return magic == MH_MAGIC || magic == MH_MAGIC_64;
 }
 
 static enum macho_file_parse_result
@@ -298,6 +291,26 @@ handle_fat_32_file(struct tbd_create_info *const info,
         if (read(fd, &header, sizeof(header)) < 0) {
             free(archs);
             return E_MACHO_FILE_PARSE_READ_FAIL;
+        }
+
+        /*
+         * Swap the mach_header's fields if big-endian.
+         */
+
+        const bool is_big_endian =
+            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
+
+        if (is_big_endian) {
+            header.cputype = swap_uint32(header.cputype);
+            header.cpusubtype = swap_uint32(header.cpusubtype);
+
+            header.ncmds = swap_uint32(header.ncmds);
+            header.sizeofcmds = swap_uint32(header.sizeofcmds);
+
+            header.flags = swap_uint32(header.flags);
+        } else if (!thin_magic_is_valid(header.magic)) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         /*
@@ -522,6 +535,26 @@ handle_fat_64_file(struct tbd_create_info *const info,
         }
 
         /*
+         * Swap the mach_header's fields if big-endian.
+         */
+
+        const bool is_big_endian =
+            header.magic == MH_MAGIC || header.magic == MH_CIGAM_64;
+
+        if (is_big_endian) {
+            header.cputype = swap_uint32(header.cputype);
+            header.cpusubtype = swap_uint32(header.cpusubtype);
+
+            header.ncmds = swap_uint32(header.ncmds);
+            header.sizeofcmds = swap_uint32(header.sizeofcmds);
+
+            header.flags = swap_uint32(header.flags);
+        } else if (!thin_magic_is_valid(header.magic)) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
          * Verify that header's cpu-type matches arch's cpu-type.
          */
 
@@ -635,6 +668,24 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
         struct mach_header header = {};
         if (read(fd, &header, sizeof(header)) < 0) {
             return E_MACHO_FILE_PARSE_READ_FAIL;
+        }
+
+        /*
+         * Swap the mach_header's fields if big-endian.
+         */
+
+        const bool is_big_endian =
+            header.magic == MH_MAGIC || header.magic == MH_CIGAM ||
+            header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
+
+        if (is_big_endian) {
+            header.cputype = swap_uint32(header.cputype);
+            header.cpusubtype = swap_uint32(header.cpusubtype);
+
+            header.ncmds = swap_uint32(header.ncmds);
+            header.sizeofcmds = swap_uint32(header.sizeofcmds);
+
+            header.flags = swap_uint32(header.flags);
         }
 
         ret =
