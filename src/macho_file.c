@@ -242,6 +242,15 @@ handle_fat_32_file(struct tbd_create_info *const info,
         }
 
         /*
+         * Verify each architecture can hold at least mach_header.
+         */
+
+        if (arch_size < sizeof(struct mach_header)) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
          * Verify that no overflow occurs when finding arch's end.
          */
 
@@ -257,14 +266,13 @@ handle_fat_32_file(struct tbd_create_info *const info,
          */
 
         if (size != 0) {
-            const uint32_t arch_end = arch_offset + arch_size;
             if (arch_end > size) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
         }
 
-        for (uint32_t j = 0; j < i ; j++) {
+        for (uint32_t j = 0; j < i; j++) {
             struct fat_arch inner = archs[j];
             if (fat_arch_overlaps(arch, &inner)) {
                 free(archs);
@@ -455,6 +463,15 @@ handle_fat_64_file(struct tbd_create_info *const info,
         }
 
         /*
+         * Verify each architecture can hold at least mach_header.
+         */
+
+        if (arch_size < sizeof(struct mach_header)) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
          * Verify that no overflow occurs when finding arch's end.
          */
 
@@ -470,14 +487,13 @@ handle_fat_64_file(struct tbd_create_info *const info,
          */
 
         if (size != 0) {
-            const uint64_t arch_end = arch_offset + arch_size;
             if (arch_end > size) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
         }
 
-        for (uint32_t j = 0; j < i ; j++) {
+        for (uint32_t j = 0; j < i; j++) {
             struct fat_arch_64 inner = archs[j];
             if (fat_arch_64_overlaps(arch, &inner)) {
                 free(archs);
