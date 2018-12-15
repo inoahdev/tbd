@@ -1498,9 +1498,5 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
         return ret;
     }
 
-    if (array_is_empty(&info->exports)) {
-        return E_MACHO_FILE_PARSE_NO_EXPORTS;
-    }
-
     return E_MACHO_FILE_PARSE_OK;
 }

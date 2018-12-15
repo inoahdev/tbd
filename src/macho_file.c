@@ -533,6 +533,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
         magic == FAT_MAGIC    || magic == FAT_CIGAM ||
         magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
 
+    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_fat) {
         const bool is_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
         const bool is_big_endian = magic == FAT_CIGAM || magic == FAT_CIGAM_64;
@@ -550,7 +551,6 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
             nfat_arch = swap_uint32(nfat_arch);
         }
 
-        enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
         if (is_64) {
             ret =
                 handle_fat_64_file(info,
@@ -572,19 +572,27 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
                                    parse_options,
                                    options);
         }
+    } else {
+        const bool is_thin =
+            magic == MH_MAGIC    || magic == MH_CIGAM ||
+            magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
 
+        if (!is_thin) {
+            return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+        }
+
+        ret = parse_thin_file(info, fd, 0, 0, 0, 0, parse_options, options);
+    }
+
+    if (ret != E_MACHO_FILE_PARSE_OK) {
         return ret;
     }
 
-    const bool is_thin =
-        magic == MH_MAGIC    || magic == MH_CIGAM ||
-        magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
-
-    if (!is_thin) {
-        return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+    if (array_is_empty(&info->exports)) {
+        return E_MACHO_FILE_PARSE_NO_EXPORTS;
     }
 
-    return parse_thin_file(info, fd, 0, 0, 0, 0, parse_options, options);
+    return E_MACHO_FILE_PARSE_OK;
 }
 
 void macho_file_print_archs(const int fd) {
