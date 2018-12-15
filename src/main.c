@@ -770,6 +770,8 @@ int main(const int argc, const char *const argv[]) {
             } else {
                 print_arch_info_list();
             }
+
+            return 0;
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-objc-constraints need to be run alone\n", stderr);
@@ -777,6 +779,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             print_objc_constraint_list();
+            return 0;
         } else if (strcmp(option, "list-platforms") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-platforms need to be run alone\n", stderr);
@@ -784,6 +787,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             print_platform_list();
+            return 0;
         } else if (strcmp(option, "list-recurse") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-recurse need to be run alone\n", stderr);
@@ -794,6 +798,8 @@ int main(const int argc, const char *const argv[]) {
                   "all,  Recurse through all of a directory's files and "
                   "sub-directories\n",
                   stdout);
+
+            return 0;
         } else if (strcmp(option, "list-tbd-flags") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
@@ -801,6 +807,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             print_tbd_flags_list();
+            return 0;
         } else if (strcmp(option, "list-tbd-versions") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
@@ -808,6 +815,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             print_tbd_version_list();
+            return 0;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (index != 1 || index != argc - 1) {
                 fputs("--usage needs to be run by itself\n", stderr);
