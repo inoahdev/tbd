@@ -100,6 +100,11 @@ recurse_directory_callback(const char *const parse_path,
 
     const uint64_t options = tbd->options;
     if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
+        /*
+         * The "hierarchy" is simply the hierarchy of directories following the
+         * user-provided recurse-directory.
+         */
+
         const char *const hierarchy_iter = parse_path + tbd->parse_path_length;
         uint64_t hierarchy_length = 0;
 
@@ -141,6 +146,8 @@ recurse_directory_callback(const char *const parse_path,
             const char *const hierarchy_extension = strrchr(file_name, '.');
             if (hierarchy_extension != NULL) {
                 file_name_length = hierarchy_extension - file_name;
+            } else {
+                file_name_length = strlen(file_name);
             }
         } else {
             file_name_length = strlen(file_name);
