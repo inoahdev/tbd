@@ -742,6 +742,11 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
+        const bool is_big_endian = magic == FAT_CIGAM;
+        if (is_big_endian) {
+            nfat_arch = swap_uint32(nfat_arch);
+        }
+
         /*
          * Calculate the total-size of the architectures given.
          */
@@ -772,7 +777,6 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM_64;
         for (uint32_t i = 0; i < nfat_arch; i++) {
             struct fat_arch_64 arch = archs[i];
             if (is_big_endian) {
@@ -784,9 +788,9 @@ void macho_file_print_archs(const int fd) {
                 arch_info_for_cputype(arch.cputype, arch.cpusubtype);
 
             if (arch_info == NULL) {
-                fputs("(Unsupported architecture)\n", stdout);;
+                fprintf(stdout, "\t%d. (Unsupported architecture)\n", i + 1);
             } else {
-                fprintf(stdout, "%s\n", arch_info->name);
+                fprintf(stdout, "\t%d. %s\n", i + 1, arch_info->name);
             }
         }
 
@@ -806,15 +810,20 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-       /*
-        * Calculate the total-size of the architectures given.
-        */
+        const bool is_big_endian = magic == FAT_CIGAM;
+        if (is_big_endian) {
+            nfat_arch = swap_uint32(nfat_arch);
+        }
+
+        /*
+         * Calculate the total-size of the architectures given.
+         */
 
         const uint64_t archs_size = sizeof(struct fat_arch) * nfat_arch;
         
-       /*
-        * Check for any overflows if there exists too many architectures.
-        */
+        /*
+         * Check for any overflows if there exists too many architectures.
+         */
 
         if (archs_size / sizeof(struct fat_arch) != nfat_arch) {
             fputs("File has too many architectures\n", stderr);
@@ -836,7 +845,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM_64;
+        fprintf(stdout, "%d architecture(s):\n", nfat_arch);
         for (uint32_t i = 0; i < nfat_arch; i++) {
             struct fat_arch arch = archs[i];
             if (is_big_endian) {
@@ -848,9 +857,9 @@ void macho_file_print_archs(const int fd) {
                 arch_info_for_cputype(arch.cputype, arch.cpusubtype);
 
             if (arch_info == NULL) {
-                fputs("(Unsupported architecture)\n", stdout);;
+                fprintf(stdout, "\t%d. (Unsupported architecture)\n", i + 1);
             } else {
-                fprintf(stdout, "%s\n", arch_info->name);
+                fprintf(stdout, "\t%d. %s\n", i + 1, arch_info->name);
             }
         }
 
@@ -885,7 +894,7 @@ void macho_file_print_archs(const int fd) {
                 arch_info_for_cputype(header.cputype, header.cpusubtype);
 
             if (arch_info == NULL) {
-                fputs("(Unsupported architecture)\n", stdout);;
+                fputs("(Unsupported architecture)\n", stdout);
             } else {
                 fprintf(stdout, "%s\n", arch_info->name);
             }

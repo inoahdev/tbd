@@ -201,11 +201,11 @@ enum tbd_version parse_tbd_version(const char *const version) {
 }
 
 void print_arch_info_list(void) {
-    const struct arch_info *arch_info = arch_info_get_list();
-    const struct arch_info *const end = arch_info + arch_info_list_get_size();
+    const struct arch_info *info = arch_info_get_list();
+    const char *name = info->name;
 
-    for (; arch_info != end; arch_info++) {
-        fprintf(stdout, "%s\n", arch_info->name);
+    for (; name != NULL; name = (++info)->name) {
+        fprintf(stdout, "%s\n", name);
     }
 }
 
