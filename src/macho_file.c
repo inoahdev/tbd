@@ -543,7 +543,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
          */
 
         const bool is_big_endian =
-            header.magic == MH_MAGIC || header.magic == MH_CIGAM_64;
+            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
 
         if (is_big_endian) {
             header.cputype = swap_uint32(header.cputype);
@@ -683,8 +683,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
          */
 
         const bool is_big_endian =
-            header.magic == MH_MAGIC || header.magic == MH_CIGAM ||
-            header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
+            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
 
         if (is_big_endian) {
             header.cputype = swap_uint32(header.cputype);
