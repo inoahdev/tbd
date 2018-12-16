@@ -30,15 +30,6 @@ struct macho_arch_group_specific_info {
     const char *info;  
 };
 
-/*
- * Keep a "cache" to store data necessary for parsing a mach-o file.
- */
-
-struct macho_file_cache {
-    uint8_t *load_command_buffer;
-    char *string_table;
-};
-
 enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_OK,
 
