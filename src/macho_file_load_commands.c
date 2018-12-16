@@ -445,12 +445,12 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
 
                 const struct dylib dylib = dylib_command->dylib;
                 if (info->install_name != NULL) {
+                    free(install_name);
+                    
                     if (options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS) {
                         found_identification = true;
                         break;
                     }
-
-                    free(install_name);
 
                     if (info->current_version != dylib.current_version) {
                         free(load_cmd_buffer);
