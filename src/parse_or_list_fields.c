@@ -101,11 +101,9 @@ parse_flags_list(const int argc,
                 if (front == '-' || front == '/') {
                     fputs("Please provide a list of tbd-flags\n", stderr);
                 }
-            } else {
-                fprintf(stderr, "Unrecognized tbd-flag: %s\n", arg);
+            
+                exit(1);
             }
-
-            exit(1);
         }
     }
 
