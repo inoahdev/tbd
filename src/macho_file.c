@@ -241,7 +241,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
         }
 
         /*
-         * Verify each architecture can hold at least mach_header.
+         * Verify each architecture can hold at least a mach_header.
          */
 
         if (arch_size < sizeof(struct mach_header)) {
@@ -259,12 +259,21 @@ handle_fat_32_file(struct tbd_create_info *const info,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        /*
-         * Verify that the architecture does not go beyond end of file (if the
-         * size has been provided).
-         */
-
         if (size != 0) {
+            /*
+             * Verify that the architecture is not located beyond end of file.
+             */
+
+            if (arch_offset > size) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+
+            /*
+             * Verify that the architecture's end is not located beyond end of
+             * file.
+             */
+
             if (arch_end > size) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
@@ -309,12 +318,12 @@ handle_fat_32_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            if (!(options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES)) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES) {
+                continue;
             }
             
-            continue;
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         /*
@@ -486,7 +495,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
         }
 
         /*
-         * Verify each architecture can hold at least mach_header.
+         * Verify each architecture can hold at a least mach_header.
          */
 
         if (arch_size < sizeof(struct mach_header)) {
@@ -504,12 +513,21 @@ handle_fat_64_file(struct tbd_create_info *const info,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        /*
-         * Verify that the architecture does not go beyond end of file (if the
-         * size has been provided).
-         */
-
         if (size != 0) {
+            /*
+             * Verify that the architecture is not located beyond end of file.
+             */
+
+            if (arch_offset > size) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+
+            /*
+             * Verify that the architecture's end is not located beyond end of
+             * file.
+             */
+
             if (arch_end > size) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
@@ -554,12 +572,12 @@ handle_fat_64_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            if (!(options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES)) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES) {
+                continue;
             }
             
-            continue;
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         /*
