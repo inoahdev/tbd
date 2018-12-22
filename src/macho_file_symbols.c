@@ -30,12 +30,11 @@
  */
 
 static bool
-is_objc_class_symbol(const char **const symbol_in,
-                     uint64_t *const length_in)
+is_objc_class_symbol(const char *const symbol,
+                     const uint64_t length,
+                     const char **const symbol_out,
+                     uint64_t *const length_out)
 {
-    const char *const symbol = *symbol_in;
-    const uint64_t length = *length_in;
-
     if (length < 8) {
         return false;
     }
@@ -67,8 +66,8 @@ is_objc_class_symbol(const char **const symbol_in,
             return false;
         }
 
-        *symbol_in = symbol + 13;
-        *length_in = length - 13;
+        *symbol_out = symbol + 13;
+        *length_out = length - 13;
     } else if (first == 4993752304437055327) {
         if (length < 17) {
             return false;
@@ -90,8 +89,8 @@ is_objc_class_symbol(const char **const symbol_in,
             return false;
         }
 
-        *symbol_in = symbol + 17;
-        *length_in = length - 17;
+        *symbol_out = symbol + 17;
+        *length_out = length - 17;
     } else if (first == 7810191059381808942) {
         if (length < 16) {
             return false;
@@ -109,8 +108,8 @@ is_objc_class_symbol(const char **const symbol_in,
             return false;
         }
 
-        *symbol_in = symbol + 16;
-        *length_in = length - 16;
+        *symbol_out = symbol + 16;
+        *length_out = length - 16;
     } else {
         return false;
     }
@@ -144,8 +143,8 @@ is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *const info,
               const uint64_t arch_bit,
-              const char *const string,
-              const uint64_t length,
+              const char *const symbol_string,
+              const uint64_t symbol_length,
               const uint16_t n_desc,
               const uint8_t n_type,
               const uint64_t options)
@@ -156,9 +155,10 @@ handle_symbol(struct tbd_create_info *const info,
      */
     
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
-    const char *symbol_string = string;
+    
+    const char *string = symbol_string;
+    uint64_t length = symbol_length;
 
-    uint64_t symbol_length = length;
     if (n_desc & N_WEAK_DEF) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
@@ -167,7 +167,7 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-    } else if (is_objc_class_symbol(&symbol_string, &symbol_length)) {
+    } else if (is_objc_class_symbol(string, length, &string, &length)) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
                 return E_MACHO_FILE_PARSE_OK;
@@ -182,8 +182,8 @@ handle_symbol(struct tbd_create_info *const info,
             }
         }
 
-        symbol_string += 12;
-        symbol_length -= 12;
+        string += 12;
+        length -= 12;
         
         symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
     } else {
@@ -196,8 +196,8 @@ handle_symbol(struct tbd_create_info *const info,
     
     struct tbd_export_info export_info = {
         .archs = arch_bit,
-        .length = symbol_length,
-        .string = (char *)symbol_string,
+        .length = length,
+        .string = (char *)string,
         .type = symbol_type,
     };
 
@@ -217,7 +217,7 @@ handle_symbol(struct tbd_create_info *const info,
     }
 
     bool needs_quotes = false;
-    if (yaml_verify_c_str(string, export_info.length, &needs_quotes)) {
+    if (yaml_verify_c_str(string, length, &needs_quotes)) {
         /*
          * For leniency purposes, simply ignore any invalid symbols.
          */
@@ -237,7 +237,7 @@ handle_symbol(struct tbd_create_info *const info,
      * placing it in the list.
      */
 
-    export_info.string = strndup(symbol_string, export_info.length);
+    export_info.string = strndup(export_info.string, export_info.length);
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
