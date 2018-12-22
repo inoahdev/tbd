@@ -16,35 +16,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "path.h"
 #include "recursive.h"
 
-static char *find_last_slash(char *const path) {
-    char *slash = NULL;
-    char *iter = path;
-
-    bool prev_was_slash = false;
-    for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
-        if (ch == '/') {
-            /*
-             * Only set slash if the previous character wasn't a slash either,
-             * this is to avoid setting to the end of a row of slashes.
-             */
-
-            if (!prev_was_slash) {
-                slash = iter;
-            }
-
-            prev_was_slash = true;
-        } else {
-            prev_was_slash = false;
-        }
-    }
-
-    return slash;
-}
-
 static char *find_beginning_of_row_of_slashes(char *const begin, char *iter) {
-    for (char ch = *iter; iter != begin; ch = *(--iter)) {
+    for (char ch = *(--iter); iter != begin; ch = *(--iter)) {
         if (ch != '/') {
             return iter + 1;
         }
@@ -93,7 +69,7 @@ reverse_mkdir_ignoring_last(char *const path,
                             const mode_t mode,
                             char **const first_terminator_out)
 {
-    char *last_slash = find_last_slash(path);
+    char *last_slash = (char *)path_find_last_row_of_slashes(path);
 
     /*
      * We may have a slash at the end of the string, which must be removed, so
@@ -286,7 +262,7 @@ int remove_parial_r(char *const path, char *const from) {
         return 1;
     }
 
-    char *last_slash = find_last_slash(from);
+    char *last_slash = (char *)path_find_last_row_of_slashes(from);
 
     do {
         if (last_slash == NULL) {
