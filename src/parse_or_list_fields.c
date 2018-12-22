@@ -47,16 +47,20 @@ parse_architectures_list(const int argc,
                 exit(1);
             }
 
-            return archs;
+            break;
         }
 
         const struct arch_info *const arch_info = arch_info_for_name(arch);
         if (arch_info == NULL) {
-            fprintf(stderr,
-                    "Unrecognized architecture (with name %s) provided\n",
-                    arch);
+            if (archs == 0) {
+                fprintf(stderr,
+                        "Unrecognized architecture (with name %s) provided\n",
+                        arch);
 
-            exit(1);
+                exit(1);
+            }
+
+            break;
         }
 
         const uint64_t arch_info_index = arch_info - arch_info_list;
@@ -66,7 +70,12 @@ parse_architectures_list(const int argc,
         index++;
     } while (true);
 
-    *index_in = index;
+    /*
+     * Subtract one from index as we're supposed to end with the index pointing
+     * to the last argument.
+     */
+
+    *index_in = index - 1;
     return archs;
 }
 
@@ -100,14 +109,23 @@ parse_flags_list(const int argc,
             if (flags == 0) {
                 if (front == '-' || front == '/') {
                     fputs("Please provide a list of tbd-flags\n", stderr);
+                } else {
+                    fprintf(stderr, "Unrecognized flag: %s\n", arg);
                 }
             
                 exit(1);
             }
+
+            break;
         }
     }
 
-    *index_in = index;
+    /*
+     * Subtract one from index as we're supposed to end with the index pointing
+     * to the last argument.
+     */
+
+    *index_in = index - 1;
     return flags;
 }
 
