@@ -557,7 +557,8 @@ handle_fat_64_file(struct tbd_create_info *const info,
         }
 
         /*
-         * Swap the mach_header's fields if big-endian.
+         * Swap mach_header's fields if big-endian as we deal only in
+         * little-endian.
          */
 
         const bool is_big_endian =
@@ -760,7 +761,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM;
+        const bool is_big_endian = magic == FAT_CIGAM_64;
         if (is_big_endian) {
             nfat_arch = swap_uint32(nfat_arch);
         }
