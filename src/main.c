@@ -66,10 +66,15 @@ recurse_directory_callback(const char *const parse_path,
 
     /*
      * Store an original copy of the tbd, so we can restore to it later after
-     * we're done here.
+     * we're done here as the tbd_create_info stores information that is the
+     * same for the whole group.
      */
 
     struct tbd_create_info original_info = *info;
+
+    /*
+     * We ignore invalid fields as we just fill them in later as needed.
+     */
 
     const uint64_t macho_options = O_MACHO_FILE_IGNORE_INVALID_FIELDS;
     const enum macho_file_parse_result parse_result =
@@ -95,7 +100,7 @@ recurse_directory_callback(const char *const parse_path,
 
     /*
      * Create the file-path string itself, and handle the different options
-     * avaialble.
+     * available.
      */
 
     const uint64_t options = tbd->options;
@@ -305,6 +310,7 @@ int main(const int argc, const char *const argv[]) {
                     index,
                     argument);
 
+            destroy_tbds_array(&tbds);
             return 1;
         }
 
@@ -316,7 +322,7 @@ int main(const int argc, const char *const argv[]) {
         }
 
         if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
-            if (index != 1 || index != argc - 1) {
+            if (index != 1 || argc != 2) {
                 fputs("--help needs to be run by itself\n", stderr);
                 return 1;
             }
@@ -330,6 +336,7 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -348,6 +355,7 @@ int main(const int argc, const char *const argv[]) {
                         "index: %d\n",
                         index - 1);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -383,6 +391,7 @@ int main(const int argc, const char *const argv[]) {
                                     "Unrecognized option: %s\n",
                                     inner_arg);
 
+                            destroy_tbds_array(&tbds);
                             return 1;
                         }
                     }
@@ -406,6 +415,7 @@ int main(const int argc, const char *const argv[]) {
                               "a directory to write all found files to\n",
                               stderr);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -413,6 +423,7 @@ int main(const int argc, const char *const argv[]) {
                         fputs("Cannot print more than one file to stdout\n",
                               stderr);
                         
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -432,6 +443,7 @@ int main(const int argc, const char *const argv[]) {
                               "provided recursing directoriess\n",
                               stderr);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -443,20 +455,23 @@ int main(const int argc, const char *const argv[]) {
                               "path-string\n",
                               stderr);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
                 }
 
                 /*
-                 * Have the provided path be resolved with the current-directory
-                 * if necessary.
+                 * We may have been provided with a path relative to the
+                 * current-directory.
                  */
 
-                const char *const path =
-                    path_get_absolute_path_if_necessary(inner_arg);
-                
+                const char *const path = inner_arg;
+                char *full_path = path_get_absolute_path_if_necessary(path);
+
                 if (path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
+                    destroy_tbds_array(&tbds);
+
                     return 1;
                 }
 
@@ -475,6 +490,11 @@ int main(const int argc, const char *const argv[]) {
                                   "a directory to write all found files to\n",
                                   stderr);
 
+                            if (full_path != path) {
+                                free(full_path);
+                            }
+
+                            destroy_tbds_array(&tbds);
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -485,24 +505,33 @@ int main(const int argc, const char *const argv[]) {
                                   "files to\n",
                                   stderr);
 
+                            if (full_path != path) {
+                                free(full_path);
+                            }
+
+                            destroy_tbds_array(&tbds);
                             return 1;
                         }
                     }
                 }
 
                 /*
-                 * Copy the path to allow open_r to create the file (and
-                 * directory hierarchy if needed).
+                 * Copy the path (if still from argv) to allow open_r to create
+                 * the file (and directory hierarchy if needed).
                  */
 
-                char *const path_copy = strdup(path);
-                if (path_copy == NULL) {
-                    fputs("Failed to allocate memory\n", stderr);
-                    return 1;
+                if (full_path == path) {
+                    full_path = strdup(full_path);
+                    if (full_path == NULL) {
+                        fputs("Failed to allocate memory\n", stderr);
+                        destroy_tbds_array(&tbds);
+
+                        return 1;
+                    }
                 }
 
-                tbd->write_path = path_copy;
-                tbd->write_path_length = strlen(path_copy);
+                tbd->write_path = full_path;
+                tbd->write_path_length = strlen(full_path);
 
                 found_path = true;
                 break;
@@ -513,6 +542,7 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -524,6 +554,7 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdin\" to parse from terminal input\n",
                       stderr);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -546,6 +577,7 @@ int main(const int argc, const char *const argv[]) {
                         strcmp(option, "recurse") == 0)
                     {
                         tbd.options |= O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+
                         /*
                          * -r/--recurse may have an extra argument specifying
                          * whether or not to recurse sub-directories (By
@@ -578,44 +610,52 @@ int main(const int argc, const char *const argv[]) {
                         }
                         
                         fprintf(stderr, "Unrecognized option: %s\n", inner_arg);
+                        destroy_tbds_array(&tbds);
+
                         return 1;
                     }
 
                     continue;
                 }
 
-                /*
-                 * We may have been provided with a path relative to the
-                 * current-directory, signified by path[0], in which case we 
-                 * must make the path absolute.
-                 */
-
-                const char *path = inner_arg;
+                const char *const path = inner_arg;
                 if (strcmp(path, "stdin") != 0) {
-                    path = path_get_absolute_path_if_necessary(path);
-                    if (path == NULL) {
+                    /*
+                     * We may have been provided with a path relative to the
+                     * current-directory.
+                     */
+
+                    char *full_path = path_get_absolute_path_if_necessary(path);
+                    if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
+                        destroy_tbds_array(&tbds);
+
                         return 1;
                     }
 
                     /*
-                    * Ensure that the file/directory actually exists on the
-                    * filesystem.
-                    */
+                     * Ensure that the file/directory actually exists on the
+                     * filesystem.
+                     */
 
                     struct stat info = {};
-                    if (stat(path, &info) != 0) {
+                    if (stat(full_path, &info) != 0) {
                         if (errno == ENOENT) {
                             fprintf(stderr,
                                     "No file or directory exists at path: %s\n",
-                                    path);
+                                    full_path);
                         } else {
                             fprintf(stderr,
                                     "Failed to retrieve information on object "
                                     "at path: %s\n",
-                                    path);
+                                    full_path);
                         }
 
+                        if (full_path != path) {
+                            free(full_path);
+                        }
+
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -625,8 +665,13 @@ int main(const int argc, const char *const argv[]) {
                                     "Recursing file (at path %s) is not "
                                     "supported, Please provide a path to a "
                                     "directory if recursing is needed\n",
-                                    path);
+                                    full_path);
 
+                            if (full_path != path) {
+                                free(full_path);
+                            }
+
+                            destroy_tbds_array(&tbds);
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -634,17 +679,28 @@ int main(const int argc, const char *const argv[]) {
                             tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
                         if (!recurse_directories) {
-                            fputs("Unable to open a directory as a mach-o file, "
-                                "Please provide option '-r' to indicate "
-                                "recursing\n", stderr);
+                            fputs("Unable to open a directory as a "
+                                  "mach-o file, Please provide option '-r' to "
+                                  "indicate recursing\n",
+                                  stderr);
 
+                            if (full_path != path) {
+                                free(full_path);
+                            }
+
+                            destroy_tbds_array(&tbds);
                             return 1;
                         }
                     } else {
                         fprintf(stderr,
                                 "Unsupported object at path: %s\n",
-                                path);
+                                full_path);
 
+                        if (full_path != path) {
+                            free(full_path);
+                        }
+
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -654,28 +710,32 @@ int main(const int argc, const char *const argv[]) {
                      */
 
                     const char *const last_slashes =
-                        path_find_ending_row_of_slashes(path);
+                        path_find_ending_row_of_slashes(full_path);
 
-                    uint64_t path_length = 0;
+                    uint64_t full_path_length = 0;
                     if (last_slashes == NULL) {
-                        path_length = strlen(path);
+                        full_path_length = strlen(full_path);
                     } else {
-                        path_length = last_slashes - path;
+                        full_path_length = last_slashes - full_path;
                     }
 
                     /*
-                     * Copy the path to allow open_r to create the file (and
-                     * directory hierarchy if needed).
+                     * Copy the path (if not from argv) to allow open_r to
+                     * create the file (and directory hierarchy if needed).
                      */
 
-                    char *const path_copy = strndup(path, path_length);
-                    if (path_copy == NULL) {
-                        fputs("Failed to allocate memory\n", stderr);
-                        return 1;
+                    if (full_path == path) {
+                        full_path = strndup(full_path, full_path_length);
+                        if (full_path == NULL) {
+                            fputs("Failed to allocate memory\n", stderr);
+                            destroy_tbds_array(&tbds);
+
+                            return 1;
+                        }
                     }
 
-                    tbd.parse_path = path_copy;
-                    tbd.parse_path_length = path_length;
+                    tbd.parse_path = full_path;
+                    tbd.parse_path_length = full_path_length;
                 } else {
                     if (tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                         fputs("Recursing the input file is not supported, "
@@ -683,6 +743,7 @@ int main(const int argc, const char *const argv[]) {
                               "recursing is needed\n",
                               stderr);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
                 }
@@ -700,6 +761,7 @@ int main(const int argc, const char *const argv[]) {
                                 "option\n",
                                 path);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
 
@@ -711,6 +773,7 @@ int main(const int argc, const char *const argv[]) {
                                 "option\n",
                                 path);
 
+                        destroy_tbds_array(&tbds);
                         return 1;
                     }
                 }
@@ -724,6 +787,7 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdin\" to parse from terminal input\n",
                       stderr);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -734,14 +798,20 @@ int main(const int argc, const char *const argv[]) {
                 fputs("Internal failure: Failed to add info to array\n",
                       stderr);
 
+                free(tbd.parse_path);
+                destroy_tbds_array(&tbds);
+
                 return 1;
             }
         } else if (strcmp(option, "list-architectures") == 0) {
-            if (index != 1) {
-                fputs("--list-architectures needs to be run by itself\n",
+            if (index != 1 || argc > 3) {
+                fputs("--list-architectures needs to be run by itself, or with "
+                      "a single path to a mach-o file whose archs should be "
+                      "printed",
                       stderr);
 
-                exit(1);
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
            /*
@@ -750,20 +820,23 @@ int main(const int argc, const char *const argv[]) {
             *     - Listing the archs in a provided mach-o file.
             */
 
-            const int path_index = index + 1;
-            if (path_index < argc) {
-                const char *const argument = argv[path_index];
-                const char *const path =
+            if (argc == 3) {
+                const char *const path = argv[2];
+                char *const full_path =
                     path_get_absolute_path_if_necessary(argument);
 
-                const int fd = open(path, O_RDONLY);
+                const int fd = open(full_path, O_RDONLY);
                 if (fd < 0) {
                     fprintf(stderr,
                             "Failed to open file at path: %s, error: %s\n",
-                            path,
+                            full_path,
                             strerror(errno));
 
-                    exit(1);
+                    if (full_path != path) {
+                        free(full_path);
+                    }
+
+                    return 1;
                 }
 
                 macho_file_print_archs(fd);
@@ -775,7 +848,9 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-objc-constraints need to be run alone\n", stderr);
-                exit(1);
+
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
             print_objc_constraint_list();
@@ -783,7 +858,9 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-platforms") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-platforms need to be run alone\n", stderr);
-                exit(1);
+
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
             print_platform_list();
@@ -791,7 +868,9 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-recurse") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-recurse need to be run alone\n", stderr);
-                exit(1);
+
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
             fputs("once, Recurse through all of a directory's files (default)\n"
@@ -803,7 +882,9 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-tbd-flags") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
-                exit(1);
+
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
             print_tbd_flags_list();
@@ -811,14 +892,18 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-tbd-versions") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
-                exit(1);
+
+                destroy_tbds_array(&tbds);
+                return 1;
             }
 
             print_tbd_version_list();
             return 0;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
-            if (index != 1 || index != argc - 1) {
+            if (index != 1 || argc != 2) {
                 fputs("--usage needs to be run by itself\n", stderr);
+
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -831,6 +916,8 @@ int main(const int argc, const char *const argv[]) {
             }
             
             fprintf(stderr, "Unrecognized option: %s\n", argument);
+            destroy_tbds_array(&tbds);
+
             return 1;
         }
     }
@@ -840,6 +927,7 @@ int main(const int argc, const char *const argv[]) {
               "recurse\n",
               stderr);
 
+        destroy_tbds_array(&tbds);
         return 1;
     }
 
@@ -872,6 +960,7 @@ int main(const int argc, const char *const argv[]) {
                       "a directory to write all found files to\n",
                       stderr);
 
+                destroy_tbds_array(&tbds);
                 return 1;
             }
 
@@ -894,7 +983,7 @@ int main(const int argc, const char *const argv[]) {
                             "Failed to recurse directory (at path %s)\n",
                             tbd->parse_path);
                 } else {
-                    fputs("Failed to recurse provided directory\n", stderr);
+                    fputs("Failed to recurse the provided directory\n", stderr);
                 }
             }
         } else {
@@ -904,21 +993,24 @@ int main(const int argc, const char *const argv[]) {
             if (fd < 0) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "Warning: Failed to open file (at path %s), "
-                            "error: %s\n",
+                            "Failed to open file (at path %s), error: %s\n",
                             tbd->parse_path,
                             strerror(errno));
                 } else {
                     fprintf(stderr,
-                            "Warning: Failed to open the provided mach0o file, "
+                            "Failed to open the provided mach-o file, "
                             "error: %s\n",
                             strerror(errno));
                 }
 
-                return true;
+                continue;
             }
             
             struct tbd_create_info *const info = &tbd->info;
+
+            /*
+             * We ignore invalid fields as we just fill them in later as needed.
+             */
 
             const uint64_t macho_options = O_MACHO_FILE_IGNORE_INVALID_FIELDS;
             const enum macho_file_parse_result parse_result =
@@ -937,7 +1029,7 @@ int main(const int argc, const char *const argv[]) {
 
             if (!handle_ret) {
                 close(fd);
-                return true;
+                continue;
             }
 
             char *terminator = NULL;
@@ -955,38 +1047,38 @@ int main(const int argc, const char *const argv[]) {
                 if (write_fd < 0) {
                     if (should_print_paths) {
                         fprintf(stderr,
-                                "Warning: Failed to open output-file "
-                                "(for path: %s), error: %s\n",
+                                "Failed to open output-file (for path: %s), "
+                                "error: %s\n",
                                 write_path,
                                 strerror(errno));
                     } else {
                         fprintf(stderr,
-                                "Warning: Failed to open the provided "
-                                "output-file, error: %s\n",
+                                "Failed to open the provided output-file, "
+                                "error: %s\n",
                                 strerror(errno));
                     }
 
                     close(fd);
-                    return true;
+                    continue;
                 }
 
                 write_file = fdopen(write_fd, "w");
                 if (write_file == NULL) {
                     if (should_print_paths) {
                         fprintf(stderr,
-                                "Warning: Failed to open output-file "
-                                "(for path: %s) as FILE, error: %s\n",
+                                "Failed to open output-file (for path: %s) as "
+                                "FILE, error: %s\n",
                                 write_path,
                                 strerror(errno));
                     } else {
                         fprintf(stderr,
-                                "Warning: Failed to open the provided "
-                                "output-file as FILE, error: %s\n",
+                                "Failed to open the provided output-file as "
+                                "FILE, error: %s\n",
                                 strerror(errno));
                     }
                     
                     close(fd);
-                    return true;
+                    continue;
                 }
             }
 
@@ -998,15 +1090,15 @@ int main(const int argc, const char *const argv[]) {
             if (create_tbd_result != E_TBD_CREATE_OK) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "Warning: Failed to write to output-file "
-                            "(for file at path: %s, at path: %s), error: %s\n",
+                            "Failed to write to output-file (for file at "
+                            "path: %s, at path: %s), error: %s\n",
                             parse_path,
                             write_path,
                             strerror(errno));
                 } else {
                     fprintf(stderr,
-                            "Warning: Failed to write to the provided "
-                            "output-file, error: %s\n",
+                            "Failed to write to the provided output-file, "
+                            "error: %s\n",
                             strerror(errno));
                 }
 
