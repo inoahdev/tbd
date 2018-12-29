@@ -35,7 +35,7 @@ is_objc_class_symbol(const char *const symbol,
                      const char **const symbol_out,
                      uint64_t *const length_out)
 {
-    if (length < 8) {
+    if (length < 13) {
         return false;
     }
 
@@ -46,14 +46,10 @@ is_objc_class_symbol(const char *const symbol,
      */
 
     if (first == 5495340712935444319) {
-        if (length < 13) {
-            return false;
-        }
-
         /*
          * The check here is `if (first == "_OBJC_CL")`, checking of whether
          * the prefix is "_OBJC_CLASS_$".
-         * 
+         *
          * The check below is `if (second == "ASS_")`.
          */
 
@@ -69,14 +65,16 @@ is_objc_class_symbol(const char *const symbol,
         *symbol_out = symbol + 13;
         *length_out = length - 13;
     } else if (first == 4993752304437055327) {
+        /*
+         * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
+         * is "_OBJC_METACLASS_$".
+         */
+
         if (length < 17) {
             return false;
         }
 
-        /*
-         * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
-         * is "_OBJC_METACLASS_$".
-         * 
+        /* 
          * The check below is `if (second == "TACLASS")`.
          */
 
@@ -92,14 +90,16 @@ is_objc_class_symbol(const char *const symbol,
         *symbol_out = symbol + 17;
         *length_out = length - 17;
     } else if (first == 7810191059381808942) {
+        /*
+         * The check here is `if (first == ".objc_cl")`, checking if the prefix
+         * is ".objc_class_name".
+         */
+
         if (length < 16) {
             return false;
         }
 
-        /*
-         * The check here is `if (first == ".objc_cl")`, checking if the prefix
-         * is ".objc_class_name".
-         * 
+        /* 
          * The check below is `if (second == ".ass_name")`.
          */
 
@@ -117,8 +117,12 @@ is_objc_class_symbol(const char *const symbol,
     return true;
 }
 
-static int
+static bool 
 is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
+    if (length < 12) {
+        return false;
+    }
+    
     /*
      * The check here is `if (first == "_OBJC_IV")`.
      */
