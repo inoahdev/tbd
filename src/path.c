@@ -141,7 +141,12 @@ get_length_by_trimming_back_slashes(const char *const string,
             continue;
         }
 
-        return iter - string;
+        /*
+         * Add one to iter to get the pointer to the beginning of the row of
+         * back-slashes.
+         */
+
+        return (iter + 1) - string;
     }
 
     return 0;
