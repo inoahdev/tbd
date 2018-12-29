@@ -1,5 +1,5 @@
 //
-//  src/mkdir_r.c
+//  src/recursive.c
 //  tbd
 //
 //  Created by inoahdev on 12/02/18.
@@ -235,7 +235,7 @@ open_r(char *const path,
        const mode_t mode,
        const mode_t dir_mode,
        char **const first_terminator_out)
-{
+{    
     int fd = open(path, O_CREAT | flags, mode);
     if (fd >= 0) {
         return fd;
