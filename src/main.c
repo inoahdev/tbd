@@ -19,9 +19,12 @@
 #include <unistd.h>
 
 #include "dir_recurse.h"
-#include "handle_macho_file_parse_result.h"
-
 #include "parse_or_list_fields.h"
+
+#include "parse_dsc_for_main.h"
+#include "parse_macho_for_main.h"
+
+#include "macho_file.h"
 #include "path.h"
 
 #include "recursive.h"
@@ -35,212 +38,83 @@ struct recurse_callback_info {
     bool print_paths;
 };
 
-static void
-clear_create_info(struct tbd_create_info *const info_in,
-                  const struct tbd_create_info *const orig)
-{
-    tbd_create_info_destroy(info_in);
-    *info_in = *orig;
-}
-
 static bool
 recurse_directory_callback(const char *const parse_path,
                            struct dirent *const dirent,
                            void *const callback_info)
 {
-    const int fd = open(parse_path, O_RDONLY);
-    if (fd < 0) {
-        fprintf(stderr,
-                "Warning: Failed to open file (at path %s), error: %s\n",
-                parse_path,
-                strerror(errno));
-
-        return true;
-    }
-
     struct recurse_callback_info *const recurse_info =
         (struct recurse_callback_info *)callback_info;
 
     struct tbd_for_main *const tbd = recurse_info->tbd;
-    struct tbd_create_info *const info = &tbd->info;
-
-    /*
-     * Store an original copy of the tbd, so we can restore to it later after
-     * we're done here as the tbd_create_info stores information that is the
-     * same for the whole group.
-     */
-
-    struct tbd_create_info original_info = *info;
-
-    /*
-     * We ignore invalid fields as we just fill them in later as needed.
-     */
-
-    const uint64_t macho_options = O_MACHO_FILE_IGNORE_INVALID_FIELDS;
-    const enum macho_file_parse_result parse_result =
-        macho_file_parse_from_file(info, fd, tbd->parse_options, macho_options);
-
-    const bool handle_ret =
-        handle_macho_file_parse_result(recurse_info->global,
-                                       tbd,
-                                       parse_path,
-                                       parse_result,
-                                       recurse_info->global,
-                                       &recurse_info->retained_info);
-
-    if (!handle_ret) {
-        clear_create_info(info, &original_info);
-        close(fd);
-
-        return true;
-    }
-
-    char *terminator = NULL;
-    char *write_path = tbd->write_path;
-
-    /*
-     * Create the file-path string itself, and handle the different options
-     * available.
-     */
 
     const uint64_t options = tbd->options;
-    if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
-        /*
-         * The "hierarchy" is simply the hierarchy of directories following the
-         * user-provided recurse-directory.
-         */
+    const int fd = open(parse_path, O_RDONLY);
 
-        const char *const hierarchy_iter = parse_path + tbd->parse_path_length;
-        uint64_t hierarchy_length = 0;
-
-        if (options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const hierarchy_extension =
-                strrchr(hierarchy_iter, '.');
-
-            if (hierarchy_extension != NULL) {
-                hierarchy_length = hierarchy_extension - hierarchy_iter;
-            }
-        } else {
-            hierarchy_length = strlen(hierarchy_iter);
+    if (fd < 0) {
+        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            fprintf(stderr,
+                    "Warning: Failed to open file (at path %s), error: %s\n",
+                    parse_path,
+                    strerror(errno));
         }
-
-        write_path =
-            path_append_component_and_extension_with_len(tbd->write_path,
-                                                         tbd->write_path_length,
-                                                         hierarchy_iter,
-                                                         hierarchy_length,
-                                                         "tbd",
-                                                         3);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
-    } else {
-        /*
-         * Since parse_path was created without any ending slashes, we can
-         * find the slashes that precede the last component.
-         */
-        
-        const char *const file_name =
-            path_find_last_row_of_slashes(parse_path + tbd->parse_path_length);
-
-        uint64_t file_name_length = 0;
-
-        if (options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const hierarchy_extension = strrchr(file_name, '.');
-            if (hierarchy_extension != NULL) {
-                file_name_length = hierarchy_extension - file_name;
-            } else {
-                file_name_length = strlen(file_name);
-            }
-        } else {
-            file_name_length = strlen(file_name);
-        }
-
-        write_path =
-            path_append_component_and_extension_with_len(tbd->write_path,
-                                                         tbd->write_path_length,
-                                                         file_name,
-                                                         file_name_length,
-                                                         "tbd",
-                                                         3);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
-    }
-
-    const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
-    const int write_fd =
-        open_r(write_path,
-               O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
-               0755,
-               &terminator);
-    
-    if (write_fd < 0) {
-        fprintf(stderr,
-                "Warning: Failed to open output-file (for path: %s), "
-                "error: %s\n",
-                write_path,
-                strerror(errno));
-
-        clear_create_info(info, &original_info);
-        
-        free(write_path);
-        close(fd);
 
         return true;
     }
 
-    FILE *const write_file = fdopen(write_fd, "w");
-    if (write_file == NULL) {
-        fprintf(stderr,
-                "Warning: Failed to open output-file (for path: %s) as FILE, "
-                "error: %s\n",
-                write_path,
-                strerror(errno));
-
-        clear_create_info(info, &original_info);
-        free(write_path);
-
-        close(write_fd);
-        close(fd);
+    struct stat sbuf = {};
+    if (fstat(fd, &sbuf) < 0) {
+        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            fprintf(stderr,
+                    "Warning: Failed to get info on file (at path %s), "
+                    "error: %s\n",
+                    parse_path,
+                    strerror(errno));
+        }
 
         return true;
     }
-    
-    const enum tbd_create_result create_tbd_result =
-        tbd_create_with_info(info, write_file, tbd->write_options);
 
-    if (create_tbd_result != E_TBD_CREATE_OK) {
-        fprintf(stderr,
-                "Warning: Failed to write to output-file "
-                "(for input-file at path: %s, to output-file's path: %s),"
-                "error: %s\n",
-                parse_path,
-                write_path,
-                strerror(errno));
+    struct tbd_for_main *const global = recurse_info->global;
+    uint64_t *const retained = &recurse_info->retained_info;
 
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
-            
-            remove_parial_r(write_path, terminator);
+    /*
+     * By default we always allow mach-o, but if the filetype is instead
+     * dyld_shared_cache, we only recurse for dyld_shared_cache.
+     */
+
+    if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
+        const bool handle_as_macho =
+            handle_macho_file(global,
+                            tbd,
+                            parse_path,
+                            fd,
+                            sbuf.st_size,
+                            true,
+                            retained);
+
+        if (handle_as_macho) {
+            close(fd);
+            return true;
         }
     }
 
-    clear_create_info(info, &original_info);
+    if (options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
+        const bool handle_as_dsc =
+            handle_shared_cache(global,
+                                tbd,
+                                parse_path,
+                                fd,
+                                sbuf.st_size,
+                                true);
+
+        if (handle_as_dsc) {
+            close(fd);
+            return true;
+        }
+    }
+
     close(fd);
-
-    fclose(write_file);
-    free(write_path);
-
     return true;
 }
 
@@ -498,7 +372,18 @@ int main(const int argc, const char *const argv[]) {
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
-                        if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
+                        /*
+                         * dyld_shared_cache files are always written to a
+                         * directory.
+                         */
+
+                        const bool is_dsc =
+                            tbd->filetype ==
+                            TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
+
+                        if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
+                            !is_dsc)
+                        {
                             fputs("Writing to a directory while parsing a "
                                   "single file is not supported, Please "
                                   "provide a directory to write all found "
@@ -597,6 +482,12 @@ int main(const int argc, const char *const argv[]) {
                                 index += 1;
                             }
                         }
+                    } else if (strcmp(option, "dsc") == 0) {
+                        tbd.filetype = TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
+                    } else if (strcmp(option, "include-dsc") == 0) {
+                        tbd.options |= O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
+                    } else if (strcmp(option, "skip-image-dirs") == 0) {
+                        tbd.options |= O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,
@@ -667,6 +558,20 @@ int main(const int argc, const char *const argv[]) {
                                     "directory if recursing is needed\n",
                                     full_path);
 
+                            if (full_path != path) {
+                                free(full_path);
+                            }
+
+                            destroy_tbds_array(&tbds);
+                            return 1;
+                        }
+
+                        if (tbd.options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
+                            fputs("Option (--include-dsc) is used to indicate "
+                                  "that dyld_shared_cache files should also be "
+                                  "parsed while recursing, in addition to "
+                                  "mach-o files", stderr);
+                            
                             if (full_path != path) {
                                 free(full_path);
                             }
@@ -1006,112 +911,48 @@ int main(const int argc, const char *const argv[]) {
                 continue;
             }
             
-            struct tbd_create_info *const info = &tbd->info;
+            struct stat sbuf = {};
+            if (fstat(fd, &sbuf) < 0) {
+                if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+                    if (should_print_paths) {
+                        fprintf(stderr,
+                                "Failed to get info on file (at path %s), "
+                                "error: %s\n",
+                                parse_path,
+                                strerror(errno));
+                    } else {
+                        fprintf(stderr,
+                                "Failed to get info on file (at path %s), "
+                                "error: %s\n",
+                                parse_path,
+                                strerror(errno));
+                    }
+                }
 
-            /*
-             * We ignore invalid fields as we just fill them in later as needed.
-             */
-
-            const uint64_t macho_options = O_MACHO_FILE_IGNORE_INVALID_FIELDS;
-            const enum macho_file_parse_result parse_result =
-                macho_file_parse_from_file(info,
-                                           fd,
-                                           tbd->parse_options,
-                                           macho_options);
-
-            const bool handle_ret =
-                handle_macho_file_parse_result(&global,
-                                               tbd,
-                                               parse_path,
-                                               parse_result,
-                                               should_print_paths,
-                                               &retained_info);
-
-            if (!handle_ret) {
-                close(fd);
                 continue;
             }
 
-            char *terminator = NULL;
-            char *const write_path = tbd->write_path;
+            switch (tbd->filetype) {
+                case TBD_FOR_MAIN_FILETYPE_MACHO:
+                    handle_macho_file(&global,
+                                      tbd,
+                                      parse_path,
+                                      fd,
+                                      sbuf.st_size,
+                                      true,
+                                      &retained_info);
 
-            FILE *write_file = stdout;
-            if (write_path != NULL) {
-                const int write_fd =
-                    open_r(write_path,
-                           O_WRONLY | O_TRUNC,
-                           DEFFILEMODE,
-                           0755,
-                           &terminator);
+                    break;
 
-                if (write_fd < 0) {
-                    if (should_print_paths) {
-                        fprintf(stderr,
-                                "Failed to open output-file (for path: %s), "
-                                "error: %s\n",
-                                write_path,
-                                strerror(errno));
-                    } else {
-                        fprintf(stderr,
-                                "Failed to open the provided output-file, "
-                                "error: %s\n",
-                                strerror(errno));
-                    }
+                case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE:
+                    handle_shared_cache(&global,
+                                        tbd,
+                                        parse_path,
+                                        fd,
+                                        sbuf.st_size,
+                                        false);
 
-                    close(fd);
-                    continue;
-                }
-
-                write_file = fdopen(write_fd, "w");
-                if (write_file == NULL) {
-                    if (should_print_paths) {
-                        fprintf(stderr,
-                                "Failed to open output-file (for path: %s) as "
-                                "FILE, error: %s\n",
-                                write_path,
-                                strerror(errno));
-                    } else {
-                        fprintf(stderr,
-                                "Failed to open the provided output-file as "
-                                "FILE, error: %s\n",
-                                strerror(errno));
-                    }
-                    
-                    close(fd);
-                    continue;
-                }
-            }
-
-            const enum tbd_create_result create_tbd_result =
-                tbd_create_with_info(info, write_file, tbd->write_options);
-
-            fclose(write_file);
-
-            if (create_tbd_result != E_TBD_CREATE_OK) {
-                if (should_print_paths) {
-                    fprintf(stderr,
-                            "Failed to write to output-file (for file at "
-                            "path: %s, at path: %s), error: %s\n",
-                            parse_path,
-                            write_path,
-                            strerror(errno));
-                } else {
-                    fprintf(stderr,
-                            "Failed to write to the provided output-file, "
-                            "error: %s\n",
-                            strerror(errno));
-                }
-
-                if (terminator != NULL) {
-                    /*
-                     * Ignore the return value as we cannot be sure if the 
-                     * remove failed as the directories we created (that are
-                     * pointed to by terminator) may now be populated with
-                     * multiple files.
-                     */
-                    
-                    remove_parial_r(write_path, terminator);
-                }
+                    break;
             }
 
             close(fd);

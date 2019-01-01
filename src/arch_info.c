@@ -17,6 +17,10 @@ const struct arch_info arch_info_list[] = {
     { CPU_TYPE_ANY, CPU_SUBTYPE_LITTLE_ENDIAN, "little" },
     { CPU_TYPE_ANY, CPU_SUBTYPE_BIG_ENDIAN,    "big"    },
 
+    /*
+     * Index starts at 3 and ends at 15.
+     */
+
     { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_ALL,    "arm"     },
     { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V4T,    "armv4t"  },
     { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6,     "armv6"   },
@@ -31,11 +35,23 @@ const struct arch_info arch_info_list[] = {
     { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7EM,   "armv7em" },
     { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V8,     "armv8"   },
 
+    /*
+     * Index starts at 16 and ends at 17.
+     */
+
     { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64" },
     { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_V8,  "arm64" },
 
+    /*
+     * Index starts at 18 and ends at 19.
+     */
+
     { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_ALL,  "hppa"       },
     { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_7100, "hppa7100LC" },
+
+    /*
+     * Index starts from 20 and ends at 28.
+     */
 
     { CPU_TYPE_X86, CPU_SUBTYPE_I386_ALL,  "i386"     },
     { CPU_TYPE_X86, CPU_SUBTYPE_486,       "i486"     },
@@ -47,13 +63,29 @@ const struct arch_info arch_info_list[] = {
     { CPU_TYPE_X86, CPU_SUBTYPE_PENTIUM_4, "pentium4" },
     { CPU_TYPE_X86, CPU_SUBTYPE_X86_64_H,  "x86_64h"  },
 
+    /*
+     * Following's index is 29.
+     */
+
     { CPU_TYPE_I860, CPU_SUBTYPE_I860_ALL, "i860" },
+
+    /*
+     * Index starts from 30 and ends at 32.
+     */
 
     { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC680x0_ALL,  "m68k"   },
     { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68040,      "m68040" },
     { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68030_ONLY, "m68030" },
 
+    /*
+     * Following's index is 33.
+     */
+
     { CPU_TYPE_MC88000, CPU_SUBTYPE_MC88000_ALL, "m88k" },
+
+    /*
+     * Index starts from 34 and ends at 45.
+     */
 
     { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_ALL,   "ppc"      },
     { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_601,   "ppc601"   },
@@ -68,17 +100,37 @@ const struct arch_info arch_info_list[] = {
     { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_7450,  "ppc7450"  },
     { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_970,   "ppc970"   },
 
+    /*
+     * Index starts from 46 and ends at 47.
+     */
+
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_ALL, "ppc64"     },
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64" },
 
+    /*
+     * Following's index is 48
+     */
+
     { CPU_TYPE_SPARC, CPU_SUBTYPE_SPARC_ALL, "sparc" },
+
+    /*
+     * Index starts from 49 and ends at 51.
+     */
 
     { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_ALL, "veo"  },
     { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_1,   "veo1" },
     { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_2,   "veo2" },
 
+    /*
+     * Index starts from 52 and ends at 53.
+     */
+
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL, "x86_64"  },
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,   "x86_64h" },
+
+    /*
+     * Following's index is 53
+     */
 
     { 0, 0, NULL }
 };

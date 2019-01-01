@@ -1,5 +1,5 @@
 //
-//  src/macho_fd_symbols.c
+//  src/macho_file_parse_symbols.c
 //  tbd
 //
 //  Created by inoahdev on 11/21/18.
@@ -13,12 +13,15 @@
 
 #include <unistd.h>
 
-#include "c_str_utils.h"
 #include "mach-o/nlist.h"
-
 #include "arch_info.h"
-#include "macho_file_symbols.h"
 
+#include "c_str_utils.h"
+#include "guard_overflow.h"
+
+#include "macho_file_parse_symbols.h"
+
+#include "range.h"
 #include "swap.h"
 
 #include "tbd.h"
@@ -221,13 +224,7 @@ handle_symbol(struct tbd_create_info *const info,
     }
 
     bool needs_quotes = false;
-    if (yaml_verify_c_str(string, length, &needs_quotes)) {
-        /*
-         * For leniency purposes, simply ignore any invalid symbols.
-         */
-
-        return E_MACHO_FILE_PARSE_OK;
-    }
+    yaml_check_c_str(string, length, &needs_quotes);
 
     if (needs_quotes) {
         export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
@@ -272,26 +269,62 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
                          const uint32_t nsyms,
                          const uint32_t stroff,
                          const uint32_t strsize,
-                         const uint64_t parse_options,
+                         const uint64_t tbd_options,
                          const uint64_t options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const uint32_t symbol_table_size = sizeof(struct nlist) * nsyms;
-    if (symbol_table_size / sizeof(struct nlist) != nsyms) {
+    uint32_t symbol_table_size = sizeof(struct nlist);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
-    const uint32_t string_table_end = stroff + strsize;
+    uint32_t string_table_end = stroff;
+    if (guard_overflow_add(&string_table_end, strsize)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
     if (size != 0) {
         if (string_table_end > size) {
             return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
         }
     }
 
-    if (lseek(fd, start + symoff, SEEK_SET) < 0) {
+    uint32_t absolute_symoff = start;
+    if (guard_overflow_add(&absolute_symoff, symoff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    /*
+     * Ensure the string-table and symbol-table don't overlap.
+     */
+
+    uint64_t symbol_table_end = symoff;
+    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const struct range symbol_table_range = {
+        .begin = symoff,
+        .end = symbol_table_end
+    };
+
+    const struct range string_table_range = {
+        .begin = stroff,
+        .end = string_table_end
+    };
+
+    if (ranges_overlap(symbol_table_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    /*
+     * Read the symbol-table.
+     */
+
+    if (lseek(fd, absolute_symoff, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -305,7 +338,17 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    if (lseek(fd, start + stroff, SEEK_SET) < 0) {
+    /*
+     * Read the string-table.
+     */
+
+    uint32_t absolute_stroff = start;
+    if (guard_overflow_add(&absolute_stroff, stroff)) {
+        free(symbol_table);
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
@@ -374,7 +417,7 @@ macho_file_parse_symbols(struct tbd_create_info *const info,
                           string_length,
                           n_desc,
                           n_type,
-                          parse_options);
+                          tbd_options);
 
         if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
             free(symbol_table);
@@ -401,26 +444,63 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
                             const uint32_t nsyms,
                             const uint32_t stroff,
                             const uint32_t strsize,
-                            const uint64_t parse_options,
+                            const uint64_t tbd_options,
                             const uint64_t options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const uint32_t symbol_table_size = sizeof(struct nlist_64) * nsyms;
-    if (symbol_table_size / sizeof(struct nlist_64) != nsyms) {
+    uint32_t symbol_table_size = sizeof(struct nlist_64);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
-    const uint32_t string_table_end = stroff + strsize;
     if (size != 0) {
+        uint32_t string_table_end = stroff;
+        if (guard_overflow_add(&string_table_end, strsize)) {
+            return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+        }
+
         if (string_table_end > size) {
             return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
         }
     }
 
-    if (lseek(fd, start + symoff, SEEK_SET) < 0) {
+    uint32_t absolute_symoff = start;
+    if (guard_overflow_add(&absolute_symoff, symoff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    /*
+     * Ensure the string-table and symbol-table don't overlap.
+     */
+
+    uint64_t symbol_table_end = symoff;
+    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    uint64_t string_table_end = stroff;
+    if (guard_overflow_add(&string_table_end, strsize)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const struct range symbol_table_range = {
+        .begin = symoff,
+        .end = symbol_table_end
+    };
+
+    const struct range string_table_range = {
+        .begin = stroff,
+        .end = string_table_end
+    };
+
+    if (ranges_overlap(symbol_table_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    if (lseek(fd, absolute_symoff, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -434,7 +514,13 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    if (lseek(fd, start + stroff, SEEK_SET) < 0) {
+    uint32_t absolute_stroff = start;
+    if (guard_overflow_add(&absolute_stroff, stroff)) {
+        free(symbol_table);
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+    
+    if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
@@ -503,7 +589,7 @@ macho_file_parse_symbols_64(struct tbd_create_info *const info,
                           string_length,
                           n_desc,
                           n_type,
-                          parse_options);
+                          tbd_options);
 
         if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
             free(symbol_table);

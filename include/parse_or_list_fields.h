@@ -6,8 +6,8 @@
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
-#ifndef PARSE_FIELDS_H
-#define PARSE_FIELDS_H
+#ifndef PARSE_OR_LIST_FIELDS_H
+#define PARSE_OR_LIST_FIELDS_H
 
 #include <stdint.h>
 #include "tbd.h"
@@ -29,4 +29,4 @@ void print_platform_list(void);
 void print_tbd_flags_list(void);
 void print_tbd_version_list(void);
 
-#endif /* PARSE_FIELDS_H */
+#endif /* PARSE_OR_LIST_FIELDS_H */

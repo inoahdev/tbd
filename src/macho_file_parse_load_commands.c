@@ -14,10 +14,12 @@
 #include <unistd.h>
 
 #include "c_str_utils.h"
+#include "guard_overflow.h"
+
 #include "objc.h"
 
-#include "macho_file_load_commands.h"
-#include "macho_file_symbols.h"
+#include "macho_file_parse_load_commands.h"
+#include "macho_file_parse_symbols.h"
 
 #include "path.h"
 #include "swap.h"
@@ -25,7 +27,7 @@
 #include "yaml.h"
 
 static enum macho_file_parse_result 
-parse_objc_constraint(struct tbd_create_info *const info,
+parse_objc_constraint(struct tbd_create_info *const info_in,
                       const uint32_t flags)
 {
     enum tbd_objc_constraint objc_constraint =
@@ -40,19 +42,19 @@ parse_objc_constraint(struct tbd_create_info *const info,
             TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_FOR_SIMULATOR;
     }
 
-    if (info->objc_constraint != 0) {
-        if (info->objc_constraint != objc_constraint) {
+    if (info_in->objc_constraint != 0) {
+        if (info_in->objc_constraint != objc_constraint) {
             return E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
         }
     } else {
-        info->objc_constraint = objc_constraint;
+        info_in->objc_constraint = objc_constraint;
     }
 
     return E_MACHO_FILE_PARSE_OK;
 }
 
 static enum macho_file_parse_result
-add_export_to_info(struct tbd_create_info *const info,
+add_export_to_info(struct tbd_create_info *const info_in,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
                    const char *const string,
@@ -70,7 +72,7 @@ add_export_to_info(struct tbd_create_info *const info,
         export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
-    struct array *const exports = &info->exports;
+    struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};
 
     struct tbd_export_info *const existing_info =
@@ -90,7 +92,7 @@ add_export_to_info(struct tbd_create_info *const info,
      * load-command buffer which will soon be freed.
      */
 
-    export_info.string = strndup(string, string_length);
+    export_info.string = strndup(export_info.string, export_info.length);
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -111,7 +113,7 @@ add_export_to_info(struct tbd_create_info *const info,
 }
 
 enum macho_file_parse_result
-macho_file_parse_load_commands(struct tbd_create_info *const info,
+macho_file_parse_load_commands(struct tbd_create_info *const info_in,
                                const struct arch_info *const arch,
                                const uint64_t arch_bit,
                                const int fd,
@@ -121,8 +123,9 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                const bool is_big_endian,
                                const uint32_t ncmds,
                                const uint32_t sizeofcmds,
-                               const uint64_t parse_options,
-                               const uint64_t options)
+                               const uint64_t tbd_options,
+                               const uint64_t options,
+                               struct symtab_command *const symtab_out)
 {
     if (ncmds == 0) {
         return E_MACHO_FILE_PARSE_NO_LOAD_COMMANDS; 
@@ -136,12 +139,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
 
-    /*
-     * Check for a possible overflow when multipying.
-     */
-
-    const uint32_t minimum_size = sizeof(struct load_command) * ncmds;
-    if (minimum_size / sizeof(struct load_command) != ncmds) {
+    uint32_t minimum_size = sizeof(struct load_command);
+    if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
@@ -191,7 +190,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
     uint8_t *load_cmd_iter = load_cmd_buffer;
     uint32_t size_left = sizeofcmds;
 
-    for (uint32_t i = 0; i < ncmds; i++) {
+    for (uint32_t i = 0; i != ncmds; i++) {
         /*
          * Verify that we still have space for a load-command.
          */
@@ -240,7 +239,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If the platform isn't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
                     break;
                 }
 
@@ -249,7 +248,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * cmdsize.
                  */
 
-                if (load_cmd.cmdsize != sizeof(struct build_version_command)) {
+                if (load_cmd.cmdsize < sizeof(struct build_version_command)) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
@@ -273,7 +272,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      * load-command.
                      */
 
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -287,7 +286,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      * load-command.
                      */
 
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -303,15 +302,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * we are pretty lenient, so we don't enforce this.
                  */
 
-                if (info->platform != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->platform != build_version_platform) {
+                if (info_in->platform != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->platform != build_version_platform) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                         }
                     }
                 } else {
-                    info->platform = build_version_platform;
+                    info_in->platform = build_version_platform;
                 }
     
                 found_platform = true;
@@ -328,9 +330,9 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If no information is needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION &&
-                    parse_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION &&
-                    parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)
+                if (tbd_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION &&
+                    tbd_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION &&
+                    tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)
                 {
                     found_identification = true;
                     break;
@@ -363,7 +365,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (name_offset < sizeof(struct dylib_command)) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         found_identification = true;
                         break;
                     }
@@ -373,7 +375,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (name_offset >= load_cmd.cmdsize) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         found_identification = true;
                         break;
                     }
@@ -395,7 +397,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t length = strnlen(name_ptr, max_length);
 
                 if (length == 0) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         found_identification = true;
                         break;
                     }
@@ -410,23 +412,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 bool needs_quotes = false;
-                if (yaml_verify_c_str(name_ptr, length, &needs_quotes)) {
-                    /*
-                     * If we're ignoring invalid fields, simply goto the next
-                     * load-command.
-                     */
-
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
-                        found_identification = true;
-                        break;
-                    }
-
-                    free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
-                }
+                yaml_check_c_str(name_ptr, length, &needs_quotes);
 
                 if (needs_quotes) {
-                    info->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+                    info_in->flags |=
+                        F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
                 }
                 
                 char *const install_name = strndup(name_ptr, length);
@@ -444,15 +434,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 const struct dylib dylib = dylib_command->dylib;
-                if (info->install_name != NULL) {
+                if (info_in->install_name != NULL) {
                     free(install_name);
                     
-                    if (options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (ignore_conflicting_fields) {
                         found_identification = true;
                         break;
                     }
 
-                    if (info->current_version != dylib.current_version) {
+                    if (info_in->current_version != dylib.current_version) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
@@ -465,31 +458,31 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    if (info->install_name_length != length) {
+                    if (info_in->install_name_length != length) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    if (strcmp(info->install_name, name_ptr) != 0) {
+                    if (strcmp(info_in->install_name, name_ptr) != 0) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
                 } else {
-                    if (!(parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION)) {
-                        info->current_version = dylib.current_version;
+                    if (!(tbd_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION)) {
+                        info_in->current_version = dylib.current_version;
                     }
 
                     const bool ignore_compatibility_version =
                         options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
 
                     if (!ignore_compatibility_version) {
-                        info->compatibility_version =
+                        info_in->compatibility_version =
                             dylib.compatibility_version;
                     }
 
-                    if (!(parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
-                        info->install_name = install_name;
-                        info->install_name_length = length;
+                    if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
+                        info_in->install_name = install_name;
+                        info_in->install_name_length = length;
                     }
                 }
 
@@ -498,7 +491,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
             }
 
             case LC_REEXPORT_DYLIB: {
-                if (parse_options & O_TBD_PARSE_IGNORE_REEXPORTS) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_REEXPORTS) {
                     break;
                 }
 
@@ -545,7 +538,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t length = strnlen(reexport_string, max_length);
                 
                 if (length == 0) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -559,17 +552,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 bool needs_quotes = false;
-                if (yaml_verify_c_str(reexport_string, length, &needs_quotes)) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
-                        break;
-                    }
-
-                    free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
-                }
+                yaml_check_c_str(reexport_string, length, &needs_quotes);
 
                 const enum macho_file_parse_result add_reexport_result =
-                    add_export_to_info(info,
+                    add_export_to_info(info_in,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_REEXPORT,
                                        reexport_string,
@@ -590,8 +576,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * unnecessary parsing.
                  */
 
-                if ((parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
+                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
+                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
                 {
                     break;
                 }
@@ -644,14 +630,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * Verify the size and integrity of the sections.
                  */
 
-                const uint32_t sections_size = sizeof(struct section) * nsects;
-
-                /*
-                 * Ensure no overflow occurs when calculating the total sections
-                 * size.
-                 */
-
-                if (sections_size / sizeof(struct section) != nsects) {
+                uint64_t sections_size = sizeof(struct section);
+                if (guard_overflow_mul(&sections_size, nsects)) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS;
                 }
@@ -764,10 +744,14 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      */
     
                     const enum macho_file_parse_result parse_constraint_result =
-                        parse_objc_constraint(info, image_info.flags);
+                        parse_objc_constraint(info_in, image_info.flags);
             
                     if (parse_constraint_result != E_MACHO_FILE_PARSE_OK) {
-                        if (!(options & O_MACHO_FILE_IGNORE_INVALID_FIELDS)) {
+                        const bool ignore_conflicting_fields =
+                            options &
+                            O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                        if (!ignore_conflicting_fields) {
                             free(load_cmd_buffer);
                             return parse_constraint_result;
                         }
@@ -792,15 +776,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      */
                 }
 
-                if (info->swift_version != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->swift_version != swift_version) {
+                if (info_in->swift_version != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->swift_version != swift_version) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
                         }
                     }
                 } else {
-                    info->swift_version = swift_version;
+                    info_in->swift_version = swift_version;
                 }
 
                 break;
@@ -812,8 +799,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * unnecessary parsing.
                  */
 
-                if ((parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
+                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
+                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
                 {
                     break;
                 }
@@ -866,14 +853,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * Verify the size and integrity of the sections.
                  */
 
-                const uint32_t sections_size = sizeof(struct section) * nsects;
-
-                /*
-                 * Ensure no overflow occurs when calculating the total sections
-                 * size.
-                 */
-
-                if (sections_size / sizeof(struct section) != nsects) {
+                uint64_t sections_size = sizeof(struct section_64);
+                if (guard_overflow_mul(&sections_size, nsects)) {
                     free(load_cmd_buffer);
                     return E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS;
                 }
@@ -986,10 +967,14 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      */
     
                     const enum macho_file_parse_result parse_constraint_result =
-                        parse_objc_constraint(info, image_info.flags);
+                        parse_objc_constraint(info_in, image_info.flags);
             
                     if (parse_constraint_result != E_MACHO_FILE_PARSE_OK) {
-                        if (!(options & O_MACHO_FILE_IGNORE_INVALID_FIELDS)) {
+                        const bool ignore_conflicting_fields =
+                            options &
+                            O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                        if (!ignore_conflicting_fields) {
                             free(load_cmd_buffer);
                             return parse_constraint_result;
                         }
@@ -1014,15 +999,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                      */
                 }
 
-                if (info->swift_version != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->swift_version != swift_version) {
+                if (info_in->swift_version != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->swift_version != swift_version) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
                         }
                     }
                 } else {
-                    info->swift_version = swift_version;
+                    info_in->swift_version = swift_version;
                 }
 
                 break;
@@ -1033,7 +1021,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If no sub-clients are needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_CLIENTS) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_CLIENTS) {
                     break;
                 }
 
@@ -1086,7 +1074,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t length = strnlen(string, max_length);
 
                 if (length == 0) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -1100,17 +1088,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 bool needs_quotes = false;
-                if (yaml_verify_c_str(string, length, &needs_quotes)) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
-                        break;
-                    }
-
-                    free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_CLIENT;
-                }
+                yaml_check_c_str(string, length, &needs_quotes);
 
                 const enum macho_file_parse_result add_client_result =
-                    add_export_to_info(info,
+                    add_export_to_info(info_in,
                                        arch_bit,
                                        TBD_EXPORT_TYPE_CLIENT,
                                        string,
@@ -1130,7 +1111,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If no sub-umbrella are needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
                     break;
                 }
 
@@ -1161,7 +1142,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 if (umbrella_offset < sizeof(struct sub_framework_command)) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -1170,7 +1151,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 }
 
                 if (umbrella_offset >= load_cmd.cmdsize) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
 
@@ -1191,7 +1172,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                 const uint32_t length = strnlen(umbrella, max_length);
 
                 if (length == 0) {
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
+                    if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                         break;
                     }
                     
@@ -1205,22 +1186,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  */
 
                 bool needs_quotes = false;
-                if (yaml_verify_c_str(umbrella, length, &needs_quotes)) {
-                    /*
-                     * If we're ignoring invalid fields, simply goto the next
-                     * load-command.
-                     */
-
-                    if (options & O_MACHO_FILE_IGNORE_INVALID_FIELDS) {
-                        break;
-                    }
-
-                    free(load_cmd_buffer);
-                    return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
-                }
+                yaml_check_c_str(umbrella, length, &needs_quotes);
 
                 if (needs_quotes) {
-                    info->flags |=
+                    info_in->flags |=
                         F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
                 }
 
@@ -1230,25 +1199,28 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                 }
 
-                if (info->parent_umbrella != NULL) {
+                if (info_in->parent_umbrella != NULL) {
                     free(umbrella_string);
 
-                    if (options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (ignore_conflicting_fields) {
                         break;
                     }
 
-                    if (info->parent_umbrella_length != length) {
+                    if (info_in->parent_umbrella_length != length) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
 
-                    if (strcmp(info->parent_umbrella, umbrella) != 0) {
+                    if (strcmp(info_in->parent_umbrella, umbrella) != 0) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
                 } else {
-                    info->parent_umbrella = umbrella_string;
-                    info->parent_umbrella_length = length;
+                    info_in->parent_umbrella = umbrella_string;
+                    info_in->parent_umbrella_length = length;
                 }
 
                 break;
@@ -1259,7 +1231,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If symbols aren't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_SYMBOLS) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS) {
                     break;
                 }
 
@@ -1286,7 +1258,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If uuids aren't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_UUID) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_UUID) {
                     break;
                 }
 
@@ -1303,7 +1275,10 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     const char *const uuid_cmd_uuid =
                         (const char *)uuid_cmd->uuid;
 
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
                         if (strncmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
@@ -1322,7 +1297,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If the platform isn't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
                     break;
                 }
 
@@ -1336,15 +1311,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                if (info->platform != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->platform != TBD_PLATFORM_MACOS) {
+                if (info_in->platform != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->platform != TBD_PLATFORM_MACOS) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                         }
                     }
                 } else {
-                    info->platform = TBD_PLATFORM_MACOS;
+                    info_in->platform = TBD_PLATFORM_MACOS;
                 }
 
                 break;
@@ -1355,7 +1333,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If the platform isn't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
                     break;
                 }
 
@@ -1369,15 +1347,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                if (info->platform != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->platform != TBD_PLATFORM_IOS) {
+                if (info_in->platform != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->platform != TBD_PLATFORM_IOS) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                         }
                     }
                 } else {
-                    info->platform = TBD_PLATFORM_IOS;
+                    info_in->platform = TBD_PLATFORM_IOS;
                 }
 
                 break;
@@ -1388,7 +1369,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If the platform isn't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
                     break;
                 }
 
@@ -1402,15 +1383,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                if (info->platform != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->platform != TBD_PLATFORM_WATCHOS) {
+                if (info_in->platform != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->platform != TBD_PLATFORM_WATCHOS) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                         }
                     }
                 } else {
-                    info->platform = TBD_PLATFORM_WATCHOS;
+                    info_in->platform = TBD_PLATFORM_WATCHOS;
                 }
 
                 break;
@@ -1421,7 +1405,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                  * If the platform isn't needed, skip the unnecessary parsing.
                  */
 
-                if (parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
                     break;
                 }
 
@@ -1435,15 +1419,18 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                if (info->platform != 0) {
-                    if (!(options & O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS)) {
-                        if (info->platform != TBD_PLATFORM_TVOS) {
+                if (info_in->platform != 0) {
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
+                        if (info_in->platform != TBD_PLATFORM_TVOS) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                         }
                     }
                 } else {
-                    info->platform = TBD_PLATFORM_TVOS;
+                    info_in->platform = TBD_PLATFORM_TVOS;
                 }
 
                 break;
@@ -1462,13 +1449,13 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
 
-    if (!(parse_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
         if (symtab.cmd != LC_SYMTAB) {
             return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
         }
     }
 
-    if (!(parse_options & O_TBD_PARSE_IGNORE_UUID)) {
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
         if (!found_uuid) {
             return E_MACHO_FILE_PARSE_NO_UUID;
         }
@@ -1480,7 +1467,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
      */
 
     const uint8_t *const array_uuid =
-        array_find_item(&info->uuids,
+        array_find_item(&info_in->uuids,
                         sizeof(uuid_info),
                         &uuid_info,
                         tbd_uuid_info_comparator,
@@ -1491,7 +1478,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
     }
     
     const enum array_result add_uuid_info_result =
-        array_add_item(&info->uuids, sizeof(uuid_info), &uuid_info, NULL);
+        array_add_item(&info_in->uuids, sizeof(uuid_info), &uuid_info, NULL);
 
     if (add_uuid_info_result != E_ARRAY_OK) {
         return E_MACHO_FILE_PARSE_ARRAY_FAIL;
@@ -1509,6 +1496,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
         symtab.strsize = swap_uint32(symtab.strsize);
     }
 
+    if (options & O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE) {
+        *symtab_out = symtab;
+        return E_MACHO_FILE_PARSE_OK;
+    }
+
     /*
      * Verify the symbol-table's information.
      */
@@ -1516,7 +1508,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_64) {
         ret =
-            macho_file_parse_symbols_64(info,
+            macho_file_parse_symbols_64(info_in,
                                         fd,
                                         arch_bit,
                                         start,
@@ -1526,11 +1518,11 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                         symtab.nsyms,
                                         symtab.stroff,
                                         symtab.strsize,
-                                        parse_options,
+                                        tbd_options,
                                         options);
     } else {
         ret =
-            macho_file_parse_symbols(info,
+            macho_file_parse_symbols(info_in,
                                      fd,
                                      arch_bit,
                                      start,
@@ -1540,7 +1532,7 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                      symtab.nsyms,
                                      symtab.stroff,
                                      symtab.strsize,
-                                     parse_options,
+                                     tbd_options,
                                      options);
     }
 

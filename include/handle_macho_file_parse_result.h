@@ -6,8 +6,8 @@
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
-#ifndef HANDLE_TBD_H
-#define HANDLE_TBD_H
+#ifndef HANDLE_MACHO_PARSE_RESULT_H
+#define HANDLE_MACHO_PARSE_RESULT_H
 
 #include "macho_file.h"
 #include "tbd_for_main.h"
@@ -20,4 +20,4 @@ handle_macho_file_parse_result(struct tbd_for_main *global,
                                bool print_paths,
                                uint64_t *retained_info_in);
 
-#endif /* HANDLE_TBD_H */
+#endif /* HANDLE_MACHO_PARSE_RESULT_H */

@@ -19,30 +19,20 @@
 #include "path.h"
 #include "recursive.h"
 
-static char *find_beginning_of_row_of_slashes(char *const begin, char *iter) {
-    for (char ch = *(--iter); iter != begin; ch = *(--iter)) {
-        if (ch != '/') {
-            return iter + 1;
-        }
-    }
-
-    return NULL;
-}
-
 static
 char *find_last_slash_before_end(char *const path, const char *const end) {
-    char *iter = (char *)(end - 1);
-    for (char ch = *iter; iter != path; ch = *(--iter)) {
-        if (ch == '/') {
-            return find_beginning_of_row_of_slashes(path, iter);
-        }
-    }
-
-    return NULL;
+    const char *iter = path_find_last_row_of_slashes_before_end(path, end);
+    return (char *)path_get_front_of_row_of_slashes(path, iter);
 }
 
-static char *find_next_slash(char *const path) {
+static char *find_next_slash_skipping_first_row(char *const path) {
     char *iter = path;
+    char ch = *iter;
+
+    do {
+        ch = *(++iter);
+    } while (ch == '/');
+
     for (char ch = *(++iter); ch != '\0'; ch = *(++iter)) {
         if (ch != '/') {
             continue;
@@ -52,13 +42,7 @@ static char *find_next_slash(char *const path) {
          * Skip past a row of slashes, if one does exist.
          */
             
-        for (ch = *(++iter); ch != '\0'; ch = *(++iter)) {
-            if (ch != '/') {
-                break;
-            }
-        }
-
-        return iter - 1;
+        return (char *)path_get_back_of_row_of_slashes(iter);
     }
 
     return NULL;
@@ -78,7 +62,8 @@ reverse_mkdir_ignoring_last(char *const path,
 
     int first_ret = 0;
     if (last_slash[1] == '\0') {
-        last_slash = find_beginning_of_row_of_slashes(path, last_slash);
+        last_slash =
+            (char *)path_get_front_of_row_of_slashes(path, last_slash);
         
         *last_slash = '\0';
         first_ret = mkdir(path, mode);
@@ -113,11 +98,13 @@ reverse_mkdir_ignoring_last(char *const path,
     }
 
     /*
-     * Store a pointer to this slash mentioned above, which we will use later to
-     * stop right before parsing the last-path-component.
+     * Store a pointer to the slash mentioned above, however, store at the back
+     * of any row if one exists as we move backwards when iterating and
+     * when checking against this variable.
      */
 
-    char *const final_slash = last_slash;
+    char *const final_slash =
+        (char *)path_get_back_of_row_of_slashes(last_slash);
 
     /*
      * Iterate over the path-components backwayds, finding the final slash
@@ -193,7 +180,7 @@ reverse_mkdir_ignoring_last(char *const path,
      * path-component after the last only that was just created.
      */
 
-    char *slash = find_next_slash(last_slash);
+    char *slash = find_next_slash_skipping_first_row(last_slash);
 
     /*
      * Iterate forwards to create path-components following the final
@@ -209,7 +196,7 @@ reverse_mkdir_ignoring_last(char *const path,
 
         const int ret = mkdir(path, mode);
         if (ret < 0) {
-            *slash = '\0';
+            *slash = '/';
             return 1;
         }
 
@@ -223,7 +210,7 @@ reverse_mkdir_ignoring_last(char *const path,
             break;
         }
 
-        slash = find_next_slash(slash);
+        slash = find_next_slash_skipping_first_row(slash);
     } while (true);
 
     return 0;
@@ -257,7 +244,33 @@ open_r(char *const path,
     return fd;
 }
 
-int remove_parial_r(char *const path, char *const from) {
+int
+mkdir_r(char *const path, const mode_t mode, char **const first_terminator_out)
+{
+    if (mkdir(path, mode) == 0) {
+        return 0;
+    }
+    
+    if (errno == EEXIST) {
+         return 0;
+    }
+
+    if (errno != ENOENT) {
+        return 1;
+    }
+
+    if (reverse_mkdir_ignoring_last(path, mode, first_terminator_out)) {
+        return 1;
+    }
+
+    if (mkdir(path, mode) < 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int remove_partial_r(char *const path, char *const from) {
     if (remove(path) != 0) {
         return 1;
     }

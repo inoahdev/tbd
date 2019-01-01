@@ -19,11 +19,13 @@ open_r(char *path,
        mode_t dir_mode,
        char **first_terminator_out);
 
+int mkdir_r(char *path, mode_t mode, char **first_terminator_out); 
+
 /*
  * Remove only directories whose path-strings are formed when terminating
  * from and all subsequent slashes.
  */
 
-int remove_parial_r(char *path, char *from);
+int remove_partial_r(char *path, char *from);
 
 #endif /* RECURSIVE_H */

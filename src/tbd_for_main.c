@@ -6,14 +6,19 @@
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
-#include <ctype.h>
+#include <sys/stat.h>
+
 #include <errno.h>
+#include <fcntl.h>
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "macho_file.h"
 #include "parse_or_list_fields.h"
+
+#include "path.h"
+#include "recursive.h"
 #include "tbd_for_main.h"
 
 bool
@@ -192,7 +197,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->info.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "--skip-invalid-archs") == 0) {
-        tbd->parse_options |= O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES; 
+        tbd->macho_options |=
+            O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES; 
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {
@@ -219,6 +225,83 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
     *index_in = index;
     return true;
+}
+
+char *
+tbd_for_main_create_write_path(struct tbd_for_main *const tbd,
+                               const char *const folder_path,
+                               const uint64_t folder_path_length,
+                               const char *const parse_path,
+                               const bool ignore_parse_path_hierarchy)
+{
+    char *write_path = NULL;
+    if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
+        /*
+         * The "hierarchy" is simply the hierarchy of directories following the
+         * user-provided recurse-directory.
+         */
+
+        const char *const hierarchy_iter = parse_path + tbd->parse_path_length;
+        uint64_t hierarchy_length = 0;
+
+        if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+            const char *const hierarchy_extension =
+                strrchr(hierarchy_iter, '.');
+
+            if (hierarchy_extension != NULL) {
+                hierarchy_length = hierarchy_extension - hierarchy_iter;
+            }
+        } else {
+            hierarchy_length = strlen(hierarchy_iter);
+        }
+
+        write_path =
+            path_append_component_and_extension_with_len(folder_path,
+                                                         folder_path_length,
+                                                         hierarchy_iter,
+                                                         hierarchy_length,
+                                                         "tbds",
+                                                         3);
+
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    } else {
+        uint64_t hierarchy_length = 0;
+        const char *hierarchy = parse_path; 
+
+        if (!ignore_parse_path_hierarchy) {         
+            const char *const subdirs = parse_path + tbd->parse_path_length;
+            hierarchy = path_find_last_row_of_slashes(subdirs);
+        }
+
+        if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+            const char *const hierarchy_extension = strrchr(hierarchy, '.');
+            if (hierarchy_extension != NULL) {
+                hierarchy_length = hierarchy_extension - hierarchy;
+            } else {
+                hierarchy_length = strlen(hierarchy);
+            }
+        } else {
+            hierarchy_length = strlen(hierarchy);
+        }
+
+        write_path =
+            path_append_component_and_extension_with_len(folder_path,
+                                                         folder_path_length,
+                                                         hierarchy,
+                                                         hierarchy_length,
+                                                         "tbd",
+                                                         3);
+
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    }
+
+    return write_path;
 }
 
 void
@@ -277,9 +360,144 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
         dst->info.version = src->info.version;
     }
 
+    dst->macho_options |= src->macho_options;
+    dst->dsc_options |= src->dsc_options;
+
     dst->parse_options |= src->parse_options;
     dst->write_options |= src->write_options;
+
     dst->options |= src->options;
+}
+
+void
+tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
+                           const char *const input_path,
+                           char *const write_path,
+                           const bool print_paths)
+{
+    char *terminator = NULL;
+    const uint64_t options = tbd->options;
+
+    const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int write_fd =
+        open_r(write_path,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               0755,
+               &terminator);
+    
+    if (write_fd < 0) {
+        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to open output-file (for path: %s), "
+                        "error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided output-file, error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return;
+    }
+
+    FILE *const write_file = fdopen(write_fd, "w");
+    if (write_file == NULL) {
+        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to open output-file (for path: %s) as FILE, "
+                        "error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided output-file as FILE, "
+                        "error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return;
+    }
+    
+    const struct tbd_create_info *const create_info = &tbd->info;
+    const enum tbd_create_result create_tbd_result =
+        tbd_create_with_info(create_info, write_file, tbd->write_options);
+
+    if (create_tbd_result != E_TBD_CREATE_OK) {
+        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to output-file (for input-file at "
+                        "path: %s, to output-file's path: %s), error: %s\n",
+                        input_path,
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to write to provided output-file, error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+            
+            remove_partial_r(write_path, terminator);
+        }
+    }
+
+    fclose(write_file);
+}
+
+void
+tbd_for_main_write_to_file(const struct tbd_for_main *const tbd,
+                           const char *const input_path,
+                           char *const write_path,
+                           char *const write_path_terminator,
+                           FILE *const write_file,
+                           const bool print_paths)
+{
+    const struct tbd_create_info *const create_info = &tbd->info;
+    const enum tbd_create_result create_tbd_result =
+        tbd_create_with_info(create_info, write_file, tbd->write_options);
+
+    if (create_tbd_result != E_TBD_CREATE_OK) {
+        if (!(tbd->options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to output-file (for input-file at "
+                        "path: %s, to output-file's path: %s), error: %s\n",
+                        input_path,
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to write to output-file (for provided "
+                        "input-file, to output-file's path: %s), error: %s\n",
+                        write_path,
+                        strerror(errno));
+            }
+        }
+
+        if (write_path_terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+            
+            remove_partial_r(write_path, write_path_terminator);
+        }
+    }
 }
 
 void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
@@ -290,4 +508,13 @@ void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
 
     tbd->parse_path = NULL;
     tbd->write_path = NULL;
+
+    tbd->macho_options = 0;
+    tbd->dsc_options = 0;
+
+    tbd->write_options = 0;
+    tbd->parse_options = 0;
+
+    tbd->filetype = 0;
+    tbd->options = 0;
 }

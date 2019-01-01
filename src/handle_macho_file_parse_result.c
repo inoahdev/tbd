@@ -466,8 +466,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information for its parent-umbrella\n",
-                        stderr);
+                          "conflicting information for its parent-umbrella\n",
+                          stderr);
                 }
 
                 if (!request_parent_umbrella(global, tbd, info_in)) {
@@ -484,8 +484,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information for its platform\n",
-                        stderr);
+                          "conflicting information for its platform\n",
+                          stderr);
                 }
 
                 if (!request_platform(global, tbd, info_in)) {
@@ -502,8 +502,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
-                        "conflicting information for its swift-version\n",
-                        stderr);
+                          "conflicting information for its swift-version\n",
+                          stderr);
                 }
 
                 if (!request_swift_version(global, tbd, info_in)) {

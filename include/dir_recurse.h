@@ -6,6 +6,9 @@
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
+#ifndef DIR_RECURSE_H
+#define DIR_RECURSE_H
+
 #include <dirent.h>
 #include <stdbool.h>
 
@@ -29,3 +32,5 @@ dir_recurse(const char *path,
             bool sub_dirs,
             void *callback_info,
             dir_recurse_callback callback);
+
+#endif /* DIR_RECURSE_H */

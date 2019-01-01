@@ -1,13 +1,13 @@
 //
-//  include/macho_file_load_commands.h
+//  include/macho_file_parse_load_commands.h
 //  tbd
 //
 //  Created by inoahdev on 11/20/18.
 //  Copyright © 2018 inoahdev. All rights reserved.
 //
 
-#ifndef MACHO_FILE_LOAD_COMMANDS_H
-#define MACHO_FILE_LOAD_COMMANDS_H
+#ifndef MACHO_FILE_PARSE_LOAD_COMMANDS_H
+#define MACHO_FILE_PARSE_LOAD_COMMANDS_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,7 +27,8 @@ macho_file_parse_load_commands(struct tbd_create_info *const info,
                                const bool is_big_endian,
                                const uint32_t ncmds,
                                const uint32_t sizeofcmds,
-                               const uint64_t create_options,
-                               const uint64_t options);
+                               const uint64_t tbd_options,
+                               const uint64_t options,
+                               struct symtab_command *symtab_out);
 
-#endif /* MACHO_FILE_LOAD_COMMANDS_H */
+#endif /* MACHO_FILE_PARSE_LOAD_COMMANDS_H */

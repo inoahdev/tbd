@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int
-yaml_verify_c_str(const char *string, uint64_t length, bool *needs_quotes_out);
+void
+yaml_check_c_str(const char *string, uint64_t length, bool *needs_quotes_out);
 
 #endif /* YAML_H */

@@ -13,7 +13,7 @@
 
 static const char needs_quotes[] = {
     ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=',
-    '!', '%', '@', '`'
+    '!', '%', '@', '`', ' '
 };
 
 static inline bool char_needs_quotes(const char ch) {
@@ -29,23 +29,21 @@ static inline bool char_needs_quotes(const char ch) {
     return false;
 }
 
-int
-yaml_verify_c_str(const char *const string,
-                  const uint64_t length,
-                  bool *const needs_quotes_out)
+void
+yaml_check_c_str(const char *const string,
+                 const uint64_t length,
+                 bool *const needs_quotes_out)
 {
     bool needs_quotes = false;
     for (uint64_t i = 0; i != length; i++) {
         const char ch = string[i];
-        if (isspace(ch) != 0) {
-            return 1;
+        if (!char_needs_quotes(ch)) {
+            continue;
         }
 
-        if (char_needs_quotes(ch)) {
-            needs_quotes = true;
-        }
+        needs_quotes = true;
+        break;
     }
 
     *needs_quotes_out = needs_quotes;
-    return 0;
 }

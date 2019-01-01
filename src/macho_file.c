@@ -17,18 +17,21 @@
 #include "arch_info.h"
 #include "mach-o/fat.h"
 
+#include "guard_overflow.h"
+#include "range.h"
+
 #include "macho_file.h"
-#include "macho_file_load_commands.h"
+#include "macho_file_parse_load_commands.h"
 
 #include "swap.h"
 
 static enum macho_file_parse_result
-parse_thin_file(struct tbd_create_info *const info,
+parse_thin_file(struct tbd_create_info *const info_in,
                 const int fd,
                 const struct mach_header header,
                 const uint64_t start,
                 const uint64_t size,
-                const uint64_t parse_options,
+                const uint64_t tbd_options,
                 const uint64_t options)
 {
     const bool is_64 =
@@ -58,25 +61,25 @@ parse_thin_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_NOT_A_MACHO;
     }
 
-    if (info->flags != 0) {
-        if (info->flags & TBD_FLAG_FLAT_NAMESPACE) {
+    if (info_in->flags != 0) {
+        if (info_in->flags & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
 
-        if (info->flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (info_in->flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (header.flags & MH_APP_EXTENSION_SAFE) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
     } else {
         if (header.flags & MH_TWOLEVEL) {
-            info->flags |= MH_TWOLEVEL;
+            info_in->flags |= MH_TWOLEVEL;
         }
 
-        if (!(info->flags & MH_APP_EXTENSION_SAFE)) {
-            info->flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+        if (!(header.flags & MH_APP_EXTENSION_SAFE)) {
+            info_in->flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
         }
     }
 
@@ -92,12 +95,12 @@ parse_thin_file(struct tbd_create_info *const info,
     const uint64_t arch_index = arch - arch_info_list;
     const uint64_t arch_bit = 1ull << arch_index;
 
-    if (info->archs & arch_bit) {
+    if (info_in->archs & arch_bit) {
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
     const enum macho_file_parse_result parse_load_commands_result =    
-        macho_file_parse_load_commands(info,
+        macho_file_parse_load_commands(info_in,
                                        arch,
                                        arch_bit,
                                        fd,
@@ -107,52 +110,16 @@ parse_thin_file(struct tbd_create_info *const info,
                                        is_big_endian,
                                        header.ncmds,
                                        header.sizeofcmds,
-                                       parse_options,
-                                       options);
+                                       tbd_options,
+                                       options,
+                                       NULL);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return parse_load_commands_result;
     }
 
-    info->archs |= arch_bit;
+    info_in->archs |= arch_bit;
     return E_MACHO_FILE_PARSE_OK;
-}
-
-static inline bool
-fat_arch_overlaps(struct fat_arch *const arch, struct fat_arch *const inner) {
-    /*
-     * inner's start offset is inside arch's range.
-     */
-
-    const uint32_t arch_offset = arch->offset;
-    const uint32_t arch_size = arch->size;
-
-    const uint32_t inner_offset = inner->offset;
-    const uint32_t inner_size = inner->size;
-
-    const uint32_t arch_end = arch_offset + arch_size;
-    if (inner_offset >= arch_offset && inner_offset < arch_end) {
-        return true;
-    }
-
-    /*
-     * inner's end offset is inside arch's range.
-     */
-
-    const uint32_t inner_end = inner_offset + inner_size;
-    if (inner_end > arch_offset && inner_end <= arch_end) {
-        return true;
-    }
-
-    /*
-     * inner completely contains arch.
-     */
-
-    if (inner_offset < arch_offset && inner_end >= arch_end) {
-        return true;
-    }
-
-    return false;
 }
 
 static inline bool thin_magic_is_valid(const uint32_t magic) {
@@ -160,27 +127,33 @@ static inline bool thin_magic_is_valid(const uint32_t magic) {
 }
 
 static enum macho_file_parse_result
-handle_fat_32_file(struct tbd_create_info *const info,
+handle_fat_32_file(struct tbd_create_info *const info_in,
                    const int fd,
                    const bool is_big_endian,
                    const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
-                   const uint64_t parse_options,
+                   const uint64_t tbd_options,
                    const uint64_t options)
 {
     /*
      * Calculate the total-size of the architectures given.
      */
 
-    const uint64_t archs_size = sizeof(struct fat_arch) * nfat_arch;
-    
-    /*
-     * Check for any overflows if there exists too many architectures.
-     */
-
-    if (archs_size / sizeof(struct fat_arch) != nfat_arch) {
+    uint64_t archs_size = sizeof(struct fat_arch);
+    if (guard_overflow_mul(&archs_size, nfat_arch)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+    }
+
+    uint64_t total_headers_size = sizeof(struct fat_header);
+    if (guard_overflow_add(&total_headers_size, archs_size)) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+    }
+
+    if (size != 0) {
+        if (total_headers_size >= size) {
+            return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
+        }
     }
 
     struct fat_arch *const archs = calloc(1, archs_size);
@@ -212,7 +185,6 @@ handle_fat_32_file(struct tbd_create_info *const info,
      * Before parsing, verify each architecture.
      */
 
-    const uint64_t headers_size = sizeof(struct fat_header) + archs_size;
     for (uint32_t i = 1; i < nfat_arch; i++) {
         struct fat_arch *const arch = archs + i;
 
@@ -235,7 +207,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
          * arch-headers.
          */
 
-        if (arch_offset < headers_size) {
+        if (arch_offset < total_headers_size) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -253,8 +225,8 @@ handle_fat_32_file(struct tbd_create_info *const info,
          * Verify that no overflow occurs when finding arch's end.
          */
 
-        const uint32_t arch_end = arch_offset + arch_size;
-        if (arch_end < arch_offset) {
+        uint32_t arch_end = arch_offset;
+        if (guard_overflow_add(&arch_end, arch_size)) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -280,9 +252,19 @@ handle_fat_32_file(struct tbd_create_info *const info,
             }
         }
 
+        const struct range arch_range = {
+            .begin = arch_offset,
+            .end = arch_offset + arch_size
+        };
+
         for (uint32_t j = 0; j < i; j++) {
             struct fat_arch inner = archs[j];
-            if (fat_arch_overlaps(arch, &inner)) {
+            const struct range inner_range = {
+                .begin = inner.offset,
+                .end = inner.offset + inner.size
+            };
+
+            if (ranges_overlap(arch_range, inner_range)) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
             }
@@ -318,7 +300,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            if (options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES) {
+            if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
                 continue;
             }
             
@@ -341,12 +323,12 @@ handle_fat_32_file(struct tbd_create_info *const info,
         }
 
         const enum macho_file_parse_result handle_arch_result =
-            parse_thin_file(info,
+            parse_thin_file(info_in,
                             fd,
                             header,
                             start + arch.offset,
                             arch.size,
-                            parse_options,
+                            tbd_options,
                             options);
 
         if (handle_arch_result != E_MACHO_FILE_PARSE_OK) {
@@ -363,7 +345,7 @@ handle_fat_32_file(struct tbd_create_info *const info,
      */
 
     const enum array_result sort_exports_result =
-        array_sort_items_with_comparator(&info->exports,
+        array_sort_items_with_comparator(&info_in->exports,
                                          sizeof(struct tbd_export_info),
                                          tbd_export_info_comparator);
 
@@ -374,67 +356,34 @@ handle_fat_32_file(struct tbd_create_info *const info,
     return E_MACHO_FILE_PARSE_OK;
 }
 
-static inline bool
-fat_arch_64_overlaps(struct fat_arch_64 *const arch,
-                     struct fat_arch_64 *const inner)
-{
-    /*
-     * inner's start offset is inside arch's range.
-     */
-
-    const uint64_t arch_offset = arch->offset;
-    const uint64_t arch_size = arch->size;
-
-    const uint64_t inner_offset = inner->offset;
-    const uint64_t inner_size = inner->size;
-
-    const uint64_t arch_end = arch_offset + arch_size;
-    if (inner_offset >= arch_offset && inner_offset < arch_end) {
-        return true;
-    }
-
-    /*
-     * inner's end offset is inside arch's range.
-     */
-
-    const uint64_t inner_end = inner_offset + inner_size;
-    if (inner_end > arch_offset && inner_end <= arch_end) {
-        return true;
-    }
-
-    /*
-     * inner completely contains arch.
-     */
-
-    if (inner_offset < arch_offset && inner_end >= arch_end) {
-        return true;
-    }
-
-    return false;
-}
-
 static enum macho_file_parse_result
-handle_fat_64_file(struct tbd_create_info *const info,
+handle_fat_64_file(struct tbd_create_info *const info_in,
                    const int fd,
                    const bool is_big_endian,
                    const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
-                   const uint64_t parse_options,
+                   const uint64_t tbd_options,
                    const uint64_t options)
 {
     /*
      * Calculate the total-size of the architectures given.
      */
 
-    const uint64_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
-    
-    /*
-     * Check for any overflows if there exists too many architectures.
-     */
-
-    if (archs_size / sizeof(struct fat_arch_64) != nfat_arch) {
+    uint64_t archs_size = sizeof(struct fat_arch_64);
+    if (guard_overflow_mul(&archs_size, nfat_arch)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+    }
+
+    uint64_t total_headers_size = sizeof(struct fat_header);
+    if (guard_overflow_add(&total_headers_size, archs_size)) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+    }
+
+    if (size != 0) {
+        if (total_headers_size >= size) {
+            return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
+        }
     }
 
     struct fat_arch_64 *const archs = calloc(1, archs_size);
@@ -466,7 +415,6 @@ handle_fat_64_file(struct tbd_create_info *const info,
      * Before parsing, verify each architecture.
      */
 
-    const uint64_t headers_size = sizeof(struct fat_header) + archs_size;
     for (uint32_t i = 1; i < nfat_arch; i++) {
         struct fat_arch_64 *const arch = archs + i;
 
@@ -489,7 +437,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
          * arch-headers.
          */
 
-        if (arch_offset < headers_size) {
+        if (arch_offset < total_headers_size) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -507,8 +455,8 @@ handle_fat_64_file(struct tbd_create_info *const info,
          * Verify that no overflow occurs when finding arch's end.
          */
 
-        const uint64_t arch_end = arch_offset + arch_size;
-        if (arch_end < arch_offset) {
+        uint64_t arch_end = arch_offset;
+        if (guard_overflow_add(&arch_end, arch_size)) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -534,9 +482,19 @@ handle_fat_64_file(struct tbd_create_info *const info,
             }
         }
 
+        const struct range arch_range = {
+            .begin = arch_offset,
+            .end = arch_offset + arch_size
+        };
+
         for (uint32_t j = 0; j < i; j++) {
             struct fat_arch_64 inner = archs[j];
-            if (fat_arch_64_overlaps(arch, &inner)) {
+            const struct range inner_range = {
+                .begin = inner.offset,
+                .end = inner.offset + inner.size
+            };
+
+            if (ranges_overlap(arch_range, inner_range)) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
             }
@@ -573,7 +531,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            if (options & O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES) {
+            if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
                 continue;
             }
             
@@ -596,12 +554,12 @@ handle_fat_64_file(struct tbd_create_info *const info,
         }
 
         const enum macho_file_parse_result handle_arch_result =
-            parse_thin_file(info,
+            parse_thin_file(info_in,
                             fd,
                             header,
                             start + arch.offset,
                             arch.size,
-                            parse_options,
+                            tbd_options,
                             options);
 
         if (handle_arch_result != E_MACHO_FILE_PARSE_OK) {
@@ -618,7 +576,7 @@ handle_fat_64_file(struct tbd_create_info *const info,
      */
 
     const enum array_result sort_exports_result =
-        array_sort_items_with_comparator(&info->exports,
+        array_sort_items_with_comparator(&info_in->exports,
                                          sizeof(struct tbd_export_info),
                                          tbd_export_info_comparator);
 
@@ -630,11 +588,16 @@ handle_fat_64_file(struct tbd_create_info *const info,
 }
 
 enum macho_file_parse_result
-macho_file_parse_from_file(struct tbd_create_info *const info,
+macho_file_parse_from_file(struct tbd_create_info *const info_in,
                            const int fd,
-                           const uint64_t parse_options,
+                           const uint64_t size,
+                           const uint64_t tbd_options,
                            const uint64_t options)
 {
+    if (size < sizeof(struct fat_header)) {
+        return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+    }
+
     uint32_t magic = 0;
     if (read(fd, &magic, sizeof(magic)) < 0) {
         return E_MACHO_FILE_PARSE_READ_FAIL;
@@ -664,23 +627,23 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
 
         if (is_64) {
             ret =
-                handle_fat_64_file(info,
+                handle_fat_64_file(info_in,
                                    fd,
                                    is_big_endian,
                                    nfat_arch,
                                    0,
-                                   0,
-                                   parse_options,
+                                   size,
+                                   tbd_options,
                                    options);
         } else {
             ret =
-                handle_fat_32_file(info,
+                handle_fat_32_file(info_in,
                                    fd,
                                    is_big_endian,
                                    nfat_arch,
                                    0,
-                                   0,
-                                   parse_options,
+                                   size,
+                                   tbd_options,
                                    options);
         }
     } else {
@@ -715,12 +678,12 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
         }
 
         ret =
-            parse_thin_file(info,
+            parse_thin_file(info_in,
                             fd,
                             header,
                             0,
                             0,
-                            parse_options,
+                            tbd_options,
                             options);
     }
 
@@ -728,7 +691,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info,
         return ret;
     }
 
-    if (array_is_empty(&info->exports)) {
+    if (array_is_empty(&info_in->exports)) {
         return E_MACHO_FILE_PARSE_NO_EXPORTS;
     }
 

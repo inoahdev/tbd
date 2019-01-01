@@ -957,7 +957,7 @@ tbd_write_exports(FILE *const file,
                 return 1;
             }
 
-            line_length += info->length;
+            line_length += length;
         } while (true);
     } while (info != end);
 

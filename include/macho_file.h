@@ -20,9 +20,11 @@ enum macho_file_options {
      * Ignore any errors where an invalid field was produced.
      */
 
-    O_MACHO_FILE_IGNORE_INVALID_FIELDS      = 1 << 0,
-    O_MACHO_FILE_IGNORE_CONFLICTING_FIELDS  = 1 << 1,
-    O_MACHO_FILE_SKIP_INVALID_ARCHITECTURES = 1 << 2,
+    O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS      = 1 << 0,
+    O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS  = 1 << 1,
+    O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1 << 2,
+
+    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE = 1 << 3
 };
 
 struct macho_arch_group_specific_info {
@@ -86,13 +88,14 @@ enum macho_file_parse_result {
 };
 
 enum macho_file_parse_result
-macho_file_parse_from_file(struct tbd_create_info *info,
+macho_file_parse_from_file(struct tbd_create_info *info_in,
                            int fd,
+                           uint64_t size,
                            uint64_t parse_options,
                            uint64_t options);
 
 enum macho_file_parse_result
-macho_file_parse_from_range(struct tbd_create_info *info,
+macho_file_parse_from_range(struct tbd_create_info *info_in,
                             int fd,
                             uint64_t start,
                             uint64_t end,
