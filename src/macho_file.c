@@ -37,6 +37,9 @@ parse_thin_file(struct tbd_create_info *const info_in,
     const bool is_64 =
         header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
     
+    const bool is_big_endian =
+        header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
+
     if (is_64) {
         if (size != 0) {
             if (size < sizeof(struct mach_header_64)) {
@@ -52,13 +55,10 @@ parse_thin_file(struct tbd_create_info *const info_in,
         if (lseek(fd, sizeof(uint32_t), SEEK_CUR) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
-    }
-
-    const bool is_big_endian =
-        header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
-
-    if (!is_64 && !is_big_endian && header.magic != MH_MAGIC) {
-        return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+    } else {
+        if (!is_big_endian && header.magic != MH_MAGIC) {
+            return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+        }
     }
 
     if (info_in->flags != 0) {
@@ -100,19 +100,19 @@ parse_thin_file(struct tbd_create_info *const info_in,
     }
 
     const enum macho_file_parse_result parse_load_commands_result =    
-        macho_file_parse_load_commands(info_in,
-                                       arch,
-                                       arch_bit,
-                                       fd,
-                                       start,
-                                       size,
-                                       is_64,
-                                       is_big_endian,
-                                       header.ncmds,
-                                       header.sizeofcmds,
-                                       tbd_options,
-                                       options,
-                                       NULL);
+        macho_file_parse_load_commands_from_file(info_in,
+                                                 fd,
+                                                 start,
+                                                 size,
+                                                 arch,
+                                                 arch_bit,
+                                                 is_64,
+                                                 is_big_endian,
+                                                 header.ncmds,
+                                                 header.sizeofcmds,
+                                                 tbd_options,
+                                                 options,
+                                                 NULL);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return parse_load_commands_result;

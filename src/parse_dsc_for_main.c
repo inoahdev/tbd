@@ -21,13 +21,12 @@
 
 struct dsc_iterate_images_callback_info {
     struct dyld_shared_cache_info *dsc_info;
+    const char *dsc_path;
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
 
     struct array images;
-
-    int fd;
     char *folder_path;
 
     uint64_t folder_path_length; 
@@ -77,7 +76,7 @@ clear_create_info(struct tbd_create_info *const info_in,
 
 static bool
 dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
-                            char *const image_path,
+                            const char *const image_path,
                             const void *const item)
 {
     if (image->pad & E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
@@ -110,8 +109,6 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
 
     const enum dsc_image_parse_result parse_image_result =
         dsc_image_parse(create_info,
-                        callback_info->fd,
-                        0,
                         callback_info->dsc_info,
                         image,
                         macho_options,
@@ -119,15 +116,19 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                         0);
 
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        handle_dsc_image_parse_result(callback_info->global,
-                                      callback_info->tbd,
-                                      image_path,
-                                      parse_image_result,
-                                      callback_info->print_paths,
-                                      &callback_info->retained_info); 
+        const bool should_continue =
+            handle_dsc_image_parse_result(callback_info->global,
+                                          callback_info->tbd,
+                                          callback_info->dsc_path,
+                                          image_path,
+                                          parse_image_result,
+                                          callback_info->print_paths,
+                                          &callback_info->retained_info); 
 
-        clear_create_info(create_info, &original_info);
-        return true;
+        if (!should_continue) {
+            clear_create_info(create_info, &original_info);
+            return true;
+        }
     }
 
     /*
@@ -140,7 +141,10 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                                        callback_info->folder_path,
                                        callback_info->folder_path_length,
                                        image_path,
-                                       true); 
+                                       strlen(image_path),
+                                       "tbd",
+                                       3,
+                                       false); 
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
@@ -157,12 +161,13 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
 }
 
 bool 
-handle_shared_cache(struct tbd_for_main *const global,
-                    struct tbd_for_main *const tbd,
-                    const char *const path,
-                    const int fd,
-                    const uint64_t size,
-                    const bool is_recursing)
+parse_shared_cache(struct tbd_for_main *const global,
+                   struct tbd_for_main *const tbd,
+                   const char *const path,
+                   const uint64_t path_length,
+                   const int fd,
+                   const uint64_t size,
+                   const bool is_recursing)
 {
     const uint64_t dsc_options =
         O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | tbd->dsc_options;
@@ -188,38 +193,20 @@ handle_shared_cache(struct tbd_for_main *const global,
 
     if (is_recursing) {
         /*
-         * The tbds for a dyld_shared_cache (when recursing) will be stored in a
-         * directory with the file-name (last path-component) of the
-         * dyld_shared_cache and the extension ".tbds"
-         */
-
-        uint64_t file_name_length = 0;
-        const char *const file_name =
-            path_get_last_path_component(path, strlen(path), &file_name_length);
-
-        if (file_name == NULL) {
-            return true;
-        }
-
-        /*
          * Get the hierarchy (the path of the folder containing the
          * dyld_shared_cache), by getting the length between the last
          * path-component and the beginning of the path.
          */
 
-        const uint64_t hierarchy_length = file_name - path;
         folder_path =
-            path_append_component_and_extension_with_len(path,
-                                                         hierarchy_length,
-                                                         file_name,
-                                                         file_name_length,
-                                                         "tbds",
-                                                         4);
-
-        if (folder_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
+            tbd_for_main_create_write_path(tbd,
+                                           folder_path,
+                                           folder_path_length,
+                                           path,
+                                           path_length,
+                                           "tbds",
+                                           4,
+                                           true); 
 
         folder_path_length = strlen(folder_path);
     }
@@ -247,9 +234,9 @@ handle_shared_cache(struct tbd_for_main *const global,
 
     struct dsc_iterate_images_callback_info callback_info = {
         .dsc_info = &dsc_info,
+        .dsc_path = path,
         .global = global,
         .tbd = tbd,
-        .fd = fd,
         .folder_path = folder_path,
         .folder_path_length = folder_path_length,
         .print_paths = is_recursing,
@@ -269,8 +256,8 @@ handle_shared_cache(struct tbd_for_main *const global,
 
     if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         /*
-         * Ignore the return value as it is possible that the directory has been
-         * populated with tbds.
+         * Ignore the return value as it is possible that the directory was
+         * populated with tbds before failing.
          */
 
         remove_partial_r(folder_path, terminator);        

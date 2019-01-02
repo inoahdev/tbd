@@ -9,8 +9,8 @@
 #ifndef DYLD_SHARED_CACHE_H
 #define DYLD_SHARED_CACHE_H
 
-#include <mach/machine.h>
 #include <stdbool.h>
+#include "mach/machine.h"
 
 #include "dyld_shared_cache_format.h"
 
@@ -19,12 +19,16 @@ enum dyld_shared_cache_parse_options {
     O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS = 1 << 1
 };
 
+enum dyld_shared_cache_flags {
+    F_DYLD_SHARED_CACHE_UNMAP_MAP = 1 << 0
+};
+
 enum dyld_shared_cache_parse_result {
     E_DYLD_SHARED_CACHE_PARSE_OK,
     E_DYLD_SHARED_CACHE_PARSE_ALLOC_FAIL,
 
-    E_DYLD_SHARED_CACHE_PARSE_SEEK_FAIL,
     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+    E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL,
 
     E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE,
 
@@ -44,13 +48,16 @@ struct dyld_shared_cache_info {
      * An absolute offset to the array of dyld_cache_mapping_info structures.
      */
 
-    struct dyld_cache_mapping_info *mappings;
-    uint64_t mappings_count;
+    const struct dyld_cache_mapping_info *mappings;
+    uint32_t mappings_count;
+    
+    uint8_t *map;
+    uint64_t size;
 
     const struct arch_info *arch;
 
     uint64_t arch_bit;
-    uint64_t size;
+    uint64_t flags;
 };
 
 enum dyld_shared_cache_parse_result
@@ -68,15 +75,13 @@ dyld_shared_cache_parse_from_range(struct dyld_shared_cache_info *info_in,
 
 /*
  * dyld_shared_cache_iterate_images_with_callback callback.
- * Callback takes ownership of path, its responsible for freeing it.
- *
  * Return true to continue iterating, false to stop.
  */
 
 typedef bool 
 (*dyld_shared_cache_iterate_images_callback)(
     struct dyld_cache_image_info *image,
-    char *path,
+    const char *path,
     const void *item);
 
 enum dyld_shared_cache_parse_result

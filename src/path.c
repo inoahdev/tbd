@@ -544,7 +544,7 @@ path_get_last_path_component(const char *const path,
     const char *component_begin =
         path_find_last_row_of_slashes_before_end(path, component_end);
 
-    component_begin = path_get_back_of_row_of_slashes(component_begin);
+    component_begin = path_get_end_of_row_of_slashes(component_begin);
     *length_out = component_end - component_begin;
 
     return component_begin;

@@ -12,12 +12,13 @@
 #include "tbd_for_main.h"
 
 bool
-handle_macho_file(struct tbd_for_main *global,
-                  struct tbd_for_main *tbd,
-                  const char *path,
-                  int fd,
-                  uint64_t size,
-                  bool print_paths,
-                  uint64_t *retained_info);
+parse_macho_file(struct tbd_for_main *global,
+                 struct tbd_for_main *tbd,
+                 const char *path,
+                 uint64_t path_length,
+                 int fd,
+                 uint64_t size,
+                 bool print_paths,
+                 uint64_t *retained_info);
 
 #endif /* PARSE_MACHO_FOR_MAIN_H */

@@ -94,12 +94,19 @@ tbd_for_main_parse_option(struct tbd_for_main *tbd,
                           const char *option,
                           int *index);
 
+/*
+ * file_path_is_in_tbd asks whether file_path is from tbd->parse_path.
+ */
+
 char *
-tbd_for_main_create_write_path(struct tbd_for_main *tbd,
+tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
                                const char *folder_path,
                                uint64_t folder_path_length,
-                               const char *parse_path,
-                               bool ignore_parse_path_hierarchy);
+                               const char *file_path,
+                               uint64_t file_path_length,
+                               const char *extension,
+                               uint64_t extension_length,
+                               bool file_path_is_in_tbd);
                                
 void
 tbd_for_main_apply_from(struct tbd_for_main *dst,

@@ -24,7 +24,20 @@ enum macho_file_options {
     O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS  = 1 << 1,
     O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1 << 2,
 
-    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE = 1 << 3
+    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE = 1 << 3,
+
+    /*
+     * If the mach-o file is mapped, the strings are by default not copied
+     * (not allocated).
+     */
+
+    O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP = 1 << 4,
+
+    /*
+     * Treat a section's offset as absolute.
+     */
+
+    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE = 1 << 5
 };
 
 struct macho_arch_group_specific_info {

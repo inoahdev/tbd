@@ -83,32 +83,35 @@ recurse_directory_callback(const char *const parse_path,
      * dyld_shared_cache, we only recurse for dyld_shared_cache.
      */
 
+    const uint64_t parse_path_length = strlen(parse_path);
     if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
-        const bool handle_as_macho =
-            handle_macho_file(global,
-                            tbd,
-                            parse_path,
-                            fd,
-                            sbuf.st_size,
-                            true,
-                            retained);
+        const bool parse_as_macho_result =
+            parse_macho_file(global,
+                             tbd,
+                             parse_path,
+                             parse_path_length,
+                             fd,
+                             sbuf.st_size,
+                             true,
+                             retained);
 
-        if (handle_as_macho) {
+        if (parse_as_macho_result) {
             close(fd);
             return true;
         }
     }
 
     if (options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
-        const bool handle_as_dsc =
-            handle_shared_cache(global,
-                                tbd,
-                                parse_path,
-                                fd,
-                                sbuf.st_size,
-                                true);
+        const bool parse_as_dsc_result =
+            parse_shared_cache(global,
+                               tbd,
+                               parse_path,
+                               parse_path_length,
+                               fd,
+                               sbuf.st_size,
+                               true);
 
-        if (handle_as_dsc) {
+        if (parse_as_dsc_result) {
             close(fd);
             return true;
         }
@@ -308,12 +311,17 @@ int main(const int argc, const char *const argv[]) {
                 /*
                  * Ensure options for recursing directories are not being
                  * provided for other contexts and circumstances.
+                 * 
+                 * We allow dyld_shared_cache files to slip through as they will 
+                 * always be exported to a directory.
                  */
 
                 const uint64_t options = tbd->options;
-                if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
+                if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
+                    tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE)
+                {
                     if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
-                        fputs("Option --preserve-directories can only be "
+                        fputs("Option --preserve-hierarchy can only be "
                               "provided recursing directoriess\n",
                               stderr);
 
@@ -570,7 +578,9 @@ int main(const int argc, const char *const argv[]) {
                             fputs("Option (--include-dsc) is used to indicate "
                                   "that dyld_shared_cache files should also be "
                                   "parsed while recursing, in addition to "
-                                  "mach-o files", stderr);
+                                  "mach-o files. Please use option --dsc "
+                                  "instead to indicate you want to parse a "
+                                  "dyld_shared_cache file\n", stderr);
                             
                             if (full_path != path) {
                                 free(full_path);
@@ -934,23 +944,25 @@ int main(const int argc, const char *const argv[]) {
 
             switch (tbd->filetype) {
                 case TBD_FOR_MAIN_FILETYPE_MACHO:
-                    handle_macho_file(&global,
-                                      tbd,
-                                      parse_path,
-                                      fd,
-                                      sbuf.st_size,
-                                      true,
-                                      &retained_info);
+                    parse_macho_file(&global,
+                                     tbd,
+                                     parse_path,
+                                     tbd->parse_path_length,
+                                     fd,
+                                     sbuf.st_size,
+                                     true,
+                                     &retained_info);
 
                     break;
 
                 case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE:
-                    handle_shared_cache(&global,
-                                        tbd,
-                                        parse_path,
-                                        fd,
-                                        sbuf.st_size,
-                                        false);
+                    parse_shared_cache(&global,
+                                       tbd,
+                                       parse_path,
+                                       tbd->parse_path_length,
+                                       fd,
+                                       sbuf.st_size,
+                                       false);
 
                     break;
             }

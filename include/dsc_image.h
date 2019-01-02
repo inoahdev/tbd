@@ -44,15 +44,6 @@ enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE,
     E_DSC_IMAGE_PARSE_INVALID_UUID,
 
-    E_DSC_IMAGE_PARSE_CONFLICTING_ARCH_INFO,
-    E_DSC_IMAGE_PARSE_CONFLICTING_FLAGS,
-    E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION,
-    E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT,
-    E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA,
-    E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM,
-    E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION,
-    E_DSC_IMAGE_PARSE_CONFLICTING_UUID,
-
     E_DSC_IMAGE_PARSE_NO_IDENTIFICATION,
     E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE,
     E_DSC_IMAGE_PARSE_NO_UUID,
@@ -62,9 +53,7 @@ enum dsc_image_parse_result {
 
 enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *info_in,
-                int fd,
-                uint64_t start,
-                struct dyld_shared_cache_info *info,
+                struct dyld_shared_cache_info *dsc_info,
                 struct dyld_cache_image_info *image,
                 uint64_t macho_options,
                 uint64_t tbd_options,

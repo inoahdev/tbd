@@ -23,13 +23,14 @@ clear_create_info(struct tbd_create_info *const info_in,
 }
 
 bool
-handle_macho_file(struct tbd_for_main *const global,
-                  struct tbd_for_main *const tbd,
-                  const char *const path,
-                  const int fd,
-                  const uint64_t size,
-                  const bool print_paths,
-                  uint64_t *const retained_info)
+parse_macho_file(struct tbd_for_main *const global,
+                 struct tbd_for_main *const tbd,
+                 const char *const path,
+                 const uint64_t path_length,
+                 const int fd,
+                 const uint64_t size,
+                 const bool print_paths,
+                 uint64_t *const retained_info)
 {
     const uint64_t parse_options = tbd->parse_options;
     const uint64_t macho_options =
@@ -51,15 +52,18 @@ handle_macho_file(struct tbd_for_main *const global,
     }
 
     if (parse_result != E_MACHO_FILE_PARSE_OK) {
-        handle_macho_file_parse_result(global,
-                                       tbd,
-                                       path,
-                                       parse_result,
-                                       print_paths,
-                                       retained_info);
+        const bool should_continue =
+            handle_macho_file_parse_result(global,
+                                           tbd,
+                                           path,
+                                           parse_result,
+                                           print_paths,
+                                           retained_info);
 
-        clear_create_info(create_info, &original_info);
-        return true;
+        if (!should_continue) {
+            clear_create_info(create_info, &original_info);
+            return true;
+        }
     }
 
     char *const write_path =
@@ -67,7 +71,10 @@ handle_macho_file(struct tbd_for_main *const global,
                                        tbd->write_path,
                                        tbd->write_path_length,
                                        path,
-                                       false); 
+                                       path_length,
+                                       "tbd",
+                                       3,
+                                       true); 
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);

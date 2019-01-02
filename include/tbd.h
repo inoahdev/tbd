@@ -37,10 +37,10 @@ enum tbd_parse_options {
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS         = 1 << 12,
-    O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS       = 1 << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS     = 1 << 14,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS      = 1 << 15,
+    O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS     = 1 << 12,
+    O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS   = 1 << 13,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS = 1 << 14,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS  = 1 << 15,
 
     O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATIOn = 1 << 16,
     O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1 << 17,
@@ -112,6 +112,8 @@ enum tbd_version {
 enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1 << 0,
     F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1 << 1,
+
+    F_TBD_CREATE_INFO_STRINGS_WERE_COPIED = 1 << 2,
 };
 
 struct tbd_create_info {
@@ -123,8 +125,8 @@ struct tbd_create_info {
     enum tbd_platform platform;
     enum tbd_objc_constraint objc_constraint;
     
-    char *install_name;
-    char *parent_umbrella;
+    const char *install_name;
+    const char *parent_umbrella;
 
     uint32_t install_name_length;
     uint32_t parent_umbrella_length;

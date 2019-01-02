@@ -26,9 +26,11 @@ request_input(const char *const prompt,
         if (inputs != NULL) {
             fprintf(stdout, " (%s", inputs[0]);
             
-            const char *const *acceptable_input = &inputs[1];
-            for (; *acceptable_input != NULL; acceptable_input++) {
-                fprintf(stdout, ", %s", *acceptable_input);
+            const char *const *iter = &inputs[1];
+            const char *acceptable_input = *iter;
+
+            for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
+                fprintf(stdout, ", %s", acceptable_input);
             }
 
             fputc(')', stdout);
@@ -51,9 +53,11 @@ request_input(const char *const prompt,
         }
 
         if (inputs != NULL) {
-            const char *const *acceptable_input = inputs;
-            for (; *acceptable_input != NULL; acceptable_input++) {
-                if (strcmp(*acceptable_input, input) == 0) {
+            const char *const *iter = inputs;
+            const char *acceptable_input = *iter;
+
+            for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
+                if (strcmp(acceptable_input, input) == 0) {
                     continue;
                 }
 
@@ -81,7 +85,7 @@ request_install_name(struct tbd_for_main *const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
         if (global->info.install_name != NULL) {
-            char *const global_install_name = global->info.install_name;
+            const char *const global_install_name = global->info.install_name;
             if (global->info.install_name != NULL) {
                 tbd->info.install_name = global_install_name;
                 tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
@@ -106,8 +110,12 @@ request_install_name(struct tbd_for_main *const global,
         return false;
     }
 
-    request_input("Replacement install-name?", NULL, &tbd->info.install_name);
+    request_input("Replacement install-name?",
+                  NULL,
+                  (char **)&tbd->info.install_name);
+
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+    tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
     if (strcmp(should_replace, "for all\n") == 0) {
         global->info.install_name = tbd->info.install_name;
@@ -135,9 +143,11 @@ request_objc_constraint(struct tbd_for_main *const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
-        char *const global_parent_umbrella = global->info.parent_umbrella;
-        if (global->info.parent_umbrella != NULL) {
-            tbd->info.parent_umbrella = global_parent_umbrella;
+        const enum tbd_objc_constraint global_objc_constraint =
+            global->info.objc_constraint;
+
+        if (global_objc_constraint != 0) {
+            tbd->info.objc_constraint = global_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
 
@@ -218,8 +228,10 @@ request_parent_umbrella(struct tbd_for_main *const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
-        if (global->info.parent_umbrella != NULL) {
-            char *const global_parent_umbrella = global->info.parent_umbrella;
+        const char *const global_parent_umbrella =
+            global->info.parent_umbrella;
+
+        if (global_parent_umbrella != NULL) {
             if (global->info.parent_umbrella != NULL) {
                 tbd->info.parent_umbrella = global_parent_umbrella;
                 tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
@@ -246,9 +258,10 @@ request_parent_umbrella(struct tbd_for_main *const global,
 
     request_input("Replacement parent-umbrella?",
                   NULL,
-                  &tbd->info.parent_umbrella);
+                  (char **)&tbd->info.parent_umbrella);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+    tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
     if (strcmp(should_replace, "for all\n") == 0) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
@@ -370,9 +383,9 @@ request_swift_version(struct tbd_for_main *const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-        char *const global_parent_umbrella = global->info.parent_umbrella;
-        if (global->info.parent_umbrella != NULL) {
-            tbd->info.parent_umbrella = global_parent_umbrella;
+        const uint32_t global_swift_version = global->info.swift_version;
+        if (global_swift_version != 0) {
+            tbd->info.swift_version = global_swift_version;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
         }
 
@@ -423,7 +436,7 @@ request_swift_version(struct tbd_for_main *const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
     if (strcmp(should_replace, "for all\n") == 0) {
-        global->info.parent_umbrella = tbd->info.parent_umbrella;
+        global->info.swift_version = tbd->info.swift_version;
         global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
 

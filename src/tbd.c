@@ -135,40 +135,6 @@ tbd_uuid_info_comparator(const void *const array_item, const void *const item) {
     return 0;
 }
 
-static void destroy_exports_array(struct array *const list) {
-    struct tbd_export_info *info = list->data;
-    const struct tbd_export_info *const end = list->data_end;
-
-    for (; info != end; info++) {
-        free(info->string);
-    }
-    
-    array_destroy(list);
-}
-
-void tbd_create_info_destroy(struct tbd_create_info *const info) {
-    info->version = 0;
-
-    info->archs = 0;
-    info->flags = 0;
-
-    info->platform = 0;
-    info->objc_constraint = 0;
-
-    free(info->install_name);
-    free(info->parent_umbrella);
-
-    info->install_name = NULL;
-    info->parent_umbrella = NULL;
-
-    info->current_version = 0;
-    info->compatibility_version = 0;
-    info->swift_version = 0;
-
-    destroy_exports_array(&info->exports);
-    array_destroy(&info->uuids);
-}
-
 enum tbd_create_result
 tbd_create_with_info(const struct tbd_create_info *const info,
                      FILE *const file,
@@ -249,4 +215,40 @@ tbd_create_with_info(const struct tbd_create_info *const info,
     }
 
     return E_TBD_CREATE_OK;
+}
+
+static void destroy_exports_array(struct array *const list) {
+    struct tbd_export_info *info = list->data;
+    const struct tbd_export_info *const end = list->data_end;
+
+    for (; info != end; info++) {
+        free(info->string);
+    }
+    
+    array_destroy(list);
+}
+
+void tbd_create_info_destroy(struct tbd_create_info *const info) {
+    if (info->flags & F_TBD_CREATE_INFO_STRINGS_WERE_COPIED) {
+        free((char *)info->install_name);
+        free((char *)info->parent_umbrella);
+    }
+
+    info->version = 0;
+
+    info->archs = 0;
+    info->flags = 0;
+
+    info->platform = 0;
+    info->objc_constraint = 0;
+
+    info->install_name = NULL;
+    info->parent_umbrella = NULL;
+
+    info->current_version = 0;
+    info->compatibility_version = 0;
+    info->swift_version = 0;
+
+    destroy_exports_array(&info->exports);
+    array_destroy(&info->uuids);
 }

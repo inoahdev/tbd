@@ -19,6 +19,13 @@
 
 #include "range.h"
 
+/*
+ * To avoid duplicating code, we pass on the mach-o verification to macho-file's
+ * operations, which also have a different error-code. We have many of the same
+ * error-codes, save for a few (no fat support), so a simple translation is
+ * needed.
+ */
+
 static enum dsc_image_parse_result
 translate_macho_file_parse_result(const enum macho_file_parse_result result) {
     switch (result) {
@@ -97,27 +104,19 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_INVALID_UUID:
             return E_DSC_IMAGE_PARSE_INVALID_UUID;
 
+        /*
+         * Conflicting error-codes are only returned for fat-files.
+         */
+
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
         case E_MACHO_FILE_PARSE_CONFLICTING_FLAGS:
-            return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION;
-
         case E_MACHO_FILE_PARSE_CONFLICTING_UUID:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_UUID;
+            return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
         case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
             return E_DSC_IMAGE_PARSE_NO_IDENTIFICATION;
@@ -170,8 +169,6 @@ get_image_file_offset_from_address(struct dyld_shared_cache_info *const info,
 
 enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *const info_in,
-                const int fd,
-                const uint64_t start,
                 struct dyld_shared_cache_info *const dsc_info,
                 struct dyld_cache_image_info *const image,
                 const uint64_t macho_options,
@@ -179,10 +176,8 @@ dsc_image_parse(struct tbd_create_info *const info_in,
                 const uint64_t options)
 {
     const uint64_t size = dsc_info->size;
-    if (size != 0) {
-        if (size < sizeof(struct mach_header)) {
-            return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
-        }
+    if (size < sizeof(struct mach_header)) {
+        return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
     }
 
     /*
@@ -203,53 +198,43 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         return E_DSC_IMAGE_PARSE_NO_CORRESPONDING_MAPPING;
     }
 
-    if (lseek(fd, start + file_offset, SEEK_SET) < 0) {
-        return E_DSC_IMAGE_PARSE_SEEK_FAIL;
+    if (max_image_size < sizeof(struct mach_header)) {
+        return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
     }
 
-    struct mach_header header = {};
-    if (read(fd, &header, sizeof(header)) < 0) {
-        return E_DSC_IMAGE_PARSE_READ_FAIL;
-    }
-
-    const bool is_64 =
-        header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
+    const uint8_t *const map = dsc_info->map;
+    const struct mach_header *const header =
+        (const struct mach_header *)(map + file_offset);
     
+    const uint32_t magic = header->magic;
+    
+    const bool is_64 = magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
+    const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+
     if (is_64) {
         if (max_image_size < sizeof(struct mach_header_64)) {
             return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
         }
+    } else {
+        const bool is_fat =
+            magic == FAT_MAGIC || magic == FAT_MAGIC_64 ||
+            magic == FAT_CIGAM || magic == FAT_CIGAM_64;
 
-        /*
-         * 64-bit mach-o files have a different header (struct mach_header_64),
-         * which only differs by having an extra uint32_t field at the end.
-         */
+        if (is_fat) {
+            return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
+        }
 
-        if (lseek(fd, sizeof(uint32_t), SEEK_CUR) < 0) {
-            return E_DSC_IMAGE_PARSE_SEEK_FAIL;
+        if (!is_big_endian && magic != MH_MAGIC) {
+            return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
         }
     }
 
-    const bool is_fat =
-        header.magic == FAT_MAGIC || header.magic == FAT_MAGIC_64 ||
-        header.magic == FAT_CIGAM || header.magic == FAT_CIGAM_64;
-
-    if (is_fat) {
-        return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
-    }
-
-    const bool is_big_endian =
-        header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
-
-    if (!is_64 && !is_big_endian && header.magic != MH_MAGIC) {
-        return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
-    }
-
-    if (header.flags & MH_TWOLEVEL) {
+    const uint32_t flags = header->flags;
+    if (flags & MH_TWOLEVEL) {
         info_in->flags |= MH_TWOLEVEL;
     }
 
-    if (!(header.flags & MH_APP_EXTENSION_SAFE)) {
+    if (!(flags & MH_APP_EXTENSION_SAFE)) {
         info_in->flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
@@ -259,60 +244,70 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      * The symbol-table and string-table offsets are absolute, not relative from
      * image's base, but we still need to account for shared-cache's start and
      * size. We do this by parsing the symbol-table separately.
+     * 
+     * The section's offset are relative to the map, not to the header, and
+     * therefore should be treated as 'absolute'.
      */ 
 
     const uint64_t arch_bit = dsc_info->arch_bit;
     const uint64_t lc_options =
-        macho_options | O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE;
+        O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
+        O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
+        macho_options;
 
     const enum macho_file_parse_result parse_load_commands_result =    
-        macho_file_parse_load_commands(info_in,
-                                       dsc_info->arch,
-                                       arch_bit,
-                                       fd,
-                                       start,
-                                       size,
-                                       is_64,
-                                       is_big_endian,
-                                       header.ncmds,
-                                       header.sizeofcmds,
-                                       tbd_options,
-                                       lc_options,
-                                       &symtab);
+        macho_file_parse_load_commands_from_map(info_in,
+                                                map,
+                                                size,
+                                                (const uint8_t *)header,
+                                                max_image_size,
+                                                dsc_info->arch,
+                                                arch_bit,
+                                                is_64,
+                                                is_big_endian,
+                                                header->ncmds,
+                                                header->sizeofcmds,
+                                                tbd_options,
+                                                lc_options,
+                                                &symtab);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(parse_load_commands_result);
     }
 
+    /*
+     * For parsing the symbol-tables, we provide the full dyld_shared_cache map
+     * as the symbol-table and string-table offsets are relative to the full
+     * map, not relative to the mach-o header.
+     */
+
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_64) {
         ret =
-            macho_file_parse_symbols_64(info_in,
-                                        fd,
-                                        arch_bit,
-                                        start,
-                                        size,
-                                        is_big_endian,
-                                        symtab.symoff,
-                                        symtab.nsyms,
-                                        symtab.stroff,
-                                        symtab.strsize,
-                                        tbd_options,
-                                        options);
+            macho_file_parse_symbols_64_from_map(info_in,
+                                                 map,
+                                                 size,
+                                                 arch_bit,
+                                                 is_big_endian,
+                                                 symtab.symoff,
+                                                 symtab.nsyms,
+                                                 symtab.stroff,
+                                                 symtab.strsize,
+                                                 tbd_options,
+                                                 options);
     } else {
         ret =
-            macho_file_parse_symbols(info_in,
-                                     fd,
-                                     arch_bit,
-                                     start,
-                                     size,
-                                     is_big_endian,
-                                     symtab.symoff,
-                                     symtab.nsyms,
-                                     symtab.stroff,
-                                     symtab.strsize,
-                                     tbd_options,
-                                     options);
+            macho_file_parse_symbols_from_map(info_in,
+                                              map,
+                                              size,
+                                              arch_bit,
+                                              is_big_endian,
+                                              symtab.symoff,
+                                              symtab.nsyms,
+                                              symtab.stroff,
+                                              symtab.strsize,
+                                              tbd_options,
+                                              options);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {

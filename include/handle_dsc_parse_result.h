@@ -18,10 +18,11 @@ handle_dsc_file_parse_result(const char *path,
                              enum dyld_shared_cache_parse_result parse_result,
                              bool print_paths);
 
-void
+bool
 handle_dsc_image_parse_result(struct tbd_for_main *global,
                               struct tbd_for_main *tbd,
-                              const char *path,
+                              const char *dsc_path,
+                              const char *image_path,
                               enum dsc_image_parse_result parse_result,
                               bool print_paths,
                               uint64_t *retained_info_in);

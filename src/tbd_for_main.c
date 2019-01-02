@@ -196,7 +196,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         tbd->info.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
-    } else if (strcmp(option, "--skip-invalid-archs") == 0) {
+    } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |=
             O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES; 
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
@@ -228,72 +228,73 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 }
 
 char *
-tbd_for_main_create_write_path(struct tbd_for_main *const tbd,
+tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                const char *const folder_path,
                                const uint64_t folder_path_length,
-                               const char *const parse_path,
-                               const bool ignore_parse_path_hierarchy)
+                               const char *const file_path,
+                               const uint64_t file_path_length,
+                               const char *const extension,
+                               const uint64_t extension_length,
+                               const bool file_path_is_in_tbd)
 {
     char *write_path = NULL;
     if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
         /*
          * The "hierarchy" is simply the hierarchy of directories following the
          * user-provided recurse-directory.
+         * 
+         * If file_path is related to tbd->parse_path, then we need to get the
+         * sub-directories of file_path that are not in tbd->parse_path but are
+         * in the hierarchy of file_path.
+         * 
+         * These subdirs are needed to "preserve the hierarchy" of files.
          */
 
-        const char *const hierarchy_iter = parse_path + tbd->parse_path_length;
-        uint64_t hierarchy_length = 0;
+        const char *subdirs_iter = file_path;
+        if (file_path_is_in_tbd) {
+            subdirs_iter += tbd->parse_path_length;
+        }
 
+        uint64_t subdirs_length = 0;
         if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const hierarchy_extension =
-                strrchr(hierarchy_iter, '.');
-
-            if (hierarchy_extension != NULL) {
-                hierarchy_length = hierarchy_extension - hierarchy_iter;
+            const char *const original_extension = strrchr(subdirs_iter, '.');
+            if (original_extension != NULL) {
+                subdirs_length = original_extension - subdirs_iter;
             }
         } else {
-            hierarchy_length = strlen(hierarchy_iter);
+            subdirs_length = strlen(subdirs_iter);
         }
 
         write_path =
             path_append_component_and_extension_with_len(folder_path,
                                                          folder_path_length,
-                                                         hierarchy_iter,
-                                                         hierarchy_length,
-                                                         "tbds",
-                                                         3);
+                                                         subdirs_iter,
+                                                         subdirs_length,
+                                                         extension,
+                                                         extension_length);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
             exit(1);
         }
     } else {
-        uint64_t hierarchy_length = 0;
-        const char *hierarchy = parse_path; 
+        uint64_t file_name_length = 0;
+        const char *const file_name =
+            path_get_last_path_component(file_path,
+                                         file_path_length,
+                                         &file_name_length);
 
-        if (!ignore_parse_path_hierarchy) {         
-            const char *const subdirs = parse_path + tbd->parse_path_length;
-            hierarchy = path_find_last_row_of_slashes(subdirs);
-        }
-
-        if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const hierarchy_extension = strrchr(hierarchy, '.');
-            if (hierarchy_extension != NULL) {
-                hierarchy_length = hierarchy_extension - hierarchy;
-            } else {
-                hierarchy_length = strlen(hierarchy);
-            }
-        } else {
-            hierarchy_length = strlen(hierarchy);
+        if (file_name == NULL) {
+            return strdup(folder_path);
         }
 
         write_path =
             path_append_component_and_extension_with_len(folder_path,
                                                          folder_path_length,
-                                                         hierarchy,
-                                                         hierarchy_length,
-                                                         "tbd",
-                                                         3);
+                                                         file_name,
+                                                         file_name_length,
+                                                         extension,
+                                                         extension_length);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
