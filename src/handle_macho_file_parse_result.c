@@ -93,7 +93,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "Mach-o file (at path %s) has no architectures\n",
                             path);
                 } else {
-                    fputs("Mach-o file at provided path has no architectures\n",
+                    fputs("Mach-o file at the provided path has no "
+                          "architectures\n",
                           stderr);
                 }
 
@@ -106,7 +107,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architectures to fit inside a mach-o file\n",
                             path);
                 } else {
-                    fputs("Mach-o file at provided path has too many "
+                    fputs("Mach-o file at the provided path has too many "
                           "architectures to fit inside a mach-o file\n",
                           stderr);
                 }
@@ -120,7 +121,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architecture\n",
                             path);
                 } else {
-                    fputs("Mach-o file at provided path has an invalid "
+                    fputs("Mach-o file at the provided path has an invalid "
                           "architecture\n",
                           stderr);
                 }
@@ -134,7 +135,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architectures\n",
                             path);
                 } else {
-                    fputs("Mach-o file at provided path has overlapping "
+                    fputs("Mach-o file at the provided path has overlapping "
                           "architectures\n",
                           stderr);
                 }
@@ -148,8 +149,22 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                             "architectures for the same cpu-type\n",
                             path);
                 } else {
-                    fputs("Mach-o file at provided path has multiple "
+                    fputs("Mach-o file at the provided path has multiple "
                           "architectures for the same cpu-type\n",
+                          stderr);
+                }
+
+                return false;
+
+            case E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES:
+                if (print_paths) {
+                    fprintf(stderr,
+                            "Mach-o file (at path %s) has no valid "
+                            "architectures that can be parsed\n",
+                            path);
+                } else {
+                    fputs("Mach-o file at the provided path has no valid "
+                          "architectures that can be parsed\n",
                           stderr);
                 }
 
@@ -187,13 +202,13 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures, has no load-commands; No "
-                            "information was extracted\n",
+                            "architectures, has no load-commands. "
+                            "Subsequently, no information was extracted\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
-                          "architectures, has no load-commands; No "
-                          "information was extracted\n",
+                          "architectures, has no load-commands. "
+                          "Subsequently, no information was extracted\n",
                           stderr);
                 }
 
@@ -203,13 +218,13 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures, has too many load-commands to fit "
-                            "inside a valid mach-o file\n",
+                            "architectures, has too many load-commands for its "
+                            "size\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
-                          "architectures, has too many load-commands to fit "
-                          "inside a valid mach-o file\n",
+                          "architectures, has too many load-commands for its "
+                          "size\n",
                           stderr);
                 }
 
@@ -250,12 +265,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
                             "architectures, has a segment with too many "
-                            "sections to fit inside a valid segment\n",
+                            "sections for its size\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
                           "architectures, has a segment with too many sections "
-                          "to fit inside a valid segment\n",
+                          "for its size\n",
                           stderr);
                 }
 
@@ -265,7 +280,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures,  has a segment with an invalid "
+                            "architectures, has a segment with an invalid "
                             "section\n",
                             path);
                 } else {
@@ -281,11 +296,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures, has an invalid client\n",
+                            "architectures, has an invalid client-string\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
-                          "architectures, has an invalid client\n",
+                          "architectures, has an invalid client-string\n",
                           stderr);
                 }
 
@@ -331,13 +346,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures,  has an invalid re-export "
-                            "load-command\n",
+                            "architectures, has an invalid re-export\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
-                          "architectures, has an invalid re-export "
-                          "load-command\n",
+                          "architectures, has an invalid re-export\n",
                           stderr);
                 }
 
@@ -347,7 +360,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures,  has an invalid parent-umbrella\n",
+                            "architectures, has an invalid parent-umbrella\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
@@ -365,7 +378,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures,  has an invalid symbol-table\n",
+                            "architectures, has an invalid symbol-table\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
@@ -379,7 +392,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 if (print_paths) {
                     fprintf(stderr,
                             "Mach-o file (at path %s), or one of its "
-                            "architectures, has an invalid  uuid\n",
+                            "architectures, has an invalid uuid\n",
                             path);
                 } else {
                     fputs("The provided mach-o file, or one of its "
@@ -426,14 +439,14 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                     fprintf(stderr,
                             "Mach-o file (at path %s) has architectures with "
                             "conflicting information for its identification "
-                            "(install-name, current-version, "
+                            "(install-name, current-version, and/or"
                             "comatibility-version)"
                             "\n",
                             path);
                 } else {
                     fputs("The provided mach-o file has architectures with "
                           "conflicting information for its identification "
-                          "(install-name, current-version, "
+                          "(install-name, current-version, and/or"
                           "comatibility-version)\n",
                           stderr);
                 }
@@ -530,6 +543,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 /*
                  * No identification means that the mach-o file is not a library
                  * file, which we check for only here, at the last moment.
+                 *
                  * No errors are printed, and this is simply inored
                  */
 
@@ -615,8 +629,8 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
 
     /*
      * If some of the fields are empty (for when
-     * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from
-     * the user.
+     * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from the
+     * user.
      * 
      * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
      * mandatory fields and aren't always provided.
@@ -628,8 +642,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                     "Mach-o file (at path %s), does not have an install-name\n",
                     path);
         } else {
-            fputs("The provided mach-o file does not have an "
-                  "install-name\n",
+            fputs("The provided mach-o file does not have an install-name\n",
                   stderr);
         }
 

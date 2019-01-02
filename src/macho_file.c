@@ -242,8 +242,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Verify that the architecture's end is not located beyond end of
-             * file.
+             * Verify that the architecture is fully within the given size.
              */
 
             if (arch_end > size) {
@@ -271,6 +270,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         }
     }
 
+    bool parsed_one_arch = false;
     for (uint32_t i = 0; i < nfat_arch; i++) {
         struct fat_arch arch = archs[i];
         if (lseek(fd, start + arch.offset, SEEK_SET) < 0) {
@@ -335,9 +335,15 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             free(archs);
             return handle_arch_result;
         }
+    
+        parsed_one_arch = true;
     }
 
     free(archs);
+
+    if (!parsed_one_arch) {
+        return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
+    }
 
     /*
      * Finally sort the exports array (now with all architectures accounted
@@ -472,8 +478,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Verify that the architecture's end is not located beyond end of
-             * file.
+             * Verify that the architecture is fully within the given size.
              */
 
             if (arch_end > size) {
@@ -501,6 +506,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
         }
     }
 
+    bool parsed_one_arch = false;
     for (uint32_t i = 0; i < nfat_arch; i++) {
         struct fat_arch_64 arch = archs[i];
         if (lseek(fd, start + arch.offset, SEEK_SET) < 0) {
@@ -566,9 +572,15 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             free(archs);
             return handle_arch_result;
         }
+
+        parsed_one_arch = true;
     }
 
     free(archs);
+
+    if (!parsed_one_arch) {
+        return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
+    }
 
     /*
      * Finally sort the exports array (now with all architectures accounted
@@ -733,13 +745,8 @@ void macho_file_print_archs(const int fd) {
          * Calculate the total-size of the architectures given.
          */
 
-        const uint64_t archs_size = sizeof(struct fat_arch_64) * nfat_arch;
-        
-        /*
-         * Check for any overflows if there exists too many architectures.
-         */
-
-        if (archs_size / sizeof(struct fat_arch_64) != nfat_arch) {
+        uint64_t archs_size = sizeof(struct fat_arch_64);
+        if (guard_overflow_mul(&archs_size, nfat_arch)) {
             fputs("File has too many architectures\n", stderr);
             exit(1);
         }
@@ -801,13 +808,8 @@ void macho_file_print_archs(const int fd) {
          * Calculate the total-size of the architectures given.
          */
 
-        const uint64_t archs_size = sizeof(struct fat_arch) * nfat_arch;
-        
-        /*
-         * Check for any overflows if there exists too many architectures.
-         */
-
-        if (archs_size / sizeof(struct fat_arch) != nfat_arch) {
+        uint64_t archs_size = sizeof(struct fat_arch);
+        if (guard_overflow_mul(&archs_size, nfat_arch)) {
             fputs("File has too many architectures\n", stderr);
             exit(1);
         }
