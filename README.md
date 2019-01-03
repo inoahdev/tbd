@@ -2,25 +2,39 @@
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 
 ```
-Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [[output-paths-or-stdout]
+Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [[output-paths]
 Main options:
     -h, --help,   Print this message
-    -o, --output, Path(s) to output file(s) to write converted tbd files. If provided file(s) already exists, contents will be overridden. Can also provide "stdout" to print to stdout
-    -p, --path,   Path(s) to mach-o file(s) to convert to a tbd file. Can also provide "stdin" to use stdin
+    -o, --output, Path(s) to output file(s) to write converted tbd files.
+                  If provided file(s) already exists, contents will be overridden.
+                  Can also provide "stdout" to print to stdout
+    -p, --path,   Path(s) to mach-o file(s) to convert to a tbd file.
+                  Can also provide "stdin" to use stdin
     -u, --usage,  Print this message
 
 Path options:
-Usage: tbd [-p] [options] /path/to/mach-o/library
-    -r, --recurse, Specify directory to recurse and find mach-o library files in
+Usage: tbd [-p] [options] path
+    -r, --recurse,     Specify directory to recurse and find mach-o library files in
+        --dsc,         Specify that the file provided is a dyld_shared_cache file.
+                       Note that dyld_shared_cache files are parsed by extracting their images into tbds written
+                       in a provided folder.
+                       This option can also be used when recursing, to indicate that only dyld_shared_cache files
+                       should be parsed, and not any mach-o files
+        --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed
+                       in addition, to mach-o files
 
 Outputting options:
-Usage: tbd -o [options] /path/to/output/file
-        --preserve-hierarchy,     Preserve directory hierarcy of where mach-o library files were found in when recursing
-        --no-overwrite,           Prevent overwriting of files when writing out (This may result in some files being skipped)
-        --replace-path-extension, Replace the path-extension(s) of provided mach-o file(s) when creating an output-file (Instead of simply appending .tbd)
+Usage: tbd -o [options] path
+        --preserve-hierarchy,     Preserve the sub-directories of where files were found in when recursing in
+                                  relation to the actual provided recurse-path
+        --no-overwrite,           Prevent overwriting of files when writing out.
+                                  This may result in some files being skipped
+        --replace-path-extension, Replace the path-extension(s) of provided file(s) when creating an
+                                  output-file (Instead of simply appending .tbd)
 
 Both local and global options:
-        -v, --version, Specify version of tbd to convert to (default is v2) (applying to all mach-o library files where tbd-version was not explicitly set)
+        -v, --version, Specify version of tbd to convert to (default is v2).
+                       This applies to all files where tbd-version was not explicitly set
 
 Ignore options:
         --ignore-clients,               Ignore clients field
@@ -40,27 +54,28 @@ General ignore options:
 
 Symbol options: (Both path and global options)
         --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)
-        --allow-private-normal-symbols, Allow all non-external symbols (of no type) (Not guaranteed to link at runtime)
+        --allow-private-normal-symbols, Allow all non-external symbols (Not guaranteed to link at runtime)
         --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)
         --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars
         --allow-private-objc-classes,   Allow all non-external objc-classes
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
 
 Field options: (Both path and global options)
-        --add-archs,     Provide architecture(s) to add onto architectures found in provided mach-o file(s)
-        --remove-archs,  Provide architecture(s) to remove from architectures found in provided mach-o file(s)
-        --replace-archs, Provide architecture(s) to replace architectures found in provided mach-o file(s)
-        --add-flags,     Provide flag(s) to add onto flags found in provided mach-o file(s)
-        --remove-flags,  Provide flag(s) to remove from flags found in provided mach-o file(s)
-        --replace-flags, Provide flag(s) to replace flags found in provided mach-o file(s)
+        --add-archs,     Provide architecture(s) to add onto architectures found in the provided mach-o(s)
+        --remove-archs,  Provide architecture(s) to remove from architectures found in the provided mach-o(s)
+        --replace-archs, Provide architecture(s) to replace architectures found in the provided mach-o(s)
+        --add-flags,     Provide flag(s) to add onto flags found in the provided mach-o(s)
+        --remove-flags,  Provide flag(s) to remove from flags found in the provided mach-o(s)
+        --replace-flags, Provide flag(s) to replace flags found in the provided mach-o(s)
 
 Ignore field warning options: (Both path and global options)
-        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in provided mach-o file(s)
-        --ignore-missing-uuids,    Ignore if uuids are not found in provided mach-o file(s)
-        --ignore-non-unique-uuids, Ignore if uuids found in provided mach-o file(s) are not unique
+        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in the provided mach-o(s)
+        --ignore-missing-uuids,    Ignore if uuids are not found in the provided mach-o(s)
+        --ignore-non-unique-uuids, Ignore if uuids found in the provided mach-o(s)
 
 List options:
-        --list-architectures,    List all valid architectures for tbd files. Also able to list architectures of a mach-o file from a provided path
+        --list-architectures,    List all valid architectures for tbd files.
+                                 Also able to list architectures of the mach-o file from the provided path
         --list-tbd-flags,        List all valid flags for tbd files
         --list-objc-constraints, List all valid objc-constraint options for tbd files
         --list-platform,         List all valid platforms
