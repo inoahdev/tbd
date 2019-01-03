@@ -62,6 +62,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
         case E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES:
+        case E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
