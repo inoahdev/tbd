@@ -667,8 +667,8 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_NOT_A_MACHO;
         }
 
-        struct mach_header header = {};
-        if (read(fd, &header, sizeof(header)) < 0) {
+        struct mach_header header = { .magic = magic };
+        if (read(fd, &header.cputype, sizeof(header) - sizeof(magic)) < 0) {
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
@@ -676,9 +676,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
          * Swap the mach_header's fields if big-endian.
          */
 
-        const bool is_big_endian =
-            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
-
+        const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
         if (is_big_endian) {
             header.cputype = swap_uint32(header.cputype);
             header.cpusubtype = swap_uint32(header.cpusubtype);
