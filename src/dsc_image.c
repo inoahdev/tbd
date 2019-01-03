@@ -176,11 +176,6 @@ dsc_image_parse(struct tbd_create_info *const info_in,
                 const uint64_t tbd_options,
                 const uint64_t options)
 {
-    const uint64_t size = dsc_info->size;
-    if (size < sizeof(struct mach_header)) {
-        return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
-    }
-
     /*
      * The mappings store the data-structures that make up a mach-o file for all
      * dyld_shared_cache images.
@@ -251,6 +246,8 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      */ 
 
     const uint64_t arch_bit = dsc_info->arch_bit;
+    const uint64_t dsc_size = dsc_info->size;
+
     const uint64_t lc_options =
         O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
@@ -259,7 +256,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     const enum macho_file_parse_result parse_load_commands_result =    
         macho_file_parse_load_commands_from_map(info_in,
                                                 map,
-                                                size,
+                                                dsc_size,
                                                 (const uint8_t *)header,
                                                 max_image_size,
                                                 dsc_info->arch,
@@ -287,7 +284,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_64_from_map(info_in,
                                                  map,
-                                                 size,
+                                                 dsc_size,
                                                  arch_bit,
                                                  is_big_endian,
                                                  symtab.symoff,
@@ -300,7 +297,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_from_map(info_in,
                                               map,
-                                              size,
+                                              dsc_size,
                                               arch_bit,
                                               is_big_endian,
                                               symtab.symoff,
