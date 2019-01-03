@@ -16,21 +16,22 @@ Path options:
 Usage: tbd [-p] [options] path
     -r, --recurse,     Specify directory to recurse and find mach-o library files in
         --dsc,         Specify that the file provided is a dyld_shared_cache file.
-                       Note that dyld_shared_cache files are parsed by extracting their images into tbds written
+                       Note that dyld_shared_cache files are parsed by extracting their
+                       images into tbds written
                        in a provided folder.
-                       This option can also be used when recursing, to indicate that only dyld_shared_cache files
-                       should be parsed, and not any mach-o files
+                       This option can also be used when recursing, to indicate that only
+                       dyld_shared_cache files should be parsed, and not any mach-o files
         --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed
                        in addition, to mach-o files
 
 Outputting options:
 Usage: tbd -o [options] path
-        --preserve-hierarchy,     Preserve the sub-directories of where files were found in when recursing in
-                                  relation to the actual provided recurse-path
+        --preserve-subdirs,       Preserve the sub-directories of where files were found in
+                                  when recursing in relation to the actual provided recurse-path
         --no-overwrite,           Prevent overwriting of files when writing out.
                                   This may result in some files being skipped
-        --replace-path-extension, Replace the path-extension(s) of provided file(s) when creating an
-                                  output-file (Instead of simply appending .tbd)
+        --replace-path-extension, Replace the path-extension(s) of provided file(s) when
+                                  creating an output-file (Instead of simply appending .tbd)
 
 Both local and global options:
         -v, --version, Specify version of tbd to convert to (default is v2).
@@ -69,7 +70,8 @@ Field options: (Both path and global options)
         --replace-flags, Provide flag(s) to replace flags found in the provided mach-o(s)
 
 Ignore field warning options: (Both path and global options)
-        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in the provided mach-o(s)
+        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found
+                                   in the provided mach-o(s)
         --ignore-missing-uuids,    Ignore if uuids are not found in the provided mach-o(s)
         --ignore-non-unique-uuids, Ignore if uuids found in the provided mach-o(s)
 

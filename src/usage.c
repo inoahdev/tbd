@@ -24,22 +24,23 @@ void print_usage(void) {
     fputs("Usage: tbd [-p] [options] path\n", stdout);
     fputs("    -r, --recurse,     Specify directory to recurse and find mach-o library files in\n", stdout);
     fputs("        --dsc,         Specify that the file provided is a dyld_shared_cache file.\n", stdout);
-    fputs("                       Note that dyld_shared_cache files are parsed by extracting their images into tbds written\n", stdout);
+    fputs("                       Note that dyld_shared_cache files are parsed by extracting their\n", stdout);
+    fputs("                       images into tbds written\n", stdout);
     fputs("                       in a provided folder.\n", stdout);
-    fputs("                       This option can also be used when recursing, to indicate that only dyld_shared_cache files\n", stdout);
-    fputs("                       should be parsed, and not any mach-o files\n", stdout);
+    fputs("                       This option can also be used when recursing, to indicate that only\n", stdout);
+    fputs("                       dyld_shared_cache files should be parsed, and not any mach-o files\n", stdout);
     fputs("        --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed\n", stdout);
     fputs("                       in addition, to mach-o files\n", stdout);
 
     fputc('\n', stdout);
     fputs("Outputting options:\n", stdout);
     fputs("Usage: tbd -o [options] path\n", stdout);
-    fputs("        --preserve-hierarchy,     Preserve the sub-directories of where files were found in when recursing in\n", stdout);
-    fputs("                                  relation to the actual provided recurse-path\n", stdout);
+    fputs("        --preserve-subdirs,       Preserve the sub-directories of where files were found in\n", stdout);
+    fputs("                                  when recursing in relation to the actual provided recurse-path\n", stdout);
     fputs("        --no-overwrite,           Prevent overwriting of files when writing out.\n", stdout);
     fputs("                                  This may result in some files being skipped\n", stdout);
-    fputs("        --replace-path-extension, Replace the path-extension(s) of provided file(s) when creating an\n", stdout);
-    fputs("                                  output-file (Instead of simply appending .tbd)\n", stdout);
+    fputs("        --replace-path-extension, Replace the path-extension(s) of provided file(s) when\n", stdout);
+    fputs("                                  creating an output-file (Instead of simply appending .tbd)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
@@ -84,7 +85,8 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Ignore field warning options: (Both path and global options)\n", stdout);
-    fputs("        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found in the provided mach-o(s)\n", stdout);
+    fputs("        --ignore-missing-exports,  Ignore if no symbols or reexpors to output are found\n", stdout);
+    fputs("                                   in the provided mach-o(s)\n", stdout);
     fputs("        --ignore-missing-uuids,    Ignore if uuids are not found in the provided mach-o(s)\n", stdout);
     fputs("        --ignore-non-unique-uuids, Ignore if uuids found in the provided mach-o(s)\n", stdout);
 

@@ -238,16 +238,14 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                const bool file_path_is_in_tbd)
 {
     char *write_path = NULL;
-    if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
+    if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
         /*
-         * The "hierarchy" is simply the hierarchy of directories following the
+         * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
          * 
          * If file_path is related to tbd->parse_path, then we need to get the
          * sub-directories of file_path that are not in tbd->parse_path but are
          * in the hierarchy of file_path.
-         * 
-         * These subdirs are needed to "preserve the hierarchy" of files.
          */
 
         const char *subdirs_iter = file_path;

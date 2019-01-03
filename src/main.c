@@ -254,9 +254,9 @@ int main(const int argc, const char *const argv[]) {
                         option += 1;
                     }
 
-                    if (strcmp(option, "preserve-hierarchy") == 0) {
+                    if (strcmp(option, "preserve-subdirs") == 0) {
                         tbd->options |=
-                            O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY;
+                            O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
                     } else if (strcmp(option, "no-overwrite") == 0) {
                         tbd->options |= O_TBD_FOR_MAIN_NO_OVERWRITE;
                     } else {
@@ -282,15 +282,16 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (strcmp(inner_arg, "stdout") == 0) {
-                    const bool preserve_hierarchy =
+                    const bool preserve_subdirs =
                         tbd->options &
-                        O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY;
+                        O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
 
-                    if (preserve_hierarchy) {
-                        fputs("Writing to stdout (terminal) while recursing "
-                              "a directory is not supported, Please provide "
-                              "a directory to write all found files to\n",
-                              stderr);
+                    if (preserve_subdirs) {
+                        fputs("Preserving sub-directories while writing to "
+                              "stdout is not possible. Please provide an "
+                              "output-directory to write files and directories "
+                              "to\n",
+                              stdout);
 
                         destroy_tbds_array(&tbds);
                         return 1;
@@ -320,8 +321,8 @@ int main(const int argc, const char *const argv[]) {
                 if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
                     tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE)
                 {
-                    if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_HIERARCHY) {
-                        fputs("Option --preserve-hierarchy can only be "
+                    if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+                        fputs("Option --preserve-subdirs can only be "
                               "provided recursing directoriess\n",
                               stderr);
 
