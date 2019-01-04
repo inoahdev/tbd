@@ -13,9 +13,7 @@
 
 #include <unistd.h>
 
-#include "c_str_utils.h"
 #include "guard_overflow.h"
-
 #include "objc.h"
 
 #include "macho_file_parse_load_commands.h"

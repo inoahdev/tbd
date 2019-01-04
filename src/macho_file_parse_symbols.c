@@ -16,9 +16,7 @@
 #include "mach-o/nlist.h"
 #include "arch_info.h"
 
-#include "c_str_utils.h"
 #include "guard_overflow.h"
-
 #include "macho_file_parse_symbols.h"
 
 #include "range.h"

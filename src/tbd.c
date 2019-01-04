@@ -10,8 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "c_str_utils.h"
-
 #include "tbd.h"
 #include "tbd_write.h"
 
