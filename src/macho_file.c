@@ -29,6 +29,7 @@ static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *const info_in,
                 const int fd,
                 const struct mach_header header,
+                const bool is_big_endian,
                 const uint64_t start,
                 const uint64_t size,
                 const uint64_t tbd_options,
@@ -37,9 +38,6 @@ parse_thin_file(struct tbd_create_info *const info_in,
     const bool is_64 =
         header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
     
-    const bool is_big_endian =
-        header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
-
     if (is_64) {
         if (size != 0) {
             if (size < sizeof(struct mach_header_64)) {
@@ -326,6 +324,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             parse_thin_file(info_in,
                             fd,
                             header,
+                            is_big_endian,
                             start + arch.offset,
                             arch.size,
                             tbd_options,
@@ -549,6 +548,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             parse_thin_file(info_in,
                             fd,
                             header,
+                            is_big_endian,
                             start + arch.offset,
                             arch.size,
                             tbd_options,
@@ -663,6 +663,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             parse_thin_file(info_in,
                             fd,
                             header,
+                            is_big_endian,
                             0,
                             0,
                             tbd_options,
