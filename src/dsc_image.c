@@ -274,6 +274,16 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     }
 
     /*
+     * If symtab is invalid, we can simply assume that no symbol-table was
+     * found, but that this was ok from the options as
+     * macho_file_parse_load_commands_from_map didn't return an error-code. 
+     */
+
+    if (symtab.cmd != LC_SYMTAB) {
+        return E_DSC_IMAGE_PARSE_OK;
+    }
+
+    /*
      * For parsing the symbol-tables, we provide the full dyld_shared_cache map
      * as the symbol-table and string-table offsets are relative to the full
      * map, not relative to the mach-o header.
@@ -312,8 +322,10 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         return translate_macho_file_parse_result(ret);
     }
 
-    if (array_is_empty(&info_in->exports)) {
-        return E_DSC_IMAGE_PARSE_NO_EXPORTS;
+    if (!(options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+        if (array_is_empty(&info_in->exports)) {
+            return E_DSC_IMAGE_PARSE_NO_EXPORTS;
+        }
     }
 
     info_in->archs = arch_bit;

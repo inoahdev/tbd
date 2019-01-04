@@ -345,20 +345,6 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
     }
 
-    /*
-     * Finally sort the exports array (now with all architectures accounted
-     * for).
-     */
-
-    const enum array_result sort_exports_result =
-        array_sort_items_with_comparator(&info_in->exports,
-                                         sizeof(struct tbd_export_info),
-                                         tbd_export_info_comparator);
-
-    if (sort_exports_result != E_ARRAY_OK) {
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
-    }
-
     return E_MACHO_FILE_PARSE_OK;
 }
 
@@ -582,20 +568,6 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
     }
 
-    /*
-     * Finally sort the exports array (now with all architectures accounted
-     * for).
-     */
-
-    const enum array_result sort_exports_result =
-        array_sort_items_with_comparator(&info_in->exports,
-                                         sizeof(struct tbd_export_info),
-                                         tbd_export_info_comparator);
-
-    if (sort_exports_result != E_ARRAY_OK) {
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
-    }
-
     return E_MACHO_FILE_PARSE_OK;
 }
 
@@ -701,8 +673,23 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
         return ret;
     }
 
-    if (array_is_empty(&info_in->exports)) {
-        return E_MACHO_FILE_PARSE_NO_EXPORTS;
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+        if (array_is_empty(&info_in->exports)) {
+            return E_MACHO_FILE_PARSE_NO_EXPORTS;
+        }
+    }
+
+    /*
+     * Finally sort the exports array.
+     */
+
+    const enum array_result sort_exports_result =
+        array_sort_items_with_comparator(&info_in->exports,
+                                         sizeof(struct tbd_export_info),
+                                         tbd_export_info_comparator);
+
+    if (sort_exports_result != E_ARRAY_OK) {
+        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
     }
 
     return E_MACHO_FILE_PARSE_OK;

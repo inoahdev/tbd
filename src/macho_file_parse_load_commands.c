@@ -2732,12 +2732,6 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
-        if (symtab.cmd != LC_SYMTAB) {
-            return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
-        }
-    }
-
     if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
         if (!found_uuid) {
             return E_MACHO_FILE_PARSE_NO_UUID;
@@ -2769,6 +2763,18 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
 
     if (add_uuid_info_result != E_ARRAY_OK) {
         return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+    }
+
+    if (symtab.cmd != LC_SYMTAB) {
+        if (tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        if (tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
     }
 
     /*

@@ -75,8 +75,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "ignore-current-version") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
     } else if (strcmp(option, "ignore-missing-exports") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_SYMBOL_TABLE;
-        tbd->write_options |= O_TBD_CREATE_IGNORE_EXPORTS;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_EXPORTS;
     } else if (strcmp(option, "ignore-missing-uuids") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_UUIDS;
     } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
