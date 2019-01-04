@@ -426,18 +426,36 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
                0755,
                &terminator);
     
-    if (write_fd < 0) {
+    if (write_fd < 0) {        
         if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (print_paths) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             * 
+             * Note: EEXIST is only returned when O_EXCL was set, which is only
+             * set for O_TBD_FOR_MAIN_NO_OVERWRITE, meaning no check here is
+             * necessary.
+             */
+
+            if (errno == EEXIST) {
                 fprintf(stderr,
-                        "Failed to open output-file (for path: %s), "
-                        "error: %s\n",
-                        write_path,
-                        strerror(errno));
+                        "Warning: Skipping over file (at path %s) as a file at "
+                        "its output-path (%s) already exists\n",
+                        input_path,
+                        write_path);
             } else {
-                fprintf(stderr,
-                        "Failed to open the provided output-file, error: %s\n",
-                        strerror(errno));
+                if (print_paths) {
+                    fprintf(stderr,
+                            "Failed to open output-file (for path: %s), "
+                            "error: %s\n",
+                            write_path,
+                            strerror(errno));
+                } else {
+                    fprintf(stderr,
+                            "Failed to open the provided output-file, "
+                            "error: %s\n",
+                            strerror(errno));
+                }
             }
         }
 
