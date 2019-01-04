@@ -66,11 +66,11 @@ parse_macho_file(struct tbd_for_main *const global,
         }
     }
 
-    char *const write_path = tbd->write_path;
-    if (write_path != NULL) {
+    char *const tbd_write_path = tbd->write_path;
+    if (tbd_write_path != NULL) {
         char *const write_path =
             tbd_for_main_create_write_path(tbd,
-                                           tbd->write_path,
+                                           tbd_write_path,
                                            tbd->write_path_length,
                                            path,
                                            path_length,
@@ -84,12 +84,11 @@ parse_macho_file(struct tbd_for_main *const global,
         }
     
         tbd_for_main_write_to_path(tbd, path, write_path, true);
+        free(write_path);
     } else {
         tbd_for_main_write_to_stdout(tbd, path, true);
     }
 
     clear_create_info(create_info, &original_info);
-    free(write_path);
-
     return true;
 }
