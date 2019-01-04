@@ -1,13 +1,12 @@
 SHELL = /bin/sh
 
-CXX := clang++
-CXXFLAGS := -std=c++1z -stdlib=libc++ -Wall -O3
+C := clang
+CFLAGS := -std=gnu11 -Wall -Ofast -Iinclude/
 
-SRCS := $(shell find src -name "*.cc")
-TARGET := build/tbd
+SRCS := $(shell find src -name "*.c")
+TARGET := bin/tbd
 
-DEBUGFLAGS := -std=c++1z -stdlib=libc++ -Wall -g
-
+DEBUGFLAGS := -std=gnu11 -Wall -g -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer -Iinclude/
 .DEFAULT_GOAL := all
 
 clean:
@@ -17,13 +16,13 @@ target-dir:
 	@mkdir -p $(dir $(TARGET))
 
 all: target-dir
-	@$(CXX) $(CXXFLAGS) $(SRCS) -o $(TARGET)
+	@$(C) $(CFLAGS) $(SRCS) -o $(TARGET)
 
 debug: target-dir
-	@$(CXX) $(DEBUGFLAGS) $(SRCS) -o $(TARGET)
+	@$(C) $(DEBUGFLAGS) $(SRCS) -o $(TARGET)
 
 install: all
 	@sudo mv $(TARGET) /usr/bin
 
 compile_commands:
-	@echo "[\n\t{\n\t\t\"command\" : \"$(CXX) $(CXXFLAGS) $(SRCS)\"\n\t}\n]" > compile_commands.json
+	@echo "[\n\t{\n\t\t\"command\" : \"$(C) $(CFLAGS) $(SRCS)\"\n\t}\n]" > compile_commands.json
