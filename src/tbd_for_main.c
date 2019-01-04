@@ -299,6 +299,8 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
 
             if (original_extension != NULL) {
                 subdirs_length = original_extension - subdirs_iter;
+            } else {
+                subdirs_length = strlen(subdirs_iter);
             }
         } else {
             subdirs_length = strlen(subdirs_iter);
