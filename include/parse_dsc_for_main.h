@@ -18,6 +18,8 @@ parse_shared_cache(struct tbd_for_main *global,
                    uint64_t path_length,
                    int fd,
                    uint64_t size,
-                   bool is_recursing);
+                   bool is_recursing,
+                   bool print_paths,
+                   uint64_t *retained_info_in);
 
 #endif /* PARSE_DSC_FOR_MAIN_H */

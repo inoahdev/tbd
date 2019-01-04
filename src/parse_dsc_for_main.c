@@ -27,10 +27,10 @@ struct dsc_iterate_images_callback_info {
     struct tbd_for_main *tbd;
 
     struct array images;
-    char *folder_path;
+    char *write_path;
 
-    uint64_t folder_path_length; 
-    uint64_t retained_info;
+    uint64_t write_path_length; 
+    uint64_t *retained_info;
 
     bool print_paths;
 };
@@ -122,22 +122,17 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                                       image_path,
                                       parse_image_result,
                                       callback_info->print_paths,
-                                      &callback_info->retained_info); 
+                                      callback_info->retained_info); 
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
         return true;
     }
 
-    /*
-     * Since all our extractions are from the shared-cache itself, and not
-     * dependent on its path, we can ignor the hierarchy of the dsc-path.
-     */
-
     char *const write_path =
         tbd_for_main_create_write_path(tbd,
-                                       callback_info->folder_path,
-                                       callback_info->folder_path_length,
+                                       callback_info->write_path,
+                                       callback_info->write_path_length,
                                        image_path,
                                        strlen(image_path),
                                        "tbd",
@@ -165,7 +160,9 @@ parse_shared_cache(struct tbd_for_main *const global,
                    const uint64_t path_length,
                    const int fd,
                    const uint64_t size,
-                   const bool is_recursing)
+                   const bool is_recursing,
+                   const bool print_paths,
+                   uint64_t *const retained_info_in)
 {
     const uint64_t dsc_options =
         O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | tbd->dsc_options;
@@ -182,62 +179,49 @@ parse_shared_cache(struct tbd_for_main *const global,
     }
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(path, parse_dsc_file_result, is_recursing);
+        handle_dsc_file_parse_result(path, parse_dsc_file_result, print_paths);
         return true;
     }
 
-    char *folder_path = tbd->write_path;
-    uint64_t folder_path_length = tbd->write_path_length;
+    char *write_path = tbd->write_path;
+    uint64_t write_path_length = tbd->write_path_length;
+
+    /*
+     * dyld_shared_cache tbds are always stored in a separate directory when
+     * recursing.
+     *
+     * When recursing, the name of the directory is comprised of the file-name
+     * of the dyld_shared_cache, followed by the extension '.tbds'.
+     */
 
     if (is_recursing) {
-        /*
-         * Get the hierarchy (the path of the folder containing the
-         * dyld_shared_cache), by getting the length between the last
-         * path-component and the beginning of the path.
-         */
-
-        folder_path =
+        write_path =
             tbd_for_main_create_write_path(tbd,
-                                           folder_path,
-                                           folder_path_length,
+                                           write_path,
+                                           write_path_length,
                                            path,
                                            path_length,
                                            "tbds",
                                            4,
                                            true); 
 
-        folder_path_length = strlen(folder_path);
+        write_path_length = strlen(write_path);
     }
 
-    char *terminator = NULL;
-    if (mkdir_r(folder_path, 0755, &terminator)) {
-        if (is_recursing) {
-            fprintf(stderr,
-                    "Failed to create directory (at path %s) for "
-                    "dyld_shared_cache (at path %s), error: %s\n",
-                    folder_path,
-                    path,
-                    strerror(errno));
-        } else {
-            fprintf(stderr,
-                    "Failed to create directory (at path %s) for "
-                    "the provided dyld_shared_cache, error: %s\n",
-                    folder_path,
-                    strerror(errno));
-
-        }
-
-        return true;
-    }
+    /*
+     * Only create the write-path directory at the last-moment to avoid
+     * unnecessary mkdir() calls for a shared-cache that may turn up empty.
+     */
 
     struct dsc_iterate_images_callback_info callback_info = {
         .dsc_info = &dsc_info,
         .dsc_path = path,
         .global = global,
         .tbd = tbd,
-        .folder_path = folder_path,
-        .folder_path_length = folder_path_length,
-        .print_paths = is_recursing,
+        .write_path = write_path,
+        .write_path_length = write_path_length,
+        .print_paths = print_paths,
+        .retained_info = retained_info_in
     };
 
     const enum dyld_shared_cache_parse_result iterate_images_result =
@@ -249,16 +233,11 @@ parse_shared_cache(struct tbd_for_main *const global,
             dsc_iterate_images_callback);
 
     if (is_recursing) {
-        free(folder_path);
+        free(write_path);
     }    
 
     if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        /*
-         * Ignore the return value as it is possible that the directory was
-         * populated with tbds before failing.
-         */
-
-        remove_partial_r(folder_path, terminator);        
+        handle_dsc_file_parse_result(path, iterate_images_result, print_paths);
     }
 
     return true;

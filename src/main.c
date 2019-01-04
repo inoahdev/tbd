@@ -109,7 +109,9 @@ recurse_directory_callback(const char *const parse_path,
                                parse_path_length,
                                fd,
                                sbuf.st_size,
-                               true);
+                               true,
+                               true,
+                               retained);
 
         if (parse_as_dsc_result) {
             close(fd);
@@ -867,7 +869,7 @@ int main(const int argc, const char *const argv[]) {
         if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             /*
              * We have to check here, as its possible output-commands were not
-             * created for parse commands.
+             * provided for the parse commands.
              */
 
             if (tbd->write_path == NULL) {
@@ -963,7 +965,9 @@ int main(const int argc, const char *const argv[]) {
                                        tbd->parse_path_length,
                                        fd,
                                        sbuf.st_size,
-                                       false);
+                                       false,
+                                       should_print_paths,
+                                       &retained_info);
 
                     break;
             }
