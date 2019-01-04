@@ -167,7 +167,6 @@ macho_file_parse_load_commands_from_file(
     }
 
     bool found_identification = false;
-    bool found_platform = false;
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
@@ -321,7 +320,6 @@ macho_file_parse_load_commands_from_file(
                     info_in->platform = build_version_platform;
                 }
     
-                found_platform = true;
                 break;
             }
 
@@ -1453,18 +1451,6 @@ macho_file_parse_load_commands_from_file(
     if (!found_identification) {
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
-        if (symtab.cmd != LC_SYMTAB) {
-            return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
-        }
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
-        if (!found_uuid) {
-            return E_MACHO_FILE_PARSE_NO_UUID;
-        }
-    }   
     
     info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
@@ -1489,6 +1475,24 @@ macho_file_parse_load_commands_from_file(
 
     if (add_uuid_info_result != E_ARRAY_OK) {
         return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+    }
+
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_PLATFORM)) {
+        if (info_in->platform == 0) {
+            return E_MACHO_FILE_PARSE_NO_PLATFORM;
+        }
+    }
+
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
+        if (symtab.cmd != LC_SYMTAB) {
+            return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
+        }
+    }
+
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
+        if (!found_uuid) {
+            return E_MACHO_FILE_PARSE_NO_UUID;
+        }
     }
 
     /*
@@ -1605,7 +1609,6 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     }
 
     bool found_identification = false;
-    bool found_platform = false;
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
@@ -1747,7 +1750,6 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     info_in->platform = build_version_platform;
                 }
     
-                found_platform = true;
                 break;
             }
 

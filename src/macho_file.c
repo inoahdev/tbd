@@ -99,6 +99,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
+    info_in->archs |= arch_bit;
     const enum macho_file_parse_result parse_load_commands_result =    
         macho_file_parse_load_commands_from_file(info_in,
                                                  fd,
@@ -118,7 +119,6 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return parse_load_commands_result;
     }
 
-    info_in->archs |= arch_bit;
     return E_MACHO_FILE_PARSE_OK;
 }
 

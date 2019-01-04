@@ -460,6 +460,22 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
             }
         }
 
+        /*
+         * Although getting the file descriptor failed, its likely open_r
+         * still created the directory hierarchy (and if so the terminator
+         * shouldn't be NULL).
+         */
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+            
+            remove_partial_r(write_path, terminator);
+        }
+
         return;
     }
 

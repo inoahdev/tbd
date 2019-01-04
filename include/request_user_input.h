@@ -11,6 +11,11 @@
 
 #include "tbd_for_main.h"
 
+#ifndef __printflike
+#define __printflike(fmtarg, firstvararg) \
+    __attribute__((__format__ (__printf__, fmtarg, firstvararg)))
+#endif /* __printflike(fmt, args) */
+
 enum retained_user_input_info_flags {
     F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_FLAGS           = 1 << 0,
     F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME    = 1 << 1,
@@ -25,39 +30,67 @@ enum retained_user_input_info_flags {
     F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS = 1 << 8,
 };
 
+__printflike(5, 6)
 bool
 request_install_name(struct tbd_for_main *global,
                      struct tbd_for_main *tbd,
-                     uint64_t *retained_info_in);
+                     uint64_t *retained_info_in,
+                     FILE *prompt_file,
+                     const char *prompt,
+                     ...);
 
+__printflike(5, 6)
 bool
 request_objc_constraint(struct tbd_for_main *global,
                         struct tbd_for_main *tbd,
-                        uint64_t *retained_info_in);
+                        uint64_t *retained_info_in,
+                        FILE *prompt_file,
+                        const char *prompt,
+                        ...);
 
+__printflike(5, 6)
 bool
 request_parent_umbrella(struct tbd_for_main *global,
                         struct tbd_for_main *tbd,
-                        uint64_t *retained_info_in);
+                        uint64_t *retained_info_in,
+                        FILE *prompt_file,
+                        const char *prompt,
+                        ...);
 
+__printflike(5, 6)
 bool
 request_platform(struct tbd_for_main *global,
                  struct tbd_for_main *tbd,
-                 uint64_t *retained_info_in);
+                 uint64_t *retained_info_in,
+                 FILE *prompt_file,
+                 const char *prompt,
+                 ...);
 
+__printflike(5, 6)
 bool
 request_swift_version(struct tbd_for_main *global,
                       struct tbd_for_main *tbd,
-                      uint64_t *retained_info_in);
+                      uint64_t *retained_info_in,
+                      FILE *prompt_file,
+                      const char *prompt,
+                      ...);
 
+__printflike(5, 6)
 bool
 request_if_should_ignore_flags(struct tbd_for_main *global,
                                struct tbd_for_main *tbd,
-                               uint64_t *retained_info_in);
+                               uint64_t *retained_info_in,
+                               FILE *prompt_file,
+                               const char *prompt,
+                               ...);
 
+__printflike(5, 6)
 bool
 request_if_should_ignore_non_unique_uuids(struct tbd_for_main *global,
                                           struct tbd_for_main *tbd,
-                                          uint64_t *retained_info_in);
+                                          uint64_t *retained_info_in,
+                                          FILE *prompt_file,
+                                          const char *prompt,
+                                          ...);
 
 #endif /* REQUEST_USER_INPUT_H */

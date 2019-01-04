@@ -158,452 +158,505 @@ handle_dsc_image_parse_result(struct tbd_for_main *const global,
                               const bool print_paths,
                               uint64_t *const info_in)
 {
-    do {
-        bool should_break_out = false;
-        switch (parse_result) {
-            case E_DSC_IMAGE_PARSE_OK:
-                should_break_out = true;
-                break;
+	switch (parse_result) {
+		case E_DSC_IMAGE_PARSE_OK:
+			break;
 
-            case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
-                return false;
+		case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
+			return false;
 
-            case E_DSC_IMAGE_PARSE_SEEK_FAIL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "Failed to seek to a location while parsing "
-                            "dyld_shared_cache file (at path %s)\n",
-                            dsc_path);
-                } else {
-                    fputs("Failed to seek to a location while parsing the "
-                          "provided dyld_shared_cache file\n",
-                          stderr);
-                }
+		case E_DSC_IMAGE_PARSE_SEEK_FAIL:
+			if (print_paths) {
+				fprintf(stderr,
+						"Failed to seek to a location while parsing "
+						"dyld_shared_cache file (at path %s)\n",
+						dsc_path);
+			} else {
+				fputs("Failed to seek to a location while parsing the "
+					  "provided dyld_shared_cache file\n",
+					  stderr);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_READ_FAIL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "Failed to read data while parsing "
-                            "dyld_shared_cache file (at path %s)\n",
-                            dsc_path);
-                } else {
-                    fputs("Failed to read data while parsing dyld_shared_cache "
-                          "file at the provided path\n",
-                          stderr);
-                }
+		case E_DSC_IMAGE_PARSE_READ_FAIL:
+			if (print_paths) {
+				fprintf(stderr,
+						"Failed to read data while parsing a dyld_shared_cache "
+                        "file (at path %s)\n",
+						dsc_path);
+			} else {
+				fputs("Failed to read data while parsing dyld_shared_cache "
+                      "file at the provided path\n",
+					  stderr);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_NO_CORRESPONDING_MAPPING:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache (at path %s) has an image"
-                            "(with path %s) that has no corresponding mapping\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has no corresponding mapping\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_NO_CORRESPONDING_MAPPING:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache (at path %s) has an image (with "
+                        "path %s) that has no corresponding mapping\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has no corresponding mapping\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache (at path %s) has an image"
-                            "(with path %s) that is a fat mach-o, which is not "
-                            "supported\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that is a fat mach-o, which is not "
-                            "supported\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache (at path %s) has an image (with "
+                        "path %s) that is a fat mach-o, which is not "
+                        "supported\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that is a fat mach-o, which is not "
+						"supported\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache (at path %s) has an image "
-                            "(with path %s) that is too small to be a valid "
-                            "mach-o\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that is too small to be a valid "
-                            "mach-o\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache (at path %s) has an image (with "
+                        "path %s) that is too small to be a valid mach-o\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+                        "(with path %s) that is too small to be a valid "
+						"mach-o\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "Failed to allocate data while parsing an image "
-                            "(with path %s) of the dyld_shared_cache file "
-                            "(at path %s)\n",
-                            image_path,
-                            dsc_path);
-                } else {
-                    fprintf(stderr,
-                            "Failed to allocate data while parsing an image "
-                            "(with path %s) of the provided dyld_shared_cache "
-                            "file\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
+			if (print_paths) {
+				fprintf(stderr,
+						"Failed to allocate data while parsing an image (with "
+                        "path %s) of the dyld_shared_cache file (at path %s)\n",
+						image_path,
+						dsc_path);
+			} else {
+				fprintf(stderr,
+						"Failed to allocate data while parsing an image (with "
+                        "path %s) of the provided dyld_shared_cache file\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_ARRAY_FAIL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "Failed to perform an array operation while "
-                            "parsing an image (with path %s) of the "
-                            "dyld_shared_cache file (at path %s)\n",
-                            image_path,
-                            dsc_path);
-                } else {
-                    fprintf(stderr,
-                            "Failed to perform an array operation while "
-                            "parsing an image (with path %s) of the provided "
-                            "dyld_shared_cache file\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_ARRAY_FAIL:
+			if (print_paths) {
+				fprintf(stderr,
+						"Failed to perform an array operation while parsing an "
+                        "image (with path %s) of the dyld_shared_cache file "
+                        "(at path %s)\n",
+						image_path,
+						dsc_path);
+			} else {
+				fprintf(stderr,
+						"Failed to perform an array operation while parsing an "
+                        "image (with path %s) of the provided "
+                        "dyld_shared_cache file\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has no load-commands. "
-                            "Subsequently, no information was retrieved\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has no load-commands. "
-                            "Subsequently, no information was retrieved\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has no load-commands. "
+						"Subsequently, no information was retrieved\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has no load-commands. "
+						"Subsequently, no information was retrieved\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) with too many load-commands for "
-                            "its size\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) with too many load-commands for "
-                            "its size\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) with too many load-commands for its "
+                        "size\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) with too many load-commands for its "
+                        "size\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) with a load-commands area too "
-                            "small to store all of its load-commands\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) with a load-commands area too "
-                            "small to store all of its load-commands\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) with a load-commands area too small to "
+                        "store all of its load-commands\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) with a load-commands area too small to "
+                        "store all of its load-commands\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) with an invalid load-command\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) with an invalid load-command\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) with an invalid load-command\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+                        "(with path %s) with an invalid load-command\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) with a segment that has too many "
-                            "sections for its size\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) with a segment that has too many "
-                            "sections for its size\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) with a segment that has too many "
+                        "sections for its size\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) with a segment that has too many "
+						"sections for its size\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_SECTION:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) with a segment that has an invalid "
-                            "section\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) with a segment that has an invalid "
-                            "section\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_SECTION:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) with a segment that has an invalid "
+						"section\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) with a segment that has an invalid "
+						"section\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_CLIENT:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid "
-                            "client-string\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid "
-                            "client-string\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_CLIENT:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has an invalid client-string\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has an invalid client-string\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid install-name\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid install-name\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME: {
+			bool request_result = false;
+			if (print_paths) {
+				request_result =
+					request_install_name(global,
+										 tbd,
+										 info_in,
+										 stderr,
+										 "dyld_shared_cache file (at path %s) "
+                                         "has an image (with path %s) that has "
+                                         "an invalid install-name\n",
+										 dsc_path,
+										 image_path);
+			} else {
+				request_result =
+					request_install_name(global,
+										 tbd,
+										 info_in,
+										 stderr,
+										 "The provided dyld_shared_cache file "
+                                         "has an image (with path %s) that has "
+                                         "an invalid install-name\n",
+										 image_path);
+			}
 
-                if (!request_install_name(global, tbd, info_in)) {
-                    return false;
-                }
+			if (!request_result) {
+				return false;
+			}
 
-                break;
+			break;
+		}
 
-            case E_DSC_IMAGE_PARSE_INVALID_PLATFORM:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid platform\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid platform\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
+			bool request_result = false;
+			if (print_paths) {
+				request_result =
+					request_install_name(global,
+										 tbd,
+										 info_in,
+										 stderr,
+										 "dyld_shared_cache file (at path %s) "
+                                         "has an image (with path %s) that has "
+                                         "an invalid platform\n",
+										 dsc_path,
+										 image_path);
+			} else {
+				request_result =
+					request_install_name(global,
+										 tbd,
+										 info_in,
+										 stderr,
+										 "The provided dyld_shared_cache file "
+                                         "has an image (with path %s) that has "
+                                         "an invalid platform\n",
+										 image_path);
+			}
 
-                if (!request_platform(global, tbd, info_in)) {
-                    return false;
-                }
+			if (!request_result) {
+				return false;
+			}
 
-                break;
+			break;
+		}
 
-            case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid re-export\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid re-export\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_REEXPORT: 
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has an invalid re-export\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has an invalid re-export\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid "
-                            "parent-umbrella\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid "
-                            "parent-umbrella\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA: {
+			bool request_result = false;
+			if (print_paths) {
+				request_result =
+					request_parent_umbrella(global,
+											tbd,
+											info_in,
+											stderr,
+											"dyld_shared_cache file (at "
+											"path %s) has an image (with "
+											"path %s) that has an invalid "
+											"parent-umbrella\n",
+											dsc_path,
+											image_path);
+			} else {
+				request_result =
+					request_parent_umbrella(global,
+											tbd,
+											info_in,
+											stderr,
+											"The provided dyld_shared_cache "
+                                            "file has an image (with path %s) "
+                                            "that has an invalid "
+                                            "parent-umbrella\n",
+											image_path);
+			}
 
-                if (!request_parent_umbrella(global, tbd, info_in)) {
-                    return false;
-                }
+			if (!request_result) {
+				return false;
+			}
 
-                break;
+			break;
+		}
 
-            case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid "
-                            "symbol-table\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid "
-                            "symbol-table\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+                        "(with path %s) that has an invalid symbol-table\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has an invalid symbol-table\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_INVALID_UUID:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has an invalid uuid\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has an invalid uuid\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_INVALID_UUID:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has an invalid uuid\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has an invalid uuid\n",
+						image_path);
+			}
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_NO_IDENTIFICATION:
-                /*
-                 * No identification means that the dsc-image (a mach-o) is not
-                 * a library file, which we check for only here, at the last
-                 * moment.
-                 *
-                 * No errors are printed, and this is simply inored.
-                 */
+		case E_DSC_IMAGE_PARSE_NO_IDENTIFICATION:
+			/*
+			 * No identification means that the dsc-image (a mach-o) is not
+			 * a library file, which we check for only here, at the last
+			 * moment.
+			 *
+			 * No errors are printed, and this is simply inored.
+			 */
 
-                return false;
+			return false;
 
-            case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has no symbol-table\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has no symbol-table\n",
-                            image_path);
-                }
+		case E_DSC_IMAGE_PARSE_NO_PLATFORM: {
+			bool request_result = false;
+			if (print_paths) {
+				request_result =
+					request_platform(global,
+									 tbd,
+									 info_in,
+									 stderr,
+									 "dyld_shared_cache file (at path %s) has "
+                                     "an image (with path %s) that doesn't "
+                                     "have a platform\n",
+									 dsc_path,
+									 image_path);
+			} else {
+				request_result =
+					request_platform(global,
+									 tbd,
+									 info_in,
+									 stderr,
+									 "The provided dyld_shared_cache file has "
+                                     "an image (with path %s) that doesn't "
+                                     "have a platform\n",
+									 image_path);
+			}
 
-                return false;
+			if (!request_result) {
+				return false;
+			}
 
-            case E_DSC_IMAGE_PARSE_NO_UUID:
-                if (print_paths) {
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
-                            "(with path %s) that has no symbol-table\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    fprintf(stderr,
-                            "The provided dyld_shared_cache file has an image "
-                            "(with path %s) that has no symbol-table\n",
-                            image_path);
-                }
+			break;
+		}
 
-                return false;
+		case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has no symbol-table\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has no symbol-table\n",
+						image_path);
+			}
 
-            case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
-                const uint64_t options = tbd->options;
-                if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                    if (options & O_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                        return false;
-                    }
+			return false;
 
-                    fprintf(stderr,
-                            "dyld_shared_cache file (at path %s) has an image "
+		case E_DSC_IMAGE_PARSE_NO_UUID:
+			if (print_paths) {
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has no symbol-table\n",
+						dsc_path,
+						image_path);
+			} else {
+				fprintf(stderr,
+						"The provided dyld_shared_cache file has an image "
+						"(with path %s) that has no symbol-table\n",
+						image_path);
+			}
+
+			return false;
+
+		case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
+			const uint64_t options = tbd->options;
+			if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+				if (options & O_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+					return false;
+				}
+
+				fprintf(stderr,
+						"dyld_shared_cache file (at path %s) has an image "
+						"(with path %s) that has no clients, re-exports, "
+						"or symbols to be written out\n",
+						dsc_path,
+						image_path);
+			} else {
+				if (print_paths) {
+					fprintf(stderr,
+							"dyld_shared_cache file (at path %s) has an image "
                             "(with path %s) that has no clients, re-exports, "
                             "or symbols to be written out\n",
-                            dsc_path,
-                            image_path);
-                } else {
-                    if (print_paths) {
-                        fprintf(stderr,
-                                "dyld_shared_cache file (at path %s) has an "
-                                "image (with path %s) that has no clients, "
-                                "re-exports, or symbols to be written out\n",
-                                dsc_path,
-                                image_path);
-                    } else {
-                        fprintf(stderr,
-                                "The provided dyld_shared_cache file has an "
-                                "image (with path %s) that has no clients, "
-                                "re-exports, or symbols to be written out\n",
-                                image_path);
-                    }
-                }
+							dsc_path,
+							image_path);
+				} else {
+					fprintf(stderr,
+							"The provided dyld_shared_cache file has an image "
+                            "(with path %s) that has no clients, re-exports, "
+                            "or symbols to be written out\n",
+							image_path);
+				}
+			}
 
-                return false;
-            }
-        }
-
-        if (should_break_out) {
-            break;
-        }
-    } while (true);
+			return false;
+		}
+	}
 
     /*
-     * Handle the remove/replace fields
+     * Handle the remove/replace fields.
      */
 
     const uint64_t archs_re = tbd->archs_re;
@@ -634,39 +687,61 @@ handle_dsc_image_parse_result(struct tbd_for_main *const global,
      */
 
     if (tbd->info.install_name == NULL) {
+        bool request_result = false;
         if (print_paths) {
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s) has an image "
-                    "(with path %s) that has an invalid install-name\n",
-                    dsc_path,
-                    image_path);
+            request_result =
+                request_install_name(global,
+                                     tbd,
+                                     info_in,
+                                     stderr,
+                                     "dyld_shared_cache file (at path %s) has "
+                                     "an image (with path %s) that doesn't "
+                                     "have an install-name\n",
+                                     dsc_path,
+                                     image_path);
         } else {
-            fprintf(stderr,
-                    "The provided dyld_shared_cache file has an image "
-                    "(with path %s) that has an invalid install-name\n",
-                    image_path);
+            request_result =
+                request_install_name(global,
+                                     tbd,
+                                     info_in,
+                                     stderr,
+                                     "The provided dyld_shared_cache file has "
+                                     "an image (with path %s) that doesn't "
+                                     "have an install-name\n",
+                                     image_path);
         }
 
-        if (!request_install_name(global, tbd, info_in)) {
+        if (!request_result) {
             return false;
         }
     }
 
     if (tbd->info.platform == 0) {
+        bool request_result = false;
         if (print_paths) {
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s) has an image "
-                    "(with path %s) that has an invalid platform\n",
-                    dsc_path,
-                    image_path);
+            request_result =
+                request_platform(global,
+                                 tbd,
+                                 info_in,
+                                 stderr,
+                                 "dyld_shared_cache file (at path %s) has an "
+                                 "image (with path %s) that doesn't have a "
+                                 "platform\n",
+                                 dsc_path,
+                                 image_path);
         } else {
-            fprintf(stderr,
-                    "The provided dyld_shared_cache file has an image "
-                    "(with path %s) that has an invalid platform\n",
-                    image_path);
+            request_result =
+                request_platform(global,
+                                 tbd,
+                                 info_in,
+                                 stderr,
+                                 "The provided dyld_shared_cache file has an "
+                                 "image (with path %s) that doesn't have a "
+                                 "platform\n",
+                                 image_path);
         }
 
-        if (!request_platform(global, tbd, info_in)) {
+        if (!request_result) {
             return false;
         }
     }

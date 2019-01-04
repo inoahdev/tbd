@@ -122,6 +122,9 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
             return E_DSC_IMAGE_PARSE_NO_IDENTIFICATION;
 
+        case E_MACHO_FILE_PARSE_NO_PLATFORM:
+            return E_DSC_IMAGE_PARSE_NO_PLATFORM;
+
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
             return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
         

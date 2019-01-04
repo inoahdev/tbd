@@ -149,9 +149,11 @@ tbd_create_with_info(const struct tbd_create_info *const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    if (!(options & O_TBD_CREATE_IGNORE_UUIDS) && (version != TBD_VERSION_V1)) {
-        if (tbd_write_uuids(file, &info->uuids, options)) {
-            return E_TBD_CREATE_WRITE_FAIL;
+    if (!(options & O_TBD_CREATE_IGNORE_UUIDS)) {
+        if (version != TBD_VERSION_V1) {
+            if (tbd_write_uuids(file, &info->uuids, options)) {
+                return E_TBD_CREATE_WRITE_FAIL;
+            }
         }
     }
 

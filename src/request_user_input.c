@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,9 +41,11 @@ request_input(const char *const prompt,
         fflush(stdout);
 
         char *input = NULL;
+        
         size_t input_size = 0;
+        size_t input_length = getline(&input, &input_size, stdin);
 
-        if (getline(&input, &input_size, stdin) < 0) {
+        if (input_length < 0) {
             free(input);
             fprintf(stderr,
                     "\nInternal error: getline() failed while trying to "
@@ -52,18 +55,28 @@ request_input(const char *const prompt,
             exit(1);
         }
 
+        /*
+         * getline() returns the delimiter in the string itself, which we should
+         * remove.
+         */
+
+        input[input_length - 1] = '\0';
+
         if (inputs != NULL) {
             const char *const *iter = inputs;
             const char *acceptable_input = *iter;
 
             for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-                if (strcmp(acceptable_input, input) == 0) {
+                if (strcmp(acceptable_input, input) != 0) {
                     continue;
                 }
 
                 *result_out = input;
                 return;
             }
+        } else {
+            *result_out = input;
+            return;
         }
     } while (true);
 }
@@ -71,7 +84,10 @@ request_input(const char *const prompt,
 bool
 request_install_name(struct tbd_for_main *const global,
                      struct tbd_for_main *const tbd,
-                     uint64_t *const info_in)
+                     uint64_t *const info_in,
+                     FILE *const file,
+                     const char *const prompt,
+                     ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -95,17 +111,23 @@ request_install_name(struct tbd_for_main *const global,
         }
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Replace install-name?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
@@ -117,7 +139,7 @@ request_install_name(struct tbd_for_main *const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->info.install_name = tbd->info.install_name;
         global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     }
@@ -129,7 +151,10 @@ request_install_name(struct tbd_for_main *const global,
 bool
 request_objc_constraint(struct tbd_for_main *const global,
                         struct tbd_for_main *const tbd,
-                        uint64_t *const info_in)
+                        uint64_t *const info_in,
+                        FILE *const file,
+                        const char *const prompt,
+                        ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -154,17 +179,23 @@ request_objc_constraint(struct tbd_for_main *const global,
         return true;
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Replace objc-constraint?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
         
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
@@ -172,7 +203,7 @@ request_objc_constraint(struct tbd_for_main *const global,
     do {
         char *input = NULL;
         request_input("Replacement objc-constraint? (Enter "
-                      "--list-objc-constraint to list all objc-constraints\n",
+                      "--list-objc-constraint to list all objc-constraints",
                       NULL,
                       &input);
 
@@ -187,22 +218,29 @@ request_objc_constraint(struct tbd_for_main *const global,
             continue;
         }
 
+        /*
+         * To properly parse the objc-constraint, we need to remove the new-line
+         * given.
+         */
+
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(input);
 
-        free(input);
-
         if (objc_constraint == 0) {
             fprintf(stderr, "Unrecognized objc-constraint type: %s\n", input);
+            free(input);
+    
             continue;
         }
 
         tbd->info.objc_constraint = objc_constraint;
+        free(input);
+
         break;
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->info.objc_constraint = tbd->info.objc_constraint;
         global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
@@ -214,7 +252,10 @@ request_objc_constraint(struct tbd_for_main *const global,
 bool
 request_parent_umbrella(struct tbd_for_main *const global,
                         struct tbd_for_main *const tbd,
-                        uint64_t *const info_in)
+                        uint64_t *const info_in,
+                        FILE *const file,
+                        const char *const prompt,
+                        ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -241,17 +282,23 @@ request_parent_umbrella(struct tbd_for_main *const global,
         }
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Replace parent-umbrella?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
@@ -263,7 +310,7 @@ request_parent_umbrella(struct tbd_for_main *const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
@@ -275,7 +322,10 @@ request_parent_umbrella(struct tbd_for_main *const global,
 bool
 request_platform(struct tbd_for_main *const global,
                  struct tbd_for_main *const tbd,
-                 uint64_t *const info_in)
+                 uint64_t *const info_in,
+                 FILE *const file,
+                 const char *const prompt,
+                 ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -297,17 +347,23 @@ request_platform(struct tbd_for_main *const global,
         return true;
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Replace platform?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
@@ -331,8 +387,6 @@ request_platform(struct tbd_for_main *const global,
         }
 
         const enum tbd_platform platform = parse_platform(input);
-        free(input);
-
         if (platform == 0) {
             fprintf(stderr, "Unrecognized platform: %s\n", input);
             free(input);
@@ -341,11 +395,13 @@ request_platform(struct tbd_for_main *const global,
         }
 
         tbd->info.platform = platform;
+        free(input);
+
         break;
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->info.platform = tbd->info.platform;
         global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
@@ -370,7 +426,10 @@ static bool has_non_digits(const char *const string) {
 bool
 request_swift_version(struct tbd_for_main *const global,
                       struct tbd_for_main *const tbd,
-                      uint64_t *const info_in)
+                      uint64_t *const info_in,
+                      FILE *const file,
+                      const char *const prompt,
+                      ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -392,17 +451,23 @@ request_swift_version(struct tbd_for_main *const global,
         return true;
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Replace swift-version?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
@@ -435,7 +500,7 @@ request_swift_version(struct tbd_for_main *const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->info.swift_version = tbd->info.swift_version;
         global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
@@ -447,7 +512,10 @@ request_swift_version(struct tbd_for_main *const global,
 bool
 request_if_should_ignore_flags(struct tbd_for_main *const global,
                                struct tbd_for_main *const tbd,
-                               uint64_t *const info_in)
+                               uint64_t *const info_in,
+                               FILE *const file,
+                               const char *const prompt,
+                               ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -464,23 +532,29 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
         return true;
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Ignore flags?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
         
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     }
 
@@ -491,7 +565,10 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
 bool
 request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
                                           struct tbd_for_main *const tbd,
-                                          uint64_t *const info_in)
+                                          uint64_t *const info_in,
+                                          FILE *const file,
+                                          const char *const prompt,
+                                          ...)
 {
     if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
@@ -509,23 +586,29 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
         return true;
     }
 
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(stderr, prompt, args);
+    va_end(args);
+
     char *should_replace = NULL;
     const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
 
     request_input("Ignore non-unique uuids?", inputs, &should_replace);
 
-    if (strcmp(should_replace, "never\n") == 0) {
+    if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS;
 
         free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no\n") == 0) {
+    } else if (strcmp(should_replace, "no") == 0) {
         free(should_replace);
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
-    if (strcmp(should_replace, "for all\n") == 0) {
+    if (strcmp(should_replace, "for all") == 0) {
         global->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     }
 

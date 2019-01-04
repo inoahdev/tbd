@@ -51,19 +51,17 @@ parse_macho_file(struct tbd_for_main *const global,
         return false;
     }
 
-    if (parse_result != E_MACHO_FILE_PARSE_OK) {
-        const bool should_continue =
-            handle_macho_file_parse_result(global,
-                                           tbd,
-                                           path,
-                                           parse_result,
-                                           print_paths,
-                                           retained_info);
+    const bool should_continue =
+        handle_macho_file_parse_result(global,
+                                       tbd,
+                                       path,
+                                       parse_result,
+                                       print_paths,
+                                       retained_info);
 
-        if (!should_continue) {
-            clear_create_info(create_info, &original_info);
-            return true;
-        }
+    if (!should_continue) {
+        clear_create_info(create_info, &original_info);
+        return true;
     }
 
     char *const tbd_write_path = tbd->write_path;

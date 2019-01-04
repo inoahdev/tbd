@@ -490,6 +490,9 @@ int tbd_write_platform(FILE *const file, const enum tbd_platform platform) {
             }
 
             break;
+
+        default:
+            return E_TBD_CREATE_WRITE_FAIL;
     }
 
     return 0;

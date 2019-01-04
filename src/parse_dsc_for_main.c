@@ -115,20 +115,18 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                         tbd->dsc_options,
                         0);
 
-    if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        const bool should_continue =
-            handle_dsc_image_parse_result(callback_info->global,
-                                          callback_info->tbd,
-                                          callback_info->dsc_path,
-                                          image_path,
-                                          parse_image_result,
-                                          callback_info->print_paths,
-                                          &callback_info->retained_info); 
+    const bool should_continue =
+        handle_dsc_image_parse_result(callback_info->global,
+                                      callback_info->tbd,
+                                      callback_info->dsc_path,
+                                      image_path,
+                                      parse_image_result,
+                                      callback_info->print_paths,
+                                      &callback_info->retained_info); 
 
-        if (!should_continue) {
-            clear_create_info(create_info, &original_info);
-            return true;
-        }
+    if (!should_continue) {
+        clear_create_info(create_info, &original_info);
+        return true;
     }
 
     /*
