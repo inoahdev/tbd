@@ -119,12 +119,9 @@ tbd_for_main_write_to_path(const struct tbd_for_main *tbd,
                            bool print_paths);
 
 void
-tbd_for_main_write_to_file(const struct tbd_for_main *tbd,
-                           const char *input_path,
-                           char *write_path,
-                           char *write_path_terminator,
-                           FILE *write_file,
-                           bool print_paths);
+tbd_for_main_write_to_stdout(const struct tbd_for_main *tbd,
+                             const char *input_path,
+                             bool print_paths);
 
 void tbd_for_main_destroy(struct tbd_for_main *tbd);
 

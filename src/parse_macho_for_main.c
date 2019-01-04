@@ -66,24 +66,30 @@ parse_macho_file(struct tbd_for_main *const global,
         }
     }
 
-    char *const write_path =
-        tbd_for_main_create_write_path(tbd,
-                                       tbd->write_path,
-                                       tbd->write_path_length,
-                                       path,
-                                       path_length,
-                                       "tbd",
-                                       3,
-                                       true); 
+    char *const write_path = tbd->write_path;
+    if (write_path != NULL) {
+        char *const write_path =
+            tbd_for_main_create_write_path(tbd,
+                                           tbd->write_path,
+                                           tbd->write_path_length,
+                                           path,
+                                           path_length,
+                                           "tbd",
+                                           3,
+                                           true);
 
-    if (write_path == NULL) {
-        fputs("Failed to allocate memory\n", stderr);
-        exit(1);
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    
+        tbd_for_main_write_to_path(tbd, path, write_path, true);
+    } else {
+        tbd_for_main_write_to_stdout(tbd, path, true);
     }
 
-    tbd_for_main_write_to_path(tbd, path, write_path, true);
     clear_create_info(create_info, &original_info);
-
     free(write_path);
+
     return true;
 }

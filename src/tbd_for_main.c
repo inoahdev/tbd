@@ -499,43 +499,27 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
 }
 
 void
-tbd_for_main_write_to_file(const struct tbd_for_main *const tbd,
-                           const char *const input_path,
-                           char *const write_path,
-                           char *const write_path_terminator,
-                           FILE *const write_file,
-                           const bool print_paths)
+tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
+                             const char *const input_path,
+                             const bool print_paths)
 {
     const struct tbd_create_info *const create_info = &tbd->info;
     const enum tbd_create_result create_tbd_result =
-        tbd_create_with_info(create_info, write_file, tbd->write_options);
+        tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
         if (!(tbd->options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             if (print_paths) {
                 fprintf(stderr,
-                        "Failed to write to output-file (for input-file at "
-                        "path: %s, to output-file's path: %s), error: %s\n",
+                        "Failed to write to stdout (the terminal) (for "
+                        "input-file at path: %s) error: %s\n",
                         input_path,
-                        write_path,
                         strerror(errno));
             } else {
-                fprintf(stderr,
-                        "Failed to write to output-file (for provided "
-                        "input-file, to output-file's path: %s), error: %s\n",
-                        write_path,
-                        strerror(errno));
+                fputs("Failed to write to stdout (the terminal) for "
+                      "the provided input-file, error: %s\n",
+                      stderr);
             }
-        }
-
-        if (write_path_terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
-            
-            remove_partial_r(write_path, write_path_terminator);
         }
     }
 }
