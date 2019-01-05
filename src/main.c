@@ -812,7 +812,7 @@ int main(const int argc, const char *const argv[]) {
             const int fd = open(full_path, O_RDONLY);
             if (fd < 0) {
                 fprintf(stderr,
-                        "IMAGES: Failed to open file at path: %s, error: %s\n",
+                        "Failed to open file at path: %s, error: %s\n",
                         full_path,
                         strerror(errno));
 
@@ -931,7 +931,7 @@ int main(const int argc, const char *const argv[]) {
      * path-strings of the file we're parsing.
      */
 
-    bool should_print_paths =
+    const bool should_print_paths =
         array_get_item_count(&tbds, sizeof(struct tbd_for_main)) != 1;
 
     uint64_t retained_info = 0;
