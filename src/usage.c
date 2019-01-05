@@ -44,8 +44,11 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
-    fputs("        -v, --version, Specify version of tbd to convert to (default is v2).\n", stdout);
-    fputs("                       This applies to all files where tbd-version was not explicitly set\n", stdout);
+    fputs("            --filter-image-name,   Specify a name (a path-component) to filter out images\n", stdout);
+    fputs("            --filter-image-number, Specify the number of the image to parse out.\n", stdout);
+    fputs("                                   To get the number of the images, Use the option --list-images\n", stdout);
+    fputs("        -v, --version,             Specify version of tbd to convert to (default is v2).\n", stdout);
+    fputs("                                   This applies to all files where tbd-version was not explicitly set\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);
@@ -93,10 +96,11 @@ void print_usage(void) {
     fputc('\n', stdout);
     fputs("List options:\n", stdout);
     fputs("        --list-architectures,    List all valid architectures for tbd files.\n", stdout);
-    fputs("                                 Also able to list architectures of the mach-o file from the provided path\n", stdout);
-    fputs("        --list-tbd-flags,        List all valid flags for tbd files\n", stdout);
+    fputs("                                 Also able to list architectures of the mach-o file from a provided path\n", stdout);
+    fputs("        --list-dsc-images,       List all images of a dyld_shared_cache from a provided path\n", stdout);
     fputs("        --list-objc-constraints, List all valid objc-constraint options for tbd files\n", stdout);
     fputs("        --list-platform,         List all valid platforms\n", stdout);
     fputs("        --list-recurse,          List all valid recurse options for parsing directories\n", stdout);
+    fputs("        --list-tbd-flags,        List all valid flags for tbd files\n", stdout);
     fputs("        --list-tbd-versions,     List all valid versions for tbd files\n", stdout);
 }

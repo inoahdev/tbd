@@ -795,7 +795,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             return 0;
-        } else if (strcmp(option, "list-images") == 0) {
+        } else if (strcmp(option, "list-dsc-images") == 0) {
             if (index != 1 || argc != 3) {
                 fputs("--list-images needs to be run with a single path to a "
                       "dyld_shared_cache file whose images will be printed\n",

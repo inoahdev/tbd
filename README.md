@@ -34,8 +34,11 @@ Usage: tbd -o [options] path
                                   creating an output-file (Instead of simply appending .tbd)
 
 Both local and global options:
-        -v, --version, Specify version of tbd to convert to (default is v2).
-                       This applies to all files where tbd-version was not explicitly set
+            --filter-image-name,   Specify a name (a path-component) to filter out images
+            --filter-image-number, Specify the number of the image to parse out.
+                                   To get the number of the images, Use the option --list-images
+        -v, --version,             Specify version of tbd to convert to (default is v2).
+                                   This applies to all files where tbd-version was not explicitly set
 
 Ignore options:
         --ignore-clients,               Ignore clients field
@@ -77,10 +80,11 @@ Ignore field warning options: (Both path and global options)
 
 List options:
         --list-architectures,    List all valid architectures for tbd files.
-                                 Also able to list architectures of the mach-o file from the provided path
-        --list-tbd-flags,        List all valid flags for tbd files
+                                 Also able to list architectures of the mach-o file from a provided path
+        --list-dsc-images,       List all images of a dyld_shared_cache from a provided path
         --list-objc-constraints, List all valid objc-constraint options for tbd files
         --list-platform,         List all valid platforms
         --list-recurse,          List all valid recurse options for parsing directories
+        --list-tbd-flags,        List all valid flags for tbd files
         --list-tbd-versions,     List all valid versions for tbd files
 ```
