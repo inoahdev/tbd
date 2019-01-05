@@ -12,11 +12,9 @@
 #include <stdint.h>
 #include "tbd.h"
 
-struct tbd_for_main_image {
-    const char *name;
-
-    uint64_t name_length;
-    uint64_t options;
+struct tbd_for_main_dsc_image_filter {
+    const char *filter;
+    uint64_t length;
 };
 
 enum tbd_for_main_options {
@@ -81,10 +79,11 @@ struct tbd_for_main {
     uint64_t flags_re;
 
     /*
-     * An array of tbd_for_main_image structures.
+     * An array of tbd_for_main_dsc_image_filter structures.
      */
 
-    struct array images;
+    struct array dsc_image_filters;
+    struct array dsc_image_numbers;
 };
 
 bool

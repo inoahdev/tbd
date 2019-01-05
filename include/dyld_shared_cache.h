@@ -92,6 +92,11 @@ dyld_shared_cache_iterate_images_with_callback(
     const void *item,
     dyld_shared_cache_iterate_images_callback callback);
 
+void
+dyld_shared_cache_print_list_of_images(int fd,
+                                       uint64_t start,
+                                       uint64_t end);
+
 void dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *info);
 
 #endif /* DYLD_SHARED_CACHE_H */

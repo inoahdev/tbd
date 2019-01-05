@@ -497,8 +497,6 @@ int main(const int argc, const char *const argv[]) {
                         tbd.filetype = TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
                     } else if (strcmp(option, "include-dsc") == 0) {
                         tbd.options |= O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
-                    } else if (strcmp(option, "skip-image-dirs") == 0) {
-                        tbd.options |= O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,
@@ -680,6 +678,8 @@ int main(const int argc, const char *const argv[]) {
                                 path);
 
                         destroy_tbds_array(&tbds);
+                        free(tbd.parse_path);
+
                         return 1;
                     }
 
@@ -692,6 +692,38 @@ int main(const int argc, const char *const argv[]) {
                                 path);
 
                         destroy_tbds_array(&tbds);
+                        free(tbd.parse_path);
+
+                        return 1;
+                    }
+                }
+
+                if (tbd.filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
+                    const struct array *const filters = &tbd.dsc_image_filters;
+                    if (!array_is_empty(filters)) {
+                        fprintf(stderr,
+                                "Option --image-filter-name, provided for path "
+                                "(%s), is only for parsing dyld_shared_cache "
+                                "files\n",
+                                path);
+
+                        destroy_tbds_array(&tbds);
+                        free(tbd.parse_path);
+
+                        return 1;
+                    }
+
+                    const struct array *const numbers = &tbd.dsc_image_numbers;
+                    if (!array_is_empty(numbers)) {
+                        fprintf(stderr,
+                                "Option --image-filter-number, provided for "
+                                "path (%s), is only for parsing "
+                                "dyld_shared_cache files\n",
+                                path);
+
+                        destroy_tbds_array(&tbds);
+                        free(tbd.parse_path);
+                        
                         return 1;
                     }
                 }
@@ -724,7 +756,7 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-architectures") == 0) {
             if (index != 1 || argc > 3) {
                 fputs("--list-architectures needs to be run by itself, or with "
-                      "a single path to a mach-o file whose archs should be "
+                      "a single path to a mach-o file whose archs will be "
                       "printed",
                       stderr);
 
@@ -741,7 +773,7 @@ int main(const int argc, const char *const argv[]) {
             if (argc == 3) {
                 const char *const path = argv[2];
                 char *const full_path =
-                    path_get_absolute_path_if_necessary(argument);
+                    path_get_absolute_path_if_necessary(path);
 
                 const int fd = open(full_path, O_RDONLY);
                 if (fd < 0) {
@@ -762,6 +794,51 @@ int main(const int argc, const char *const argv[]) {
                 print_arch_info_list();
             }
 
+            return 0;
+        } else if (strcmp(option, "list-images") == 0) {
+            if (index != 1 || argc != 3) {
+                fputs("--list-images needs to be run with a single path to a "
+                      "dyld_shared_cache file whose images will be printed\n",
+                      stderr);
+
+                destroy_tbds_array(&tbds);
+                return 1;
+            }
+
+            const char *const path = argv[2];
+            char *const full_path =
+                path_get_absolute_path_if_necessary(path);
+
+            const int fd = open(full_path, O_RDONLY);
+            if (fd < 0) {
+                fprintf(stderr,
+                        "IMAGES: Failed to open file at path: %s, error: %s\n",
+                        full_path,
+                        strerror(errno));
+
+                if (full_path != path) {
+                    free(full_path);
+                }
+
+                return 1;
+            }
+
+            struct stat sbuf = {};
+            if (fstat(fd, &sbuf) < 0) {
+                fprintf(stderr,
+                        "Failed to get information on file at path: %s, "
+                        "error: %s\n",
+                        full_path,
+                        strerror(errno));
+
+                if (full_path != path) {
+                    free(full_path);
+                }
+
+                return 1;
+            }
+
+            print_list_of_dsc_images(fd, 0, sbuf.st_size);
             return 0;
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {

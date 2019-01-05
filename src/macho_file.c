@@ -8,13 +8,10 @@
 
 #include <errno.h>
 
-#include <stdbool.h>
 #include <stdlib.h>
-
 #include <string.h>
 #include <unistd.h>
 
-#include "arch_info.h"
 #include "mach-o/fat.h"
 
 #include "guard_overflow.h"

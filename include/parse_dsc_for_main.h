@@ -22,4 +22,6 @@ parse_shared_cache(struct tbd_for_main *global,
                    bool print_paths,
                    uint64_t *retained_info_in);
 
+void print_list_of_dsc_images(int fd, uint64_t start, uint64_t end);
+
 #endif /* PARSE_DSC_FOR_MAIN_H */

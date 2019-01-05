@@ -143,33 +143,30 @@ array_add_item(struct array *const array,
     return E_ARRAY_OK;
 }
 
+
 enum array_result
-array_add_item_to_index(struct array *const array,
-                        const size_t item_size,
-                        const void *const item,
-                        const uint64_t index,
-                        void **const item_out)
+array_add_and_unique_items_from_array(struct array *const array,
+                                      const size_t item_size,
+                                      const struct array *const other,
+                                      const array_item_comparator comparator)
 {
-    const uint64_t byte_index = item_size * index;
-    void *const position = array->data + byte_index;
-    
-    /*
-     * Note: We do allow providing index of back + 1 (array->data_end).
-     */
-    
-    if (position > array->data_end) {
-        return E_ARRAY_INDEX_OUT_OF_BOUNDS;
-    }
-    
-    const enum array_result add_item_result =
-        array_add_item_to_byte_index(array,
-                                     item_size,
-                                     item,
-                                     byte_index,
-                                     item_out);
-        
-    if (add_item_result != E_ARRAY_OK) {
-        return add_item_result;
+    const void *other_iter = other->data;
+    const void *const end = other->data_end;
+
+    for (; other_iter != end; other_iter++) {
+        const void *const match =
+            array_find_item(array, item_size, other_iter, comparator, NULL);
+
+        if (match != NULL) {
+            continue;
+        }
+
+        const enum array_result add_item_result =
+            array_add_item(array, item_size, other_iter, NULL);
+
+        if (add_item_result != E_ARRAY_OK) {
+            return add_item_result;
+        }
     }
     
     return E_ARRAY_OK;
@@ -352,6 +349,38 @@ array_find_item_in_sorted(const struct array *const array,
                                                    info_out);
 
     return array_item;
+}
+
+static enum array_result
+array_add_item_to_index(struct array *const array,
+                        const size_t item_size,
+                        const void *const item,
+                        const uint64_t index,
+                        void **const item_out)
+{
+    const uint64_t byte_index = item_size * index;
+    void *const position = array->data + byte_index;
+    
+    /*
+     * Note: We do allow providing index of back + 1 (array->data_end).
+     */
+    
+    if (position > array->data_end) {
+        return E_ARRAY_INDEX_OUT_OF_BOUNDS;
+    }
+    
+    const enum array_result add_item_result =
+        array_add_item_to_byte_index(array,
+                                     item_size,
+                                     item,
+                                     byte_index,
+                                     item_out);
+        
+    if (add_item_result != E_ARRAY_OK) {
+        return add_item_result;
+    }
+    
+    return E_ARRAY_OK;
 }
 
 enum array_result

@@ -62,6 +62,12 @@ array_find_item(const struct array *array,
                 array_item_comparator comparator,
                 uint64_t *index_out);
 
+enum array_result
+array_add_and_unique_items_from_array(struct array *array,
+                                      size_t item_size,
+                                      const struct array *other,
+                                      array_item_comparator comparator);
+
 enum array_cached_index_type {
     ARRAY_CACHED_INDEX_LESS_THAN    = -1,
     ARRAY_CACHED_INDEX_EQUAL        = 0,

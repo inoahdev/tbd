@@ -21,6 +21,84 @@
 #include "recursive.h"
 #include "tbd_for_main.h"
 
+static void
+add_image_filter(struct tbd_for_main *const tbd,
+                 const int argc,
+                 const char *const *const argv,
+                 int *const index_in)
+{
+    const int index = *index_in;
+    if (index == argc) {
+        fputs("Please provide a name of an image (a simple "
+              "path-component) to filter out images to be parsed\n",
+              stderr);
+
+        exit(1);
+    }
+
+    const char *const filter_string = argv[index + 1];
+    const struct tbd_for_main_dsc_image_filter filter = {
+        .filter = filter_string,
+        .length = strlen(filter_string)
+    };
+
+    const enum array_result add_filter_result =
+        array_add_item(&tbd->dsc_image_filters, sizeof(filter), &filter, NULL);
+
+    if (add_filter_result != E_ARRAY_OK) {
+        fprintf(stderr,
+                "Experienced an array failure trying to add image %s\n",
+                filter_string); 
+
+        exit(1);
+    }
+
+    *index_in = index + 1;
+}
+
+static void
+add_image_number(struct tbd_for_main *const tbd,
+                 const int argc,
+                 const char *const *const argv,
+                 int *const index_in)
+{
+    const int index = *index_in;
+    if (index == argc) {
+        fputs("Please provide a name of an image (a simple path-component) to "
+              "filter out images to be parsed\n",
+              stderr);
+
+        exit(1);
+    }
+
+    const char *const number_string = argv[index + 1];
+    const uint32_t number = strtol(number_string, NULL, 10);
+
+    if (number == 0) {
+        fprintf(stderr,
+                "An image-number of \"%s\" is invalid\n",
+                number_string);
+
+        exit(1);
+    } 
+
+    const enum array_result add_number_result =
+        array_add_item(&tbd->dsc_image_numbers,
+                       sizeof(number),
+                       &number,
+                       NULL);
+
+    if (add_number_result != E_ARRAY_OK) {
+        fprintf(stderr,
+                "Experienced an array failure trying to add image %s\n",
+                number_string); 
+
+        exit(1);
+    }
+
+    *index_in = index + 1;
+}
+
 bool
 tbd_for_main_parse_option(struct tbd_for_main *const tbd,
                           const int argc,
@@ -92,6 +170,10 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->options |= O_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->options |= O_TBD_FOR_MAIN_IGNORE_WARNINGS;
+    } else if (strcmp(option, "image-filter-name") == 0) {
+        add_image_filter(tbd, argc, argv, &index);
+    } else if (strcmp(option, "image-filter-number") == 0) {
+        add_image_number(tbd, argc, argv, &index);
     } else if (strcmp(option, "remove-archs") == 0) {
         if (!(tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
             if (tbd->archs_re != 0) {
@@ -195,6 +277,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         tbd->info.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+    } else if (strcmp(option, "skip-image-dirs") == 0) {
+        tbd->options |= O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |=
             O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES; 
@@ -346,71 +430,6 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
 }
 
 void
-tbd_for_main_apply_from(struct tbd_for_main *const dst,
-                        const struct tbd_for_main *const src)
-{
-    if (dst->info.archs == 0) {
-        /*
-         * Only preset archs if we aren't later removing/replacing these archs.
-         */
-
-        if (dst->archs_re != 0) {
-            dst->info.archs = src->info.archs;
-        }
-    }
-
-    if (dst->info.current_version == 0) {
-        dst->info.current_version = src->info.current_version;
-    }
-
-    if (dst->info.compatibility_version == 0) {
-        dst->info.compatibility_version = src->info.compatibility_version;
-    }
-
-    if (dst->info.flags == 0) {
-        /*
-         * Only preset flags if we aren't later removing/replacing these flags.
-         */
-        
-        if (dst->flags_re != 0) {
-            dst->info.flags = src->info.flags;
-        }
-    }
-
-    if (dst->info.install_name == NULL) {
-        dst->info.install_name = src->info.install_name;
-    }
-
-    if (dst->info.parent_umbrella == NULL) {
-        dst->info.parent_umbrella = src->info.parent_umbrella;
-    }
-
-    if (dst->info.platform == 0) {
-        dst->info.platform = src->info.platform;
-    }
-
-    if (dst->info.objc_constraint == 0) {
-        dst->info.objc_constraint = src->info.objc_constraint;
-    }
-
-    if (dst->info.swift_version == 0) {
-        dst->info.swift_version = src->info.swift_version;
-    }
-        
-    if (dst->info.version == 0) {
-        dst->info.version = src->info.version;
-    }
-
-    dst->macho_options |= src->macho_options;
-    dst->dsc_options |= src->dsc_options;
-
-    dst->parse_options |= src->parse_options;
-    dst->write_options |= src->write_options;
-
-    dst->options |= src->options;
-}
-
-void
 tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
                            const char *const input_path,
                            char *const write_path,
@@ -559,8 +578,142 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
     }
 }
 
+static int
+tbd_for_main_dsc_image_filter_comparator(const void *const array_item,
+                                         const void *const item)
+{
+    const struct tbd_for_main_dsc_image_filter *const array_filter =
+        (const struct tbd_for_main_dsc_image_filter *)array_item;
+
+    const struct tbd_for_main_dsc_image_filter *const filter =
+        (const struct tbd_for_main_dsc_image_filter *)item;
+
+    return strcmp(array_filter->filter, filter->filter);
+}
+
+static int
+image_number_comparator(const void *const array_item,
+                        const void *const item)
+{
+    const uint32_t array_number = *(const uint32_t *)array_item;
+    const uint32_t number = *(const uint32_t *)item;
+
+    if (array_number > number) {
+        return 1;
+    } else if (array_number < number) {
+        return -1;
+    }
+
+    return 0;
+}
+
+void
+tbd_for_main_apply_from(struct tbd_for_main *const dst,
+                        const struct tbd_for_main *const src)
+{
+    if (dst->info.archs == 0) {
+        /*
+         * Only preset archs if we aren't later removing/replacing these archs.
+         */
+
+        if (dst->archs_re != 0) {
+            dst->info.archs = src->info.archs;
+        }
+    }
+
+    if (dst->info.current_version == 0) {
+        dst->info.current_version = src->info.current_version;
+    }
+
+    if (dst->info.compatibility_version == 0) {
+        dst->info.compatibility_version = src->info.compatibility_version;
+    }
+
+    if (dst->info.flags == 0) {
+        /*
+         * Only preset flags if we aren't later removing/replacing these flags.
+         */
+        
+        if (dst->flags_re != 0) {
+            dst->info.flags = src->info.flags;
+        }
+    }
+
+    if (dst->info.install_name == NULL) {
+        dst->info.install_name = src->info.install_name;
+    }
+
+    if (dst->info.parent_umbrella == NULL) {
+        dst->info.parent_umbrella = src->info.parent_umbrella;
+    }
+
+    if (dst->info.platform == 0) {
+        dst->info.platform = src->info.platform;
+    }
+
+    if (dst->info.objc_constraint == 0) {
+        dst->info.objc_constraint = src->info.objc_constraint;
+    }
+
+    if (dst->info.swift_version == 0) {
+        dst->info.swift_version = src->info.swift_version;
+    }
+        
+    if (dst->info.version == 0) {
+        dst->info.version = src->info.version;
+    }
+
+    if (dst->filetype == TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
+        const struct array *const src_filters = &src->dsc_image_filters;
+        if (!array_is_empty(src_filters)) {
+            const enum array_result add_filters_result =
+                array_add_and_unique_items_from_array(
+                    &dst->dsc_image_filters,
+                    sizeof(struct tbd_for_main_dsc_image_filter),
+                    src_filters,
+                    tbd_for_main_dsc_image_filter_comparator);
+
+            if (add_filters_result != E_ARRAY_OK) {
+                fputs("Experienced an array failure when trying to add dsc "
+                      "image-filters\n",
+                      stderr);
+
+                exit(1);
+            }
+        }
+
+        const struct array *const src_numbers = &src->dsc_image_numbers;
+        if (!array_is_empty(src_numbers)) {
+            const enum array_result add_numbers_result =
+                array_add_and_unique_items_from_array(&dst->dsc_image_numbers,
+                                                      sizeof(uint32_t),
+                                                      src_numbers,
+                                                      image_number_comparator);
+
+            if (add_numbers_result != E_ARRAY_OK) {
+                fputs("Experienced an array failure when trying to add dsc "
+                      "image-numbers\n",
+                      stderr);
+
+                exit(1);
+            }
+        }
+    }
+
+    dst->macho_options |= src->macho_options;
+    dst->dsc_options |= src->dsc_options;
+
+    dst->parse_options |= src->parse_options;
+    dst->write_options |= src->write_options;
+
+    dst->options |= src->options;
+}
+
 void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
     tbd_create_info_destroy(&tbd->info);
+
+    array_destroy(&tbd->dsc_image_filters);
+    array_destroy(&tbd->dsc_image_numbers);
 
     free(tbd->parse_path);
     free(tbd->write_path);
