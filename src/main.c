@@ -353,7 +353,7 @@ int main(const int argc, const char *const argv[]) {
                 const char *const path = inner_arg;
                 char *full_path = path_get_absolute_path_if_necessary(path);
 
-                if (path == NULL) {
+                if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
                     destroy_tbds_array(&tbds);
 
