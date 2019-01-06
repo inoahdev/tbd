@@ -23,10 +23,9 @@ void print_usage(void) {
     fputs("Path options:\n", stdout);
     fputs("Usage: tbd [-p] [options] path\n", stdout);
     fputs("    -r, --recurse,     Specify directory to recurse and find mach-o library files in\n", stdout);
-    fputs("        --dsc,         Specify that the file provided is a dyld_shared_cache file.\n", stdout);
+    fputs("        --dsc,         Specify that the file provided is actually a dyld_shared_cache file.\n", stdout);
     fputs("                       Note that dyld_shared_cache files are parsed by extracting their\n", stdout);
-    fputs("                       images into tbds written\n", stdout);
-    fputs("                       in a provided folder.\n", stdout);
+    fputs("                       images into tbds written in a provided folder.\n", stdout);
     fputs("                       This option can also be used when recursing, to indicate that only\n", stdout);
     fputs("                       dyld_shared_cache files should be parsed, and not any mach-o files\n", stdout);
     fputs("        --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed\n", stdout);

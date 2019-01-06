@@ -15,10 +15,9 @@ Main options:
 Path options:
 Usage: tbd [-p] [options] path
     -r, --recurse,     Specify directory to recurse and find mach-o library files in
-        --dsc,         Specify that the file provided is a dyld_shared_cache file.
+        --dsc,         Specify that the file provided is actually a dyld_shared_cache file.
                        Note that dyld_shared_cache files are parsed by extracting their
-                       images into tbds written
-                       in a provided folder.
+                       images into tbds written in a provided folder.
                        This option can also be used when recursing, to indicate that only
                        dyld_shared_cache files should be parsed, and not any mach-o files
         --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed
