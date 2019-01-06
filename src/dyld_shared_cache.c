@@ -416,7 +416,7 @@ dyld_shared_cache_iterate_images_with_callback(
     const void *const item,
     const dyld_shared_cache_iterate_images_callback callback)
 {
-    const uint8_t *const map = info_in->map;
+    const uint8_t *const map = info_in->map + start;
     const uint32_t images_count = info_in->images_count; 
 
     for (uint32_t i = 0; i < images_count; i++) {
