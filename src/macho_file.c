@@ -153,7 +153,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
 
     struct fat_arch *const archs = calloc(1, archs_size);
     if (archs == NULL) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
+        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
     if (read(fd, archs, archs_size) < 0) {
@@ -376,7 +376,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 
     struct fat_arch_64 *const archs = calloc(1, archs_size);
     if (archs == NULL) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
+        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
     if (read(fd, archs, archs_size) < 0) {
