@@ -246,8 +246,12 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 /*
-                 * All build_version load-commands should be the of the same
-                 * cmdsize.
+                 * All build_version load-commands should be at least large
+                 * enough to hold a build_version_command.
+                 *
+                 * Note: build_version_command has an array of build-tool
+                 * structures directly following, so the cmdsize will not always
+                 * match.
                  */
 
                 if (load_cmd.cmdsize < sizeof(struct build_version_command)) {
@@ -1680,8 +1684,12 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                 }
 
                 /*
-                 * All build_version load-commands should be the of the same
-                 * cmdsize.
+                 * All build_version load-commands should be at least large
+                 * enough to hold a build_version_command.
+                 *
+                 * Note: build_version_command has an array of build-tool
+                 * structures directly following, so the cmdsize will not always
+                 * match.
                  */
 
                 if (load_cmd.cmdsize < sizeof(struct build_version_command)) {
