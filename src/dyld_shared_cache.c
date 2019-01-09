@@ -22,14 +22,20 @@
 static const uint64_t dsc_magic_64 = 2319765435151317348;
 
 static int 
-get_arch_info_from_magic(const uint64_t second,
+get_arch_info_from_magic(const char magic[16],
                          const struct arch_info **const arch_info_out,
                          uint64_t *const arch_bit_out)
 {
+    const uint64_t first_part = *(uint64_t *)magic;
+    if (first_part != dsc_magic_64) {
+        return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
+    }
+
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
-    switch (second) {
+    const uint64_t second_part = *((uint64_t *)magic + 1);
+    switch (second_part) {
         case 15261442200576032:
             /*
              * (CPU_TYPE_X86, CPU_SUBTYPE_I386_ALL).
@@ -173,17 +179,10 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     /*
      * Do integer-compares on the magic to improve performance.
      */
-
-    const uint64_t first_part = *(uint64_t *)header.magic;
-    if (first_part != dsc_magic_64) {
-        return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
-    }
-
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
-    const uint64_t second_part = *((uint64_t *)header.magic + 1);
-    if (get_arch_info_from_magic(second_part, &arch, &arch_bit)) {
+    if (get_arch_info_from_magic(header.magic, &arch, &arch_bit)) {
         return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
     }
 
@@ -411,12 +410,10 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_iterate_images_with_callback(
     const struct dyld_shared_cache_info *const info_in,
-    const int fd,
-    const uint64_t start,
     const void *const item,
     const dyld_shared_cache_iterate_images_callback callback)
 {
-    const uint8_t *const map = info_in->map + start;
+    const uint8_t *const map = info_in->map;
     const uint32_t images_count = info_in->images_count; 
 
     for (uint32_t i = 0; i < images_count; i++) {

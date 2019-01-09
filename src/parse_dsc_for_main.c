@@ -336,8 +336,6 @@ parse_shared_cache(struct tbd_for_main *const global,
     const enum dyld_shared_cache_parse_result iterate_images_result =
         dyld_shared_cache_iterate_images_with_callback(
             &dsc_info,
-            fd,
-            0,
             &callback_info,
             dsc_iterate_images_callback);
 
@@ -394,8 +392,6 @@ print_list_of_dsc_images(const int fd,
     const enum dyld_shared_cache_parse_result iterate_images_result =
         dyld_shared_cache_iterate_images_with_callback(
             &dsc_info,
-            fd,
-            0,
             &callback_info,
             dsc_list_images_callback);
 
