@@ -179,6 +179,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     /*
      * Do integer-compares on the magic to improve performance.
      */
+
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
@@ -370,7 +371,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             struct dyld_cache_image_info *const image = images + i;
 
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
-                const uint64_t location = image->pathFileOffset;
+                const uint32_t location = image->pathFileOffset;
                 if (!range_contains_location(available_cache_range, location)) {
                     munmap(map, size);
                     return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
@@ -382,7 +383,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
         for (uint32_t i = 0; i < images_count; i++) {
             struct dyld_cache_image_info *image = images + i;
-            const uint64_t location = image->pathFileOffset;
+            const uint32_t location = image->pathFileOffset;
 
             if (!range_contains_location(available_cache_range, location)) {
                 munmap(map, size);
@@ -419,7 +420,7 @@ dyld_shared_cache_iterate_images_with_callback(
     for (uint32_t i = 0; i < images_count; i++) {
         struct dyld_cache_image_info *const image = info_in->images + i;
 
-        const uint64_t path_file_offset = image->pathFileOffset;
+        const uint32_t path_file_offset = image->pathFileOffset;
         const char *const path = (const char *)(map + path_file_offset);
 
         if (callback(image, path, item)) {
