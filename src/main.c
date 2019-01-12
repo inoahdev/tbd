@@ -40,6 +40,7 @@ struct recurse_callback_info {
 
 static bool
 recurse_directory_callback(const char *const parse_path,
+                           const uint64_t parse_path_length,
                            struct dirent *const dirent,
                            void *const callback_info)
 {
@@ -83,7 +84,6 @@ recurse_directory_callback(const char *const parse_path,
      * dyld_shared_cache, we only recurse for dyld_shared_cache.
      */
 
-    const uint64_t parse_path_length = strlen(parse_path);
     if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
         const bool parse_as_macho_result =
             parse_macho_file(global,
@@ -99,24 +99,25 @@ recurse_directory_callback(const char *const parse_path,
             close(fd);
             return true;
         }
+    } else if (!(options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
+        close(fd);
+        return true;
     }
 
-    if (options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
-        const bool parse_as_dsc_result =
-            parse_shared_cache(global,
-                               tbd,
-                               parse_path,
-                               parse_path_length,
-                               fd,
-                               sbuf.st_size,
-                               true,
-                               true,
-                               retained);
+    const bool parse_as_dsc_result =
+        parse_shared_cache(global,
+                           tbd,
+                           parse_path,
+                           parse_path_length,
+                           fd,
+                           sbuf.st_size,
+                           true,
+                           true,
+                           retained);
 
-        if (parse_as_dsc_result) {
-            close(fd);
-            return true;
-        }
+    if (parse_as_dsc_result) {
+        close(fd);
+        return true;
     }
 
     close(fd);
@@ -189,7 +190,9 @@ int main(const int argc, const char *const argv[]) {
                     index,
                     argument);
 
+            tbd_for_main_destroy(&global);    
             destroy_tbds_array(&tbds);
+            
             return 1;
         }
 
@@ -215,7 +218,9 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -234,7 +239,9 @@ int main(const int argc, const char *const argv[]) {
                         "index: %d\n",
                         index - 1);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -270,7 +277,9 @@ int main(const int argc, const char *const argv[]) {
                                     "Unrecognized option: %s\n",
                                     inner_arg);
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
                     }
@@ -295,7 +304,9 @@ int main(const int argc, const char *const argv[]) {
                               "to\n",
                               stdout);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
 
@@ -303,7 +314,9 @@ int main(const int argc, const char *const argv[]) {
                         fputs("Cannot print more than one file to stdout\n",
                               stderr);
                         
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
 
@@ -328,7 +341,9 @@ int main(const int argc, const char *const argv[]) {
                               "provided recursing directoriess\n",
                               stderr);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
 
@@ -340,7 +355,9 @@ int main(const int argc, const char *const argv[]) {
                               "path-string\n",
                               stderr);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
                 }
@@ -355,6 +372,8 @@ int main(const int argc, const char *const argv[]) {
 
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
+                    
+                    tbd_for_main_destroy(&global);
                     destroy_tbds_array(&tbds);
 
                     return 1;
@@ -379,7 +398,9 @@ int main(const int argc, const char *const argv[]) {
                                 free(full_path);
                             }
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -405,7 +426,9 @@ int main(const int argc, const char *const argv[]) {
                                 free(full_path);
                             }
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
                     }
@@ -420,6 +443,8 @@ int main(const int argc, const char *const argv[]) {
                     full_path = strdup(full_path);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
+                        
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
                         return 1;
@@ -438,7 +463,9 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -450,7 +477,9 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdin\" to parse from terminal input\n",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -510,6 +539,8 @@ int main(const int argc, const char *const argv[]) {
                         }
                         
                         fprintf(stderr, "Unrecognized option: %s\n", inner_arg);
+                        
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
                         return 1;
@@ -528,6 +559,8 @@ int main(const int argc, const char *const argv[]) {
                     char *full_path = path_get_absolute_path_if_necessary(path);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
+                        
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
                         return 1;
@@ -555,7 +588,9 @@ int main(const int argc, const char *const argv[]) {
                             free(full_path);
                         }
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
 
@@ -571,7 +606,9 @@ int main(const int argc, const char *const argv[]) {
                                 free(full_path);
                             }
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
 
@@ -587,7 +624,9 @@ int main(const int argc, const char *const argv[]) {
                                 free(full_path);
                             }
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -604,7 +643,9 @@ int main(const int argc, const char *const argv[]) {
                                 free(full_path);
                             }
 
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
+                            
                             return 1;
                         }
                     } else {
@@ -616,7 +657,9 @@ int main(const int argc, const char *const argv[]) {
                             free(full_path);
                         }
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
 
@@ -644,6 +687,8 @@ int main(const int argc, const char *const argv[]) {
                         full_path = strndup(full_path, full_path_length);
                         if (full_path == NULL) {
                             fputs("Failed to allocate memory\n", stderr);
+                            
+                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
 
                             return 1;
@@ -659,7 +704,9 @@ int main(const int argc, const char *const argv[]) {
                               "recursing is needed\n",
                               stderr);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         return 1;
                     }
                 }
@@ -677,9 +724,10 @@ int main(const int argc, const char *const argv[]) {
                                 "option\n",
                                 path);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         free(tbd.parse_path);
-
                         return 1;
                     }
 
@@ -691,9 +739,10 @@ int main(const int argc, const char *const argv[]) {
                                 "option\n",
                                 path);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         free(tbd.parse_path);
-
                         return 1;
                     }
                 }
@@ -707,9 +756,10 @@ int main(const int argc, const char *const argv[]) {
                                 "files\n",
                                 path);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
+                        
                         free(tbd.parse_path);
-
                         return 1;
                     }
 
@@ -721,9 +771,10 @@ int main(const int argc, const char *const argv[]) {
                                 "dyld_shared_cache files\n",
                                 path);
 
+                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        free(tbd.parse_path);
                         
+                        free(tbd.parse_path);
                         return 1;
                     }
                 }
@@ -737,7 +788,9 @@ int main(const int argc, const char *const argv[]) {
                       "\"stdin\" to parse from terminal input\n",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -749,6 +802,8 @@ int main(const int argc, const char *const argv[]) {
                       stderr);
 
                 free(tbd.parse_path);
+                
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
                 return 1;
@@ -760,7 +815,9 @@ int main(const int argc, const char *const argv[]) {
                       "printed",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -844,7 +901,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--list-objc-constraints need to be run alone\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -854,7 +913,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--list-platforms need to be run alone\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -864,7 +925,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--list-recurse need to be run alone\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -878,7 +941,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -888,7 +953,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -898,7 +965,9 @@ int main(const int argc, const char *const argv[]) {
             if (index != 1 || argc != 2) {
                 fputs("--usage needs to be run by itself\n", stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -911,6 +980,8 @@ int main(const int argc, const char *const argv[]) {
             }
             
             fprintf(stderr, "Unrecognized option: %s\n", argument);
+            
+            tbd_for_main_destroy(&global);
             destroy_tbds_array(&tbds);
 
             return 1;
@@ -922,7 +993,9 @@ int main(const int argc, const char *const argv[]) {
               "recurse\n",
               stderr);
 
+        tbd_for_main_destroy(&global);
         destroy_tbds_array(&tbds);
+        
         return 1;
     }
 
@@ -955,7 +1028,9 @@ int main(const int argc, const char *const argv[]) {
                       "a directory to write all found files to\n",
                       stderr);
 
+                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
+                
                 return 1;
             }
 
@@ -968,6 +1043,7 @@ int main(const int argc, const char *const argv[]) {
 
             const enum dir_recurse_result recurse_dir_result =
                 dir_recurse(tbd->parse_path,
+                            tbd->parse_path_length,
                             options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES,
                             &recurse_info,
                             recurse_directory_callback);
@@ -1053,6 +1129,8 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
+    tbd_for_main_destroy(&global);
     destroy_tbds_array(&tbds);
+
     return 0;
 }

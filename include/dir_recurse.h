@@ -11,6 +11,7 @@
 
 #include <dirent.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 enum dir_recurse_result {
     E_DIR_RECURSE_OK,
@@ -25,10 +26,14 @@ enum dir_recurse_result {
 };
 
 typedef bool
-(*dir_recurse_callback)(const char *path, struct dirent *dirent, void *info);
+(*dir_recurse_callback)(const char *path,
+                        uint64_t length,
+                        struct dirent *dirent,
+                        void *info);
 
 enum dir_recurse_result
 dir_recurse(const char *path,
+            uint64_t path_length,
             bool sub_dirs,
             void *callback_info,
             dir_recurse_callback callback);

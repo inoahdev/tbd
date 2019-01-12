@@ -357,7 +357,8 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                const uint64_t file_path_length,
                                const char *const extension,
                                const uint64_t extension_length,
-                               const bool file_path_is_in_tbd)
+                               const bool file_path_is_in_tbd,
+                               uint64_t *const length_out)
 {
     char *write_path = NULL;
     if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
@@ -395,7 +396,8 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                                          subdirs_iter,
                                                          subdirs_length,
                                                          extension,
-                                                         extension_length);
+                                                         extension_length,
+                                                         length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
@@ -418,7 +420,8 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                                          file_name,
                                                          file_name_length,
                                                          extension,
-                                                         extension_length);
+                                                         extension_length,
+                                                         length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);

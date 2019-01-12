@@ -21,8 +21,8 @@ enum tbd_for_main_options {
     O_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1 << 0,
     O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1 << 1,
 
-    O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS    = 1 << 2,
-    O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS    = 1 << 3,
+    O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1 << 2,
+    O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1 << 3,
 
     O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1 << 5,
 
@@ -105,7 +105,8 @@ tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
                                uint64_t file_path_length,
                                const char *extension,
                                uint64_t extension_length,
-                               bool file_path_is_in_tbd);
+                               bool file_path_is_in_tbd,
+                               uint64_t *length_out);
                                
 void
 tbd_for_main_apply_from(struct tbd_for_main *dst,

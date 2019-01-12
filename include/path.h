@@ -23,7 +23,8 @@ char *
 path_append_component_with_len(const char *path,
                                uint64_t path_length,
                                const char *component,
-                               uint64_t component_length);
+                               uint64_t component_length,
+                               uint64_t *length_out);
 
 char *
 path_append_component_and_extension_with_len(const char *path,
@@ -31,7 +32,8 @@ path_append_component_and_extension_with_len(const char *path,
                                              const char *component,
                                              uint64_t component_length,
                                              const char *extension,
-                                             uint64_t extension_length);
+                                             uint64_t extension_length,
+                                             uint64_t *length_out);
 
 const char *
 path_get_iter_before_front_of_row_of_slashes(const char *path,

@@ -17,6 +17,7 @@
 
 enum dir_recurse_result
 dir_recurse(const char *const path,
+            const uint64_t path_length,
             const bool sub_dirs,
             void *const callback_info,
             const dir_recurse_callback callback)
@@ -25,8 +26,6 @@ dir_recurse(const char *const path,
     if (dir == NULL) {
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }
-
-    const uint64_t path_length = strlen(path);
 
     do {
         /*
@@ -59,11 +58,13 @@ dir_recurse(const char *const path,
                     continue;
                 }
 
+                uint64_t length = 0;
                 char *const entry_path =
                     path_append_component_with_len(path,
                                                    path_length,
                                                    name,
-                                                   strlen(name));
+                                                   strlen(name),
+                                                   &length);
 
                 if (entry_path == NULL) {
                     free(entry_path);
@@ -73,7 +74,11 @@ dir_recurse(const char *const path,
                 }
 
                 const enum dir_recurse_result recurse_subdir_result =
-                    dir_recurse(entry_path, true, callback_info, callback);
+                    dir_recurse(entry_path,
+                                length,
+                                true,
+                                callback_info,
+                                callback);
 
                 free(entry_path);
 
@@ -94,18 +99,20 @@ dir_recurse(const char *const path,
             }
 
             case DT_REG: {
+                uint64_t length = 0;
                 char *const entry_path =
                     path_append_component_with_len(path,
                                                    path_length,
                                                    name,
-                                                   strlen(name));
+                                                   strlen(name),
+                                                   &length);
 
                 if (entry_path == NULL) {
                     closedir(dir);
                     return E_DIR_RECURSE_ALLOC_FAIL;
                 }
 
-                if (!callback(entry_path, entry, callback_info)) {
+                if (!callback(entry_path, length, entry, callback_info)) {
                     should_exit = true;
                 }
 

@@ -139,7 +139,8 @@ actually_parse_image(
                                        strlen(image_path),
                                        "tbd",
                                        3,
-                                       false); 
+                                       false, 
+                                       NULL);
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
@@ -237,9 +238,8 @@ parse_shared_cache(struct tbd_for_main *const global,
                                            path_length,
                                            "tbds",
                                            4,
-                                           true); 
-
-        write_path_length = strlen(write_path);
+                                           true,
+                                           &write_path_length); 
     }
 
     struct dsc_iterate_images_callback_info callback_info = {
@@ -304,7 +304,7 @@ parse_shared_cache(struct tbd_for_main *const global,
          * indexes.
          *
          * Note: Since there were indexes, we do not parse all images as we
-         * do usually by defaylt.
+         * do usually by default.
          */
 
         if (array_is_empty(filters)) {

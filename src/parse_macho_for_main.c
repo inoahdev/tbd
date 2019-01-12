@@ -74,7 +74,8 @@ parse_macho_file(struct tbd_for_main *const global,
                                            path_length,
                                            "tbd",
                                            3,
-                                           true);
+                                           true,
+                                           NULL);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);

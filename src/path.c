@@ -48,7 +48,8 @@ char *path_get_absolute_path_if_necessary(const char *const path) {
         path_append_component_with_len(current_directory,
                                        current_directory_length,
                                        path,
-                                       strlen(path));
+                                       strlen(path),
+                                       NULL);
 
     return combined;
 }
@@ -270,7 +271,8 @@ char *
 path_append_component_with_len(const char *const path,
                                const uint64_t path_length,
                                const char *const component,
-                               const uint64_t component_length)
+                               const uint64_t component_length,
+                               uint64_t *const length_out)
 {
     /*
      * Handle cases where either the path or component (or both) are NULL.
@@ -358,6 +360,10 @@ path_append_component_with_len(const char *const path,
     memcpy(combined, path, path_copy_length);
     memcpy(combined_component_iter, component_iter, component_copy_length);
 
+    if (length_out != NULL) {
+        *length_out = combined_length;
+    }
+
     return combined;
 }
 
@@ -380,7 +386,8 @@ path_append_component_and_extension_with_len(const char *const path,
                                              const char *const component,
                                              const uint64_t component_length,
                                              const char *const extension,
-                                             const uint64_t extension_length)
+                                             const uint64_t extension_length,
+                                             uint64_t *const length_out)
 {
     /*
      * Handle cases where either the path or component (or both) are NULL.
@@ -509,6 +516,10 @@ path_append_component_and_extension_with_len(const char *const path,
         memcpy(combined_extension_iter,
                extension_copy_iter,
                extension_copy_length);
+    }
+
+    if (length_out != NULL) {
+        *length_out = combined_length;
     }
 
     return combined;
