@@ -153,7 +153,7 @@ array_add_and_unique_items_from_array(struct array *const array,
     const void *other_iter = other->data;
     const void *const end = other->data_end;
 
-    for (; other_iter != end; other_iter++) {
+    for (; other_iter != end; other_iter += item_size) {
         const void *const match =
             array_find_item(array, item_size, other_iter, comparator, NULL);
 
