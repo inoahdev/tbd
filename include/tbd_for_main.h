@@ -12,9 +12,15 @@
 #include <stdint.h>
 #include "tbd.h"
 
+enum tbd_for_main_dsc_image_filter_flags {
+    F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE = 1 << 0
+};
+
 struct tbd_for_main_dsc_image_filter {
-    const char *filter;
+    const char *string;
+
     uint64_t length;
+    uint64_t flags;
 };
 
 enum tbd_for_main_options {

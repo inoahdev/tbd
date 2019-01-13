@@ -40,54 +40,6 @@ enum dyld_cache_image_info_pad {
     E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED = 1 << 0
 };
 
-static bool
-path_has_image_entry(const char *const path,
-                     const char *const filter,
-                     const uint64_t filter_length,
-                     const uint64_t options)
-{
-    bool is_hierarchy = false;
-    if (path_has_component(path, filter, filter_length, &is_hierarchy)) {
-        if (is_hierarchy) {
-            if (options & O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
-static bool
-should_parse_image(const struct array *const filters,
-                   const char *const path,
-                   const uint64_t options)
-{
-    struct tbd_for_main_dsc_image_filter *filters_entry = filters->data;
-    const struct tbd_for_main_dsc_image_filter *const filters_end =
-        filters->data_end;
-
-    for (; filters_entry != filters_end; filters_entry++) {
-        const char *const filter = filters_entry->filter;
-        const uint64_t length = filters_entry->length;
-
-        if (path_has_image_entry(path, filter, length, options)) {
-            return true;
-        }
-    }
-
-    /*
-     * By default, if no filters or indexes are provided, all images are parsed.
-     *
-     * However, if filters or indexes have been provided, only those images that
-     * pass the filter, or are of the index, are parsed.
-     */
-
-    return false;
-}
-
 static void
 clear_create_info(struct tbd_create_info *const info_in,
                   const struct tbd_create_info *const orig)
@@ -96,7 +48,7 @@ clear_create_info(struct tbd_create_info *const info_in,
     *info_in = *orig;
 }
 
-static void
+static bool 
 actually_parse_image(
     struct tbd_for_main *const tbd,
     struct dyld_cache_image_info *const image,
@@ -128,7 +80,7 @@ actually_parse_image(
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
-        return;
+        return false;
     }
 
     char *const write_path =
@@ -147,12 +99,57 @@ actually_parse_image(
         exit(1);
     }
 
+    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
     tbd_for_main_write_to_path(tbd, image_path, write_path, true);
 
     clear_create_info(create_info, &original_info);
     free(write_path);
 
-    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
+    return true;
+}
+
+static bool
+path_has_image_entry(const char *const path,
+                     const char *const filter,
+                     const uint64_t filter_length,
+                     const uint64_t options)
+{
+    const bool allows_hierarchy =
+        !(options & O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS);
+
+    if (path_has_component(path, filter, filter_length, allows_hierarchy)) {
+        return true;
+    }
+
+    return false;
+}
+
+static struct tbd_for_main_dsc_image_filter * 
+get_filter_for_path(const struct array *const filters,
+                    const char *const path,
+                    const uint64_t options)
+{
+    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const end =
+        filters->data_end;
+
+    for (; filter != end; filter++) {
+        const char *const string = filter->string;
+        const uint64_t length = filter->length;
+
+        if (path_has_image_entry(path, string, length, options)) {
+            return filter;
+        }
+    }
+
+    /*
+     * By default, if no filters or indexes are provided, all images are parsed.
+     *
+     * However, if filters or indexes have been provided, only those images that
+     * pass the filter, or are of the index, are parsed.
+     */
+
+    return NULL;
 }
 
 static bool
@@ -178,14 +175,61 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
     const struct array *const filters = &tbd->dsc_image_filters;
     const uint64_t options = tbd->options;
 
+    struct tbd_for_main_dsc_image_filter *filter = NULL;
     if (!callback_info->parse_all_images) {
-        if (!should_parse_image(filters, image_path, options)) {
+        filter = get_filter_for_path(filters, image_path, options);
+        if (filter == NULL) {
             return true;
         }
     }
 
-    actually_parse_image(tbd, image, image_path, callback_info);
+    if (actually_parse_image(tbd, image, image_path, callback_info)) {
+        if (filter != NULL) {
+            filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE;
+        }
+    }
+
     return true;
+}
+
+/*
+ * Iterate over every filter to ensure that at least one image was found that
+ * passed the filter.
+ *
+ * We verify this here, rather that in
+ * dyld_shared_cache_iterate_images_with_callback as we don't want to loop over
+ * the filters once for the error-code, then again here to print out.
+ */
+
+static void
+verify_filters(const char *const dsc_path,
+               const bool print_paths,                 
+               const struct array *const filters)
+{
+    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
+
+    for (; filter != end; filter++) {
+        const bool parsed_atleast_one =
+            filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE;
+
+        if (parsed_atleast_one) {
+            continue;
+        }
+   
+        if (print_paths) {
+            fprintf(stderr,
+                    "dyld_shared_cache (at path %s) has no images that pass "
+                    "the provided filter (with name: %s)\n",
+                    dsc_path,
+                    filter->string);
+        } else {
+            fprintf(stderr,
+                    "The provided dyld_shared_cache has no images that pass "
+                    "the provided filter (with name: %s)\n",
+                    filter->string);
+        }
+    }
 }
 
 bool 
@@ -345,6 +389,15 @@ parse_shared_cache(struct tbd_for_main *const global,
 
     if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result(path, iterate_images_result, print_paths);
+    }
+
+    /*
+     * Iterate over every filter to ensure that every filter matched with at
+     * least one image.
+     */
+
+    if (!array_is_empty(filters)) {
+        verify_filters(path, print_paths, filters);
     }
 
     return true;

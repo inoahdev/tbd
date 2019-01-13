@@ -561,11 +561,28 @@ path_get_last_path_component(const char *const path,
     return component_begin;
 }
 
+static bool component_is_in_hierarchy(const char *const component_end) {
+    const char *const next_slash = path_get_next_slash(component_end);
+    if (next_slash != NULL) {
+        /*
+         * We may have hit a row of slashes at the very end of the
+         * path-string.
+         */
+
+        const char *const end = path_get_end_of_row_of_slashes(next_slash);
+        if (end != NULL) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool
 path_has_component(const char *const path,
                    const char *const component,
                    const uint64_t component_length,
-                   bool *const is_hierarchy_out)
+                   const bool allow_in_hierarchy)
 {
     const char path_front = path[0];
     if (strcmp(component, "/") == 0) {
@@ -601,7 +618,13 @@ path_has_component(const char *const path,
         const uint64_t iter_length = iter_end - iter_begin;
         if (component_length == iter_length) {
             if (strncmp(iter_begin, component, iter_length) == 0) {
-                break;
+                if (component_is_in_hierarchy(iter_end)) {
+                    if (allow_in_hierarchy) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
             }
         }
 
@@ -616,21 +639,5 @@ path_has_component(const char *const path,
         }
     } while (true);
 
-    const char iter_end_ch = *iter_end;
-    if (iter_end_ch != '\0') {
-        const char *const next_slash = path_get_next_slash(iter_end);
-        if (next_slash != NULL) {
-            /*
-             * We may have hit a row of slashes at the very end of the
-             * path-string.
-             */
-
-            const char *const end = path_get_end_of_row_of_slashes(next_slash);
-            if (end != NULL) {
-                *is_hierarchy_out = true;
-            }
-        }
-    }
-
-    return true;
+    return false;
 }

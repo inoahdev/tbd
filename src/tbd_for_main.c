@@ -36,10 +36,10 @@ add_image_filter(struct tbd_for_main *const tbd,
         exit(1);
     }
 
-    const char *const filter_string = argv[index + 1];
+    const char *const string = argv[index + 1];
     const struct tbd_for_main_dsc_image_filter filter = {
-        .filter = filter_string,
-        .length = strlen(filter_string)
+        .string = string,
+        .length = strlen(string)
     };
 
     const enum array_result add_filter_result =
@@ -48,7 +48,7 @@ add_image_filter(struct tbd_for_main *const tbd,
     if (add_filter_result != E_ARRAY_OK) {
         fprintf(stderr,
                 "Experienced an array failure trying to add image %s\n",
-                filter_string); 
+                string); 
 
         exit(1);
     }
@@ -591,7 +591,7 @@ tbd_for_main_dsc_image_filter_comparator(const void *const array_item,
     const struct tbd_for_main_dsc_image_filter *const filter =
         (const struct tbd_for_main_dsc_image_filter *)item;
 
-    return strcmp(array_filter->filter, filter->filter);
+    return strcmp(array_filter->string, filter->string);
 }
 
 static int

@@ -60,6 +60,6 @@ bool
 path_has_component(const char *path,
                    const char *component,
                    uint64_t component_length,
-                   bool *is_hierarchy);
+                   bool allow_in_hierarchy);
 
 #endif /* PATH_H */
