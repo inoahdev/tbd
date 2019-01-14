@@ -44,8 +44,10 @@ void print_usage(void) {
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
     fputs("            --filter-image-name,   Specify a name (a path-component) to filter out images\n", stdout);
-    fputs("            --filter-image-number, Specify the number of the image to parse out.\n", stdout);
-    fputs("                                   To get the number of the images, Use the option --list-images\n", stdout);
+    fputs("            --filter-image-number, Specify the number of an image to parse out.\n", stdout);
+    fputs("                                   To get the numbers of all available images, Use the option --list-images\n", stdout);
+    fputs("            --image-path,          Specify the path of an image to parse out.\n", stdout);
+    fputs("                                   To get the paths of all available images, Use the option --list-images\n", stdout);
     fputs("        -v, --version,             Specify version of tbd to convert to (default is v2).\n", stdout);
     fputs("                                   This applies to all files where tbd-version was not explicitly set\n", stdout);
 

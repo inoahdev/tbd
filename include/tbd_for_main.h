@@ -12,14 +12,19 @@
 #include <stdint.h>
 #include "tbd.h"
 
-enum tbd_for_main_dsc_image_filter_flags {
-    F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE = 1 << 0
+enum tbd_for_main_dsc_image_flags {
+    F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE = 1 << 0
 };
 
 struct tbd_for_main_dsc_image_filter {
     const char *string;
 
     uint64_t length;
+    uint64_t flags;
+};
+
+struct tbd_for_main_dsc_image_path {
+    const char *string;
     uint64_t flags;
 };
 
@@ -39,7 +44,14 @@ enum tbd_for_main_options {
     O_TBD_FOR_MAIN_NO_REQUESTS     = 1 << 10,
 
     O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC     = 1 << 11,
-    O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS = 1 << 12
+    O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS = 1 << 12,
+
+    /*
+     * dyld_shared_cache extractions can be stored in either a file or a
+     * directory. (Depending on the configuration)
+     */
+
+    O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 13
 };
 
 enum tbd_for_main_filetype {
@@ -84,12 +96,9 @@ struct tbd_for_main {
     uint64_t archs_re;
     uint64_t flags_re;
 
-    /*
-     * An array of tbd_for_main_dsc_image_filter structures.
-     */
-
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
+    struct array dsc_image_paths;
 };
 
 bool

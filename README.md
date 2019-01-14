@@ -34,8 +34,10 @@ Usage: tbd -o [options] path
 
 Both local and global options:
             --filter-image-name,   Specify a name (a path-component) to filter out images
-            --filter-image-number, Specify the number of the image to parse out.
-                                   To get the number of the images, Use the option --list-images
+            --filter-image-number, Specify the number of an image to parse out.
+                                   To get the numbers of all available images, Use the option --list-images
+            --image-path,          Specify the path of an image to parse out.
+                                   To get the paths of all available images, Use the option --list-images
         -v, --version,             Specify version of tbd to convert to (default is v2).
                                    This applies to all files where tbd-version was not explicitly set
 

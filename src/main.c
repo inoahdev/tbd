@@ -124,6 +124,67 @@ recurse_directory_callback(const char *const parse_path,
     return true;
 }
 
+static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
+    struct stat sbuf = {};
+    if (stat(tbd->write_path, &sbuf) < 0) {
+        /*
+         * Ignore error if the object doesn't even exist.
+         */
+
+        if (errno != ENOENT) {
+            fprintf(stderr,
+                    "Failed to get information on object at path, error: %s\n",
+                    strerror(errno));
+            
+            exit(1);
+        }
+
+        return;
+    }
+
+    if (S_ISREG(sbuf.st_mode)) {
+        /*
+         * We allow writing to regular files only on the following conditions:
+         *     (1) No filters have been provided. This is because we can't tell
+         *         before iterating and parsing how many images will pass the
+         *         filter.
+         *
+         *     (2) Either one image-number, or one image-path has been provided.
+         */ 
+
+        const struct array *const filters = &tbd->dsc_image_filters;
+        if (array_is_empty(filters)) {
+            const struct array *const numbers = &tbd->dsc_image_numbers;
+            const struct array *const paths = &tbd->dsc_image_paths;
+
+            const uint64_t numbers_count =
+                array_get_item_count(numbers, sizeof(uint32_t));
+
+            const uint64_t paths_count =
+                array_get_item_count(
+                    paths,
+                    sizeof(struct tbd_for_main_dsc_image_path));
+
+            if (numbers_count == 1 && paths_count == 0) {
+                tbd->options |= O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                return;
+            }
+
+            if (numbers_count == 0 && paths_count == 1) {
+                tbd->options |= O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                return;
+            }
+        }
+
+        fputs("Writing to a regular file while parsing multiple images from a "
+              "dyld_shared_cache file is not supported, Please provide a "
+              "directory to write all tbds to\n",
+              stderr);
+
+        exit(1);
+    }
+}
+
 static void destroy_tbds_array(struct array *const tbds) {
     struct tbd_for_main *tbd = tbds->data;
     const struct tbd_for_main *const end = tbds->data_end;
@@ -1111,7 +1172,13 @@ int main(const int argc, const char *const argv[]) {
 
                     break;
 
-                case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE:
+                case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE: {
+                    /*
+                     * Verify the write-path only at the last moment, as global
+                     * configuration is now accounted for.
+                     */
+
+                    verify_dsc_write_path(tbd);
                     parse_shared_cache(&global,
                                        tbd,
                                        parse_path,
@@ -1123,6 +1190,7 @@ int main(const int argc, const char *const argv[]) {
                                        &retained_info);
 
                     break;
+                }
             }
 
             close(fd);

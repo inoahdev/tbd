@@ -83,24 +83,27 @@ actually_parse_image(
         return false;
     }
 
-    char *const write_path =
-        tbd_for_main_create_write_path(tbd,
-                                       callback_info->write_path,
-                                       callback_info->write_path_length,
-                                       image_path,
-                                       strlen(image_path),
-                                       "tbd",
-                                       3,
-                                       false, 
-                                       NULL);
+    char *write_path = callback_info->write_path;
+    if (!(tbd->options & O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE)) {
+        write_path =
+            tbd_for_main_create_write_path(tbd,
+                                           write_path,
+                                           callback_info->write_path_length,
+                                           image_path,
+                                           strlen(image_path),
+                                           "tbd",
+                                           3,
+                                           false,
+                                           NULL);
 
-    if (write_path == NULL) {
-        fputs("Failed to allocate memory\n", stderr);
-        exit(1);
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
     }
 
-    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
     tbd_for_main_write_to_path(tbd, image_path, write_path, true);
+    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
 
     clear_create_info(create_info, &original_info);
     free(write_path);
@@ -124,11 +127,24 @@ path_has_image_entry(const char *const path,
     return false;
 }
 
-static struct tbd_for_main_dsc_image_filter * 
-get_filter_for_path(const struct array *const filters,
-                    const char *const path,
-                    const uint64_t options)
+static uint64_t *
+find_image_flags_for_path(const struct array *const filters,
+                          const struct array *const paths,
+                          const char *const path,
+                          const uint64_t options)
 {
+    struct tbd_for_main_dsc_image_path *image_path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const image_paths_end =
+        paths->data_end; 
+
+    for (; image_path != image_paths_end; image_path++) {
+        if (strcmp(image_path->string, path) != 0) {
+            continue; 
+        }
+
+        return &image_path->flags;
+    }
+
     struct tbd_for_main_dsc_image_filter *filter = filters->data;
     const struct tbd_for_main_dsc_image_filter *const end =
         filters->data_end;
@@ -138,16 +154,9 @@ get_filter_for_path(const struct array *const filters,
         const uint64_t length = filter->length;
 
         if (path_has_image_entry(path, string, length, options)) {
-            return filter;
+            return &filter->flags;
         }
     }
-
-    /*
-     * By default, if no filters or indexes are provided, all images are parsed.
-     *
-     * However, if filters or indexes have been provided, only those images that
-     * pass the filter, or are of the index, are parsed.
-     */
 
     return NULL;
 }
@@ -165,6 +174,7 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
        (struct dsc_iterate_images_callback_info *)item;
 
     struct tbd_for_main *const tbd = callback_info->tbd;
+    const uint64_t options = tbd->options;
 
     /*
      * Skip any dyld_shared_cache images if we haven't been prompted to accept
@@ -173,19 +183,19 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
      */
 
     const struct array *const filters = &tbd->dsc_image_filters;
-    const uint64_t options = tbd->options;
+    const struct array *const paths = &tbd->dsc_image_paths;
 
-    struct tbd_for_main_dsc_image_filter *filter = NULL;
+    uint64_t *flags = NULL;
     if (!callback_info->parse_all_images) {
-        filter = get_filter_for_path(filters, image_path, options);
-        if (filter == NULL) {
+        flags = find_image_flags_for_path(filters, paths, image_path, options);
+        if (flags == NULL) {
             return true;
         }
     }
 
     if (actually_parse_image(tbd, image, image_path, callback_info)) {
-        if (filter != NULL) {
-            filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE;
+        if (flags != NULL) {
+            *flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
         }
     }
 
@@ -202,16 +212,16 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
  */
 
 static void
-verify_filters(const char *const dsc_path,
-               const bool print_paths,                 
-               const struct array *const filters)
+verify_filters(const struct array *const filters,
+               const char *const dsc_path,
+               const bool print_paths)
 {
     struct tbd_for_main_dsc_image_filter *filter = filters->data;
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
     for (; filter != end; filter++) {
         const bool parsed_atleast_one =
-            filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FILTER_FOUND_ATLEAST_ONE;
+            filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
 
         if (parsed_atleast_one) {
             continue;
@@ -228,6 +238,45 @@ verify_filters(const char *const dsc_path,
                     "The provided dyld_shared_cache has no images that pass "
                     "the provided filter (with name: %s)\n",
                     filter->string);
+        }
+    }
+}
+
+/*
+ * Iterate over every path to ensure that at least the image was found.
+ *
+ * We verify this here, rather that in
+ * dyld_shared_cache_iterate_images_with_callback as we don't want to loop over
+ * the paths once for the error-code, then again here to print out.
+ */
+
+static void
+verify_paths(const struct array *const paths,
+             const char *const dsc_path,
+             const bool print_paths)
+{
+    struct tbd_for_main_dsc_image_path *path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+    for (; path != end; path++) {
+        const bool found_image =
+            path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+
+        if (found_image) {
+            continue;
+        }
+   
+        if (print_paths) {
+            fprintf(stderr,
+                    "dyld_shared_cache (at path %s) has no image with "
+                    "path: %s\n",
+                    dsc_path,
+                    path->string);
+        } else {
+            fprintf(stderr,
+                    "dyld_shared_cache at the provided path has no image with "
+                    "path: %s\n",
+                    path->string);
         }
     }
 }
@@ -305,6 +354,7 @@ parse_shared_cache(struct tbd_for_main *const global,
 
     const struct array *const filters = &tbd->dsc_image_filters;
     const struct array *const numbers = &tbd->dsc_image_numbers;
+    const struct array *const paths = &tbd->dsc_image_paths;
 
     if (!array_is_empty(numbers)) {
         const uint32_t *numbers_iter = numbers->data; 
@@ -344,14 +394,14 @@ parse_shared_cache(struct tbd_for_main *const global,
         } 
 
         /*
-         * If there are no filters, we should simply return after handling the
-         * indexes.
+         * If there are no filters and no paths, we should simply return after
+         * handling the indexes.
          *
          * Note: Since there were indexes, we do not parse all images as we
          * do usually by default.
          */
 
-        if (array_is_empty(filters)) {
+        if (array_is_empty(filters) && array_is_empty(paths)) {
             if (is_recursing) {
                 free(write_path);
             }
@@ -362,12 +412,12 @@ parse_shared_cache(struct tbd_for_main *const global,
         callback_info.parse_all_images = false;
     } else {
         /*
-         * By default, if no filters or indexes are provided, we parse all
-         * images, otherwise, all images have to be explicitly allowed to be
+         * By default, if no filters, indexes, or paths are provided, we parse
+         * all images, otherwise, all images have to be explicitly allowed to be
          & parsed.
          */
 
-        if (!array_is_empty(filters)) {
+        if (!array_is_empty(filters) || !array_is_empty(paths)) {
             callback_info.parse_all_images = false;
         }
     }
@@ -391,14 +441,8 @@ parse_shared_cache(struct tbd_for_main *const global,
         handle_dsc_file_parse_result(path, iterate_images_result, print_paths);
     }
 
-    /*
-     * Iterate over every filter to ensure that every filter matched with at
-     * least one image.
-     */
-
-    if (!array_is_empty(filters)) {
-        verify_filters(path, print_paths, filters);
-    }
+    verify_filters(filters, path, print_paths);
+    verify_paths(paths, path, print_paths);
 
     return true;
 }

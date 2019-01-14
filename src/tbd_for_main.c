@@ -47,7 +47,7 @@ add_image_filter(struct tbd_for_main *const tbd,
 
     if (add_filter_result != E_ARRAY_OK) {
         fprintf(stderr,
-                "Experienced an array failure trying to add image %s\n",
+                "Experienced an array failure trying to add image-filter %s\n",
                 string); 
 
         exit(1);
@@ -90,8 +90,41 @@ add_image_number(struct tbd_for_main *const tbd,
 
     if (add_number_result != E_ARRAY_OK) {
         fprintf(stderr,
-                "Experienced an array failure trying to add image %s\n",
+                "Experienced an array failure trying to add image-number %s\n",
                 number_string); 
+
+        exit(1);
+    }
+
+    *index_in = index + 1;
+}
+
+static void
+add_image_path(struct tbd_for_main *const tbd,
+               const int argc,
+               const char *const *const argv,
+               int *const index_in)
+{
+    const int index = *index_in;
+    if (index == argc) {
+        fputs("Please provide the path for an image to be parsed out\n",
+              stderr);
+
+        exit(1);
+    }
+
+    const char *const string = argv[index + 1];
+    const struct tbd_for_main_dsc_image_path path = {
+        .string = string,
+    };
+
+    const enum array_result add_path_result =
+        array_add_item(&tbd->dsc_image_paths, sizeof(path), &path, NULL);
+
+    if (add_path_result != E_ARRAY_OK) {
+        fprintf(stderr,
+                "Experienced an array failure trying to add image-path %s\n",
+                string); 
 
         exit(1);
     }
@@ -174,6 +207,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         add_image_filter(tbd, argc, argv, &index);
     } else if (strcmp(option, "image-filter-number") == 0) {
         add_image_number(tbd, argc, argv, &index);
+    } else if (strcmp(option, "image-path") == 0) {
+        add_image_path(tbd, argc, argv, &index);
     } else if (strcmp(option, "remove-archs") == 0) {
         if (!(tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
             if (tbd->archs_re != 0) {
@@ -610,6 +645,19 @@ image_number_comparator(const void *const array_item,
     return 0;
 }
 
+static int
+tbd_for_main_dsc_image_path_comparator(const void *const array_item,
+                                       const void *const item)
+{
+    const struct tbd_for_main_dsc_image_path *const array_path =
+        (const struct tbd_for_main_dsc_image_path *)array_item;
+
+    const struct tbd_for_main_dsc_image_path *const path =
+        (const struct tbd_for_main_dsc_image_path *)item;
+
+    return strcmp(array_path->string, path->string);
+}
+
 void
 tbd_for_main_apply_from(struct tbd_for_main *const dst,
                         const struct tbd_for_main *const src)
@@ -701,6 +749,25 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
                 exit(1);
             }
         }
+
+        const struct array *const src_paths = &src->dsc_image_paths;
+        if (!array_is_empty(src_paths)) {
+            const enum array_result add_paths_result =
+                array_add_and_unique_items_from_array(
+                    &dst->dsc_image_paths,
+                    sizeof(struct tbd_for_main_dsc_image_path),
+                    src_paths,
+                    tbd_for_main_dsc_image_path_comparator);
+
+            if (add_paths_result != E_ARRAY_OK) {
+                fputs("Experienced an array failure when trying to add dsc "
+                      "image-paths\n",
+                      stderr);
+
+                exit(1);
+            }
+        }
+
     }
 
     dst->macho_options |= src->macho_options;
@@ -717,6 +784,7 @@ void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
 
     array_destroy(&tbd->dsc_image_filters);
     array_destroy(&tbd->dsc_image_numbers);
+    array_destroy(&tbd->dsc_image_paths);
 
     free(tbd->parse_path);
     free(tbd->write_path);
