@@ -99,6 +99,11 @@ recurse_directory_callback(const char *const parse_path,
             close(fd);
             return true;
         }
+
+        if (!(options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
+            close(fd);
+            return true;
+        }
     } else if (!(options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
         close(fd);
         return true;
@@ -353,7 +358,8 @@ int main(const int argc, const char *const argv[]) {
                  * not when recursing directories.
                  */
 
-                if (strcmp(inner_arg, "stdout") == 0) {
+                const char *const path = inner_arg; 
+                if (strcmp(path, "stdout") == 0) {
                     const bool preserve_subdirs =
                         tbd->options &
                         O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
@@ -428,9 +434,7 @@ int main(const int argc, const char *const argv[]) {
                  * current-directory.
                  */
 
-                const char *const path = inner_arg;
                 char *full_path = path_get_absolute_path_if_necessary(path);
-
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
                     
@@ -679,7 +683,8 @@ int main(const int argc, const char *const argv[]) {
                                   "parsed while recursing, in addition to "
                                   "mach-o files. Please use option --dsc "
                                   "instead to indicate you want to parse a "
-                                  "dyld_shared_cache file\n", stderr);
+                                  "dyld_shared_cache file\n",
+                                  stderr);
                             
                             if (full_path != path) {
                                 free(full_path);
