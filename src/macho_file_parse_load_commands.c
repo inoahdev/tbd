@@ -24,6 +24,119 @@
 
 #include "yaml.h"
 
+static bool segment_has_image_info_sect(const char name[16]) {
+    const uint64_t first = *(uint64_t *)name;
+    switch (first) {
+        /*
+         * case "__DATA" with 2 null characters.
+         */
+
+        case 71830128058207: {
+            /*
+             * if name == "__DATA".
+             */
+
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 0) {
+                return true; 
+            }
+
+            break;
+        }
+
+        /*
+         * case "__DATA_D".
+         */
+
+        case 4926728347494670175: {
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 1498698313) {
+                /*
+                 * if (second == "IRTY") with 4 null characters.
+                 */
+
+                return true;
+            }
+
+            break;
+        }
+
+        /*
+         * case "__DATA_C".
+         */
+
+        case 4854670753456742239: {
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 1414745679) {
+                /*
+                 * if (second == "ONST") with 4 null characters.
+                 */
+
+                return true;
+            }
+
+            break;
+        }
+            
+        case 73986219138911: {
+            /*
+             * if name == "__OBJC".
+             */
+
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 0) {
+                return true; 
+            }
+
+            break;
+        }
+            
+    }
+
+    return false;
+}
+
+static bool is_image_info_section(const char name[16]) {
+    const uint64_t first = *(uint64_t *)name;
+    switch (first) {
+        /*
+         * case "__image".
+         */
+
+        case 6874014074396041055: {
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 1868983913) {
+                /*
+                 * if (second == "_info") with 3 null characters.
+                 */
+
+                return true;
+            }
+
+            break;
+        }
+
+        /*
+         * case "__objc_im".
+         */
+
+        case 7592896805339094879: {
+            const uint64_t second = *((uint64_t *)name + 1);
+            if (second == 8027224784786383213) {
+                /*
+                 * if (second == "ageinfo") with 1 null character.
+                 */
+
+                return true;
+            }
+
+            break;
+        }
+    }
+
+    return false;
+}
+
 static enum macho_file_parse_result 
 parse_objc_constraint(struct tbd_create_info *const info_in,
                       const uint32_t flags)
@@ -465,7 +578,7 @@ macho_file_parse_load_commands_from_file(
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    if (strncmp(info_in->install_name, name_ptr, length) != 0) {
+                    if (memcmp(info_in->install_name, name_ptr, length) != 0) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
@@ -607,21 +720,10 @@ macho_file_parse_load_commands_from_file(
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                /*
-                 * We're looking for the objc image-info section, located in
-                 * either the __DATA, __DATA_DIRTY, __DATA_CONST, __OBJC
-                 * segments.
-                 */
-
                 const struct segment_command *const segment =
                     (const struct segment_command *)load_cmd_iter;
 
-                const char *const segname = segment->segname;
-                if (strncmp(segname, "__DATA", 16) != 0 &&
-                    strncmp(segname, "__DATA_DIRTY", 16) != 0 &&
-                    strncmp(segname, "__DATA_CONST", 16) != 0 &&
-                    strncmp(segname, "__OBJC", 16) != 0)
-                {
+                if (!segment_has_image_info_sect(segment->segname)) {
                     break;
                 }
 
@@ -658,10 +760,7 @@ macho_file_parse_load_commands_from_file(
 
                 const struct section *sect = (struct section *)sect_ptr;
                 for (uint32_t i = 0; i < nsects; i++, sect++) {
-                    const char *const sectname = sect->sectname;
-                    if (strncmp(sectname, "__image_info", 16) != 0 &&
-                        strncmp(sectname, "__objc_imageinfo", 16) != 0)
-                    {
+                    if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
@@ -825,21 +924,10 @@ macho_file_parse_load_commands_from_file(
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                /*
-                 * We're looking for the objc image-info section, located in
-                 * either the __DATA, __DATA_DIRTY, __DATA_CONST, __OBJC
-                 * segments.
-                 */
-
                 const struct segment_command_64 *const segment =
                     (const struct segment_command_64 *)load_cmd_iter;
 
-                const char *const segname = segment->segname;
-                if (strncmp(segname, "__DATA", 16) != 0 &&
-                    strncmp(segname, "__DATA_DIRTY", 16) != 0 &&
-                    strncmp(segname, "__DATA_CONST", 16) != 0 &&
-                    strncmp(segname, "__OBJC", 16) != 0)
-                {
+                if (!segment_has_image_info_sect(segment->segname)) {
                     break;
                 }
 
@@ -876,10 +964,7 @@ macho_file_parse_load_commands_from_file(
 
                 const struct section_64 *sect = (struct section_64 *)sect_ptr;
                 for (uint32_t i = 0; i < nsects; i++, sect++) {
-                    const char *const sectname = sect->sectname;
-                    if (strncmp(sectname, "__image_info", 16) != 0 &&
-                        strncmp(sectname, "__objc_imageinfo", 16) != 0)
-                    {
+                    if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
@@ -1218,7 +1303,7 @@ macho_file_parse_load_commands_from_file(
                     const char *const parent_umbrella =
                         info_in->parent_umbrella;
 
-                    if (strncmp(parent_umbrella, umbrella, length) != 0) {
+                    if (memcmp(parent_umbrella, umbrella, length) != 0) {
                         free(load_cmd_buffer);
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
@@ -1289,7 +1374,7 @@ macho_file_parse_load_commands_from_file(
                         options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
 
                     if (!ignore_conflicting_fields) {
-                        if (strncmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
+                        if (memcmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
                             free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
                         }
@@ -2029,21 +2114,10 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                /*
-                 * We're looking for the objc image-info section, located in
-                 * either the __DATA, __DATA_DIRTY, __DATA_CONST, __OBJC
-                 * segments.
-                 */
-
                 const struct segment_command *const segment =
                     (const struct segment_command *)load_cmd_iter;
 
-                const char *const segname = segment->segname;
-                if (strncmp(segname, "__DATA", 16) != 0 &&
-                    strncmp(segname, "__DATA_DIRTY", 16) != 0 &&
-                    strncmp(segname, "__DATA_CONST", 16) != 0 &&
-                    strncmp(segname, "__OBJC", 16) != 0)
-                {
+                if (!segment_has_image_info_sect(segment->segname)) {
                     break;
                 }
 
@@ -2078,10 +2152,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
 
                 const struct section *sect = (struct section *)sect_ptr;
                 for (uint32_t i = 0; i < nsects; i++, sect++) {
-                    const char *const sectname = sect->sectname;
-                    if (strncmp(sectname, "__image_info", 16) != 0 &&
-                        strncmp(sectname, "__objc_imageinfo", 16) != 0)
-                    {
+                    if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
@@ -2196,21 +2267,10 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
                 }
 
-                /*
-                 * We're looking for the objc image-info section, located in
-                 * either the __DATA, __DATA_DIRTY, __DATA_CONST, __OBJC
-                 * segments.
-                 */
-
                 const struct segment_command_64 *const segment =
                     (const struct segment_command_64 *)load_cmd_iter;
 
-                const char *const segname = segment->segname;
-                if (strncmp(segname, "__DATA", 16) != 0 &&
-                    strncmp(segname, "__DATA_DIRTY", 16) != 0 &&
-                    strncmp(segname, "__DATA_CONST", 16) != 0 &&
-                    strncmp(segname, "__OBJC", 16) != 0)
-                {
+                if (!segment_has_image_info_sect(segment->segname)) {
                     break;
                 }
 
@@ -2243,12 +2303,11 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                 const uint8_t *const sect_ptr =
                     load_cmd_iter + sizeof(struct segment_command_64);
 
-                const struct section_64 *sect = (struct section_64 *)sect_ptr;
+                const struct section_64 *sect =
+                    (const struct section_64 *)sect_ptr;
+                
                 for (uint32_t i = 0; i < nsects; i++, sect++) {
-                    const char *const sectname = sect->sectname;
-                    if (strncmp(sectname, "__image_info", 16) != 0 &&
-                        strncmp(sectname, "__objc_imageinfo", 16) != 0)
-                    {
+                    if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
@@ -2518,7 +2577,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     const char *const parent_umbrella =
                         info_in->parent_umbrella;
 
-                    if (strncmp(parent_umbrella, umbrella, length) != 0) {
+                    if (memcmp(parent_umbrella, umbrella, length) != 0) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                     }
                 } else {
@@ -2587,7 +2646,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                         options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
 
                     if (!ignore_conflicting_fields) {
-                        if (strncmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
+                        if (memcmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
                             return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
                         }
                     }
