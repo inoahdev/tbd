@@ -14,38 +14,6 @@
 #include "tbd_write.h"
 
 /*
- * From: https://stackoverflow.com/a/2709523
- */
-
-static inline int bits_count(uint64_t i) {
-    i = i - ((i >> 1) & 0x5555555555555555);
-    i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
-
-    return (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56;
-}
-
-static int arch_list_compare(const uint64_t left, const uint64_t right) {
-    if (left == right) {
-        return 0;
-    }
-    
-    const int left_count = bits_count(left);
-    const int right_count = bits_count(right);
-
-    if (left_count != right_count) {
-        return left_count - right_count;
-    }
-
-    if (left > right) {
-        return 1;
-    } else if (left < right) {
-        return -1;
-    }
-
-    return 0;
-}
-
-/*
  * Have the symbols array be sorted first into groups of matching arch-lists.
  * The arch-lists themselves are sorted to where arch-lists with more archs are
  * "greater", than those without.
@@ -77,10 +45,33 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
         return array_type - type;
     }
 
+    const uint64_t array_length = array_info->length;
+    const uint64_t length = info->length;
+
+    /*
+     * We try to avoid iterating and comparing over the whole string, so we
+     * check to ensure their lengths match up.
+     * 
+     * However, we don't want to symbols to ever be organized by their length,
+     * which would be the case if `(array_length - length)` was returned.
+     *
+     * To remedy this, we use separate memcmp() calls for when array_length and
+     * length don't match, depending on which is bigger.
+     *
+     * This stops us from having to use strcmp(), which would be the case since
+     * the lengths don't match.
+     */
+
+    if (array_length > length) {
+        return memcmp(array_info->string, info->string, length);
+    } else if (array_length < length) {
+        return memcmp(array_info->string, info->string, array_length);
+    }
+
     const char *const array_string = array_info->string;
     const char *const string = info->string;
 
-    return strcmp(array_string, string);
+    return memcmp(array_string, string, length);
 }
 
 int
@@ -92,12 +83,20 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const struct tbd_export_info *const info =
         (const struct tbd_export_info *)item;
 
+    const uint64_t array_archs_count = array_info->archs_count;
+    const uint64_t archs_count = info->archs_count;
+
+    if (array_archs_count != archs_count) {
+        return array_archs_count - archs_count;
+    }
+
     const uint64_t array_archs = array_info->archs;
     const uint64_t archs = info->archs;
 
-    const int archs_compare = arch_list_compare(array_archs, archs);
-    if (archs_compare != 0) {
-        return archs_compare;
+    if (array_archs > archs) {
+        return 1;
+    } else if (array_archs < archs) {
+        return -1;
     }
 
     const enum tbd_export_type array_type = array_info->type;
@@ -107,10 +106,33 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
         return array_type - type;
     }
 
+    const uint64_t array_length = array_info->length;
+    const uint64_t length = info->length;
+
+    /*
+     * We try to avoid iterating and comparing over the whole string, so we
+     * check to ensure their lengths match up.
+     * 
+     * However, we don't want to symbols to ever be organized by their length,
+     * which would be the case if `(array_length - length)` was returned.
+     *
+     * To remedy this, we use separate memcmp() calls for when array_length and
+     * length don't match, depending on which is bigger.
+     *
+     * This stops us from having to use strcmp(), which would be the case since
+     * the lengths don't match.
+     */
+
+    if (array_length > length) {
+        return memcmp(array_info->string, info->string, length);
+    } else if (array_length < length) {
+        return memcmp(array_info->string, info->string, array_length);
+    }
+
     const char *const array_string = array_info->string;
     const char *const string = info->string;
 
-    return strcmp(array_string, string);
+    return memcmp(array_string, string, length);
 }
 
 int

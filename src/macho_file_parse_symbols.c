@@ -201,6 +201,7 @@ handle_symbol(struct tbd_create_info *const info,
     
     struct tbd_export_info export_info = {
         .archs = arch_bit,
+        .archs_count = 1,
         .length = length,
         .string = (char *)string,
         .type = symbol_type,
@@ -217,7 +218,12 @@ handle_symbol(struct tbd_create_info *const info,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        existing_info->archs |= arch_bit;
+        const uint64_t archs = existing_info->archs;
+        if (!(archs & arch_bit)) {
+            existing_info->archs = archs | arch_bit;
+            existing_info->archs_count += 1;
+        }
+
         return E_MACHO_FILE_PARSE_OK;
     }
 
@@ -314,10 +320,6 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    /*
-     * Read the symbol-table.
-     */
-
     if (lseek(fd, absolute_symoff, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
@@ -331,10 +333,6 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         free(symbol_table);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
-
-    /*
-     * Read the string-table.
-     */
 
     uint32_t absolute_stroff = start;
     if (guard_overflow_add(&absolute_stroff, stroff)) {
@@ -373,8 +371,8 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         }
 
         /*
-         * Ensure that each symbol connects back to __TEXT, or is an indirect
-         * symbol.
+         * Ensure that each symbol either connects back to __TEXT, or is an
+         * indirect symbol.
          */
 
         const uint8_t n_type = nlist->n_type;
@@ -536,8 +534,8 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         }
 
         /*
-         * Ensure that each symbol connects back to __TEXT, or is an indirect
-         * symbol.
+         * Ensure that each symbol either connects back to __TEXT, or is an
+         * indirect symbol.
          */
 
         const uint8_t n_type = nlist->n_type;

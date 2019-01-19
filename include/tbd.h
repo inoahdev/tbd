@@ -84,11 +84,12 @@ enum tbd_export_info_flags {
 
 struct tbd_export_info {
     uint64_t archs;
-    uint32_t length;
+    uint64_t archs_count;
 
     enum tbd_export_type type;
     char *string;
 
+    uint32_t length;
     uint64_t flags;
 };
 

@@ -36,8 +36,7 @@ parse_objc_constraint(struct tbd_create_info *const info_in,
     } else if(flags & F_OBJC_IMAGE_INFO_SUPPORTS_GC) {
         objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_OR_GC;
     } else if (flags & F_OBJC_IMAGE_INFO_IS_FOR_SIMULATOR) {
-        objc_constraint =
-            TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_FOR_SIMULATOR;
+        objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_FOR_SIMULATOR;
     }
 
     if (info_in->objc_constraint != 0) {
@@ -61,6 +60,7 @@ add_export_to_info(struct tbd_create_info *const info_in,
 {
     struct tbd_export_info export_info = {
         .archs = arch_bit,
+        .archs_count = 1,
         .length = string_length,
         .string = (char *)string,
         .type = type
@@ -81,7 +81,12 @@ add_export_to_info(struct tbd_create_info *const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        existing_info->archs |= arch_bit;
+        const uint64_t archs = existing_info->archs;
+        if (!(archs & arch_bit)) {
+            existing_info->archs = archs | arch_bit;
+            existing_info->archs_count += 1;
+        }
+
         return E_MACHO_FILE_PARSE_OK;
     }
 
@@ -1887,7 +1892,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
 
-                    if (strcmp(info_in->install_name, install_name) != 0) {
+                    const char *const info_name = info_in->install_name;
+                    if (memcmp(info_name, install_name, length) != 0) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                     }
                 } else {
