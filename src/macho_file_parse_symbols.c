@@ -402,9 +402,9 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
@@ -446,9 +446,9 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
@@ -605,9 +605,9 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
@@ -744,9 +744,9 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
             /*
-            * Ensure that each symbol connects back to __TEXT, or is an indirect
-            * symbol.
-            */
+             * Ensure that each symbol connects back to __TEXT, or is an
+             * indirect symbol.
+             */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
@@ -785,9 +785,9 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
             const uint32_t index = nlist->n_un.n_strx;
 
             /*
-            * Ensure that each symbol connects back to __TEXT, or is an indirect
-            * symbol.
-            */
+             * Ensure that each symbol connects back to __TEXT, or is an
+             * indirect symbol.
+             */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
@@ -797,9 +797,9 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
@@ -894,9 +894,9 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
             /*
-            * Ensure that each symbol connects back to __TEXT, or is an indirect
-            * symbol.
-            */
+             * Ensure that each symbol connects back to __TEXT, or is an indirect
+             * symbol.
+             */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
@@ -906,9 +906,9 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
@@ -935,9 +935,9 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const uint32_t index = nlist->n_un.n_strx;
 
             /*
-            * Ensure that each symbol connects back to __TEXT, or is an indirect
-            * symbol.
-            */
+             * Ensure that each symbol connects back to __TEXT, or is an indirect
+             * symbol.
+             */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
@@ -947,9 +947,9 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             }
 
             /*
-            * For leniency reasons, ignore invalid symbol-references instead of
-            * erroring out.
-            */
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
             if (index >= strsize) {
                 continue;
