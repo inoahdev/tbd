@@ -413,13 +413,13 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 free(symbol_table);
@@ -457,13 +457,13 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 free(symbol_table);
@@ -616,13 +616,13 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 free(symbol_table);
@@ -660,13 +660,13 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 free(symbol_table);
@@ -700,13 +700,27 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    uint64_t symbol_table_size = sizeof(struct nlist);
-    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-
     const uint64_t string_table_end = stroff + strsize;
     if (string_table_end > size) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    const struct range map_range = {
+        .begin = 0,
+        .end = size
+    };
+
+    const struct range string_table_range = {
+        .begin = stroff,
+        .end = string_table_end
+    };
+
+    if (!range_contains_range(map_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    uint64_t symbol_table_size = sizeof(struct nlist);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -715,19 +729,18 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    /*
-     * Ensure the string-table and symbol-table don't overlap.
-     */
-
     const struct range symbol_table_range = {
         .begin = symoff,
         .end = symbol_table_end
     };
 
-    const struct range string_table_range = {
-        .begin = stroff,
-        .end = string_table_end
-    };
+    if (!range_contains_range(map_range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    /*
+     * Ensure the string-table and symbol-table don't overlap.
+     */
 
     if (ranges_overlap(symbol_table_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
@@ -767,13 +780,13 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 return handle_symbol_result;
@@ -808,13 +821,13 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 return handle_symbol_result;
@@ -842,21 +855,27 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    /*
-     * Get the size of the symbol table by multipying the symbol-count and the
-     * size of symbol-table-entry
-     * 
-     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
-     * instead.
-     */
-
-    uint64_t symbol_table_size = nsyms;
-    if (guard_overflow_shift(&symbol_table_size, 4)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-
     const uint64_t string_table_end = stroff + strsize;
     if (string_table_end > size) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    const struct range map_range = {
+        .begin = 0,
+        .end = size
+    };
+
+    const struct range string_table_range = {
+        .begin = stroff,
+        .end = string_table_end
+    };
+
+    if (!range_contains_range(map_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    uint64_t symbol_table_size = sizeof(struct nlist_64);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -865,19 +884,18 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    /*
-     * Ensure the string-table and symbol-table don't overlap.
-     */
-
     const struct range symbol_table_range = {
         .begin = symoff,
         .end = symbol_table_end
     };
 
-    const struct range string_table_range = {
-        .begin = stroff,
-        .end = string_table_end
-    };
+    if (!range_contains_range(map_range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    /*
+     * Ensure the string-table and symbol-table don't overlap.
+     */
 
     if (ranges_overlap(symbol_table_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
@@ -894,8 +912,8 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an indirect
-             * symbol.
+             * Ensure that each symbol connects back to __TEXT, or is an
+             * indirect symbol.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -917,13 +935,13 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 return handle_symbol_result;
@@ -935,8 +953,8 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const uint32_t index = nlist->n_un.n_strx;
 
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an indirect
-             * symbol.
+             * Ensure that each symbol connects back to __TEXT, or is an
+             * indirect symbol.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -958,13 +976,13 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
-                            arch_bit,
-                            index,
-                            strsize,
-                            symbol_string,
-                            n_desc,
-                            n_type,
-                            tbd_options);
+                              arch_bit,
+                              index,
+                              strsize,
+                              symbol_string,
+                              n_desc,
+                              n_type,
+                              tbd_options);
 
             if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
                 return handle_symbol_result;
