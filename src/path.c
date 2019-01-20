@@ -25,7 +25,11 @@ static inline bool ch_is_path_slash(const char ch) {
     return ch == '/';
 }
 
-char *path_get_absolute_path_if_necessary(const char *const path) {
+char *
+path_get_absolute_path_if_necessary(const char *const path,
+                                    const uint64_t path_length,
+                                    uint64_t *const length_out)
+{
     const char path_front = path[0];
     if (ch_is_path_slash(path_front)) {
         return (char *)path;
@@ -48,8 +52,8 @@ char *path_get_absolute_path_if_necessary(const char *const path) {
         path_append_component_with_len(current_directory,
                                        current_directory_length,
                                        path,
-                                       strlen(path),
-                                       NULL);
+                                       path_length,
+                                       length_out);
 
     return combined;
 }
@@ -58,7 +62,7 @@ const char *
 path_get_iter_before_front_of_row_of_slashes(const char *const path,
                                              const char *iter)
 {
-    char ch = *iter;
+    char ch = '\0';
 
     do {
         --iter;
@@ -74,7 +78,7 @@ path_get_iter_before_front_of_row_of_slashes(const char *const path,
 
 const char *
 path_get_front_of_row_of_slashes(const char *const path, const char *iter) {
-    char ch = *iter;
+    char ch = '\0';
 
     do {
         --iter;
@@ -90,7 +94,7 @@ path_get_front_of_row_of_slashes(const char *const path, const char *iter) {
 
 const char *path_get_back_of_row_of_slashes(const char *const path) {
     const char *iter = path;
-    char ch = *path;
+    char ch = '\0';
 
     do {
         ch = *(++iter);
@@ -104,7 +108,7 @@ const char *path_get_back_of_row_of_slashes(const char *const path) {
 
 const char *path_get_end_of_row_of_slashes(const char *const path) {
     const char *iter = path;
-    char ch = *path;
+    char ch = '\0';
 
     do {
         ch = *(++iter);
@@ -146,33 +150,21 @@ const char *path_get_next_slash_or_end(const char *const path) {
     return iter;
 }
 
-const char *path_find_last_row_of_slashes(const char *const path) {
-    const char *iter = path;
-    char ch = *path;
-
-    if (ch == '\0') {
-        return NULL;
-    }
-
-    const char *row = NULL;
-
-    do {
-        while (!ch_is_path_slash(ch)) {
-            ch = *(++iter);
-            if (ch == '\0') {
-                return row;
-            }
+const char *
+path_find_last_row_of_slashes(const char *const path,
+                              const uint64_t path_length)
+{
+    const char *back = path + (path_length - 1);
+    for (; back != path; back--) {
+        const char ch = *back;
+        if (!ch_is_path_slash(ch)) {
+            continue;
         }
 
-        row = iter;
+        return path_get_front_of_row_of_slashes(path, back);
+    }
 
-        do {
-            ch = *(++iter);
-            if (ch == '\0') {
-                return row;
-            }
-        } while (ch_is_path_slash(ch));
-    } while (true);
+    return NULL;
 }
 
 const char *
@@ -211,34 +203,18 @@ path_find_last_row_of_slashes_before_end(const char *const path,
     } while (true);
 }
 
-const char *path_find_ending_row_of_slashes(const char *const path) {
-    const char *iter = path;
-    char ch = *path;
+const char *
+path_find_ending_row_of_slashes(const char *const path,
+                                const uint64_t path_length)
+{
+    const char *const back = path + (path_length - 1);
+    const char ch = *back;
 
-    const char *row = NULL;
+    if (!ch_is_path_slash(ch)) {
+        return NULL;
+    }
 
-    do {
-        while (!ch_is_path_slash(ch)) {
-            ch = *(++iter);
-            if (ch == '\0') {
-                /*
-                 * Return NULL as the previous characters encountered were not
-                 * slashes.
-                 */
-
-                return NULL;
-            }
-        }
-
-        row = iter;
-
-        do {
-            ch = *(++iter);
-            if (ch == '\0') {
-                return row;
-            }
-        } while (ch_is_path_slash(ch));
-    } while (true);
+    return path_get_front_of_row_of_slashes(path, back);
 }
 
 static uint64_t

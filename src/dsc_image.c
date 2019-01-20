@@ -44,11 +44,22 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_READ_FAIL:
             return E_DSC_IMAGE_PARSE_READ_FAIL;
 
+        /*
+         * This error should never be returned from
+         * macho_file_parse_load_commands.
+         */
+
+        case E_MACHO_FILE_PARSE_FSTAT_FAIL:
+            return E_DSC_IMAGE_PARSE_READ_FAIL;
+
         case E_MACHO_FILE_PARSE_NOT_A_MACHO:
             return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
 
         case E_MACHO_FILE_PARSE_SIZE_TOO_SMALL:
             return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
+
+        case E_MACHO_FILE_PARSE_INVALID_RANGE:
+            return E_DSC_IMAGE_PARSE_INVALID_RANGE;
 
         /*
          * There is no appropriate error-code for this, but this will never get
@@ -101,6 +112,9 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE:
             return E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE;
+
+        case E_MACHO_FILE_PARSE_INVALID_STRING_TABLE:
+            return E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE;
 
         case E_MACHO_FILE_PARSE_INVALID_UUID:
             return E_DSC_IMAGE_PARSE_INVALID_UUID;

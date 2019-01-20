@@ -48,7 +48,7 @@ clear_create_info(struct tbd_create_info *const info_in,
     *info_in = *orig;
 }
 
-static bool 
+static int 
 actually_parse_image(
     struct tbd_for_main *const tbd,
     struct dyld_cache_image_info *const image,
@@ -80,21 +80,23 @@ actually_parse_image(
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
-        return false;
+        return 1;
     }
 
     char *write_path = callback_info->write_path;
+    uint64_t length = callback_info->write_path_length;
+
     if (!(tbd->options & O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE)) {
         write_path =
             tbd_for_main_create_write_path(tbd,
                                            write_path,
-                                           callback_info->write_path_length,
+                                           length,
                                            image_path,
                                            strlen(image_path),
                                            "tbd",
                                            3,
                                            false,
-                                           NULL);
+                                           &length);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
@@ -102,13 +104,13 @@ actually_parse_image(
         }
     }
 
-    tbd_for_main_write_to_path(tbd, image_path, write_path, true);
-    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
-
+    tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
     clear_create_info(create_info, &original_info);
+
+    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
     free(write_path);
 
-    return true;
+    return 0;
 }
 
 static bool
@@ -194,9 +196,11 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
     }
 
     if (actually_parse_image(tbd, image, image_path, callback_info)) {
-        if (flags != NULL) {
-            *flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-        }
+        return true;
+    }
+
+    if (flags != NULL) {
+        *flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
     }
 
     return true;
@@ -281,17 +285,78 @@ verify_paths(const struct array *const paths,
     }
 }
 
+enum read_magic_result {
+    E_READ_MAGIC_OK,
+
+    E_READ_MAGIC_READ_FAILED,
+    E_READ_MAGIC_NOT_LARGE_ENOUGH
+};
+
+static enum read_magic_result
+read_magic(const int fd,
+           void *const magic,
+           const uint64_t magic_size,
+           const char *const path,
+           const bool print_paths,
+           char *const magic_out)
+{
+    if (magic_size > 16) {
+        memcpy(magic_out, magic, 16);
+    } else {
+        memcpy(magic_out, magic, magic_size);
+
+        const uint64_t read_size = 16 - magic_size;
+        if (read(fd, magic_out + magic_size, read_size) < 0) {
+            if (errno == EOVERFLOW) {
+                return E_READ_MAGIC_NOT_LARGE_ENOUGH;
+            }
+
+            /*
+             * Manually handle the read fail by passing on to
+             * handle_dsc_file_parse_result() as if we went to
+             * dyld_shared_cache_parse_from_file().
+             */
+
+            handle_dsc_file_parse_result(path,
+                                         E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                         print_paths);
+                                        
+            return E_READ_MAGIC_READ_FAILED;
+        }
+    }
+
+    return E_READ_MAGIC_OK;
+}
+
 bool 
 parse_shared_cache(struct tbd_for_main *const global,
                    struct tbd_for_main *const tbd,
                    const char *const path,
                    const uint64_t path_length,
                    const int fd,
-                   const uint64_t size,
                    const bool is_recursing,
                    const bool print_paths,
-                   uint64_t *const retained_info_in)
+                   uint64_t *const retained_info_in,
+                   void *magic_in,
+                   uint64_t *magic_in_size_in)
 {
+    char magic[16] = {};
+
+    const uint64_t magic_in_size = *magic_in_size_in;
+    const enum read_magic_result read_magic_result =
+        read_magic(fd, magic_in, magic_in_size, path, print_paths, magic);
+
+    switch (read_magic_result) {
+        case E_READ_MAGIC_OK:
+            break;
+
+        case E_READ_MAGIC_READ_FAILED:
+            return true;
+
+        case E_READ_MAGIC_NOT_LARGE_ENOUGH:
+            return false;
+    }
+
     const uint64_t dsc_options =
         O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | tbd->dsc_options;
 
@@ -299,10 +364,15 @@ parse_shared_cache(struct tbd_for_main *const global,
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
         dyld_shared_cache_parse_from_file(&dsc_info,
                                           fd,
-                                          size,
+                                          magic,
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
+        if (magic_in_size < sizeof(magic)) {
+            memcpy(magic_in, &magic, sizeof(magic));
+            *magic_in_size_in = sizeof(magic);
+        }
+
         return false;
     }
 
@@ -472,11 +542,17 @@ print_list_of_dsc_images(const int fd,
                          const uint64_t start,
                          const uint64_t end)
 {
-    const uint64_t size = end - start;
+    char magic[16] = {};
+    const enum read_magic_result read_magic_result =
+        read_magic(fd, NULL, 0, NULL, false, magic);
+
+    if (read_magic_result != E_READ_MAGIC_OK) {
+        exit(1);
+    }
 
     struct dyld_shared_cache_info dsc_info = {};
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
-        dyld_shared_cache_parse_from_file(&dsc_info, fd, size, 0);
+        dyld_shared_cache_parse_from_file(&dsc_info, fd, magic, 0);
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result(NULL, parse_dsc_file_result, false);

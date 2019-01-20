@@ -29,21 +29,15 @@ static inline bool char_needs_quotes(const char ch) {
     return false;
 }
 
-void
-yaml_check_c_str(const char *const string,
-                 const uint64_t length,
-                 bool *const needs_quotes_out)
-{
-    bool needs_quotes = false;
+bool yaml_check_c_str(const char *const string, const uint64_t length) {
     for (uint64_t i = 0; i != length; i++) {
         const char ch = string[i];
         if (!char_needs_quotes(ch)) {
             continue;
         }
 
-        needs_quotes = true;
-        break;
+        return true;
     }
 
-    *needs_quotes_out = needs_quotes;
+    return false;
 }

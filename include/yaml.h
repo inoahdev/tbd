@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-void
-yaml_check_c_str(const char *string, uint64_t length, bool *needs_quotes_out);
+bool yaml_check_c_str(const char *string, uint64_t length);
 
 #endif /* YAML_H */

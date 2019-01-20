@@ -131,6 +131,7 @@ void
 tbd_for_main_write_to_path(const struct tbd_for_main *tbd,
                            const char *input_path,
                            char *write_path,
+                           uint64_t write_path_length,
                            bool print_paths);
 
 void

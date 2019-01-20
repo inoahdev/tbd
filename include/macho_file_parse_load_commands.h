@@ -15,12 +15,12 @@
 
 #include "arch_info.h"
 #include "macho_file.h"
+#include "range.h"
 
 enum macho_file_parse_result 
 macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
                                          int fd,
-                                         uint64_t start,
-                                         uint64_t size,
+                                         struct range range,
                                          const struct arch_info *arch,
                                          uint64_t arch_bit,
                                          bool is_64,

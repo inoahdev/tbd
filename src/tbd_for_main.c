@@ -471,6 +471,7 @@ void
 tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
                            const char *const input_path,
                            char *const write_path,
+                           const uint64_t write_path_length,
                            const bool print_paths)
 {
     char *terminator = NULL;
@@ -479,6 +480,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
     const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
     const int write_fd =
         open_r(write_path,
+               write_path_length,
                O_WRONLY | O_TRUNC | flags,
                DEFFILEMODE,
                0755,
@@ -530,7 +532,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * may now be populated with other files.
              */
             
-            remove_partial_r(write_path, terminator);
+            remove_partial_r(write_path, write_path_length, terminator);
         }
 
         return;
@@ -583,7 +585,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * may now be populated with other files.
              */
             
-            remove_partial_r(write_path, terminator);
+            remove_partial_r(write_path, write_path_length, terminator);
         }
     }
 

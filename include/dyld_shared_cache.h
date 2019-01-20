@@ -27,6 +27,8 @@ enum dyld_shared_cache_parse_result {
     E_DYLD_SHARED_CACHE_PARSE_OK,
     E_DYLD_SHARED_CACHE_PARSE_ALLOC_FAIL,
 
+    E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL,
+
     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
     E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL,
 
@@ -63,7 +65,7 @@ struct dyld_shared_cache_info {
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *info_in,
                                   int fd,
-                                  uint64_t size,
+                                  const char magic[16],
                                   uint64_t options);
 
 enum dyld_shared_cache_parse_result

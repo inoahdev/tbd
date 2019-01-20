@@ -55,16 +55,44 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
 
             return false;
 
+        case E_MACHO_FILE_PARSE_FSTAT_FAIL:
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to get information on mach-o file "
+                        "(at path: %s)\n",
+                        path);
+            } else {
+                fputs("Failed to get information on mach-o file at the "
+                      "provided path\n",
+                      stderr);
+            }
+
+            return false;
+
         case E_MACHO_FILE_PARSE_SIZE_TOO_SMALL:
             if (print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s), or one of its "
                         "architectures, is too small to be a valid "
                         "mach-o\n",
-                    path);
+                        path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
                       "is too small to be a valid mach-o\n",
+                      stderr);
+            }
+
+            return false;
+
+        case E_MACHO_FILE_PARSE_INVALID_RANGE:
+            if (print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has an invalid range\n",
+                        path);
+            } else {
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has an invalid range\n",
                       stderr);
             }
 
@@ -406,6 +434,20 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
             break;
         }
 
+        case E_MACHO_FILE_PARSE_INVALID_STRING_TABLE:
+            if (print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has an invalid string-table\n",
+                        path);
+            } else {
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has an invalid string-table\n",
+                      stderr);
+            }
+
+            return false;
+
         case E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE:
             if (print_paths) {
                 fprintf(stderr,
@@ -495,7 +537,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                       "conflicting information for its identification "
                       "(install-name, current-version, and/or"
                       "comatibility-version)\n",
-                     stderr);
+                      stderr);
         }
 
         return false;

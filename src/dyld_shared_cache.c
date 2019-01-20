@@ -9,8 +9,11 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <errno.h>
+
 #include <stdlib.h>
 #include <string.h>
+
 #include <unistd.h>
 
 #include "arch_info.h"
@@ -159,37 +162,40 @@ get_arch_info_from_magic(const char magic[16],
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
                                   const int fd,
-                                  const uint64_t size,
+                                  const char magic[16],
                                   const uint64_t options)
 {
-    struct dyld_cache_header header = {};
-    if (size < sizeof(struct dyld_cache_header)) {
-        return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
-    }
-
     /*
      * For performance, check magic and verify header first before mapping file
      * to memory.
      */
 
-    if (read(fd, &header, sizeof(header)) < 0) {
-        return E_DYLD_SHARED_CACHE_PARSE_READ_FAIL;
-    }
-
-    /*
-     * Do integer-compares on the magic to improve performance.
-     */
-
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
-    if (get_arch_info_from_magic(header.magic, &arch, &arch_bit)) {
+    if (get_arch_info_from_magic(magic, &arch, &arch_bit)) {
         return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
+    }
+
+    struct dyld_cache_header header = {};
+    memcpy(&header.magic, magic, 16);
+
+    if (read(fd, &header.mappingOffset, sizeof(header) - 16) < 0) {
+        if (errno == EOVERFLOW) {
+            return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
+        }
+
+        return E_DYLD_SHARED_CACHE_PARSE_READ_FAIL;
+    }
+
+    struct stat sbuf = {};
+    if (fstat(fd, &sbuf) < 0) {
+        return E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL;
     }
 
     const struct range available_cache_range = {
         .begin = sizeof(struct dyld_cache_header), 
-        .end = size
+        .end = sbuf.st_size
     };
 
     /*
@@ -218,8 +224,16 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     const uint32_t mapping_count = header.mappingCount;
     const uint32_t images_count = header.imagesCount;
 
-    uint64_t mapping_size = sizeof(struct dyld_cache_mapping_info);
-    if (guard_overflow_mul(&mapping_size, mapping_count)) {
+    /*
+     * Get the size of the mapping-infos table by multipying the mapping-count
+     * and the size of a mapping-info
+     * 
+     * Since sizeof(struct dyld_cache_mapping_info) is a power of 2 (32), use a
+     * shift by 5 instead.
+     */
+
+    uint64_t mapping_size = mapping_count;
+    if (guard_overflow_shift(&mapping_size, 5)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
@@ -228,8 +242,16 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    uint64_t images_size = sizeof(struct dyld_cache_image_info);
-    if (guard_overflow_mul(&images_size, images_count)) {
+    /*
+     * Get the size of the image-infos table by multipying the images-count
+     * and the size of a image-info
+     * 
+     * Since sizeof(struct dyld_cache_image_info) is a power of 2 (32), use a
+     * shift by 5 instead.
+     */
+
+    uint64_t images_size = images_count;
+    if (guard_overflow_shift(&images_size, 5)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -284,7 +306,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     uint8_t *const map =
-        mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+        mmap(0, sbuf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
     if (map == MAP_FAILED) {
         return E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL;
@@ -299,7 +321,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     const struct range full_cache_range = {
         .begin = 0, 
-        .end = size
+        .end = sbuf.st_size
     };
 
     /*
@@ -318,7 +340,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         uint64_t mapping_file_end = mapping_file_begin;
 
         if (guard_overflow_add(&mapping_file_end, mapping->size)) {
-            munmap(map, size);
+            munmap(map, sbuf.st_size);
             return E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS;
         }
 
@@ -328,7 +350,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         };
 
         if (!range_contains_range(full_cache_range, mapping_file_range)) {
-            munmap(map, size);
+            munmap(map, sbuf.st_size);
             return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;            
         }
 
@@ -352,7 +374,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             };
 
             if (ranges_overlap(mapping_file_range, inner_file_range)) {
-                munmap(map, size);
+                munmap(map, sbuf.st_size);
                 return E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS;
             }
         }
@@ -373,7 +395,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
                 const uint32_t location = image->pathFileOffset;
                 if (!range_contains_location(available_cache_range, location)) {
-                    munmap(map, size);
+                    munmap(map, sbuf.st_size);
                     return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
                 }
             }
@@ -386,7 +408,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             const uint32_t location = image->pathFileOffset;
 
             if (!range_contains_location(available_cache_range, location)) {
-                munmap(map, size);
+                munmap(map, sbuf.st_size);
                 return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
             }
         }
@@ -402,7 +424,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     info_in->arch_bit = arch_bit;
 
     info_in->map = map;
-    info_in->size = size;
+    info_in->size = sbuf.st_size;
 
     info_in->flags |= F_DYLD_SHARED_CACHE_UNMAP_MAP;
     return E_DYLD_SHARED_CACHE_PARSE_OK;

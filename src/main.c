@@ -63,21 +63,15 @@ recurse_directory_callback(const char *const parse_path,
         return true;
     }
 
-    struct stat sbuf = {};
-    if (fstat(fd, &sbuf) < 0) {
-        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            fprintf(stderr,
-                    "Warning: Failed to get info on file (at path %s), "
-                    "error: %s\n",
-                    parse_path,
-                    strerror(errno));
-        }
-
-        return true;
-    }
-
     struct tbd_for_main *const global = recurse_info->global;
     uint64_t *const retained = &recurse_info->retained_info;
+
+    /*
+     * Keep a buffer for magic around to use.
+     */
+
+    char magic[16] = {};
+    uint64_t magic_size = 0;
 
     /*
      * By default we always allow mach-o, but if the filetype is instead
@@ -91,9 +85,10 @@ recurse_directory_callback(const char *const parse_path,
                              parse_path,
                              parse_path_length,
                              fd,
-                             sbuf.st_size,
                              true,
-                             retained);
+                             retained,
+                             &magic,
+                             &magic_size);
 
         if (parse_as_macho_result) {
             close(fd);
@@ -115,10 +110,11 @@ recurse_directory_callback(const char *const parse_path,
                            parse_path,
                            parse_path_length,
                            fd,
-                           sbuf.st_size,
                            true,
                            true,
-                           retained);
+                           retained,
+                           &magic,
+                           &magic_size);
 
     if (parse_as_dsc_result) {
         close(fd);
@@ -434,7 +430,12 @@ int main(const int argc, const char *const argv[]) {
                  * current-directory.
                  */
 
-                char *full_path = path_get_absolute_path_if_necessary(path);
+                uint64_t full_path_length = strlen(path);
+                char *full_path =
+                    path_get_absolute_path_if_necessary(path,
+                                                        full_path_length,
+                                                        &full_path_length);
+                
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
                     
@@ -505,7 +506,7 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (full_path == path) {
-                    full_path = strdup(full_path);
+                    full_path = strndup(full_path, full_path_length);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
                         
@@ -517,7 +518,7 @@ int main(const int argc, const char *const argv[]) {
                 }
 
                 tbd->write_path = full_path;
-                tbd->write_path_length = strlen(full_path);
+                tbd->write_path_length = full_path_length;
 
                 found_path = true;
                 break;
@@ -621,7 +622,12 @@ int main(const int argc, const char *const argv[]) {
                      * current-directory.
                      */
 
-                    char *full_path = path_get_absolute_path_if_necessary(path);
+                    uint64_t full_path_length = strlen(path);
+                    char *full_path =
+                        path_get_absolute_path_if_necessary(path,
+                                                            full_path_length,
+                                                            &full_path_length);
+
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
                         
@@ -730,26 +736,28 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     /*
-                     * Prevent any ending slashes from being copied to make
-                     * directory recursing easier.
-                     */
-
-                    const char *const last_slashes =
-                        path_find_ending_row_of_slashes(full_path);
-
-                    uint64_t full_path_length = 0;
-                    if (last_slashes == NULL) {
-                        full_path_length = strlen(full_path);
-                    } else {
-                        full_path_length = last_slashes - full_path;
-                    }
-
-                    /*
                      * Copy the path (if not from argv) to allow open_r to
                      * create the file (and directory hierarchy if needed).
                      */
 
                     if (full_path == path) {
+                        /*
+                         * Prevent any ending slashes from being copied to make
+                         * directory recursing easier.
+                         * 
+                         * We only need to do this when full_path was not
+                         * created with the current-directory, as our path
+                         * functions don't append ending slashes.
+                         */
+
+                        const char *const last_slashes =
+                            path_find_ending_row_of_slashes(full_path,
+                                                            full_path_length);
+
+                        if (last_slashes != NULL) {
+                            full_path_length = last_slashes - full_path;
+                        }
+
                         full_path = strndup(full_path, full_path_length);
                         if (full_path == NULL) {
                             fputs("Failed to allocate memory\n", stderr);
@@ -896,7 +904,9 @@ int main(const int argc, const char *const argv[]) {
             if (argc == 3) {
                 const char *const path = argv[2];
                 char *const full_path =
-                    path_get_absolute_path_if_necessary(path);
+                    path_get_absolute_path_if_necessary(path,
+                                                        strlen(path),
+                                                        NULL);
 
                 const int fd = open(full_path, O_RDONLY);
                 if (fd < 0) {
@@ -930,7 +940,7 @@ int main(const int argc, const char *const argv[]) {
 
             const char *const path = argv[2];
             char *const full_path =
-                path_get_absolute_path_if_necessary(path);
+                path_get_absolute_path_if_necessary(path, strlen(path), NULL);
 
             const int fd = open(full_path, O_RDONLY);
             if (fd < 0) {
@@ -1054,7 +1064,10 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
-    if (array_is_empty(&tbds)) {
+    const uint64_t item_count =
+        array_get_item_count(&tbds, sizeof(struct tbd_for_main));
+
+    if (item_count == 0) {
         fputs("Please provide paths to either files to parse or directories to "
               "recurse\n",
               stderr);
@@ -1070,14 +1083,12 @@ int main(const int argc, const char *const argv[]) {
      * path-strings of the file we're parsing.
      */
 
-    const bool should_print_paths =
-        array_get_item_count(&tbds, sizeof(struct tbd_for_main)) != 1;
-
     uint64_t retained_info = 0;
 
-    struct tbd_for_main *tbd = tbds.data;
+    const bool should_print_paths = item_count != 1;
     const struct tbd_for_main *const end = tbds.data_end;
 
+    struct tbd_for_main *tbd = tbds.data;
     for (; tbd != end; tbd++) {
         tbd_for_main_apply_from(tbd, &global);
 
@@ -1110,7 +1121,7 @@ int main(const int argc, const char *const argv[]) {
             const enum dir_recurse_result recurse_dir_result =
                 dir_recurse(tbd->parse_path,
                             tbd->parse_path_length,
-                            options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES,
+                            options & O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES,
                             &recurse_info,
                             recurse_directory_callback);
 
@@ -1142,27 +1153,13 @@ int main(const int argc, const char *const argv[]) {
 
                 continue;
             }
-            
-            struct stat sbuf = {};
-            if (fstat(fd, &sbuf) < 0) {
-                if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-                    if (should_print_paths) {
-                        fprintf(stderr,
-                                "Failed to get info on file (at path %s), "
-                                "error: %s\n",
-                                parse_path,
-                                strerror(errno));
-                    } else {
-                        fprintf(stderr,
-                                "Failed to get info on file (at path %s), "
-                                "error: %s\n",
-                                parse_path,
-                                strerror(errno));
-                    }
-                }
 
-                continue;
-            }
+            /*
+             * We need to store an external buffer to read magic.
+             */
+
+            char magic[16] = {};
+            uint64_t magic_size = 0;
 
             switch (tbd->filetype) {
                 case TBD_FOR_MAIN_FILETYPE_MACHO:
@@ -1171,9 +1168,10 @@ int main(const int argc, const char *const argv[]) {
                                      parse_path,
                                      tbd->parse_path_length,
                                      fd,
-                                     sbuf.st_size,
                                      true,
-                                     &retained_info);
+                                     &retained_info,
+                                     &magic,
+                                     &magic_size);
 
                     break;
 
@@ -1189,10 +1187,11 @@ int main(const int argc, const char *const argv[]) {
                                        parse_path,
                                        tbd->parse_path_length,
                                        fd,
-                                       sbuf.st_size,
                                        false,
                                        should_print_paths,
-                                       &retained_info);
+                                       &retained_info,
+                                       &magic,
+                                       &magic_size);
 
                     break;
                 }

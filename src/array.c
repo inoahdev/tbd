@@ -17,7 +17,7 @@ array_get_item_at_index(const struct array *const array,
                         const uint64_t index)
 {
     const uint64_t byte_index = item_size * index;
-    void *const iter = &array->data[byte_index];
+    void *const iter = array->data + byte_index;
 
     if (iter > array->data_end) {
         return NULL;
@@ -45,8 +45,10 @@ bool array_is_empty(const struct array *const array) {
 
 static enum array_result
 array_expand_if_necessary(struct array *const array, const uint64_t item_size) {
-    const uint64_t old_capacity = array->alloc_end - array->data;
-    const uint64_t used_size = array->data_end - array->data;
+    void *const old_data = array->data;
+    
+    const uint64_t old_capacity = array->alloc_end - old_data;
+    const uint64_t used_size = array->data_end - old_data;
 
     if (used_size < old_capacity) {
         return E_ARRAY_OK;
@@ -62,9 +64,7 @@ array_expand_if_necessary(struct array *const array, const uint64_t item_size) {
         return E_ARRAY_ALLOC_FAIL;
     }
 
-    void *const old_data = array->data;
-
-    memcpy(new_data, array->data, used_size);
+    memcpy(new_data, old_data, used_size);
     free(old_data);
 
     array->data = new_data;
@@ -111,10 +111,6 @@ array_add_item_to_byte_index(struct array *const array,
 uint64_t
 array_get_item_count(const struct array *const array, const size_t item_size) {
     const uint64_t used_size = array->data_end - array->data;
-    if (used_size == 0) {
-        return 0;
-    }
-
     return used_size / item_size;
 }
 
@@ -198,11 +194,6 @@ array_find_item(const struct array *const array,
 
     return NULL;
 }
-
-struct array_slice {
-    uint64_t front;
-    uint64_t back;
-};
 
 static uint64_t
 array_slice_get_middle_index(const struct array_slice *const slice) {
@@ -343,6 +334,27 @@ array_find_item_in_sorted(const struct array *const array,
     void *const array_item =
         array_slice_get_sorted_array_item_for_item(array,
                                                    &slice,
+                                                   item_size,
+                                                   item,
+                                                   comparator,
+                                                   info_out);
+
+    return array_item;
+}
+
+void *
+array_find_item_in_sorted_with_slice(
+    const struct array *array,
+    const size_t item_size,
+    const struct array_slice *const slice,
+    const void *const item,
+    const array_item_comparator comparator,
+    struct array_cached_index_info *const info_out)
+{
+    struct array_slice copy = *slice;
+    void *const array_item =
+        array_slice_get_sorted_array_item_for_item(array,
+                                                   &copy,
                                                    item_size,
                                                    item,
                                                    comparator,

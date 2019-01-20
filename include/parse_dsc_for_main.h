@@ -11,16 +11,21 @@
 
 #include "tbd_for_main.h"
 
+/*
+ * magic_in should be atleast 16 bytes large.
+ */
+
 bool
 parse_shared_cache(struct tbd_for_main *global,
                    struct tbd_for_main *tbd,
                    const char *path,
                    uint64_t path_length,
                    int fd,
-                   uint64_t size,
                    bool is_recursing,
                    bool print_paths,
-                   uint64_t *retained_info_in);
+                   uint64_t *retained_info_in,
+                   void *magic_in,
+                   uint64_t *magic_in_size_in);
 
 void print_list_of_dsc_images(int fd, uint64_t start, uint64_t end);
 

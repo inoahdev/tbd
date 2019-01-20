@@ -6,7 +6,11 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <errno.h>
+
 #include <stdlib.h>
+#include <string.h>
+
 #include <unistd.h>
 
 #include "handle_macho_file_parse_result.h"
@@ -28,10 +32,38 @@ parse_macho_file(struct tbd_for_main *const global,
                  const char *const path,
                  const uint64_t path_length,
                  const int fd,
-                 const uint64_t size,
                  const bool print_paths,
-                 uint64_t *const retained_info)
+                 uint64_t *const retained_info_in,
+                 void *const magic_in,
+                 uint64_t *const magic_in_size_in)
 {
+    uint32_t magic =  *(uint32_t *)magic_in;
+
+    const uint64_t magic_in_size = *magic_in_size_in;
+    if (magic_in_size < sizeof(uint32_t)) {
+        const uint64_t read_size = sizeof(uint32_t) - magic_in_size;
+        if (read(fd, &magic + magic_in_size, read_size) < 0) {
+            if (errno == EOVERFLOW) {
+                return false;
+            }
+
+            /*
+             * Manually handle the read fail by passing on to
+             * handle_macho_file_parse_result() as if we went to
+             * macho_file_parse_from_file().
+             */
+
+            handle_macho_file_parse_result(global,
+                                           tbd,
+                                           path,
+                                           E_MACHO_FILE_PARSE_READ_FAIL,
+                                           print_paths,
+                                           retained_info_in);
+
+            return true;
+        }
+    }
+
     const uint64_t parse_options = tbd->parse_options;
     const uint64_t macho_options =
         O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | tbd->macho_options;
@@ -42,12 +74,16 @@ parse_macho_file(struct tbd_for_main *const global,
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(create_info,
                                    fd,
-                                   size,
+                                   magic,
                                    parse_options,
                                    macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        lseek(fd, 0, SEEK_SET);
+        if (magic_in_size < sizeof(magic)) {
+            memcpy(magic_in, &magic, sizeof(magic));
+            *magic_in_size_in = sizeof(magic);
+        }
+
         return false;
     }
 
@@ -57,33 +93,38 @@ parse_macho_file(struct tbd_for_main *const global,
                                        path,
                                        parse_result,
                                        print_paths,
-                                       retained_info);
+                                       retained_info_in);
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
         return true;
     }
 
-    char *const tbd_write_path = tbd->write_path;
-    if (tbd_write_path != NULL) {
-        char *const write_path =
-            tbd_for_main_create_write_path(tbd,
-                                           tbd_write_path,
-                                           tbd->write_path_length,
-                                           path,
-                                           path_length,
-                                           "tbd",
-                                           3,
-                                           true,
-                                           NULL);
+    char *write_path = tbd->write_path;
+    if (write_path != NULL) {
+        uint64_t length = tbd->write_path_length;
+        if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+            write_path =
+                tbd_for_main_create_write_path(tbd,
+                                               write_path,
+                                               length,
+                                               path,
+                                               path_length,
+                                               "tbd",
+                                               3,
+                                               true,
+                                               &length);
 
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
+            if (write_path == NULL) {
+                fputs("Failed to allocate memory\n", stderr);
+                exit(1);
+            }
+
+            tbd_for_main_write_to_path(tbd, path, write_path, length, true);
+            free(write_path);
+        } else {
+            tbd_for_main_write_to_path(tbd, path, write_path, length, true);
         }
-    
-        tbd_for_main_write_to_path(tbd, path, write_path, true);
-        free(write_path);
     } else {
         tbd_for_main_write_to_stdout(tbd, path, true);
     }

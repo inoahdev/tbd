@@ -17,7 +17,10 @@
  * or NULL to indicate allocation failure.
  */
 
-char *path_get_absolute_path_if_necessary(const char *path);
+char *
+path_get_absolute_path_if_necessary(const char *path,
+                                    uint64_t path_length,
+                                    uint64_t *length_out);
 
 char *
 path_append_component_with_len(const char *path,
@@ -48,8 +51,11 @@ path_find_last_row_of_slashes_before_end(const char *path, const char *end);
 const char *path_get_back_of_row_of_slashes(const char *const path);
 const char *path_get_end_of_row_of_slashes(const char *path);
 
-const char *path_find_last_row_of_slashes(const char *path);
-const char *path_find_ending_row_of_slashes(const char *path);
+const char *
+path_find_last_row_of_slashes(const char *path, uint64_t path_length);
+
+const char *
+path_find_ending_row_of_slashes(const char *path, uint64_t path_length);
 
 const char *
 path_get_last_path_component(const char *path,

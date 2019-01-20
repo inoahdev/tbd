@@ -10,13 +10,14 @@
 #define MACHO_FILE_PARSE_SYMBOLS_H
 
 #include <stdio.h>
+
 #include "macho_file.h"
+#include "range.h"
 
 enum macho_file_parse_result
 macho_file_parse_symbols_from_file(struct tbd_create_info *info,
                                    int fd,
-                                   uint64_t start,
-                                   uint64_t size,
+                                   struct range range,
                                    uint64_t arch_bit,
                                    bool is_big_endian,
                                    uint32_t symoff,
@@ -29,8 +30,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *info,
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_file(struct tbd_create_info *info,
                                       int fd,
-                                      uint64_t start,
-                                      uint64_t size,
+                                      struct range range,
                                       uint64_t arch_bit,
                                       bool is_big_endian,
                                       uint32_t symoff,

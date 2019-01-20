@@ -24,7 +24,7 @@
 
 #include "yaml.h"
 
-static bool segment_has_image_info_sect(const char name[16]) {
+static inline bool segment_has_image_info_sect(const char name[16]) {
     const uint64_t first = *(uint64_t *)name;
     switch (first) {
         /*
@@ -96,7 +96,7 @@ static bool segment_has_image_info_sect(const char name[16]) {
     return false;
 }
 
-static bool is_image_info_section(const char name[16]) {
+static inline bool is_image_info_section(const char name[16]) {
     const uint64_t first = *(uint64_t *)name;
     switch (first) {
         /*
@@ -232,8 +232,7 @@ enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
     struct tbd_create_info *const info_in,
     const int fd,
-    const uint64_t start,
-    const uint64_t size,
+    const struct range range,
     const struct arch_info *const arch,
     const uint64_t arch_bit,
     const bool is_64,
@@ -256,8 +255,16 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
 
-    uint32_t minimum_size = sizeof(struct load_command);
-    if (guard_overflow_mul(&minimum_size, ncmds)) {
+    /*
+     * Get the minimum size by multiplying the ncmds and
+     * sizeof(struct load_command).
+     * 
+     * Since sizeof(struct load_command) is a power of 2 (8), use a shift by 3
+     * instead.
+     */
+
+    uint32_t minimum_size = ncmds;
+    if (guard_overflow_shift(&minimum_size, 3)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
@@ -266,21 +273,25 @@ macho_file_parse_load_commands_from_file(
     }
 
     /*
-     * If a container-size has been provided, ensure that sizeofcmds doesn't go
-     * past it.
+     * Ensure that sizeofcmds doesn't go past mach-o's size.
      */
 
-    if (size != 0) {
-        uint32_t header_size = sizeof(struct mach_header);
-        if (is_64) {
-            header_size += sizeof(uint32_t);
-        }
-
-        const uint32_t remaining_size = size - header_size;
-        if (sizeofcmds > remaining_size) {
-            return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
-        }
+    uint32_t header_size = sizeof(struct mach_header);
+    if (is_64) {
+        header_size += sizeof(uint32_t);
     }
+
+    const uint64_t macho_size = range.end - range.begin;
+    const uint32_t available_load_cmd_size = macho_size - header_size;
+
+    if (sizeofcmds > available_load_cmd_size) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    }
+
+    const struct range relative_range = {
+        .begin = 0,
+        .end = macho_size
+    };
 
     bool found_identification = false;
     bool found_uuid = false;
@@ -534,9 +545,7 @@ macho_file_parse_load_commands_from_file(
                  * yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(name_ptr, length, &needs_quotes);
-
+                const bool needs_quotes = yaml_check_c_str(name_ptr, length);
                 if (needs_quotes) {
                     info_in->flags |=
                         F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
@@ -672,8 +681,8 @@ macho_file_parse_load_commands_from_file(
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(reexport_string, length, &needs_quotes);
+                const bool needs_quotes =
+                    yaml_check_c_str(reexport_string, length);
 
                 const enum macho_file_parse_result add_reexport_result =
                     add_export_to_info(info_in,
@@ -777,6 +786,22 @@ macho_file_parse_load_commands_from_file(
                         return E_MACHO_FILE_PARSE_INVALID_SECTION;
                     }
 
+                    uint64_t sect_end = sect_offset;
+                    if (guard_overflow_add(&sect_end, sect_size)) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                    }
+
+                    const struct range sect_range = {
+                        .begin = sect_offset,
+                        .end = sect_end
+                    };
+
+                    if (!range_contains_range(relative_range, sect_range)) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                    }
+
                     /*
                      * Keep an offset of our original position, which we'll seek
                      * back to alter, so we can return safetly back to the for
@@ -788,38 +813,12 @@ macho_file_parse_load_commands_from_file(
                     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
                         if (lseek(fd, sect_offset, SEEK_SET) < 0) {
                             free(load_cmd_buffer);
-
-                            if (size != 0) {
-                                /*
-                                 * It's possible the fd is too small as we
-                                 * haven't checked if the offset is contained
-                                 * within the fd.
-                                 */
-
-                                if (errno == EINVAL) {
-                                    return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                                }
-                            }
-
                             return E_MACHO_FILE_PARSE_SEEK_FAIL;
                         }
                     } else {
-                        if (size != 0) {
-                            if (sect_offset >= size) {
-                                free(load_cmd_buffer);
-                                return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                            }
-
-                            const uint64_t sect_end =
-                                sect_offset + sizeof(struct objc_image_info);
-
-                            if (sect_end > size) {
-                                free(load_cmd_buffer);
-                                return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                            }
-                        }
-
-                        if (lseek(fd, start + sect_offset, SEEK_SET) < 0) {
+                        const uint64_t absolute = range.begin + sect_offset;
+                        if (lseek(fd, absolute, SEEK_SET) < 0) {
+                            free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_SEEK_FAIL;
                         }
                     }
@@ -981,6 +980,22 @@ macho_file_parse_load_commands_from_file(
                         return E_MACHO_FILE_PARSE_INVALID_SECTION;
                     }
 
+                    uint64_t sect_end = sect_offset;
+                    if (guard_overflow_add(&sect_end, sect_size)) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                    }
+
+                    const struct range sect_range = {
+                        .begin = sect_offset,
+                        .end = sect_end
+                    };
+
+                    if (!range_contains_range(relative_range, sect_range)) {
+                        free(load_cmd_buffer);
+                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                    }
+
                     /*
                      * Keep an offset of our original position, which we'll seek
                      * back to alter, so we can return safetly back to the for
@@ -992,38 +1007,12 @@ macho_file_parse_load_commands_from_file(
                     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
                         if (lseek(fd, sect_offset, SEEK_SET) < 0) {
                             free(load_cmd_buffer);
-
-                            if (size != 0) {
-                                /*
-                                 * It's possible the fd is too small as we
-                                 * haven't checked if the offset is contained
-                                 * within the fd.
-                                 */
-
-                                if (errno == EINVAL) {
-                                    return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                                }
-                            }
-
                             return E_MACHO_FILE_PARSE_SEEK_FAIL;
                         }
                     } else {
-                        if (size != 0) {
-                            if (sect_offset >= size) {
-                                free(load_cmd_buffer);
-                                return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                            }
-
-                            const uint64_t sect_end =
-                                sect_offset + sizeof(struct objc_image_info);
-
-                            if (sect_end > size) {
-                                free(load_cmd_buffer);
-                                return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                            }
-                        }
-
-                        if (lseek(fd, start + sect_offset, SEEK_SET) < 0) {
+                        const uint64_t absolute = range.begin + sect_offset;
+                        if (lseek(fd, absolute, SEEK_SET) < 0) {
+                            free(load_cmd_buffer);
                             return E_MACHO_FILE_PARSE_SEEK_FAIL;
                         }
                     }
@@ -1181,9 +1170,7 @@ macho_file_parse_load_commands_from_file(
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(string, length, &needs_quotes);
-
+                const bool needs_quotes = yaml_check_c_str(string, length);
                 const enum macho_file_parse_result add_client_result =
                     add_export_to_info(info_in,
                                        arch_bit,
@@ -1279,9 +1266,7 @@ macho_file_parse_load_commands_from_file(
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(umbrella, length, &needs_quotes);
-
+                const bool needs_quotes = yaml_check_c_str(umbrella, length);
                 if (needs_quotes) {
                     info_in->flags |=
                         F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
@@ -1539,13 +1524,12 @@ macho_file_parse_load_commands_from_file(
     }
 
     free(load_cmd_buffer);
+    info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
     if (!found_identification) {
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
     
-    info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
-
     /*
      * Ensure that the uuid found is unique among all other containers before
      * adding to the fd's uuid arrays.
@@ -1588,7 +1572,7 @@ macho_file_parse_load_commands_from_file(
     }
 
     /*
-     * Retrieve the symbol and string-table info via the symtab_command.
+     * Retrieve the symbol-table and string-table info via the symtab_command.
      */
 
     if (is_big_endian) {
@@ -1616,8 +1600,7 @@ macho_file_parse_load_commands_from_file(
         ret =
             macho_file_parse_symbols_64_from_file(info_in,
                                                   fd,
-                                                  start,
-                                                  size,
+                                                  range,
                                                   arch_bit,
                                                   is_big_endian,
                                                   symtab.symoff,
@@ -1630,8 +1613,7 @@ macho_file_parse_load_commands_from_file(
         ret =
             macho_file_parse_symbols_from_file(info_in,
                                                fd,
-                                               start,
-                                               size,
+                                               range,
                                                arch_bit,
                                                is_big_endian,
                                                symtab.symoff,
@@ -1677,8 +1659,16 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
 
-    uint32_t minimum_size = sizeof(struct load_command);
-    if (guard_overflow_mul(&minimum_size, ncmds)) {
+    /*
+     * Get the minimum size by multiplying the ncmds and
+     * sizeof(struct load_command).
+     * 
+     * Since sizeof(struct load_command) is a power of 2 (8), use a shift by 3
+     * instead.
+     */
+
+    uint32_t minimum_size = ncmds;
+    if (guard_overflow_shift(&minimum_size, 3)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
@@ -1695,10 +1685,20 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         header_size += sizeof(uint32_t);
     }
 
-    const uint32_t remaining_size = macho_size - header_size;
-    if (sizeofcmds > remaining_size) {
+    const uint32_t available_load_cmd_size = macho_size - header_size;
+    if (sizeofcmds > available_load_cmd_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
+
+    const struct range relative_range = {
+        .begin = 0, 
+        .end = macho_size
+    };
+
+    const struct range map_range = {
+        .begin = 0,
+        .end = map_size
+    };
 
     bool found_identification = false;
     bool found_uuid = false;
@@ -1936,8 +1936,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                  * yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(install_name, length, &needs_quotes);
+                const bool needs_quotes =
+                    yaml_check_c_str(install_name, length);
 
                 if (needs_quotes) {
                     info_in->flags |=
@@ -2068,8 +2068,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(reexport_string, length, &needs_quotes);
+                const bool needs_quotes =
+                    yaml_check_c_str(reexport_string, length);
 
                 const enum macho_file_parse_result add_reexport_result =
                     add_export_to_info(info_in,
@@ -2168,23 +2168,31 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                         return E_MACHO_FILE_PARSE_INVALID_SECTION;
                     }
 
-                    if (sect_offset >= size) {
+                    uint64_t sect_end = sect_offset;
+                    if (guard_overflow_add(&sect_end, sect_size)) {
                         return E_MACHO_FILE_PARSE_INVALID_SECTION;
                     }
 
-                    const uint64_t sect_end =
-                        sect_offset + sizeof(struct objc_image_info);
-                    
-                    if (sect_end > size) {
-                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                    }
-
-                    const struct objc_image_info *image_info =
-                        (const struct objc_image_info *)(macho + sect_offset);
+                    const struct objc_image_info *image_info = NULL;
+                    const struct range sect_range = {
+                        .begin = sect_offset,
+                        .end = sect_end
+                    };
 
                     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-                        image_info =
-                            (const struct objc_image_info *)(map + sect_offset);
+                        if (!range_contains_range(map_range, sect_range)) {
+                            return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                        }
+
+                        const void *const iter = macho + sect_offset;
+                        image_info = (const struct objc_image_info *)iter;
+                    } else {
+                        if (!range_contains_range(relative_range, sect_range)) {
+                            return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                        }
+
+                        const void *const iter = macho + sect_offset;
+                        image_info = (const struct objc_image_info *)iter;
                     }
                     
                     /*
@@ -2319,27 +2327,31 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                         sect_size = swap_uint32(sect_size);
                     }
 
-                    if (sect_size != sizeof(struct objc_image_info)) {
+                    uint64_t sect_end = sect_offset;
+                    if (guard_overflow_add(&sect_end, sect_size)) {
                         return E_MACHO_FILE_PARSE_INVALID_SECTION;
                     }
 
-                    if (sect_offset >= size) {
-                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                    }
-
-                    const uint64_t sect_end =
-                        sect_offset + sizeof(struct objc_image_info);
-                    
-                    if (sect_end > size) {
-                        return E_MACHO_FILE_PARSE_INVALID_SECTION;
-                    }
-
-                    const struct objc_image_info *image_info =
-                        (const struct objc_image_info *)(macho + sect_offset);
+                    const struct objc_image_info *image_info = NULL;
+                    const struct range sect_range = {
+                        .begin = sect_offset,
+                        .end = sect_end
+                    };
 
                     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-                        image_info =
-                            (const struct objc_image_info *)(map + sect_offset);
+                        if (!range_contains_range(map_range, sect_range)) {
+                            return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                        }
+
+                        const void *const iter = map + sect_offset;
+                        image_info = (const struct objc_image_info *)iter;
+                    } else {
+                        if (!range_contains_range(relative_range, sect_range)) {
+                            return E_MACHO_FILE_PARSE_INVALID_SECTION;
+                        }
+
+                        const void *const iter = macho + sect_offset;
+                        image_info = (const struct objc_image_info *)iter;
                     }
                     
                     /*
@@ -2461,8 +2473,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(client_string, length, &needs_quotes);
+                const bool needs_quotes =
+                    yaml_check_c_str(client_string, length);
 
                 const enum macho_file_parse_result add_client_result =
                     add_export_to_info(info_in,
@@ -2554,9 +2566,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                  * valid yaml-string (with some additional boundaries).
                  */
 
-                bool needs_quotes = false;
-                yaml_check_c_str(umbrella, length, &needs_quotes);
-
+                const bool needs_quotes = yaml_check_c_str(umbrella, length);
                 if (needs_quotes) {
                     info_in->flags |=
                         F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
@@ -2801,6 +2811,10 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         load_cmd_iter += load_cmd.cmdsize;
     }
 
+    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
+        info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+    }
+
     if (!found_identification) {
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
@@ -2811,10 +2825,6 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         }
     }   
 
-    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
-        info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
-    }
-    
     /*
      * Ensure that the uuid found is unique among all other containers before
      * adding to the fd's uuid arrays.
@@ -2851,7 +2861,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Retrieve the symbol and string-table info via the symtab_command.
+     * Retrieve the symbol-table and string-table info via the symtab_command.
      */
 
     if (is_big_endian) {

@@ -21,10 +21,18 @@
     uint64_t *: guard_overflow_mul_uint64 \
 ) (left_in, right)
 
+#define guard_overflow_shift(left_in, right) _Generic((left_in), \
+    uint32_t *: guard_overflow_shift_uint32, \
+    uint64_t *: guard_overflow_shift_uint64 \
+) (left_in, right)
+
 int guard_overflow_add_uint32(uint32_t *left_in, uint32_t right);
 int guard_overflow_add_uint64(uint64_t *left_in, uint64_t right);
 
 int guard_overflow_mul_uint32(uint32_t *left_in, uint32_t right);
 int guard_overflow_mul_uint64(uint64_t *left_in, uint64_t right);
+
+int guard_overflow_shift_uint32(uint32_t *left_in, uint32_t right);
+int guard_overflow_shift_uint64(uint64_t *left_in, uint64_t right);
 
 #endif /* GUARD_OVERFLOW_H */

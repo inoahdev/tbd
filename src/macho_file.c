@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <stdlib.h>
@@ -36,10 +37,8 @@ parse_thin_file(struct tbd_create_info *const info_in,
         header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
     
     if (is_64) {
-        if (size != 0) {
-            if (size < sizeof(struct mach_header_64)) {
-                return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
-            }
+        if (size < sizeof(struct mach_header_64)) {
+            return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
         }
 
         /*
@@ -94,12 +93,21 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
+    uint64_t end = start;
+    if (guard_overflow_add(&end, size)) {
+        return E_MACHO_FILE_PARSE_INVALID_RANGE;
+    }
+
+    const struct range range = {
+        .begin = start,
+        .end = end,
+    };
+
     info_in->archs |= arch_bit;
     const enum macho_file_parse_result parse_load_commands_result =    
         macho_file_parse_load_commands_from_file(info_in,
                                                  fd,
-                                                 start,
-                                                 size,
+                                                 range,
                                                  arch,
                                                  arch_bit,
                                                  is_64,
@@ -145,10 +153,8 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
     }
 
-    if (size != 0) {
-        if (total_headers_size >= size) {
-            return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
-        }
+    if (total_headers_size >= size) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     struct fat_arch *const archs = calloc(1, archs_size);
@@ -226,24 +232,22 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        if (size != 0) {
-            /*
-             * Verify that the architecture is not located beyond end of file.
-             */
+        /*
+         * Verify that the architecture is not located beyond end of file.
+         */
 
-            if (arch_offset > size) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
+        if (arch_offset > size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
 
-            /*
-             * Verify that the architecture is fully within the given size.
-             */
+        /*
+         * Verify that the architecture is fully within the given size.
+         */
 
-            if (arch_end > size) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
+        if (arch_end > size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         const struct range arch_range = {
@@ -356,10 +360,13 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 {
     /*
      * Calculate the total-size of the architectures given.
+     * 
+     * Since sizeof(struct fat_arch) is a power of 2 (32), use a shift by 5
+     * instead.
      */
 
-    uint64_t archs_size = sizeof(struct fat_arch_64);
-    if (guard_overflow_mul(&archs_size, nfat_arch)) {
+    uint64_t archs_size = nfat_arch;
+    if (guard_overflow_shift(&archs_size, 5)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
     }
 
@@ -368,10 +375,8 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
     }
 
-    if (size != 0) {
-        if (total_headers_size >= size) {
-            return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
-        }
+    if (total_headers_size >= size) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     struct fat_arch_64 *const archs = calloc(1, archs_size);
@@ -449,24 +454,22 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        if (size != 0) {
-            /*
-             * Verify that the architecture is not located beyond end of file.
-             */
+        /*
+         * Verify that the architecture is not located beyond end of file.
+         */
 
-            if (arch_offset > size) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
+        if (arch_offset > size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
 
-            /*
-             * Verify that the architecture is fully within the given size.
-             */
+        /*
+         * Verify that the architecture is fully within the given size.
+         */
 
-            if (arch_end > size) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
+        if (arch_end > size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         const struct range arch_range = {
@@ -571,19 +574,10 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *const info_in,
                            const int fd,
-                           const uint64_t size,
+                           const uint32_t magic,
                            const uint64_t tbd_options,
                            const uint64_t options)
 {
-    if (size < sizeof(struct fat_header)) {
-        return E_MACHO_FILE_PARSE_NOT_A_MACHO;
-    }
-
-    uint32_t magic = 0;
-    if (read(fd, &magic, sizeof(magic)) < 0) {
-        return E_MACHO_FILE_PARSE_READ_FAIL;
-    }
-
     const bool is_fat =
         magic == FAT_MAGIC    || magic == FAT_CIGAM ||
         magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
@@ -595,6 +589,10 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
 
         uint32_t nfat_arch = 0;
         if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+            if (errno == EOVERFLOW) {
+                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+            }
+
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
@@ -606,6 +604,11 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             nfat_arch = swap_uint32(nfat_arch);
         }
 
+        struct stat sbuf = {};
+        if (fstat(fd, &sbuf) < 0) {
+            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
+        }
+
         if (is_64) {
             ret =
                 handle_fat_64_file(info_in,
@@ -613,7 +616,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
                                    is_big_endian,
                                    nfat_arch,
                                    0,
-                                   size,
+                                   sbuf.st_size,
                                    tbd_options,
                                    options);
         } else {
@@ -623,7 +626,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
                                    is_big_endian,
                                    nfat_arch,
                                    0,
-                                   size,
+                                   sbuf.st_size,
                                    tbd_options,
                                    options);
         }
@@ -638,7 +641,16 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
 
         struct mach_header header = { .magic = magic };
         if (read(fd, &header.cputype, sizeof(header) - sizeof(magic)) < 0) {
+            if (errno == EOVERFLOW) {
+                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+            }
+
             return E_MACHO_FILE_PARSE_READ_FAIL;
+        }
+
+        struct stat sbuf = {};
+        if (fstat(fd, &sbuf) < 0) {
+            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
         }
 
         /*
@@ -662,7 +674,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
                             header,
                             is_big_endian,
                             0,
-                            0,
+                            sbuf.st_size,
                             tbd_options,
                             options);
     }
@@ -726,10 +738,13 @@ void macho_file_print_archs(const int fd) {
 
         /*
          * Calculate the total-size of the architectures given.
+         * 
+         * Since sizeof(struct fat_arch_64) is a power of 2 (32), use a shift
+         * by 5 instead.
          */
 
-        uint64_t archs_size = sizeof(struct fat_arch_64);
-        if (guard_overflow_mul(&archs_size, nfat_arch)) {
+        uint64_t archs_size = nfat_arch;
+        if (guard_overflow_shift(&archs_size, 5)) {
             fputs("File has too many architectures\n", stderr);
             exit(1);
         }

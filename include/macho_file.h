@@ -51,9 +51,12 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_SEEK_FAIL,
     E_MACHO_FILE_PARSE_READ_FAIL,
 
+    E_MACHO_FILE_PARSE_FSTAT_FAIL,
+
     E_MACHO_FILE_PARSE_NOT_A_MACHO,
     E_MACHO_FILE_PARSE_SIZE_TOO_SMALL,
 
+    E_MACHO_FILE_PARSE_INVALID_RANGE,
     E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE,
 
     E_MACHO_FILE_PARSE_NO_ARCHITECTURES,
@@ -82,6 +85,7 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
     E_MACHO_FILE_PARSE_INVALID_PLATFORM,
     E_MACHO_FILE_PARSE_INVALID_REEXPORT,
+    E_MACHO_FILE_PARSE_INVALID_STRING_TABLE,
     E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE,
     E_MACHO_FILE_PARSE_INVALID_UUID,
 
@@ -105,7 +109,7 @@ enum macho_file_parse_result {
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *info_in,
                            int fd,
-                           uint64_t size,
+                           uint32_t magic,
                            uint64_t parse_options,
                            uint64_t options);
 

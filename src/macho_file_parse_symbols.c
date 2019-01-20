@@ -118,7 +118,7 @@ is_objc_class_symbol(const char *const symbol,
     return true;
 }
 
-static bool 
+static bool
 is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
     if (length < 12) {
         return false;
@@ -148,22 +148,42 @@ is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *const info,
               const uint64_t arch_bit,
+              const uint64_t index,
+              const uint64_t strsize,
               const char *const symbol_string,
-              const uint64_t symbol_length,
               const uint16_t n_desc,
               const uint8_t n_type,
               const uint64_t options)
 {
     /*
+     * Short-circuit symbols if they're not external and no options have been
+     * provided to allow any type of non-external symbols.
+     */
+
+    if (!(n_type & N_EXT)) {
+        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS) &&
+            !(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS) &&
+            !(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS) &&
+            !(options & O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS))
+        {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+    }
+    
+    const char *string = symbol_string;
+    const uint64_t max_length = strsize - index;
+
+    uint64_t length = strnlen(symbol_string, max_length);
+    if (length == 0) {
+        return E_MACHO_FILE_PARSE_OK;
+    }
+
+    /*
      * Figure out the symbol-type from the symbol-string and desc.
      * Also ensure the symbol is exported externally, unless otherwise stated.
      */
-    
-    enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
-    
-    const char *string = symbol_string;
-    uint64_t length = symbol_length;
 
+    enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
     if (n_desc & N_WEAK_DEF) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
@@ -227,9 +247,7 @@ handle_symbol(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    bool needs_quotes = false;
-    yaml_check_c_str(string, length, &needs_quotes);
-
+    const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
         export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
@@ -261,12 +279,11 @@ handle_symbol(struct tbd_create_info *const info,
 
     return E_MACHO_FILE_PARSE_OK;
 }
-            
+        
 enum macho_file_parse_result
 macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
                                    const int fd,
-                                   const uint64_t start,
-                                   const uint64_t size,
+                                   const struct range range,
                                    const uint64_t arch_bit,
                                    const bool is_big_endian,
                                    const uint32_t symoff,
@@ -280,41 +297,53 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    /*
+     * Ensure the string-table and symbol-table are fully contained within
+     * the mach-o file.
+     */
+
     uint32_t symbol_table_size = sizeof(struct nlist);
     if (guard_overflow_mul(&symbol_table_size, nsyms)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const uint64_t string_table_end = stroff + strsize;
-    if (size != 0) {
-        if (string_table_end > size) {
-            return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-        }
-    }
-
-    uint32_t absolute_symoff = start;
+    uint32_t absolute_symoff = range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    uint64_t symbol_table_end = absolute_symoff;
+    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const struct range symbol_table_range = {
+        .begin = absolute_symoff,
+        .end = symbol_table_end
+    };
+
+    if (!range_contains_range(range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    uint32_t absolute_stroff = range.begin;
+    if (guard_overflow_add(&absolute_stroff, stroff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const uint64_t string_table_end = absolute_stroff + strsize;
+    const struct range string_table_range = {
+        .begin = absolute_stroff,
+        .end = string_table_end
+    };
+
+    if (!range_contains_range(range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     /*
      * Ensure the string-table and symbol-table don't overlap.
      */
-
-    uint64_t symbol_table_end = symoff;
-    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-
-    const struct range symbol_table_range = {
-        .begin = symoff,
-        .end = symbol_table_end
-    };
-
-    const struct range string_table_range = {
-        .begin = stroff,
-        .end = string_table_end
-    };
 
     if (ranges_overlap(symbol_table_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
@@ -334,12 +363,6 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    uint32_t absolute_stroff = start;
-    if (guard_overflow_add(&absolute_stroff, stroff)) {
-        free(symbol_table);
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-
     if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -358,64 +381,96 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const struct nlist *nlist = symbol_table;
+    struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + nsyms;
 
-    for (; nlist != end; nlist++) {
-        uint16_t n_desc = nlist->n_desc;
-        uint32_t index = nlist->n_un.n_strx;
+    if (is_big_endian) {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
-        if (is_big_endian) {
-            n_desc = swap_uint16(n_desc);
-            index = swap_uint32(index);
+            /*
+             * Ensure that each symbol either connects back to __TEXT, or is an
+             * indirect symbol.
+             */
+
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
+
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
+
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
+
+            if (index >= strsize) {
+                continue;
+            }
+
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
+
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                free(symbol_table);
+                free(string_table);
+
+                return handle_symbol_result;
+            }
         }
+    } else {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = nlist->n_desc;
+            const uint32_t index = nlist->n_un.n_strx;
 
-        /*
-         * Ensure that each symbol either connects back to __TEXT, or is an
-         * indirect symbol.
-         */
+            /*
+             * Ensure that each symbol either connects back to __TEXT, or is an
+             * indirect symbol.
+             */
 
-        const uint8_t n_type = nlist->n_type;
-        const uint8_t type = n_type & N_TYPE;
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
 
-        if (type != N_SECT && type != N_INDR) {
-            continue;
-        }
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
 
-        /*
-         * For leniency reasons, ignore invalid symbol-references instead of
-         * erroring out.
-         */
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
 
-        if (index >= strsize) {
-            continue;
-        }
+            if (index >= strsize) {
+                continue;
+            }
 
-        const char *const symbol_string = string_table + index;
-        const uint32_t string_length = strnlen(symbol_string, strsize - index);
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
 
-        /*
-         * Ignore empty strings.
-         */
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                free(symbol_table);
+                free(string_table);
 
-        if (string_length == 0) {
-            continue;
-        }
-
-        const enum macho_file_parse_result handle_symbol_result =
-            handle_symbol(info,
-                          arch_bit,
-                          symbol_string,
-                          string_length,
-                          n_desc,
-                          n_type,
-                          tbd_options);
-
-        if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
-            free(symbol_table);
-            free(string_table);
-
-            return handle_symbol_result;
+                return handle_symbol_result;
+            }
         }
     }
 
@@ -428,8 +483,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
                                       const int fd,
-                                      const uint64_t start,
-                                      const uint64_t size,
+                                      const struct range range,
                                       const uint64_t arch_bit,
                                       const bool is_big_endian,
                                       const uint32_t symoff,
@@ -443,41 +497,56 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    uint32_t symbol_table_size = sizeof(struct nlist_64);
-    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    /*
+     * Get the size of the symbol table by multipying the symbol-count and the
+     * size of symbol-table-entry
+     * 
+     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
+     * instead.
+     */
+
+    uint64_t symbol_table_size = nsyms;
+    if (guard_overflow_shift(&symbol_table_size, 4)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const uint64_t string_table_end = stroff + strsize;
-    if (size != 0) {
-        if (string_table_end > size) {
-            return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-        }
-    }
-
-    uint32_t absolute_symoff = start;
+    uint32_t absolute_symoff = range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    uint64_t symbol_table_end = absolute_symoff;
+    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const struct range symbol_table_range = {
+        .begin = absolute_symoff,
+        .end = symbol_table_end
+    };
+
+    if (!range_contains_range(range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
+    uint32_t absolute_stroff = range.begin;
+    if (guard_overflow_add(&absolute_stroff, stroff)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    }
+
+    const uint64_t string_table_end = absolute_stroff + strsize;
+    const struct range string_table_range = {
+        .begin = absolute_stroff,
+        .end = string_table_end
+    };
+
+    if (!range_contains_range(range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     /*
      * Ensure the string-table and symbol-table don't overlap.
      */
-
-    uint64_t symbol_table_end = symoff;
-    if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-
-    const struct range symbol_table_range = {
-        .begin = symoff,
-        .end = symbol_table_end
-    };
-
-    const struct range string_table_range = {
-        .begin = stroff,
-        .end = string_table_end
-    };
 
     if (ranges_overlap(symbol_table_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
@@ -497,12 +566,6 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    uint32_t absolute_stroff = start;
-    if (guard_overflow_add(&absolute_stroff, stroff)) {
-        free(symbol_table);
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
-    }
-    
     if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -521,64 +584,96 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const struct nlist_64 *nlist = symbol_table;
-    const struct nlist_64 *const nlist_end = symbol_table + nsyms;
+    struct nlist_64 *nlist = symbol_table;
+    const struct nlist_64 *const end = symbol_table + nsyms;
 
-    for (; nlist != nlist_end; nlist++) {
-        uint16_t n_desc = nlist->n_desc;
-        uint32_t index = nlist->n_un.n_strx;
+    if (is_big_endian) {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
-        if (is_big_endian) {
-            n_desc = swap_uint16(n_desc);
-            index = swap_uint32(index);
+            /*
+             * Ensure that each symbol either connects back to __TEXT, or is an
+             * indirect symbol.
+             */
+
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
+
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
+
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
+
+            if (index >= strsize) {
+                continue;
+            }
+
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
+
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                free(symbol_table);
+                free(string_table);
+
+                return handle_symbol_result;
+            }
         }
+    } else {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = nlist->n_desc;
+            const uint32_t index = nlist->n_un.n_strx;
 
-        /*
-         * Ensure that each symbol either connects back to __TEXT, or is an
-         * indirect symbol.
-         */
+            /*
+             * Ensure that each symbol either connects back to __TEXT, or is an
+             * indirect symbol.
+             */
 
-        const uint8_t n_type = nlist->n_type;
-        const uint8_t type = n_type & N_TYPE;
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
 
-        if (type != N_SECT && type != N_INDR) {
-            continue;
-        }
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
 
-        /*
-         * For leniency reasons, ignore invalid symbol-references instead of
-         * erroring out.
-         */
+            /*
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
 
-        if (index >= strsize) {
-            continue;
-        }
+            if (index >= strsize) {
+                continue;
+            }
 
-        const char *const symbol_string = string_table + index;
-        const uint32_t string_length = strnlen(symbol_string, strsize - index);
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
 
-        /*
-         * Ignore empty strings.
-         */
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                free(symbol_table);
+                free(string_table);
 
-        if (string_length == 0) {
-            continue;
-        }
-
-        const enum macho_file_parse_result handle_symbol_result =
-            handle_symbol(info,
-                          arch_bit,
-                          symbol_string,
-                          string_length,
-                          n_desc,
-                          n_type,
-                          tbd_options);
-
-        if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
-            free(symbol_table);
-            free(string_table);
-
-            return handle_symbol_result;
+                return handle_symbol_result;
+            }
         }
     }
 
@@ -607,7 +702,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 
     uint64_t symbol_table_size = sizeof(struct nlist);
     if (guard_overflow_mul(&symbol_table_size, nsyms)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     const uint64_t string_table_end = stroff + strsize;
@@ -643,58 +738,87 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
     const struct nlist *nlist = (const struct nlist *)(map + symoff);
     const struct nlist *const end = nlist + nsyms;
 
-    for (; nlist != end; nlist++) {
-        uint16_t n_desc = nlist->n_desc;
-        uint32_t index = nlist->n_un.n_strx;
+    if (is_big_endian) {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
-        if (is_big_endian) {
-            n_desc = swap_uint16(n_desc);
-            index = swap_uint32(index);
+            /*
+            * Ensure that each symbol connects back to __TEXT, or is an indirect
+            * symbol.
+            */
+
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
+
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
+
+            /*
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
+             */
+
+            if (index >= strsize) {
+                continue;
+            }
+
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
+
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                return handle_symbol_result;
+            }
         }
+    } else {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = nlist->n_desc;
+            const uint32_t index = nlist->n_un.n_strx;
 
-        /*
-         * Ensure that each symbol connects back to __TEXT, or is an indirect
-         * symbol.
-         */
+            /*
+            * Ensure that each symbol connects back to __TEXT, or is an indirect
+            * symbol.
+            */
 
-        const uint8_t n_type = nlist->n_type;
-        const uint8_t type = n_type & N_TYPE;
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
 
-        if (type != N_SECT && type != N_INDR) {
-            continue;
-        }
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
 
-        /*
-         * For leniency reasons, ignore invalid symbol-references instead of
-         * erroring out.
-         */
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
 
-        if (index >= strsize) {
-            continue;
-        }
+            if (index >= strsize) {
+                continue;
+            }
 
-        const char *const symbol_string = string_table + index;
-        const uint32_t string_length = strnlen(symbol_string, strsize - index);
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
 
-        /*
-         * Ignore empty strings.
-         */
-
-        if (string_length == 0) {
-            continue;
-        }
-
-        const enum macho_file_parse_result handle_symbol_result =
-            handle_symbol(info,
-                          arch_bit,
-                          symbol_string,
-                          string_length,
-                          n_desc,
-                          n_type,
-                          tbd_options);
-
-        if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
-            return handle_symbol_result;
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                return handle_symbol_result;
+            }
         }
     }
 
@@ -718,9 +842,17 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    uint64_t symbol_table_size = sizeof(struct nlist_64);
-    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    /*
+     * Get the size of the symbol table by multipying the symbol-count and the
+     * size of symbol-table-entry
+     * 
+     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
+     * instead.
+     */
+
+    uint64_t symbol_table_size = nsyms;
+    if (guard_overflow_shift(&symbol_table_size, 4)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     const uint64_t string_table_end = stroff + strsize;
@@ -756,58 +888,87 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
     const struct nlist_64 *nlist = (const struct nlist_64 *)(map + symoff);
     const struct nlist_64 *const end = nlist + nsyms;
 
-    for (; nlist != end; nlist++) {
-        uint16_t n_desc = nlist->n_desc;
-        uint32_t index = nlist->n_un.n_strx;
+    if (is_big_endian) {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
-        if (is_big_endian) {
-            n_desc = swap_uint16(n_desc);
-            index = swap_uint32(index);
+            /*
+            * Ensure that each symbol connects back to __TEXT, or is an indirect
+            * symbol.
+            */
+
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
+
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
+
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
+
+            if (index >= strsize) {
+                continue;
+            }
+
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
+
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                return handle_symbol_result;
+            }
         }
+    } else {
+        for (; nlist != end; nlist++) {
+            const uint16_t n_desc = nlist->n_desc;
+            const uint32_t index = nlist->n_un.n_strx;
 
-        /*
-         * Ensure that each symbol connects back to __TEXT, or is an indirect
-         * symbol.
-         */
+            /*
+            * Ensure that each symbol connects back to __TEXT, or is an indirect
+            * symbol.
+            */
 
-        const uint8_t n_type = nlist->n_type;
-        const uint8_t type = n_type & N_TYPE;
+            const uint8_t n_type = nlist->n_type;
+            const uint8_t type = n_type & N_TYPE;
 
-        if (type != N_SECT && type != N_INDR) {
-            continue;
-        }
+            if (type != N_SECT && type != N_INDR) {
+                continue;
+            }
 
-        /*
-         * For leniency reasons, ignore invalid symbol-references instead of
-         * erroring out.
-         */
+            /*
+            * For leniency reasons, ignore invalid symbol-references instead of
+            * erroring out.
+            */
 
-        if (index >= strsize) {
-            continue;
-        }
+            if (index >= strsize) {
+                continue;
+            }
 
-        const char *const symbol_string = string_table + index;
-        const uint32_t string_length = strnlen(symbol_string, strsize - index);
+            const char *const symbol_string = string_table + index;
+            const enum macho_file_parse_result handle_symbol_result =
+                handle_symbol(info,
+                            arch_bit,
+                            index,
+                            strsize,
+                            symbol_string,
+                            n_desc,
+                            n_type,
+                            tbd_options);
 
-        /*
-         * Ignore empty strings.
-         */
-
-        if (string_length == 0) {
-            continue;
-        }
-
-        const enum macho_file_parse_result handle_symbol_result =
-            handle_symbol(info,
-                          arch_bit,
-                          symbol_string,
-                          string_length,
-                          n_desc,
-                          n_type,
-                          tbd_options);
-
-        if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
-            return handle_symbol_result;
+            if (handle_symbol_result != E_MACHO_FILE_PARSE_OK) {
+                return handle_symbol_result;
+            }
         }
     }
 

@@ -50,10 +50,12 @@ static char *find_next_slash_skipping_first_row(char *const path) {
 
 static int
 reverse_mkdir_ignoring_last(char *const path,
+                            uint64_t path_length,
                             const mode_t mode,
                             char **const first_terminator_out)
 {
-    char *last_slash = (char *)path_find_last_row_of_slashes(path);
+    char *last_slash =
+        (char *)path_find_last_row_of_slashes(path, path_length);
 
     /*
      * We may have a slash at the end of the string, which must be removed, so
@@ -218,10 +220,11 @@ reverse_mkdir_ignoring_last(char *const path,
 
 int
 open_r(char *const path,
+       const uint64_t length,
        const mode_t flags,
        const mode_t mode,
        const mode_t dir_mode,
-       char **const first_terminator_out)
+       char **const terminator_out)
 {    
     int fd = open(path, O_CREAT | flags, mode);
     if (fd >= 0) {
@@ -232,7 +235,7 @@ open_r(char *const path,
         return -1;
     }
 
-    if (reverse_mkdir_ignoring_last(path, dir_mode, first_terminator_out)) {
+    if (reverse_mkdir_ignoring_last(path, length, dir_mode, terminator_out)) {
         return -1;
     }
 
@@ -245,7 +248,10 @@ open_r(char *const path,
 }
 
 int
-mkdir_r(char *const path, const mode_t mode, char **const first_terminator_out)
+mkdir_r(char *const path,
+        const uint64_t length,
+        const mode_t mode,
+        char **const first_terminator_out)
 {
     if (mkdir(path, mode) == 0) {
         return 0;
@@ -259,7 +265,7 @@ mkdir_r(char *const path, const mode_t mode, char **const first_terminator_out)
         return 1;
     }
 
-    if (reverse_mkdir_ignoring_last(path, mode, first_terminator_out)) {
+    if (reverse_mkdir_ignoring_last(path, length, mode, first_terminator_out)) {
         return 1;
     }
 
@@ -270,12 +276,13 @@ mkdir_r(char *const path, const mode_t mode, char **const first_terminator_out)
     return 0;
 }
 
-int remove_partial_r(char *const path, char *const from) {
+int
+remove_partial_r(char *const path, const uint64_t length, char *const from) {
     if (remove(path) != 0) {
         return 1;
     }
 
-    char *last_slash = (char *)path_find_last_row_of_slashes(from);
+    char *last_slash = (char *)path_find_last_row_of_slashes(from, length);
 
     do {
         if (last_slash == NULL) {

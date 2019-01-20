@@ -92,6 +92,19 @@ array_find_item_in_sorted(const struct array *array,
                           array_item_comparator comparator,
                           struct array_cached_index_info *index_out);
 
+struct array_slice {
+    uint64_t front;
+    uint64_t back;
+};
+
+void *
+array_find_item_in_sorted_with_slice(const struct array *array,
+                                     size_t item_size,
+                                     const struct array_slice *slice,
+                                     const void *item,
+                                     array_item_comparator comparator,
+                                     struct array_cached_index_info *info_out);
+
 enum array_result
 array_add_item_with_cached_index_info(struct array *array,
                                       size_t item_size,
