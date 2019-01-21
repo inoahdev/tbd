@@ -246,8 +246,7 @@ add_export_to_info(struct tbd_create_info *const info_in,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
                    const char *const string,
-                   const uint32_t string_length,
-                   const bool needs_quotes)
+                   const uint32_t string_length)
 {
     struct tbd_export_info export_info = {
         .archs = arch_bit,
@@ -256,10 +255,6 @@ add_export_to_info(struct tbd_create_info *const info_in,
         .string = (char *)string,
         .type = type
     };
-
-    if (needs_quotes) {
-        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
-    }
 
     struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};
@@ -279,6 +274,20 @@ add_export_to_info(struct tbd_create_info *const info_in,
         }
 
         return E_MACHO_FILE_PARSE_OK;
+    }
+
+    /*
+     * Do a quick check here to ensure that the client-string is a valid
+     * yaml-string (with some additional boundaries).
+     *
+     * We do this after searching for an existing export-info, as its usually
+     * not the case that a mach-o library has an invalid exported string of any
+     & kind.
+     */
+
+    const bool needs_quotes = yaml_check_c_str(string, string_length);
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
     /*
@@ -331,12 +340,11 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * All build_version load-commands should be at least large
-             * enough to hold a build_version_command.
+             * All build_version load-commands should be at least large enough
+             * to hold a build_version_command.
              *
-             * Note: build_version_command has an array of build-tool
-             * structures directly following, so the cmdsize will not always
-             * match.
+             * Note: build_version_command has an array of build-tool structures
+             * directly following, so the cmdsize will not always match.
              */
 
             if (load_cmd.cmdsize < sizeof(struct build_version_command)) {
@@ -382,11 +390,11 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Verify that if a platform was found earlier, the platform
-             * matches the given platform here.
+             * Verify that if a platform was found earlier, the platform matches
+             * the given platform here.
              *
-             * Note: Although this information should only be provided once,
-             * we are pretty lenient, so we don't enforce this.
+             * Note: Although this information should only be provided once, we
+             * are pretty lenient, so we don't enforce this.
              */
 
             if (info_in->platform != 0) {
@@ -407,8 +415,8 @@ parse_load_command(struct tbd_create_info *const info_in,
 
         case LC_ID_DYLIB: {
             /*
-             * We could check here if an LC_ID_DYLIB was already found for
-             * the same container, but for the sake of leniency, we don't.
+             * We could check here if an LC_ID_DYLIB was already found for the
+             * same container, but for the sake of leniency, we don't.
              */
 
             /*
@@ -427,8 +435,8 @@ parse_load_command(struct tbd_create_info *const info_in,
              * Ensure that dylib_command can fit its basic structure and
              * information.
              * 
-             * An exact match cannot be made as dylib_command includes a
-             * full install-name string in its cmdsize.
+             * An exact match cannot be made as dylib_command includes a full
+             * install-name string in its cmdsize.
              */
 
             if (load_cmd.cmdsize < sizeof(struct dylib_command)) {
@@ -467,9 +475,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * The install-name is at the back of the load-command,
-             * extending from the given offset to the end of the
-             * load-command.
+             * The install-name is at the back of the load-command, extending
+             * from the given offset to the end of the load-command.
              */
 
             const char *const name_ptr =
@@ -499,11 +506,11 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
             
             /*
-             * Verify that the information we have received is the same as
-             * the information we may have received earlier.
+             * Verify that the information we have received is the same as the
+             * information we may have received earlier.
              *
-             * Note: Although this information should only be provided once,
-             * we are pretty lenient, so we don't enforce this.
+             * Note: Although this information should only be provided once, we
+             * are pretty lenient, so we don't enforce this.
              */
 
             const struct dylib dylib = dylib_command->dylib;
@@ -571,8 +578,8 @@ parse_load_command(struct tbd_create_info *const info_in,
              * Ensure that dylib_command can fit its basic structure and
              * information.
              * 
-             * An exact match cannot be made as dylib_command includes the
-             * full re-export string in its cmdsize.
+             * An exact match cannot be made as dylib_command includes the full
+             * re-export string in its cmdsize.
              */
 
             if (load_cmd.cmdsize < sizeof(struct dylib_command)) {
@@ -588,8 +595,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Ensure that the reexport-string is not within the
-             * basic structure, and not outside of the load-command itself.
+             * Ensure that the reexport-string is not within the basic
+             * structure, and not outside of the load-command itself.
              */
 
             if (reexport_offset < sizeof(struct dylib_command)) {
@@ -614,21 +621,12 @@ parse_load_command(struct tbd_create_info *const info_in,
                 return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
             }
 
-            /*
-             * Do a quick check here to ensure that the re-export is a
-             * valid yaml-string (with some additional boundaries).
-             */
-
-            const bool needs_quotes =
-                yaml_check_c_str(reexport_string, length);
-
             const enum macho_file_parse_result add_reexport_result =
                 add_export_to_info(info_in,
                                    arch_bit,
                                    TBD_EXPORT_TYPE_REEXPORT,
                                    reexport_string,
-                                   length,
-                                   needs_quotes);
+                                   length);
 
             if (add_reexport_result != E_MACHO_FILE_PARSE_OK) {
                 return add_reexport_result;
@@ -650,8 +648,8 @@ parse_load_command(struct tbd_create_info *const info_in,
              * Ensure that sub_client_command can fit its basic structure
              * and information.
              * 
-             * An exact match cannot be made as sub_client_command includes
-             * a full client-string in its cmdsize.
+             * An exact match cannot be made as sub_client_command includes a
+             * full client-string in its cmdsize.
              */
 
             if (load_cmd.cmdsize < sizeof(struct sub_client_command)) {
@@ -659,9 +657,9 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Ensure that the client is located fully within the
-             * load-command and after the basic information of a
-             * sub_client_command load-command structure.
+             * Ensure that the client is located fully within the load-command
+             * and after the basic information of a sub_client_command
+             * load-command structure.
              */
 
             const struct sub_client_command *const client_command =
@@ -673,8 +671,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Ensure that the client-string offset is not within the
-             * basic structure, and not outside of the load-command.
+             * Ensure that the client-string offset is not within the basic
+             * structure, and not outside of the load-command.
              */
 
             if (client_offset < sizeof(struct sub_client_command)) {
@@ -699,19 +697,12 @@ parse_load_command(struct tbd_create_info *const info_in,
                 return E_MACHO_FILE_PARSE_INVALID_CLIENT;
             }
 
-            /*
-             * Do a quick check here to ensure that the client-string is a
-             * valid yaml-string (with some additional boundaries).
-             */
-
-            const bool needs_quotes = yaml_check_c_str(string, length);
             const enum macho_file_parse_result add_client_result =
                 add_export_to_info(info_in,
                                    arch_bit,
                                    TBD_EXPORT_TYPE_CLIENT,
                                    string,
-                                   length,
-                                   needs_quotes);
+                                   length);
 
             if (add_client_result != E_MACHO_FILE_PARSE_OK) {
                 return add_client_result;
@@ -730,11 +721,11 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Ensure that sub_framework_command can fit its basic structure
-             * and information.
+             * Ensure that sub_framework_command can fit its basic structure and
+             * information.
              * 
-             * An exact match cannot be made as sub_framework_command
-             * includes a full umbrella-string in its cmdsize.
+             * An exact match cannot be made as sub_framework_command includes a
+             * full umbrella-string in its cmdsize.
              */
 
             if (load_cmd.cmdsize < sizeof(struct sub_framework_command)) {
@@ -750,8 +741,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             } 
 
             /*
-             * Ensure that the umbrella-string offset is not within the
-             * basic structure, and not outside of the load-command.
+             * Ensure that the umbrella-string offset is not within the basic
+             * structure, and not outside of the load-command.
              */
 
             if (umbrella_offset < sizeof(struct sub_framework_command)) {
@@ -771,9 +762,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * The umbrella-string is at the back of the load-command,
-             * extending from the given offset to the end of the
-             * load-command.
+             * The umbrella-string is at the back of the load-command, extending
+             * from the given offset to the end of the load-command.
              */
 
             const char *const umbrella =
@@ -791,8 +781,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Do a quick check here to ensure that parent-umbrella is a
-             * valid yaml-string (with some additional boundaries).
+             * Do a quick check here to ensure that parent-umbrella is a valid
+             * yaml-string (with some additional boundaries).
              */
 
             const bool needs_quotes = yaml_check_c_str(umbrella, length);
@@ -850,8 +840,8 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * Fill in the symtab's load-command info to mark that we did
-             * indeed fill in the symtab's info fields.
+             * Fill in the symtab's load-command info to mark that we did indeed
+             * fill in the symtab's info fields.
              */
             
             *symtab_out = *(const struct symtab_command *)load_cmd_iter;
@@ -906,8 +896,7 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * All version_min load-commands should be the of the same
-             * cmdsize.
+             * All version_min load-commands should be the of the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
@@ -940,8 +929,7 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * All version_min load-commands should be the of the same
-             * cmdsize.
+             * All version_min load-commands should be the of the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
@@ -974,8 +962,7 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * All version_min load-commands should be the of the same
-             * cmdsize.
+             * All version_min load-commands should be the of the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
@@ -1008,8 +995,7 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             /*
-             * All version_min load-commands should be the of the same
-             * cmdsize.
+             * All version_min load-commands should be the of the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
