@@ -277,12 +277,12 @@ add_export_to_info(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Do a quick check here to ensure that the client-string is a valid
-     * yaml-string (with some additional boundaries).
+     * Do a quick check here to ensure that the string is a valid yaml-string
+     * (with some additional boundaries).
      *
      * We do this after searching for an existing export-info, as its usually
      * not the case that a mach-o library has an invalid exported string of any
-     & kind.
+     * kind.
      */
 
     const bool needs_quotes = yaml_check_c_str(string, string_length);
@@ -501,8 +501,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             const bool needs_quotes = yaml_check_c_str(name_ptr, length);
             if (needs_quotes) {
-                info_in->flags |=
-                    F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+                info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
             }
             
             /*
@@ -803,9 +802,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
 
-                const char *const parent_umbrella =
-                    info_in->parent_umbrella;
-
+                const char *const parent_umbrella = info_in->parent_umbrella;
                 if (memcmp(parent_umbrella, umbrella, length) != 0) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
@@ -867,8 +864,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             if (found_uuid) {
                 const char *const uuid_str = (const char *)uuid_info_in->uuid;
-                const char *const uuid_cmd_uuid =
-                    (const char *)uuid_cmd->uuid;
+                const char *const uuid_cmd_uuid = (const char *)uuid_cmd->uuid;
 
                 const bool ignore_conflicting_fields =
                     options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;

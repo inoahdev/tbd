@@ -30,7 +30,7 @@
  * possible, instead of iterating with strncmp.
  */
 
-static bool
+static inline bool
 is_objc_class_symbol(const char *const symbol,
                      const uint64_t length,
                      const char **const symbol_out,
@@ -40,7 +40,7 @@ is_objc_class_symbol(const char *const symbol,
         return false;
     }
 
-    const uint64_t first = *(uint64_t *)symbol;
+    const uint64_t first = *(const uint64_t *)symbol;
 
     /*
      * Objc-class symbols can have different prefixes.
@@ -54,7 +54,7 @@ is_objc_class_symbol(const char *const symbol,
          * The check below is `if (second == "ASS_")`.
          */
 
-        const uint32_t second = *(uint32_t *)(symbol + 8);
+        const uint32_t second = *(const uint32_t *)(symbol + 8);
         if (second != 1599296321) {
             return false;
         }
@@ -79,7 +79,7 @@ is_objc_class_symbol(const char *const symbol,
          * The check below is `if (second == "TACLASS")`.
          */
 
-        const uint64_t second = *(uint64_t *)(symbol + 8);
+        const uint64_t second = *(const uint64_t *)(symbol + 8);
         if (second != 6868925396587594068) {
             return false;
         }
@@ -104,7 +104,7 @@ is_objc_class_symbol(const char *const symbol,
          * The check below is `if (second == ".ass_name")`.
          */
 
-        const uint64_t second = *(uint64_t *)(symbol + 8);
+        const uint64_t second = *(const uint64_t *)(symbol + 8);
         if (second != 7308604896967881569) {
             return false;
         }
@@ -118,8 +118,8 @@ is_objc_class_symbol(const char *const symbol,
     return true;
 }
 
-static bool
-is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
+static inline 
+bool is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
     if (length < 12) {
         return false;
     }
@@ -128,7 +128,7 @@ is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
      * The check here is `if (first == "_OBJC_IV")`.
      */
 
-    const uint64_t first = *(uint64_t *)symbol;
+    const uint64_t first = *(const uint64_t *)symbol;
     if (first != 6217605503174987615) {
         return false;
     }
@@ -137,7 +137,7 @@ is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
      * The check here is `if (second == "AR_$")`.
      */
 
-    const uint32_t second = *(uint32_t *)(symbol + 8);
+    const uint32_t second = *(const uint32_t *)(symbol + 8);
     if (second != 610226753) {
         return false;
     }
@@ -173,17 +173,14 @@ handle_symbol(struct tbd_create_info *const info,
     const char *string = symbol_string;
     const uint64_t max_length = strsize - index;
 
-    uint64_t length = strnlen(symbol_string, max_length);
-    if (length == 0) {
-        return E_MACHO_FILE_PARSE_OK;
-    }
-
     /*
      * Figure out the symbol-type from the symbol-string and desc.
      * Also ensure the symbol is exported externally, unless otherwise stated.
      */
 
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
+    uint64_t length = 0;
+
     if (n_desc & N_WEAK_DEF) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
             if (!(n_type & N_EXT)) {
@@ -192,29 +189,41 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-    } else if (is_objc_class_symbol(string, length, &string, &length)) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
-            }
-        }
+        length = strnlen(symbol_string, max_length);
 
-        symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-    } else if (is_objc_ivar_symbol(symbol_string, length)) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
-            }
+        if (length == 0) {
+            return E_MACHO_FILE_PARSE_OK;
         }
-
-        string += 12;
-        length -= 12;
-        
-        symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
     } else {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
+        length = strnlen(symbol_string, max_length);
+        if (length == 0) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        if (is_objc_class_symbol(string, length, &string, &length)) {
+            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
+                if (!(n_type & N_EXT)) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
+            }
+
+            symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
+        } else if (is_objc_ivar_symbol(symbol_string, length)) {
+            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
+                if (!(n_type & N_EXT)) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
+            }
+
+            string += 12;
+            length -= 12;
+
+            symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
+        } else {
+            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
+                if (!(n_type & N_EXT)) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
             }
         }
     }
