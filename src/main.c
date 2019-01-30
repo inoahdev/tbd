@@ -28,6 +28,8 @@
 #include "path.h"
 
 #include "recursive.h"
+
+#include "unused.h"
 #include "usage.h"
 
 struct recurse_callback_info {
@@ -41,7 +43,7 @@ struct recurse_callback_info {
 static bool
 recurse_directory_callback(const char *const parse_path,
                            const uint64_t parse_path_length,
-                           __unused struct dirent *const dirent,
+                           struct dirent *__unused const dirent,
                            void *const callback_info)
 {
     struct recurse_callback_info *const recurse_info =

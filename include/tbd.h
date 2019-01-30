@@ -142,8 +142,6 @@ struct tbd_create_info {
     uint64_t flags;
 };
 
-void tbd_create_info_destroy(struct tbd_create_info *info);
-
 enum tbd_create_result {
     E_TBD_CREATE_OK,
     E_TBD_CREATE_WRITE_FAIL
@@ -165,5 +163,7 @@ enum tbd_create_result
 tbd_create_with_info(const struct tbd_create_info *info,
                      FILE *file,
                      uint64_t options);
+
+void tbd_create_info_destroy(struct tbd_create_info *info);
 
 #endif /* TBD_H */

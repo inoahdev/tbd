@@ -1,17 +1,17 @@
 SHELL = /bin/sh
-
 C := clang
 
-USERDEFINES := "-D__unused=__attribute__((unused))"
 WARNINGFLAGS := -Wall -W -Wconversion -Wcast-qual -Wshadow -Wwrite-strings
+DEFAULTFLAGS := -std=gnu11 -Iinclude/ $(WARNINGFLAGS)
 
-DEFAULTFLAGS := -std=gnu11 $(USERDEFINES) $(WARNINGFLAGS)
-CFLAGS := $(DEFAULTFLAGS) -Ofast -Iinclude/
+CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
 
 SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd
 
-DEBUGFLAGS := -std=gnu11 -Wall -g -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer -Iinclude/
+EXTRADEBUGFLAGS := -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer
+DEBUGFLAGS := $(DEFAULTFLAGS) -g $(EXTRADEBUGFLAGS) 
+
 .DEFAULT_GOAL := all
 
 clean:

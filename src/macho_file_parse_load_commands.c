@@ -165,8 +165,7 @@ parse_section_from_file(struct tbd_create_info *const info_in,
      * so we can return safetly back to the for loop.
      */
 
-    const uint32_t original_pos = (uint32_t)lseek(fd, 0, SEEK_CUR);
-
+    const off_t original_pos = lseek(fd, 0, SEEK_CUR);
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
         if (lseek(fd, sect_offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -242,14 +241,14 @@ add_export_to_info(struct tbd_create_info *const info_in,
                    const char *const string,
                    const uint32_t string_length)
 {
-#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #pragma GCC diagnostic push
 
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
         .length = string_length,
-        .string = string,
+        .string = (char *)string,
         .type = type
     };
 

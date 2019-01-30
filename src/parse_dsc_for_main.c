@@ -17,7 +17,9 @@
 
 #include "macho_file.h"
 #include "path.h"
+
 #include "recursive.h"
+#include "unused.h"
 
 struct dsc_iterate_images_callback_info {
     struct dyld_shared_cache_info *dsc_info;
@@ -523,7 +525,7 @@ struct dsc_list_images_callback {
 };
 
 static bool
-dsc_list_images_callback(__unused struct dyld_cache_image_info *const image,
+dsc_list_images_callback(struct dyld_cache_image_info *__unused const image,
                          const char *const image_path,
                          void *const item)
 {

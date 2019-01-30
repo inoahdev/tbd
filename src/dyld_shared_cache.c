@@ -322,7 +322,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     const struct range full_cache_range = {
         .begin = 0, 
-        .end = (uint64_t)sbuf.st_size
+        .end = dsc_size 
     };
 
     /*

@@ -491,22 +491,24 @@ request_swift_version(struct tbd_for_main *const global,
                 continue;
             }
             
-            uint64_t swift_version = strtoul(input, NULL, 10);
-            free(input);
-
-            if (swift_version > UINT32_MAX) {
+            const uint64_t input_number = strtoul(input, NULL, 10);
+            if (input_number > UINT32_MAX) {
                 fprintf(stderr,
                         "%s is too large to be a valid swift-version\n",
                         input);
 
+                free(input);
                 continue;
             }
 
+            const uint32_t swift_version = (uint32_t)input_number;
             if (swift_version > 1) {
-                swift_version -= 1;
+                tbd->info.swift_version = swift_version - 1;
+            } else {
+                tbd->info.swift_version = swift_version;
             }
 
-            tbd->info.swift_version = (uint32_t)swift_version;
+            free(input);
             break;
         }
     } while (true);
