@@ -318,8 +318,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
                                                  symtab.nsyms,
                                                  symtab.stroff,
                                                  symtab.strsize,
-                                                 tbd_options,
-                                                 options);
+                                                 tbd_options);
     } else {
         ret =
             macho_file_parse_symbols_from_map(info_in,
@@ -331,8 +330,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
                                               symtab.nsyms,
                                               symtab.stroff,
                                               symtab.strsize,
-                                              tbd_options,
-                                              options);
+                                              tbd_options);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {

@@ -29,7 +29,7 @@ get_arch_info_from_magic(const char magic[16],
                          const struct arch_info **const arch_info_out,
                          uint64_t *const arch_bit_out)
 {
-    const uint64_t first_part = *(uint64_t *)magic;
+    const uint64_t first_part = *(const uint64_t *)magic;
     if (first_part != dsc_magic_64) {
         return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
     }
@@ -37,7 +37,7 @@ get_arch_info_from_magic(const char magic[16],
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
-    const uint64_t second_part = *((uint64_t *)magic + 1);
+    const uint64_t second_part = *((const uint64_t *)magic + 1);
     switch (second_part) {
         case 15261442200576032:
             /*
@@ -193,9 +193,10 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         return E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL;
     }
 
+    const uint64_t dsc_size = (uint64_t)sbuf.st_size;
     const struct range available_cache_range = {
         .begin = sizeof(struct dyld_cache_header), 
-        .end = sbuf.st_size
+        .end = dsc_size
     };
 
     /*
@@ -306,7 +307,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     uint8_t *const map =
-        mmap(0, sbuf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+        mmap(0, dsc_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
     if (map == MAP_FAILED) {
         return E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL;
@@ -321,7 +322,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     const struct range full_cache_range = {
         .begin = 0, 
-        .end = sbuf.st_size
+        .end = (uint64_t)sbuf.st_size
     };
 
     /*
@@ -340,7 +341,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         uint64_t mapping_file_end = mapping_file_begin;
 
         if (guard_overflow_add(&mapping_file_end, mapping->size)) {
-            munmap(map, sbuf.st_size);
+            munmap(map, dsc_size);
             return E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS;
         }
 
@@ -350,7 +351,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         };
 
         if (!range_contains_range(full_cache_range, mapping_file_range)) {
-            munmap(map, sbuf.st_size);
+            munmap(map, dsc_size);
             return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;            
         }
 
@@ -374,7 +375,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             };
 
             if (ranges_overlap(mapping_file_range, inner_file_range)) {
-                munmap(map, sbuf.st_size);
+                munmap(map, dsc_size);
                 return E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS;
             }
         }
@@ -395,7 +396,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
                 const uint32_t location = image->pathFileOffset;
                 if (!range_contains_location(available_cache_range, location)) {
-                    munmap(map, sbuf.st_size);
+                    munmap(map, dsc_size);
                     return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
                 }
             }
@@ -408,7 +409,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             const uint32_t location = image->pathFileOffset;
 
             if (!range_contains_location(available_cache_range, location)) {
-                munmap(map, sbuf.st_size);
+                munmap(map, dsc_size);
                 return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
             }
         }
@@ -424,7 +425,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     info_in->arch_bit = arch_bit;
 
     info_in->map = map;
-    info_in->size = sbuf.st_size;
+    info_in->size = dsc_size;
 
     info_in->flags |= F_DYLD_SHARED_CACHE_UNMAP_MAP;
     return E_DYLD_SHARED_CACHE_PARSE_OK;
@@ -433,7 +434,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_iterate_images_with_callback(
     const struct dyld_shared_cache_info *const info_in,
-    const void *const item,
+    void *const item,
     const dyld_shared_cache_iterate_images_callback callback)
 {
     const uint8_t *const map = info_in->map;

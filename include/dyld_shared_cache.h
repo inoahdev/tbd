@@ -84,12 +84,12 @@ typedef bool
 (*dyld_shared_cache_iterate_images_callback)(
     struct dyld_cache_image_info *image,
     const char *path,
-    const void *item);
+    void *item);
 
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_iterate_images_with_callback(
     const struct dyld_shared_cache_info *info_in,
-    const void *item,
+    void *item,
     dyld_shared_cache_iterate_images_callback callback);
 
 void

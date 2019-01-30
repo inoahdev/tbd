@@ -17,7 +17,7 @@
 int
 open_r(char *path,
        uint64_t path_length,
-       mode_t flags,
+       int flags,
        mode_t mode,
        mode_t dir_mode,
        char **first_terminator_out);

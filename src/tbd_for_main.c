@@ -72,7 +72,7 @@ add_image_number(struct tbd_for_main *const tbd,
     }
 
     const char *const number_string = argv[index + 1];
-    const uint32_t number = strtol(number_string, NULL, 10);
+    const uint64_t number = strtoul(number_string, NULL, 10);
 
     if (number == 0) {
         fprintf(stderr,
@@ -81,6 +81,19 @@ add_image_number(struct tbd_for_main *const tbd,
 
         exit(1);
     } 
+
+    /*
+     * Limit the number to only 32-bit as that's the range allowed by the
+     * dyld_cache_header structure.
+     */
+
+    if (number > UINT32_MAX) {
+        fprintf(stderr,
+                "An image number of \"%s\" is too large to be valid\n",
+                number_string);
+
+        exit(1);
+    }
 
     const enum array_result add_number_result =
         array_add_item(&tbd->dsc_image_numbers,
@@ -417,7 +430,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                 find_path_extension(subdirs_iter);
 
             if (original_extension != NULL) {
-                subdirs_length = original_extension - subdirs_iter;
+                subdirs_length = (uint64_t)(original_extension - subdirs_iter);
             } else {
                 subdirs_length = strlen(subdirs_iter);
             }

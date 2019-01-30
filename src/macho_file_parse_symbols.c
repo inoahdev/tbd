@@ -32,9 +32,9 @@
 
 static inline bool
 is_objc_class_symbol(const char *const symbol,
-                     const uint64_t length,
+                     const uint32_t length,
                      const char **const symbol_out,
-                     uint64_t *const length_out)
+                     uint32_t *const length_out)
 {
     if (length < 13) {
         return false;
@@ -119,7 +119,7 @@ is_objc_class_symbol(const char *const symbol,
 }
 
 static inline 
-bool is_objc_ivar_symbol(const char *const symbol, const uint64_t length) {
+bool is_objc_ivar_symbol(const char *const symbol, const uint32_t length) {
     if (length < 12) {
         return false;
     }
@@ -179,7 +179,7 @@ handle_symbol(struct tbd_create_info *const info,
      */
 
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
-    uint64_t length = 0;
+    uint32_t length = 0;
 
     if (n_desc & N_WEAK_DEF) {
         if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
@@ -189,13 +189,13 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-        length = strnlen(symbol_string, max_length);
+        length = (uint32_t)strnlen(symbol_string, max_length);
 
         if (length == 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
     } else {
-        length = strnlen(symbol_string, max_length);
+        length = (uint32_t)strnlen(symbol_string, max_length);
         if (length == 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
@@ -227,7 +227,10 @@ handle_symbol(struct tbd_create_info *const info,
             }
         }
     }
-    
+
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
@@ -235,6 +238,8 @@ handle_symbol(struct tbd_create_info *const info,
         .string = (char *)string,
         .type = symbol_type,
     };
+
+#pragma GCC diagnostic pop 
 
     struct array *const exports = &info->exports;
     struct array_cached_index_info cached_info = {};
@@ -299,8 +304,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
                                    const uint32_t nsyms,
                                    const uint32_t stroff,
                                    const uint32_t strsize,
-                                   const uint64_t tbd_options,
-                                   const uint64_t options)
+                                   const uint64_t tbd_options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
@@ -316,7 +320,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = range.begin;
+    uint32_t absolute_symoff = (uint32_t)range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -335,7 +339,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
-    uint32_t absolute_stroff = range.begin;
+    uint32_t absolute_stroff = (uint32_t)range.begin;
     if (guard_overflow_add(&absolute_stroff, stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -395,7 +399,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const int16_t n_desc = swap_int16(nlist->n_desc);
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
             /*
@@ -426,7 +430,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
                               index,
                               strsize,
                               symbol_string,
-                              n_desc,
+                              (uint16_t)n_desc,
                               n_type,
                               tbd_options);
 
@@ -439,7 +443,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = nlist->n_desc;
+            const int16_t n_desc = swap_int16(nlist->n_desc);
             const uint32_t index = nlist->n_un.n_strx;
 
             /*
@@ -470,7 +474,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
                               index,
                               strsize,
                               symbol_string,
-                              n_desc,
+                              (uint16_t)n_desc,
                               n_type,
                               tbd_options);
 
@@ -499,8 +503,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
                                       const uint32_t nsyms,
                                       const uint32_t stroff,
                                       const uint32_t strsize,
-                                      const uint64_t tbd_options,
-                                      const uint64_t options)
+                                      const uint64_t tbd_options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
@@ -519,7 +522,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = range.begin;
+    uint32_t absolute_symoff = (uint32_t)range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -538,7 +541,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
-    uint32_t absolute_stroff = range.begin;
+    uint32_t absolute_stroff = (uint32_t)range.begin;
     if (guard_overflow_add(&absolute_stroff, stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -702,8 +705,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
                                   const uint32_t nsyms,
                                   const uint32_t stroff,
                                   const uint32_t strsize,
-                                  const uint64_t tbd_options,
-                                  const uint64_t options)
+                                  const uint64_t tbd_options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
@@ -762,7 +764,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = swap_uint16(nlist->n_desc);
+            const int16_t n_desc = swap_int16(nlist->n_desc);
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
 
             /*
@@ -793,7 +795,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
                               index,
                               strsize,
                               symbol_string,
-                              n_desc,
+                              (uint16_t)n_desc,
                               n_type,
                               tbd_options);
 
@@ -803,7 +805,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = nlist->n_desc;
+            const int16_t n_desc = nlist->n_desc;
             const uint32_t index = nlist->n_un.n_strx;
 
             /*
@@ -834,7 +836,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
                               index,
                               strsize,
                               symbol_string,
-                              n_desc,
+                              (uint16_t)n_desc,
                               n_type,
                               tbd_options);
 
@@ -857,8 +859,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
                                      const uint32_t nsyms,
                                      const uint32_t stroff,
                                      const uint32_t strsize,
-                                     const uint64_t tbd_options,
-                                     const uint64_t options)
+                                     const uint64_t tbd_options)
 {
     if (nsyms == 0) {
         return E_MACHO_FILE_PARSE_OK;
@@ -883,8 +884,16 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
-    uint64_t symbol_table_size = sizeof(struct nlist_64);
-    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
+    /*
+     * Get the size of the symbol table by multipying the symbol-count and the
+     * size of symbol-table-entry
+     * 
+     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
+     * instead.
+     */
+
+    uint64_t symbol_table_size = nsyms;
+    if (guard_overflow_shift(&symbol_table_size, 4)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 

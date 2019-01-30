@@ -36,3 +36,14 @@ uint64_t swap_uint64(uint64_t num) {
     return num;
 }
 
+int16_t swap_int16(int16_t num) {
+    num = ((num >> 8) & 0x00ff) | ((num << 8) & (int16_t)0xff00);
+    return num;
+}
+
+int32_t swap_int32(int32_t num) {
+    num = ((num >> 8) & 0x00ff00ff) | ((num << 8) & (int32_t)0xff00ff00);
+    num = ((num >> 16) & 0x0000ffff) | ((num << 16) & (int32_t)0xffff0000);
+
+    return num;
+}

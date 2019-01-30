@@ -41,7 +41,7 @@ struct recurse_callback_info {
 static bool
 recurse_directory_callback(const char *const parse_path,
                            const uint64_t parse_path_length,
-                           struct dirent *const dirent,
+                           __unused struct dirent *const dirent,
                            void *const callback_info)
 {
     struct recurse_callback_info *const recurse_info =
@@ -318,20 +318,20 @@ int main(const int argc, const char *const argv[]) {
                 const char inner_arg_front = inner_arg[0];
                 
                 if (inner_arg_front == '-') {
-                    const char *option = inner_arg + 1;
-                    const char option_front = option[0];
+                    const char *inner_opt = inner_arg + 1;
+                    const char inner_opt_front = inner_opt[0];
                     
-                    if (option_front == '-') {
-                        option += 1;
+                    if (inner_opt_front == '-') {
+                        inner_opt += 1;
                     }
 
-                    if (strcmp(option, "preserve-subdirs") == 0) {
+                    if (strcmp(inner_opt, "preserve-subdirs") == 0) {
                         tbd->options |=
                             O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
-                    } else if (strcmp(option, "no-overwrite") == 0) {
+                    } else if (strcmp(inner_opt, "no-overwrite") == 0) {
                         tbd->options |= O_TBD_FOR_MAIN_NO_OVERWRITE;
                     } else {
-                        if (strcmp(option, "replace-path-extension") == 0) {
+                        if (strcmp(inner_opt, "replace-path-extension") == 0) {
                             tbd->options |=
                                 O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION;
                         } else {
@@ -557,15 +557,15 @@ int main(const int argc, const char *const argv[]) {
                 const char inner_arg_front = inner_arg[0];
 
                 if (inner_arg_front == '-') {
-                    const char *option = inner_arg + 1;
-                    const char option_front = option[0];
+                    const char *inner_opt = inner_arg + 1;
+                    const char inner_opt_front = inner_opt[0];
 
-                    if (option_front == '-') {
-                        option += 1;
+                    if (inner_opt_front == '-') {
+                        inner_opt += 1;
                     }
 
-                    if (strcmp(option, "r") == 0 ||
-                        strcmp(option, "recurse") == 0)
+                    if (strcmp(inner_opt, "r") == 0 ||
+                        strcmp(inner_opt, "recurse") == 0)
                     {
                         tbd.options |= O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
@@ -575,7 +575,7 @@ int main(const int argc, const char *const argv[]) {
                          * default, we don't).
                          */
 
-                        const uint64_t specification_index = index + 1;
+                        const int specification_index = index + 1;
                         if (specification_index < argc) {
                             const char *const specification =
                                 argv[specification_index];
@@ -588,16 +588,16 @@ int main(const int argc, const char *const argv[]) {
                                 index += 1;
                             }
                         }
-                    } else if (strcmp(option, "dsc") == 0) {
+                    } else if (strcmp(inner_opt, "dsc") == 0) {
                         tbd.filetype = TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
-                    } else if (strcmp(option, "include-dsc") == 0) {
+                    } else if (strcmp(inner_opt, "include-dsc") == 0) {
                         tbd.options |= O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,
                                                       argc,
                                                       argv,
-                                                      option,
+                                                      inner_opt,
                                                       &index);
                             
                         if (ret) {
@@ -755,7 +755,8 @@ int main(const int argc, const char *const argv[]) {
                                                             full_path_length);
 
                         if (last_slashes != NULL) {
-                            full_path_length = last_slashes - full_path;
+                            full_path_length =
+                                (uint64_t)(last_slashes - full_path);
                         }
 
                         full_path = strndup(full_path, full_path_length);
@@ -956,22 +957,7 @@ int main(const int argc, const char *const argv[]) {
                 return 1;
             }
 
-            struct stat sbuf = {};
-            if (fstat(fd, &sbuf) < 0) {
-                fprintf(stderr,
-                        "Failed to get information on file at path: %s, "
-                        "error: %s\n",
-                        full_path,
-                        strerror(errno));
-
-                if (full_path != path) {
-                    free(full_path);
-                }
-
-                return 1;
-            }
-
-            print_list_of_dsc_images(fd, 0, sbuf.st_size);
+            print_list_of_dsc_images(fd);
             return 0;
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {

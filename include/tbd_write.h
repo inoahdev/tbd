@@ -29,7 +29,7 @@ int tbd_write_magic(FILE *file, enum tbd_version version);
 int tbd_write_parent_umbrella(FILE *file, const struct tbd_create_info *info);                    
 int tbd_write_platform(FILE *file, enum tbd_platform platform);
 int tbd_write_objc_constraint(FILE *file, enum tbd_objc_constraint constraint);
-int tbd_write_uuids(FILE *file, const struct array *uuids, uint64_t options);
+int tbd_write_uuids(FILE *file, const struct array *uuids);
 
 int
 tbd_write_swift_version(FILE *file,

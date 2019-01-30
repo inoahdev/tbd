@@ -25,7 +25,7 @@
 #include "yaml.h"
 
 static inline bool segment_has_image_info_sect(const char name[16]) {
-    const uint64_t first = *(uint64_t *)name;
+    const uint64_t first = *(const uint64_t *)name;
     switch (first) {
         /*
          * case "__DATA" with 2 null characters.
@@ -36,7 +36,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
              * if name == "__DATA".
              */
 
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 0) {
                 return true; 
             }
@@ -49,7 +49,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
          */
 
         case 4926728347494670175: {
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 1498698313) {
                 /*
                  * if (second == "IRTY") with 4 null characters.
@@ -66,7 +66,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
          */
 
         case 4854670753456742239: {
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 1414745679) {
                 /*
                  * if (second == "ONST") with 4 null characters.
@@ -83,7 +83,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
              * if name == "__OBJC".
              */
 
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 0) {
                 return true; 
             }
@@ -97,14 +97,14 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
 }
 
 static inline bool is_image_info_section(const char name[16]) {
-    const uint64_t first = *(uint64_t *)name;
+    const uint64_t first = *(const uint64_t *)name;
     switch (first) {
         /*
          * case "__image".
          */
 
         case 6874014074396041055: {
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 1868983913) {
                 /*
                  * if (second == "_info") with 3 null characters.
@@ -121,7 +121,7 @@ static inline bool is_image_info_section(const char name[16]) {
          */
 
         case 7592896805339094879: {
-            const uint64_t second = *((uint64_t *)name + 1);
+            const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 8027224784786383213) {
                 /*
                  * if (second == "ageinfo") with 1 null character.
@@ -144,15 +144,9 @@ parse_section_from_file(struct tbd_create_info *const info_in,
                         const struct range full_range,
                         const struct range macho_range,
                         uint32_t sect_offset,
-                        uint32_t sect_size,
-                        const bool is_big_endian,
+                        uint64_t sect_size,
                         const uint64_t options)
 {
-    if (is_big_endian) {
-        sect_offset = swap_uint32(sect_offset);
-        sect_size = swap_uint32(sect_size);
-    }
-
     if (sect_size != sizeof(struct objc_image_info)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
@@ -171,14 +165,14 @@ parse_section_from_file(struct tbd_create_info *const info_in,
      * so we can return safetly back to the for loop.
      */
 
-    const uint32_t original_pos = lseek(fd, 0, SEEK_CUR);
+    const uint32_t original_pos = (uint32_t)lseek(fd, 0, SEEK_CUR);
 
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
         if (lseek(fd, sect_offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
-        const uint64_t absolute = full_range.begin + sect_offset;
+        const off_t absolute = (off_t)(full_range.begin + sect_offset);
         if (lseek(fd, absolute, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
@@ -248,13 +242,18 @@ add_export_to_info(struct tbd_create_info *const info_in,
                    const char *const string,
                    const uint32_t string_length)
 {
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+#pragma GCC diagnostic push
+
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
         .length = string_length,
-        .string = (char *)string,
+        .string = string,
         .type = type
     };
+
+#pragma GCC diagnostic pop 
 
     struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};
@@ -483,7 +482,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 (const char *)dylib_command + name_offset;
 
             const uint32_t max_length = load_cmd.cmdsize - name_offset;
-            const uint32_t length = strnlen(name_ptr, max_length);
+            const uint32_t length = (uint32_t)strnlen(name_ptr, max_length);
 
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
@@ -610,7 +609,8 @@ parse_load_command(struct tbd_create_info *const info_in,
                 (const char *)reexport_dylib + reexport_offset;
 
             const uint32_t max_length = load_cmd.cmdsize - reexport_offset;
-            const uint32_t length = strnlen(reexport_string, max_length);
+            const uint32_t length =
+                (uint32_t)strnlen(reexport_string, max_length);
             
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
@@ -686,7 +686,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 (const char *)client_command + client_offset;
 
             const uint32_t max_length = load_cmd.cmdsize - client_offset;
-            const uint32_t length = strnlen(string, max_length);
+            const uint32_t length = (uint32_t)strnlen(string, max_length);
 
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
@@ -769,7 +769,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 (const char *)load_cmd_iter + umbrella_offset;
 
             const uint32_t max_length = load_cmd.cmdsize - umbrella_offset;
-            const uint32_t length = strnlen(umbrella, max_length);
+            const uint32_t length = (uint32_t)strnlen(umbrella, max_length);
 
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
@@ -1075,7 +1075,8 @@ macho_file_parse_load_commands_from_file(
     }
 
     const uint64_t macho_size = range.end - range.begin;
-    const uint32_t available_load_cmd_size = macho_size - header_size;
+    const uint32_t available_load_cmd_size =
+        (uint32_t)(macho_size - header_size);
 
     if (sizeofcmds > available_load_cmd_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
@@ -1226,9 +1227,17 @@ macho_file_parse_load_commands_from_file(
                     load_cmd_iter + sizeof(struct segment_command);
 
                 const struct section *sect = (const struct section *)sect_ptr;
-                for (uint32_t i = 0; i < nsects; i++, sect++) {
+                for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
+                    }
+
+                    uint32_t sect_offset = sect->offset;
+                    uint32_t sect_size = sect->size;
+
+                    if (is_big_endian) {
+                        sect_offset = swap_uint32(sect_offset);
+                        sect_size = swap_uint32(sect_size);
                     }
 
                     const enum macho_file_parse_result parse_section_result =
@@ -1237,9 +1246,8 @@ macho_file_parse_load_commands_from_file(
                                                 fd,
                                                 range,
                                                 relative_range,
-                                                sect->offset,
-                                                sect->size,
-                                                is_big_endian,
+                                                sect_offset,
+                                                sect_size,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1335,9 +1343,17 @@ macho_file_parse_load_commands_from_file(
                 const struct section_64 *sect =
                     (const struct section_64 *)sect_ptr;
 
-                for (uint32_t i = 0; i < nsects; i++, sect++) {
+                for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
+                    }
+
+                    uint32_t sect_offset = sect->offset;
+                    uint64_t sect_size = sect->size;
+
+                    if (is_big_endian) {
+                        sect_offset = swap_uint32(sect_offset);
+                        sect_size = swap_uint64(sect_size);
                     }
 
                     const enum macho_file_parse_result parse_section_result =
@@ -1346,9 +1362,8 @@ macho_file_parse_load_commands_from_file(
                                                 fd,
                                                 range,
                                                 relative_range,
-                                                sect->offset,
-                                                sect->size,
-                                                is_big_endian,
+                                                sect_offset,
+                                                sect_size,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1484,8 +1499,7 @@ macho_file_parse_load_commands_from_file(
                                                   symtab.nsyms,
                                                   symtab.stroff,
                                                   symtab.strsize,
-                                                  tbd_options,
-                                                  options);
+                                                  tbd_options);
     } else {
         ret =
             macho_file_parse_symbols_from_file(info_in,
@@ -1497,8 +1511,7 @@ macho_file_parse_load_commands_from_file(
                                                symtab.nsyms,
                                                symtab.stroff,
                                                symtab.strsize,
-                                               tbd_options,
-                                               options);
+                                               tbd_options);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {
@@ -1516,15 +1529,9 @@ parse_section_from_map(struct tbd_create_info *const info_in,
                        const uint8_t *const map,
                        const uint8_t *const macho,
                        uint32_t sect_offset,
-                       uint32_t sect_size,
-                       const bool is_big_endian,
+                       uint64_t sect_size,
                        const uint64_t options)
 {
-    if (is_big_endian) {
-        sect_offset = swap_uint32(sect_offset);
-        sect_size = swap_uint32(sect_size);
-    }
-
     if (sect_size != sizeof(struct objc_image_info)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
@@ -1649,7 +1656,9 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         header_size += sizeof(uint32_t);
     }
 
-    const uint32_t available_load_cmd_size = macho_size - header_size;
+    const uint32_t available_load_cmd_size =
+        (uint32_t)(macho_size - header_size);
+
     if (sizeofcmds > available_load_cmd_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
@@ -1701,7 +1710,9 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
          * big-endian.
          */
         
-        struct load_command load_cmd = *(struct load_command *)load_cmd_iter;
+        struct load_command load_cmd =
+            *(const struct load_command *)load_cmd_iter;
+
         if (is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
@@ -1793,9 +1804,17 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     load_cmd_iter + sizeof(struct segment_command);
 
                 const struct section *sect = (const struct section *)sect_ptr;
-                for (uint32_t i = 0; i < nsects; i++, sect++) {
+                for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
+                    }
+
+                    uint32_t sect_offset = sect->offset;
+                    uint32_t sect_size = sect->size;
+
+                    if (is_big_endian) {
+                        sect_offset = swap_uint32(sect_offset);
+                        sect_size = swap_uint32(sect_size);
                     }
 
                     const enum macho_file_parse_result parse_section_result =
@@ -1805,9 +1824,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                                relative_range,
                                                map,
                                                macho,
-                                               sect->offset,
-                                               sect->size,
-                                               is_big_endian,
+                                               sect_offset,
+                                               sect_size,
                                                options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1898,9 +1916,17 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                 const struct section_64 *sect =
                     (const struct section_64 *)sect_ptr;
                 
-                for (uint32_t i = 0; i < nsects; i++, sect++) {
+                for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
+                    }
+
+                    uint32_t sect_offset = sect->offset;
+                    uint64_t sect_size = sect->size;
+
+                    if (is_big_endian) {
+                        sect_offset = swap_uint32(sect_offset);
+                        sect_size = swap_uint64(sect_size);
                     }
 
                     const enum macho_file_parse_result parse_section_result =
@@ -1910,9 +1936,8 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                                relative_range,
                                                map,
                                                macho,
-                                               sect->offset,
-                                               sect->size,
-                                               is_big_endian,
+                                               sect_offset,
+                                               sect_size,
                                                options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -2046,8 +2071,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                                  symtab.nsyms,
                                                  symtab.stroff,
                                                  symtab.strsize,
-                                                 tbd_options,
-                                                 options);
+                                                 tbd_options);
     } else {
         ret =
             macho_file_parse_symbols_from_map(info_in,
@@ -2059,8 +2083,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                               symtab.nsyms,
                                               symtab.stroff,
                                               symtab.strsize,
-                                              tbd_options,
-                                              options);
+                                              tbd_options);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {

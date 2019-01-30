@@ -15,7 +15,12 @@
 #include "array.h"
 #include "arch_info.h"
 
-const struct arch_info arch_info_list[] = {
+/*
+ * To support the use of fake-arrays, and to prevent the compiler from freaking
+ * out, we don't const our arch-info table.
+ */
+
+static struct arch_info arch_info_list[] = {
     { CPU_TYPE_ANY, CPU_SUBTYPE_MULTIPLE,      "any"    },
     { CPU_TYPE_ANY, CPU_SUBTYPE_LITTLE_ENDIAN, "little" },
     { CPU_TYPE_ANY, CPU_SUBTYPE_BIG_ENDIAN,    "big"    },
@@ -142,7 +147,7 @@ const struct arch_info arch_info_list[] = {
  * Create a fake array to pass on to binary-search with array's functions.
  */
 
-const struct array arch_info_array = {
+static const struct array arch_info_array = {
     .data = (void *)arch_info_list,
     .data_end = (void *)(arch_info_list + 53),
     .alloc_end = (void *)(arch_info_list + 53)
@@ -155,7 +160,12 @@ struct arch_info_cputype_info {
     uint64_t back;
 };
 
-const struct arch_info_cputype_info cputype_info_list[] = {
+/*
+ * To support the use of fake-arrays, and to prevent the compiler from freaking
+ * out, we don't const our cputype-info table.
+ */
+
+static struct arch_info_cputype_info cputype_info_list[] = {
     { CPU_TYPE_ANY,        0, 2  },
     { CPU_TYPE_MC680x0,    3, 5  },
     { CPU_TYPE_X86,        6, 14 },
@@ -185,7 +195,7 @@ const struct arch_info *arch_info_get_list(void) {
     return arch_info_list;
 }
 
-const uint64_t arch_info_list_get_size(void) {
+uint64_t arch_info_list_get_size(void) {
     return sizeof(arch_info_list) / sizeof(struct arch_info);
 }
 

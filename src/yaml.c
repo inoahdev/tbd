@@ -17,7 +17,7 @@ static const char needs_quotes[] = {
 };
 
 static inline bool char_needs_quotes(const char ch) {
-    for (int i = 0; i < sizeof(needs_quotes); i++) {
+    for (uint64_t i = 0; i < sizeof(needs_quotes); i++) {
         const char needs_quotes_ch = needs_quotes[i];
         if (ch != needs_quotes_ch) {
             continue;

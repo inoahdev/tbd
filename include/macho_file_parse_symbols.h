@@ -24,8 +24,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *info,
                                    uint32_t nsyms,
                                    uint32_t stroff,
                                    uint32_t strsize,
-                                   uint64_t tbd_options,
-                                   uint64_t options);
+                                   uint64_t tbd_options);
 
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_file(struct tbd_create_info *info,
@@ -37,8 +36,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *info,
                                       uint32_t nsyms,
                                       uint32_t stroff,
                                       uint32_t strsize,
-                                      uint64_t tbd_options,
-                                      uint64_t options);
+                                      uint64_t tbd_options);
 
 enum macho_file_parse_result
 macho_file_parse_symbols_from_map(struct tbd_create_info *info,
@@ -50,8 +48,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *info,
                                   uint32_t nsyms,
                                   uint32_t stroff,
                                   uint32_t strsize,
-                                  uint64_t tbd_options,
-                                  uint64_t options);
+                                  uint64_t tbd_options);
 
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_map(struct tbd_create_info *info,
@@ -63,7 +60,6 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *info,
                                      uint32_t nsyms,
                                      uint32_t stroff,
                                      uint32_t strsize,
-                                     uint64_t tbd_options,
-                                     uint64_t options);
+                                     uint64_t tbd_options);
 
 #endif /* MACHO_FILE_PARSE_SYMBOLS_H */

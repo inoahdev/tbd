@@ -613,11 +613,7 @@ write_uuid(FILE *const file,
     return 0;
 }
 
-int
-tbd_write_uuids(FILE *const file,
-                const struct array *const uuids,
-                const uint64_t options)
-{
+int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
     if (array_is_empty(uuids)) {
         return 1;
     }
@@ -940,7 +936,7 @@ tbd_write_exports(FILE *const file,
              * to preserve a limit on line-lengths
              */
 
-            const uint64_t length = info->length;
+            const uint32_t length = info->length;
             const enum write_comma_result write_comma_result =
                 write_comma_or_newline(file, line_length, length);
 

@@ -47,8 +47,8 @@ static enum array_result
 array_expand_if_necessary(struct array *const array, const uint64_t item_size) {
     void *const old_data = array->data;
     
-    const uint64_t old_capacity = array->alloc_end - old_data;
-    const uint64_t used_size = array->data_end - old_data;
+    const uint64_t old_capacity = (uint64_t)(array->alloc_end - old_data);
+    const uint64_t used_size = (uint64_t)(array->data_end - old_data);
 
     if (used_size < old_capacity) {
         return E_ARRAY_OK;
@@ -93,7 +93,7 @@ array_add_item_to_byte_index(struct array *const array,
     
     if (position != data_end) {
         void *const next_position = position + item_size;
-        const uint64_t array_move_size = data_end - position;
+        const uint64_t array_move_size = (uint64_t)(data_end - position);
         
         memmove(next_position, position, array_move_size);
     }
@@ -110,12 +110,13 @@ array_add_item_to_byte_index(struct array *const array,
 
 uint64_t
 array_get_item_count(const struct array *const array, const size_t item_size) {
-    const uint64_t used_size = array->data_end - array->data;
+    const uint64_t used_size = array_get_used_size(array);
     return used_size / item_size;
 }
 
 uint64_t array_get_used_size(const struct array *const array) {
-    return array->data_end - array->data;
+    const uint64_t used_size = (uint64_t)(array->data_end - array->data);
+    return used_size;
 }
 
 enum array_result
@@ -124,7 +125,7 @@ array_add_item(struct array *const array,
                const void *const item,
                void **const item_out)
 {
-    const uint64_t byte_index = array->data_end - array->data;
+    const uint64_t byte_index = (uint64_t)(array->data_end - array->data);
     const enum array_result add_item_result =
         array_add_item_to_byte_index(array,
                                      item_size,

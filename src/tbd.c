@@ -42,7 +42,7 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
     const enum tbd_export_type type = info->type;
 
     if (array_type != type) {        
-        return array_type - type;
+        return (int)(array_type - type);
     }
 
     const uint64_t array_length = array_info->length;
@@ -87,7 +87,13 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const uint64_t archs_count = info->archs_count;
 
     if (array_archs_count != archs_count) {
-        return array_archs_count - archs_count;
+        if (array_archs_count > archs_count) {
+            return 1;
+        } else if (array_archs_count < archs_count) {
+            return -1;
+        }
+
+        return 0;
     }
 
     const uint64_t array_archs = array_info->archs;
@@ -103,7 +109,7 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const enum tbd_export_type type = info->type;
 
     if (array_type != type) {        
-        return array_type - type;
+        return (int)(array_type - type);
     }
 
     const uint64_t array_length = array_info->length;
@@ -171,7 +177,7 @@ tbd_create_with_info(const struct tbd_create_info *const info,
 
     if (!(options & O_TBD_CREATE_IGNORE_UUIDS)) {
         if (version != TBD_VERSION_V1) {
-            if (tbd_write_uuids(file, &info->uuids, options)) {
+            if (tbd_write_uuids(file, &info->uuids)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
@@ -251,10 +257,15 @@ static void destroy_exports_array(struct array *const list) {
 }
 
 void tbd_create_info_destroy(struct tbd_create_info *const info) {
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+
     if (info->flags & F_TBD_CREATE_INFO_STRINGS_WERE_COPIED) {
         free((char *)info->install_name);
         free((char *)info->parent_umbrella);
     }
+
+#pragma GCC diagnostic pop 
 
     info->version = 0;
 

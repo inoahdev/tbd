@@ -32,7 +32,12 @@ path_get_absolute_path_if_necessary(const char *const path,
 {
     const char path_front = path[0];
     if (ch_is_path_slash(path_front)) {
+        #pragma GCC diagnostic ignored "-Wcast-qual"
+        #pragma GCC diagnostic push
+
         return (char *)path;
+
+        #pragma GCC diagnostic pop 
     }
 
     if (current_directory == NULL) {
@@ -237,7 +242,7 @@ get_length_by_trimming_back_slashes(const char *const string,
          * back-slashes.
          */
 
-        return (iter + 1) - string;
+        return (uint64_t)(++iter - string);
     }
 
     return 0;
@@ -301,7 +306,7 @@ path_append_component_with_len(const char *const path,
          * component.
          */
 
-        const uint64_t drift = component_iter - component;
+        const uint64_t drift = (uint64_t)(component_iter - component);
         component_copy_length -= drift;
     }
 
@@ -416,7 +421,7 @@ path_append_component_and_extension_with_len(const char *const path,
          * component.
          */
 
-        const uint64_t drift = component_iter - component;
+        const uint64_t drift = (uint64_t)(component_iter - component);
         component_copy_length -= drift;
     }
 
@@ -435,7 +440,7 @@ path_append_component_and_extension_with_len(const char *const path,
     if (extension != NULL) {
         extension_copy_iter = go_to_end_of_dots(extension);
         if (extension_copy_iter != NULL) {
-            const uint64_t drift = extension_copy_iter - extension;
+            const uint64_t drift = (uint64_t)(extension_copy_iter - extension);
             extension_copy_length -= drift;
         } else {
             extension_copy_length = 0;
@@ -532,7 +537,7 @@ path_get_last_path_component(const char *const path,
         path_find_last_row_of_slashes_before_end(path, component_end);
 
     component_begin = path_get_end_of_row_of_slashes(component_begin);
-    *length_out = component_end - component_begin;
+    *length_out = (uint64_t)(component_end - component_begin);
 
     return component_begin;
 }
@@ -591,7 +596,7 @@ path_has_component(const char *const path,
     const char *iter_end = path_get_next_slash_or_end(iter_begin);
 
     do {
-        const uint64_t iter_length = iter_end - iter_begin;
+        const uint64_t iter_length = (uint64_t)(iter_end - iter_begin);
         if (component_length == iter_length) {
             if (strncmp(iter_begin, component, iter_length) == 0) {
                 if (component_is_in_hierarchy(iter_end)) {

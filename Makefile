@@ -1,7 +1,12 @@
 SHELL = /bin/sh
 
 C := clang
-CFLAGS := -std=gnu11 -Wall -Ofast -Iinclude/
+
+USERDEFINES := "-D__unused=__attribute__((unused))"
+WARNINGFLAGS := -Wall -W -Wconversion -Wcast-qual -Wshadow -Wwrite-strings
+
+DEFAULTFLAGS := -std=gnu11 $(USERDEFINES) $(WARNINGFLAGS)
+CFLAGS := $(DEFAULTFLAGS) -Ofast -Iinclude/
 
 SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd

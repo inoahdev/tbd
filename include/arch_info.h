@@ -19,7 +19,7 @@ struct arch_info {
 };
 
 const struct arch_info *arch_info_get_list(void);
-const uint64_t arch_info_list_get_size(void);
+uint64_t arch_info_list_get_size(void);
 
 const struct arch_info *
 arch_info_for_cputype(cpu_type_t cputype, cpu_subtype_t cpusubtype);

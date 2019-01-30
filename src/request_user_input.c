@@ -43,7 +43,7 @@ request_input(const char *const prompt,
         char *input = NULL;
         
         size_t input_size = 0;
-        size_t input_length = getline(&input, &input_size, stdin);
+        ssize_t input_length = getline(&input, &input_size, stdin);
 
         if (input_length < 0) {
             free(input);
@@ -114,7 +114,7 @@ request_install_name(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -132,9 +132,14 @@ request_install_name(struct tbd_for_main *const global,
         return false;
     }
 
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+
     request_input("Replacement install-name?",
                   NULL,
                   (char **)&tbd->info.install_name);
+
+#pragma GCC diagnostic pop 
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
@@ -182,7 +187,7 @@ request_objc_constraint(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -285,7 +290,7 @@ request_parent_umbrella(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -350,7 +355,7 @@ request_platform(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -454,7 +459,7 @@ request_swift_version(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -486,14 +491,22 @@ request_swift_version(struct tbd_for_main *const global,
                 continue;
             }
             
-            uint32_t swift_version = strtoul(input, NULL, 10);
+            uint64_t swift_version = strtoul(input, NULL, 10);
             free(input);
+
+            if (swift_version > UINT32_MAX) {
+                fprintf(stderr,
+                        "%s is too large to be a valid swift-version\n",
+                        input);
+
+                continue;
+            }
 
             if (swift_version > 1) {
                 swift_version -= 1;
             }
 
-            tbd->info.swift_version = swift_version;
+            tbd->info.swift_version = (uint32_t)swift_version;
             break;
         }
     } while (true);
@@ -535,7 +548,7 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;
@@ -589,7 +602,7 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
     va_list args;
     va_start(args, prompt);
 
-    vfprintf(stderr, prompt, args);
+    vfprintf(file, prompt, args);
     va_end(args);
 
     char *should_replace = NULL;

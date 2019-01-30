@@ -21,13 +21,14 @@
 
 struct dsc_iterate_images_callback_info {
     struct dyld_shared_cache_info *dsc_info;
+
     const char *dsc_path;
+    char *write_path;
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
 
     struct array images;
-    char *write_path;
 
     uint64_t write_path_length;
     uint64_t *retained_info;
@@ -105,9 +106,8 @@ actually_parse_image(
     }
 
     tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
-    clear_create_info(create_info, &original_info);
 
-    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
+    clear_create_info(create_info, &original_info);
     free(write_path);
 
     return 0;
@@ -166,7 +166,7 @@ find_image_flags_for_path(const struct array *const filters,
 static bool
 dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                             const char *const image_path,
-                            const void *const item)
+                            void *const item)
 {
     if (image->pad & E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
         return true;
@@ -203,6 +203,7 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
         *flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
     }
 
+    image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
     return true;
 }
 
@@ -300,9 +301,7 @@ read_magic(const int fd,
            const bool print_paths,
            char *const magic_out)
 {
-    if (magic_size > 16) {
-        memcpy(magic_out, magic, 16);
-    } else {
+    if (magic_size < 16) {
         memcpy(magic_out, magic, magic_size);
 
         const uint64_t read_size = 16 - magic_size;
@@ -323,6 +322,8 @@ read_magic(const int fd,
                                         
             return E_READ_MAGIC_READ_FAILED;
         }
+    } else {
+        memcpy(magic_out, magic, 16);
     }
 
     return E_READ_MAGIC_OK;
@@ -456,11 +457,11 @@ parse_shared_cache(struct tbd_for_main *const global,
             const uint32_t index = number - 1;
             struct dyld_cache_image_info *const image = &dsc_info.images[index];
 
-            const uint32_t path_file_offset = image->pathFileOffset;
-            const char *const path =
-                (const char *)(dsc_info.map + path_file_offset);
+            const uint32_t image_path_offset = image->pathFileOffset;
+            const char *const image_path =
+                (const char *)(dsc_info.map + image_path_offset);
 
-            actually_parse_image(tbd, image, path, &callback_info);
+            actually_parse_image(tbd, image, image_path, &callback_info);
         } 
 
         /*
@@ -522,9 +523,9 @@ struct dsc_list_images_callback {
 };
 
 static bool
-dsc_list_images_callback(struct dyld_cache_image_info *const image,
+dsc_list_images_callback(__unused struct dyld_cache_image_info *const image,
                          const char *const image_path,
-                         const void *const item)
+                         void *const item)
 {
     struct dsc_list_images_callback *const callback_info =
         (struct dsc_list_images_callback *)item;
@@ -537,11 +538,7 @@ dsc_list_images_callback(struct dyld_cache_image_info *const image,
     return true;
 }
 
-void
-print_list_of_dsc_images(const int fd,
-                         const uint64_t start,
-                         const uint64_t end)
-{
+void print_list_of_dsc_images(const int fd) {
     char magic[16] = {};
     const enum read_magic_result read_magic_result =
         read_magic(fd, NULL, 0, NULL, false, magic);

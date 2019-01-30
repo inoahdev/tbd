@@ -63,11 +63,15 @@ parse_architectures_list(const int argc,
             break;
         }
 
-        const uint64_t arch_info_index = arch_info - arch_info_list;
+        const uint64_t arch_info_index = (uint64_t)(arch_info - arch_info_list);
         const uint64_t arch_info_mask = 1ull << arch_info_index;
 
         archs |= arch_info_mask;
         index++;
+
+        if (index == argc) {
+            break;
+        }
     } while (true);
 
     /*
