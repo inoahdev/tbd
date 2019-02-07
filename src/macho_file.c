@@ -58,24 +58,24 @@ parse_thin_file(struct tbd_create_info *const info_in,
     }
 
     if (info_in->flags != 0) {
-        if (info_in->flags & TBD_FLAG_FLAT_NAMESPACE) {
+        if (info_in->flags_field & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
 
-        if (info_in->flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (info_in->flags_field & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (header.flags & MH_APP_EXTENSION_SAFE) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
     } else {
         if (header.flags & MH_TWOLEVEL) {
-            info_in->flags |= TBD_FLAG_FLAT_NAMESPACE;
+            info_in->flags_field |= TBD_FLAG_FLAT_NAMESPACE;
         }
 
         if (!(header.flags & MH_APP_EXTENSION_SAFE)) {
-            info_in->flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+            info_in->flags_field |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
         }
     }
 

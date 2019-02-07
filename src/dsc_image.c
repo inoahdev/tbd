@@ -245,11 +245,11 @@ dsc_image_parse(struct tbd_create_info *const info_in,
 
     const uint32_t flags = header->flags;
     if (flags & MH_TWOLEVEL) {
-        info_in->flags |= TBD_FLAG_FLAT_NAMESPACE;
+        info_in->flags_field |= TBD_FLAG_FLAT_NAMESPACE;
     }
 
     if (!(flags & MH_APP_EXTENSION_SAFE)) {
-        info_in->flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+        info_in->flags_field |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
     struct symtab_command symtab = {};
