@@ -6,6 +6,8 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <sys/types.h>
+
 #include <ctype.h>
 #include <errno.h>
 
@@ -132,14 +134,9 @@ request_install_name(struct tbd_for_main *const global,
         return false;
     }
 
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic push
-
     request_input("Replacement install-name?",
                   NULL,
                   (char **)&tbd->info.install_name);
-
-#pragma GCC diagnostic pop 
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;

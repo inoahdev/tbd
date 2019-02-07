@@ -7,6 +7,8 @@
 //
 
 #include <sys/stat.h>
+#include <sys/types.h>
+
 #include <errno.h>
 
 #include <stdlib.h>
@@ -69,7 +71,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         }
     } else {
         if (header.flags & MH_TWOLEVEL) {
-            info_in->flags |= MH_TWOLEVEL;
+            info_in->flags |= TBD_FLAG_FLAT_NAMESPACE;
         }
 
         if (!(header.flags & MH_APP_EXTENSION_SAFE)) {

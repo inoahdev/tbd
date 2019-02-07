@@ -228,9 +228,6 @@ handle_symbol(struct tbd_create_info *const info,
         }
     }
 
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic push
-
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
@@ -238,8 +235,6 @@ handle_symbol(struct tbd_create_info *const info,
         .string = (char *)string,
         .type = symbol_type,
     };
-
-#pragma GCC diagnostic pop 
 
     struct array *const exports = &info->exports;
     struct array_cached_index_info cached_info = {};

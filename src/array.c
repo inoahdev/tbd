@@ -44,19 +44,26 @@ bool array_is_empty(const struct array *const array) {
 }
 
 static enum array_result
-array_expand_if_necessary(struct array *const array, const uint64_t item_size) {
+array_expand_if_necessary(struct array *const array,
+                          const uint64_t add_byte_size)
+{
     void *const old_data = array->data;
     
+    const uint64_t used_size = array_get_used_size(array);
     const uint64_t old_capacity = (uint64_t)(array->alloc_end - old_data);
-    const uint64_t used_size = (uint64_t)(array->data_end - old_data);
+    const uint64_t wanted_capacity = used_size + add_byte_size;
 
-    if (used_size < old_capacity) {
+    if (wanted_capacity <= old_capacity) {
         return E_ARRAY_OK;
     }
 
     uint64_t new_capacity = old_capacity * 2;
-    if (new_capacity == 0) {
-        new_capacity = item_size;
+    if (new_capacity != 0) {
+        while (new_capacity < wanted_capacity) {
+            new_capacity *= 2;
+        }
+    } else {
+        new_capacity = wanted_capacity;
     }
 
     void *const new_data = calloc(1, new_capacity);
@@ -140,6 +147,24 @@ array_add_item(struct array *const array,
     return E_ARRAY_OK;
 }
 
+enum array_result
+array_add_items_from_array(struct array *const array,
+                           const struct array *const other)
+{
+    const uint64_t other_used_size = array_get_used_size(other);
+    const enum array_result expand_result =
+        array_expand_if_necessary(array, other_used_size);
+    
+    if (expand_result != E_ARRAY_OK) {
+        return expand_result;
+    }
+
+    void *const data_end = array->data_end;
+    memcpy(data_end, other->data, other_used_size);
+
+    array->data_end = data_end + other_used_size;
+    return E_ARRAY_OK;
+}
 
 enum array_result
 array_add_and_unique_items_from_array(struct array *const array,
@@ -147,6 +172,11 @@ array_add_and_unique_items_from_array(struct array *const array,
                                       const struct array *const other,
                                       const array_item_comparator comparator)
 {
+    const uint64_t array_used_size = array_get_used_size(array);
+    if (array_used_size == 0) {
+        return array_add_items_from_array(array, other);
+    }
+
     const void *other_iter = other->data;
     const void *const end = other->data_end;
 

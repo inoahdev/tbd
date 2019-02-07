@@ -2,7 +2,7 @@
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 
 ```
-Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [[output-paths]
+Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [output-paths]
 Main options:
     -h, --help,   Print this message
     -o, --output, Path(s) to output file(s) to write converted tbd files.

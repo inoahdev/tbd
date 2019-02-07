@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 void print_usage(void) {
-    fputs("Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [[output-paths]\n", stdout);
+    fputs("Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [output-paths]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,   Print this message\n", stdout);
     fputs("    -o, --output, Path(s) to output file(s) to write converted tbd files.\n", stdout);

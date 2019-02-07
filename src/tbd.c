@@ -257,15 +257,10 @@ static void destroy_exports_array(struct array *const list) {
 }
 
 void tbd_create_info_destroy(struct tbd_create_info *const info) {
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic push
-
     if (info->flags & F_TBD_CREATE_INFO_STRINGS_WERE_COPIED) {
         free((char *)info->install_name);
         free((char *)info->parent_umbrella);
     }
-
-#pragma GCC diagnostic pop 
 
     info->version = 0;
 

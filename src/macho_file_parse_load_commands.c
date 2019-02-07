@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <sys/types.h>
 #include <errno.h>
 
 #include <stdlib.h>
@@ -32,10 +33,6 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
          */
 
         case 71830128058207: {
-            /*
-             * if name == "__DATA".
-             */
-
             const uint64_t second = *((const uint64_t *)name + 1);
             if (second == 0) {
                 return true; 
@@ -241,9 +238,6 @@ add_export_to_info(struct tbd_create_info *const info_in,
                    const char *const string,
                    const uint32_t string_length)
 {
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic push
-
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
@@ -251,8 +245,6 @@ add_export_to_info(struct tbd_create_info *const info_in,
         .string = (char *)string,
         .type = type
     };
-
-#pragma GCC diagnostic pop 
 
     struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};

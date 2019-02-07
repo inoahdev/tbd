@@ -20,10 +20,11 @@
 #include "range.h"
 
 /*
- * To avoid duplicating code, we pass on the mach-o verification to macho-file's
- * operations, which also have a different error-code. We have many of the same
- * error-codes, save for a few (no fat support), so a simple translation is
- * needed.
+ * To avoid duplicating code, we pass on the mach-o verification to macho_file's
+ * operations, which have a different error-code.
+ * 
+ * We have many of the same error-codes, save for a few (no fat support), so all
+ * that is needed is a simple translation.
  */
 
 static enum dsc_image_parse_result
@@ -244,7 +245,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
 
     const uint32_t flags = header->flags;
     if (flags & MH_TWOLEVEL) {
-        info_in->flags |= MH_TWOLEVEL;
+        info_in->flags |= TBD_FLAG_FLAT_NAMESPACE;
     }
 
     if (!(flags & MH_APP_EXTENSION_SAFE)) {

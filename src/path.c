@@ -32,12 +32,7 @@ path_get_absolute_path_if_necessary(const char *const path,
 {
     const char path_front = path[0];
     if (ch_is_path_slash(path_front)) {
-        #pragma GCC diagnostic ignored "-Wcast-qual"
-        #pragma GCC diagnostic push
-
         return (char *)path;
-
-        #pragma GCC diagnostic pop 
     }
 
     if (current_directory == NULL) {

@@ -22,13 +22,7 @@
 static
 char *find_last_slash_before_end(char *const path, const char *const end) {
     const char *iter = path_find_last_row_of_slashes_before_end(path, end);
-
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic push
-
     return (char *)path_get_front_of_row_of_slashes(path, iter);
-
-#pragma GCC diagnostic pop 
 }
 
 static char *find_next_slash_skipping_first_row(char *const path) {
