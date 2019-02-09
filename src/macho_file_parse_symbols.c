@@ -46,73 +46,86 @@ is_objc_class_symbol(const char *const symbol,
      * Objc-class symbols can have different prefixes.
      */
 
-    if (first == 5495340712935444319) {
-        /*
-         * The check here is `if (first == "_OBJC_CL")`, checking of whether
-         * the prefix is "_OBJC_CLASS_$".
-         *
-         * The check below is `if (second == "ASS_")`.
-         */
+    switch (first) {
+        case 5495340712935444319: {
+            /*
+            * The check here is `if (first == "_OBJC_CL")`, checking of whether
+            * the prefix is "_OBJC_CLASS_$".
+            *
+            * The check below is `if (second == "ASS_")`.
+            */
 
-        const uint32_t second = *(const uint32_t *)(symbol + 8);
-        if (second != 1599296321) {
-            return false;
+            const uint32_t second = *(const uint32_t *)(symbol + 8);
+            if (second != 1599296321) {
+                return false;
+            }
+
+            if (symbol[12] != '$') {
+                return false;
+            }
+
+            *symbol_out = symbol + 13;
+            *length_out = length - 13;
+
+            break;
         }
 
-        if (symbol[12] != '$') {
-            return false;
+        case 4993752304437055327: {
+            /*
+            * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
+            * is "_OBJC_METACLASS_$".
+            */
+
+            if (length < 17) {
+                return false;
+            }
+
+            /* 
+            * The check below is `if (second == "TACLASS")`.
+            */
+
+            const uint64_t second = *(const uint64_t *)(symbol + 8);
+            if (second != 6868925396587594068) {
+                return false;
+            }
+
+            if (symbol[16] != '$') {
+                return false;
+            }
+
+            *symbol_out = symbol + 17;
+            *length_out = length - 17;
+
+            break;
         }
 
-        *symbol_out = symbol + 13;
-        *length_out = length - 13;
-    } else if (first == 4993752304437055327) {
-        /*
-         * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
-         * is "_OBJC_METACLASS_$".
-         */
+        case 7810191059381808942: {
+            /*
+            * The check here is `if (first == ".objc_cl")`, checking if the prefix
+            * is ".objc_class_name".
+            */
 
-        if (length < 17) {
-            return false;
+            if (length < 16) {
+                return false;
+            }
+
+            /* 
+            * The check below is `if (second == ".ass_name")`.
+            */
+
+            const uint64_t second = *(const uint64_t *)(symbol + 8);
+            if (second != 7308604896967881569) {
+                return false;
+            }
+
+            *symbol_out = symbol + 16;
+            *length_out = length - 16;
+
+            break;
         }
-
-        /* 
-         * The check below is `if (second == "TACLASS")`.
-         */
-
-        const uint64_t second = *(const uint64_t *)(symbol + 8);
-        if (second != 6868925396587594068) {
+        
+        default:
             return false;
-        }
-
-        if (symbol[16] != '$') {
-            return false;
-        }
-
-        *symbol_out = symbol + 17;
-        *length_out = length - 17;
-    } else if (first == 7810191059381808942) {
-        /*
-         * The check here is `if (first == ".objc_cl")`, checking if the prefix
-         * is ".objc_class_name".
-         */
-
-        if (length < 16) {
-            return false;
-        }
-
-        /* 
-         * The check below is `if (second == ".ass_name")`.
-         */
-
-        const uint64_t second = *(const uint64_t *)(symbol + 8);
-        if (second != 7308604896967881569) {
-            return false;
-        }
-
-        *symbol_out = symbol + 16;
-        *length_out = length - 16;
-    } else {
-        return false;
     }
 
     return true;
@@ -161,11 +174,13 @@ handle_symbol(struct tbd_create_info *const info,
      */
 
     if (!(n_type & N_EXT)) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS) &&
-            !(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS) &&
-            !(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS) &&
-            !(options & O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS))
-        {
+        const uint64_t all_allow_symbols_flags =
+            O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS |
+            O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS |
+            O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS |
+            O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS;
+
+        if (!(options & all_allow_symbols_flags)) {
             return E_MACHO_FILE_PARSE_OK;
         }
     }
@@ -513,7 +528,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
      */
 
     uint64_t symbol_table_size = nsyms;
-    if (guard_overflow_shift(&symbol_table_size, 4)) {
+    if (guard_overflow_shift_left(&symbol_table_size, 4)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -888,7 +903,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
      */
 
     uint64_t symbol_table_size = nsyms;
-    if (guard_overflow_shift(&symbol_table_size, 4)) {
+    if (guard_overflow_shift_left(&symbol_table_size, 4)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
