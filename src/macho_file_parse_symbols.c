@@ -190,7 +190,9 @@ handle_symbol(struct tbd_create_info *const info,
 
     /*
      * Figure out the symbol-type from the symbol-string and desc.
-     * Also ensure the symbol is exported externally, unless otherwise stated.
+     * 
+     * Also ensure only exported symbols are added, unless options have been
+     * provided to allow otherwise.
      */
 
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
@@ -263,6 +265,12 @@ handle_symbol(struct tbd_create_info *const info,
 
     if (existing_info != NULL) {
         const uint64_t archs = existing_info->archs;
+
+        /*
+         * Ensure multiple symbols for the same arch (which we, for sake of
+         * leniency, ignore) are ignored.
+         */
+
         if (!(archs & arch_bit)) {
             existing_info->archs = archs | arch_bit;
             existing_info->archs_count += 1;
@@ -409,9 +417,6 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const int16_t n_desc = swap_int16(nlist->n_desc);
-            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-
             /*
              * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
@@ -429,10 +434,13 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
             if (index >= strsize) {
                 continue;
             }
 
+            const int16_t n_desc = swap_int16(nlist->n_desc);
+            
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
@@ -453,9 +461,6 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const int16_t n_desc = swap_int16(nlist->n_desc);
-            const uint32_t index = nlist->n_un.n_strx;
-
             /*
              * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
@@ -473,9 +478,12 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = nlist->n_un.n_strx;
             if (index >= strsize) {
                 continue;
             }
+
+            const int16_t n_desc = swap_int16(nlist->n_desc);
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -611,9 +619,6 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = swap_uint16(nlist->n_desc);
-            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-
             /*
              * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
@@ -631,9 +636,12 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
             if (index >= strsize) {
                 continue;
             }
+
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -655,9 +663,6 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = nlist->n_desc;
-            const uint32_t index = nlist->n_un.n_strx;
-
             /*
              * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
@@ -675,9 +680,12 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = nlist->n_un.n_strx;
             if (index >= strsize) {
                 continue;
             }
+
+            const uint16_t n_desc = nlist->n_desc;
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -774,9 +782,6 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const int16_t n_desc = swap_int16(nlist->n_desc);
-            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-
             /*
              * Ensure that each symbol connects back to __TEXT, or is an
              * indirect symbol.
@@ -794,9 +799,12 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
             if (index >= strsize) {
                 continue;
             }
+
+            const int16_t n_desc = swap_int16(nlist->n_desc);
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -815,9 +823,6 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const int16_t n_desc = nlist->n_desc;
-            const uint32_t index = nlist->n_un.n_strx;
-
             /*
              * Ensure that each symbol connects back to __TEXT, or is an
              * indirect symbol.
@@ -835,9 +840,12 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = nlist->n_un.n_strx;
             if (index >= strsize) {
                 continue;
             }
+
+            const int16_t n_desc = nlist->n_desc;
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -936,9 +944,6 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
 
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = swap_uint16(nlist->n_desc);
-            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-
             /*
              * Ensure that each symbol connects back to __TEXT, or is an
              * indirect symbol.
@@ -956,9 +961,12 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = swap_uint32(nlist->n_un.n_strx);
             if (index >= strsize) {
                 continue;
             }
+
+            const uint16_t n_desc = swap_uint16(nlist->n_desc);
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
@@ -977,9 +985,6 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         }
     } else {
         for (; nlist != end; nlist++) {
-            const uint16_t n_desc = nlist->n_desc;
-            const uint32_t index = nlist->n_un.n_strx;
-
             /*
              * Ensure that each symbol connects back to __TEXT, or is an
              * indirect symbol.
@@ -997,9 +1002,12 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
              * erroring out.
              */
 
+            const uint32_t index = nlist->n_un.n_strx;
             if (index >= strsize) {
                 continue;
             }
+            
+            const uint16_t n_desc = nlist->n_desc;
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
