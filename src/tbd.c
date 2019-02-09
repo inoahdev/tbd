@@ -60,24 +60,14 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
      *
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
+     * 
+     * Add one to also compare the null-terminator.
      */
 
     if (array_length > length) {
-        const int cmp_ret = memcmp(array_info->string, info->string, length);
-        if (cmp_ret != 0) {
-            return cmp_ret;
-        }
-
-        return array_info->string[length + 1];
+        return memcmp(array_info->string, info->string, length + 1);
     } else if (array_length < length) {
-        const int cmp_ret = 
-            memcmp(array_info->string, info->string, array_length);
-
-        if (cmp_ret != 0) {
-            return cmp_ret;
-        }
-
-        return -info->string[array_length + 1];
+        return memcmp(array_info->string, info->string, array_length + 1);
     }
 
     const char *const array_string = array_info->string;
@@ -137,24 +127,14 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
      *
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
+     * 
+     * Add one to also compare the null-terminator.
      */
 
     if (array_length > length) {
-        const int cmp_ret = memcmp(array_info->string, info->string, length);
-        if (cmp_ret != 0) {
-            return cmp_ret;
-        }
-
-        return array_info->string[length + 1];
+        return memcmp(array_info->string, info->string, length + 1);
     } else if (array_length < length) {
-        const int cmp_ret = 
-            memcmp(array_info->string, info->string, array_length);
-
-        if (cmp_ret != 0) {
-            return cmp_ret;
-        }
-
-        return -info->string[array_length + 1];
+        return memcmp(array_info->string, info->string, array_length + 1);
     }
 
     const char *const array_string = array_info->string;
