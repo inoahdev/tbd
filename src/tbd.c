@@ -50,12 +50,12 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
 
     /*
      * We try to avoid iterating and comparing over the whole string, so we
-     * check to ensure their lengths match up.
+     * could check to ensure their lengths match up.
      * 
      * However, we don't want to symbols to ever be organized by their length,
      * which would be the case if `(array_length - length)` was returned.
      *
-     * To remedy this, we use separate memcmp() calls for when array_length and
+     * So instead, we use separate memcmp() calls for when array_length and
      * length don't match, depending on which is bigger.
      *
      * This stops us from having to use strcmp(), which would be the case since
@@ -63,9 +63,21 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
      */
 
     if (array_length > length) {
-        return memcmp(array_info->string, info->string, length);
+        const int cmp_ret = memcmp(array_info->string, info->string, length);
+        if (cmp_ret != 0) {
+            return cmp_ret;
+        }
+
+        return array_info->string[length + 1];
     } else if (array_length < length) {
-        return memcmp(array_info->string, info->string, array_length);
+        const int cmp_ret = 
+            memcmp(array_info->string, info->string, array_length);
+
+        if (cmp_ret != 0) {
+            return cmp_ret;
+        }
+
+        return -info->string[array_length + 1];
     }
 
     const char *const array_string = array_info->string;
@@ -92,8 +104,6 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
         } else if (array_archs_count < archs_count) {
             return -1;
         }
-
-        return 0;
     }
 
     const uint64_t array_archs = array_info->archs;
@@ -117,12 +127,12 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
 
     /*
      * We try to avoid iterating and comparing over the whole string, so we
-     * check to ensure their lengths match up.
+     * could check to ensure their lengths match up.
      * 
      * However, we don't want to symbols to ever be organized by their length,
      * which would be the case if `(array_length - length)` was returned.
      *
-     * To remedy this, we use separate memcmp() calls for when array_length and
+     * So instead, we use separate memcmp() calls for when array_length and
      * length don't match, depending on which is bigger.
      *
      * This stops us from having to use strcmp(), which would be the case since
@@ -130,9 +140,21 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
      */
 
     if (array_length > length) {
-        return memcmp(array_info->string, info->string, length);
+        const int cmp_ret = memcmp(array_info->string, info->string, length);
+        if (cmp_ret != 0) {
+            return cmp_ret;
+        }
+
+        return array_info->string[length + 1];
     } else if (array_length < length) {
-        return memcmp(array_info->string, info->string, array_length);
+        const int cmp_ret = 
+            memcmp(array_info->string, info->string, array_length);
+
+        if (cmp_ret != 0) {
+            return cmp_ret;
+        }
+
+        return -info->string[array_length + 1];
     }
 
     const char *const array_string = array_info->string;
