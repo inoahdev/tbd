@@ -232,7 +232,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     uint64_t mapping_size = mapping_count;
-    if (guard_overflow_shift(&mapping_size, 5)) {
+    if (guard_overflow_shift_left(&mapping_size, 5)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
@@ -250,7 +250,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     uint64_t images_size = images_count;
-    if (guard_overflow_shift(&images_size, 5)) {
+    if (guard_overflow_shift_left(&images_size, 5)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 

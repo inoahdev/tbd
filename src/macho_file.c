@@ -379,7 +379,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
      */
 
     uint64_t archs_size = nfat_arch;
-    if (guard_overflow_shift(&archs_size, 5)) {
+    if (guard_overflow_shift_left(&archs_size, 5)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
     }
 
@@ -779,7 +779,7 @@ void macho_file_print_archs(const int fd) {
          */
 
         uint64_t archs_size = nfat_arch;
-        if (guard_overflow_shift(&archs_size, 5)) {
+        if (guard_overflow_shift_left(&archs_size, 5)) {
             fputs("File has too many architectures\n", stderr);
             exit(1);
         }

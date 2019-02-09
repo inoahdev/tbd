@@ -1048,7 +1048,7 @@ macho_file_parse_load_commands_from_file(
      */
 
     uint32_t minimum_size = ncmds;
-    if (guard_overflow_shift(&minimum_size, 3)) {
+    if (guard_overflow_shift_left(&minimum_size, 3)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
@@ -1630,7 +1630,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
      */
 
     uint32_t minimum_size = ncmds;
-    if (guard_overflow_shift(&minimum_size, 3)) {
+    if (guard_overflow_shift_left(&minimum_size, 3)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
