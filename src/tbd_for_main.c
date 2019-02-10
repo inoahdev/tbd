@@ -95,10 +95,11 @@ add_image_number(struct tbd_for_main *const tbd,
         exit(1);
     }
 
+    const uint32_t number_32 = (uint32_t)number;
     const enum array_result add_number_result =
         array_add_item(&tbd->dsc_image_numbers,
-                       sizeof(number),
-                       &number,
+                       sizeof(number_32),
+                       &number_32,
                        NULL);
 
     if (add_number_result != E_ARRAY_OK) {
