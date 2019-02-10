@@ -358,45 +358,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     return true;
 }
 
-static const char *find_path_extension(const char *const str) {
-    const char *last_slash = NULL;
-    const char *dot = NULL;
-
-    const char *iter = str;
-    char ch = *iter;
-
-    while (ch != '\0') {
-        switch (ch) {
-            case '/':
-                iter = path_get_end_of_row_of_slashes(iter);
-                if (iter == NULL) {
-                    break;
-                }               
- 
-                ch = *iter;
-                last_slash = iter;
-
-                break;
-
-            case '.':
-                dot = iter;
-                ch = *(++iter);
-
-                break;
-
-            default:
-                ch = *(++iter);
-                break;
-        }
-    }
-
-    if (dot > last_slash) {
-        return dot;
-    }
-
-    return NULL;
-}
-
 char *
 tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                const char *const folder_path,
@@ -420,22 +381,22 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
          */
 
         const char *subdirs_iter = file_path;
+        uint64_t subdirs_length = file_path_length;
+
         if (file_path_is_in_tbd) {
-            subdirs_iter += tbd->parse_path_length;
+            const uint64_t parse_path_length = tbd->parse_path_length;
+
+            subdirs_iter += parse_path_length;
+            subdirs_length -= parse_path_length;
         }
 
-        uint64_t subdirs_length = 0;
         if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
             const char *const original_extension =
-                find_path_extension(subdirs_iter);
+                path_find_extension(subdirs_iter, subdirs_length);
 
             if (original_extension != NULL) {
                 subdirs_length = (uint64_t)(original_extension - subdirs_iter);
-            } else {
-                subdirs_length = strlen(subdirs_iter);
             }
-        } else {
-            subdirs_length = strlen(subdirs_iter);
         }
 
         write_path =
@@ -580,14 +541,11 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to output-file (for input-file at "
-                        "path: %s, to output-file's path: %s), error: %s\n",
+                        "path: %s, to output-file's path: %s)\n",
                         input_path,
-                        write_path,
-                        strerror(errno));
+                        write_path);
             } else {
-                fprintf(stderr,
-                        "Failed to write to provided output-file, error: %s\n",
-                        strerror(errno));
+                fputs("Failed to write to provided output-file\n", stderr);
             }
         }
 

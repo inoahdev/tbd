@@ -48,11 +48,18 @@ path_get_front_of_row_of_slashes(const char *path, const char *iter);
 const char *
 path_find_last_row_of_slashes_before_end(const char *path, const char *end);
 
-const char *path_get_back_of_row_of_slashes(const char *const path);
+const char *
+path_find_back_of_last_row_of_slashes_before_end(const char *path,
+                                                 const char *end);
+
 const char *path_get_end_of_row_of_slashes(const char *path);
 
 const char *
 path_find_last_row_of_slashes(const char *path, uint64_t path_length);
+
+const char *
+path_find_back_of_last_row_of_slashes(const char *const path,
+                                      const uint64_t path_length);
 
 const char *
 path_find_ending_row_of_slashes(const char *path, uint64_t path_length);
@@ -67,5 +74,7 @@ path_has_component(const char *path,
                    const char *component,
                    uint64_t component_length,
                    bool allow_in_hierarchy);
+
+const char *path_find_extension(const char *path, uint64_t length);
 
 #endif /* PATH_H */

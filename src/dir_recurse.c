@@ -58,12 +58,15 @@ dir_recurse(const char *const path,
                     continue;
                 }
 
+                const uint64_t name_length =
+                    strnlen(name, sizeof(entry->d_name));
+
                 uint64_t length = 0;
                 char *const entry_path =
                     path_append_component_with_len(path,
                                                    path_length,
                                                    name,
-                                                   strlen(name),
+                                                   name_length,
                                                    &length);
 
                 if (entry_path == NULL) {
@@ -99,12 +102,15 @@ dir_recurse(const char *const path,
             }
 
             case DT_REG: {
+                const uint64_t name_length =
+                    strnlen(name, sizeof(entry->d_name));
+
                 uint64_t length = 0;
                 char *const entry_path =
                     path_append_component_with_len(path,
                                                    path_length,
                                                    name,
-                                                   strlen(name),
+                                                   name_length,
                                                    &length);
 
                 if (entry_path == NULL) {

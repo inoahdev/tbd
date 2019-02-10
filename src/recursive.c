@@ -21,31 +21,34 @@
 
 static
 char *find_last_slash_before_end(char *const path, const char *const end) {
-    const char *iter = path_find_last_row_of_slashes_before_end(path, end);
-    return (char *)path_get_front_of_row_of_slashes(path, iter);
+    return (char *)path_find_last_row_of_slashes_before_end(path, end);
 }
 
 static char *find_next_slash_skipping_first_row(char *const path) {
     char *iter = path;
-    char ch = *iter;
+    char ch = '\0';
 
     do {
         ch = *(++iter);
     } while (ch == '/');
 
-    for (ch = *(++iter); ch != '\0'; ch = *(++iter)) {
+    for (; ch != '\0'; ch = *(++iter)) {
         if (ch != '/') {
             continue;
         }
             
-        /*
-         * Skip past a row of slashes, if one does exist.
-         */
-            
-        return (char *)path_get_back_of_row_of_slashes(iter);
+        return (char *)path_get_front_of_row_of_slashes(path, iter);
     }
 
     return NULL;
+}
+
+static inline void terminate_c_str(char *const iter) {
+    *iter = '\0';
+}
+
+static inline void restore_slash_c_str(char *const iter) {
+    *iter = '/';
 }
 
 static int
@@ -55,31 +58,38 @@ reverse_mkdir_ignoring_last(char *const path,
                             char **const first_terminator_out)
 {
     char *last_slash =
-        (char *)path_find_last_row_of_slashes(path, path_length);
-
-    /*
-     * We may have a slash at the end of the string, which must be removed, so
-     * we can properly iterate backwards the slashes that seperate components. 
-     */
+        (char *)path_find_back_of_last_row_of_slashes(path, path_length);
 
     int first_ret = 0;
-    if (last_slash[1] == '\0') {
+
+    /*
+     * We may have a slash at the back of the string, which we should ignore
+     * as terminating at that point does not change the actual path.
+     */
+
+    const char possible_end = last_slash[1];
+    if (possible_end == '\0') {    
+        terminate_c_str(last_slash);
+        first_ret = mkdir(path, mode);
+        restore_slash_c_str(last_slash);
+
+        if (first_ret == 0) {
+            return 0;
+        }
+
+        last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
         last_slash =
-            (char *)path_get_front_of_row_of_slashes(path, last_slash);
-        
-        *last_slash = '\0';
-        first_ret = mkdir(path, mode);
-        *last_slash = '/';
-
-        last_slash = find_last_slash_before_end(path, last_slash);
+            (char *)path_find_back_of_last_row_of_slashes_before_end(
+                path,
+                last_slash);
     } else {
-        *last_slash = '\0';
+        terminate_c_str(last_slash);
         first_ret = mkdir(path, mode);
-        *last_slash = '/';
-    }
+        restore_slash_c_str(last_slash);
 
-    if (first_ret == 0) {
-        return 0;
+        if (first_ret == 0) {
+            return 0;
+        }
     }
 
     /*
@@ -100,13 +110,13 @@ reverse_mkdir_ignoring_last(char *const path,
     }
 
     /*
-     * Store a pointer to the slash mentioned above, however, store at the back
-     * of any row if one exists as we move backwards when iterating and
+     * Store a pointer to the final slash we'll terminate, however, store at the
+     * back of any row if one exists as we move backwards when iterating and
      * when checking against this variable.
      */
 
     char *const final_slash =
-        (char *)path_get_back_of_row_of_slashes(last_slash);
+        (char *)path_get_front_of_row_of_slashes(path, last_slash);
 
     /*
      * Iterate over the path-components backwayds, finding the final slash
@@ -124,17 +134,18 @@ reverse_mkdir_ignoring_last(char *const path,
      * iteration.
      */
 
+    last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
     while (last_slash != path) {
         last_slash = find_last_slash_before_end(path, last_slash);
         if (last_slash == NULL) {
             return 1;
         }
 
-        *last_slash = '\0';
-        
+        terminate_c_str(last_slash);
         const int ret = mkdir(path, mode);
+        restore_slash_c_str(last_slash);
+
         if (ret == 0) {
-            *last_slash = '/';
             break;
         }
         
@@ -145,7 +156,6 @@ reverse_mkdir_ignoring_last(char *const path,
              */
 
             if (errno == EEXIST) {
-                *last_slash = '/';
                 return 0;
             }
 
@@ -156,12 +166,9 @@ reverse_mkdir_ignoring_last(char *const path,
              */
 
             if (errno != ENOENT) {
-                *last_slash = '/';
                 return 1;
             }
         }
-
-        *last_slash = '/';
     }
 
     if (first_terminator_out != NULL) {
@@ -194,11 +201,11 @@ reverse_mkdir_ignoring_last(char *const path,
      */
 
     do {
-        *slash = '\0';
-
+        terminate_c_str(slash);
         const int ret = mkdir(path, mode);
+        restore_slash_c_str(slash);
+
         if (ret < 0) {
-            *slash = '/';
             return 1;
         }
 
@@ -207,7 +214,6 @@ reverse_mkdir_ignoring_last(char *const path,
          * break out and return.
          */
 
-        *slash = '/';
         if (slash == final_slash) {
             break;
         }
@@ -230,6 +236,14 @@ open_r(char *const path,
     if (fd >= 0) {
         return fd;
     }
+
+    /*
+     * The only allowed error is ENOENT (when a directory in the hierarchy
+     * doesn't exist, which is the whole point of this function).
+     * 
+     * Other errors may be due to permissions error and the sort, but which are
+     * beyond the scope of this function.
+     */
 
     if (errno != ENOENT) {
         return -1;
@@ -256,10 +270,25 @@ mkdir_r(char *const path,
     if (mkdir(path, mode) == 0) {
         return 0;
     }
+
+    /*
+     * If the directory already exists, return as a success.
+     * 
+     * Note: To avoid multiple syscalls, we call mkdir() knowing that the
+     * directory may already exist, preferring to check errno instead.
+     */
     
     if (errno == EEXIST) {
-         return 0;
+        return 0;
     }
+
+    /*
+     * The only allowed error is ENOENT (when a directory in the hierarchy
+     * doesn't exist, which is the whole point of this function).
+     * 
+     * Other errors may be due to permissions error and the sort, but which are
+     * beyond the scope of this function.
+     */
 
     if (errno != ENOENT) {
         return 1;
@@ -282,23 +311,25 @@ remove_partial_r(char *const path, const uint64_t length, char *const from) {
         return 1;
     }
 
-    char *last_slash = (char *)path_find_last_row_of_slashes(from, length);
+    const uint64_t from_delta = (uint64_t)(from - path);
+    const uint64_t from_length = length - from_delta;
+
+    char *last_slash = (char *)path_find_last_row_of_slashes(from, from_length);
+    if (last_slash == NULL) {
+        return 1;
+    }
 
     do {
-        if (last_slash == NULL) {
-            return 1;
-        }
-
-        *last_slash = '\0';
-        
+        terminate_c_str(last_slash);
         const int ret = remove(path);
+        restore_slash_c_str(last_slash);
+
         if (ret != 0) {
             return 1;
         }
 
-        *last_slash = '/';
         last_slash = find_last_slash_before_end(from, last_slash);
-    } while (true);
+    } while (last_slash != NULL);
 
     return 0;
 }

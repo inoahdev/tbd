@@ -40,7 +40,8 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
         archs_iter >>= 1;
         if (archs_iter == 0) {
             /*
-             * Write the end bracket for the arch-info list and return.
+             * If we're already at the end, simply write the end bracket for the
+             * arch-info list and return.
              */
 
             if (fputs(" ]\n", file) < 0) {
