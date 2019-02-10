@@ -17,7 +17,7 @@
 #include "macho_file.h"
 #include "range.h"
 
-enum macho_file_parse_result 
+enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
                                          int fd,
                                          struct range range,
@@ -31,7 +31,7 @@ macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
                                          uint64_t options,
                                          struct symtab_command *symtab_out);
 
-enum macho_file_parse_result 
+enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(struct tbd_create_info *info,
                                         const uint8_t *map,
                                         uint64_t map_size,

@@ -33,7 +33,7 @@ handle_dsc_file_parse_result(
                       "dyld_shared_cache file\n",
                       stderr);
             }
-    
+
             break;
         }
 
@@ -495,7 +495,7 @@ handle_dsc_image_parse_result(struct tbd_for_main *const global,
             break;
         }
 
-        case E_DSC_IMAGE_PARSE_INVALID_REEXPORT: 
+        case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
             if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has an image "
@@ -711,7 +711,7 @@ handle_dsc_image_parse_result(struct tbd_for_main *const global,
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             tbd->info.archs &= ~archs_re;
         } else {
-            tbd->info.archs = archs_re; 
+            tbd->info.archs = archs_re;
         }
     }
 
@@ -720,15 +720,15 @@ handle_dsc_image_parse_result(struct tbd_for_main *const global,
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             tbd->info.flags_field &= ~flags_re;
          } else {
-            tbd->info.flags_field = flags_re; 
+            tbd->info.flags_field = flags_re;
         }
     }
 
     /*
      * If some of the fields are empty, but their respective error-codes weren't
-     * returned (for when O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), 
+     * returned (for when O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided),
      * We instead check here and request info from the user.
-     * 
+     *
      * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
      * mandatory fields and therefore aren't always provided.
      */

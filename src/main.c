@@ -171,7 +171,7 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
             fprintf(stderr,
                     "Failed to get information on object at path, error: %s\n",
                     strerror(errno));
-            
+
             exit(1);
         }
 
@@ -186,7 +186,7 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
          *         filter.
          *
          *     (2) Either one image-number, or one image-path has been provided.
-         */ 
+         */
 
         const struct array *const filters = &tbd->dsc_image_filters;
         if (array_is_empty(filters)) {
@@ -240,19 +240,19 @@ int main(const int argc, const char *const argv[]) {
 
     /*
      * We distinguish between "local" and "global" options.
-     * 
+     *
      * Local options are provided to set information of only one file or
      * directory that is provided with one "--path" option.
      * Global options are provided to set information of all files and all
      * directories that would ever be provided.
-     * 
+     *
      * Although this concept seem simple, some complexities remain.
-     * 
+     *
      * It would make no sense for a global option to override an explicity
      * stated local option, as there would have been no reason to have
      * explicitly provided the local option if a global option of a different
      * type was to be provided.
-     * 
+     *
      * To store our global information, we keep a tbd_with_options struct here
      * where information can be stored, and later set the information of "local"
      * tbd_with_options structures.
@@ -287,9 +287,9 @@ int main(const int argc, const char *const argv[]) {
                     index,
                     argument);
 
-            tbd_for_main_destroy(&global);    
+            tbd_for_main_destroy(&global);
             destroy_tbds_array(&tbds);
-            
+
             return 1;
         }
 
@@ -317,7 +317,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -338,7 +338,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -348,14 +348,14 @@ int main(const int argc, const char *const argv[]) {
                  * Here, we can either receive an option or a path-string, so
                  * the same validation as above cannot be carried out here.
                  */
-                
+
                 const char *const inner_arg = argv[index];
                 const char inner_arg_front = inner_arg[0];
-                
+
                 if (inner_arg_front == '-') {
                     const char *inner_opt = inner_arg + 1;
                     const char inner_opt_front = inner_opt[0];
-                    
+
                     if (inner_opt_front == '-') {
                         inner_opt += 1;
                     }
@@ -376,7 +376,7 @@ int main(const int argc, const char *const argv[]) {
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
                     }
@@ -389,7 +389,7 @@ int main(const int argc, const char *const argv[]) {
                  * not when recursing directories.
                  */
 
-                const char *const path = inner_arg; 
+                const char *const path = inner_arg;
                 if (strcmp(path, "stdout") == 0) {
                     const bool preserve_subdirs =
                         tbd->options &
@@ -404,17 +404,17 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
 
                     if (has_stdout) {
                         fputs("Cannot print more than one file to stdout\n",
                               stderr);
-                        
+
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
 
@@ -425,8 +425,8 @@ int main(const int argc, const char *const argv[]) {
                 /*
                  * Ensure options for recursing directories are not being
                  * provided for other contexts and circumstances.
-                 * 
-                 * We allow dyld_shared_cache files to slip through as they will 
+                 *
+                 * We allow dyld_shared_cache files to slip through as they will
                  * always be exported to a directory.
                  */
 
@@ -441,7 +441,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
 
@@ -455,7 +455,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
                 }
@@ -470,10 +470,10 @@ int main(const int argc, const char *const argv[]) {
                     path_get_absolute_path_if_necessary(path,
                                                         full_path_length,
                                                         &full_path_length);
-                
+
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
-                    
+
                     tbd_for_main_destroy(&global);
                     destroy_tbds_array(&tbds);
 
@@ -501,7 +501,7 @@ int main(const int argc, const char *const argv[]) {
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -529,7 +529,7 @@ int main(const int argc, const char *const argv[]) {
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
                     }
@@ -544,7 +544,7 @@ int main(const int argc, const char *const argv[]) {
                     full_path = strndup(full_path, full_path_length);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
-                        
+
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
@@ -566,7 +566,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -580,7 +580,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -634,13 +634,13 @@ int main(const int argc, const char *const argv[]) {
                                                       argv,
                                                       inner_opt,
                                                       &index);
-                            
+
                         if (ret) {
                             continue;
                         }
-                        
+
                         fprintf(stderr, "Unrecognized option: %s\n", inner_arg);
-                        
+
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
@@ -665,7 +665,7 @@ int main(const int argc, const char *const argv[]) {
 
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
-                        
+
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
@@ -696,7 +696,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
 
@@ -714,7 +714,7 @@ int main(const int argc, const char *const argv[]) {
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
 
@@ -726,14 +726,14 @@ int main(const int argc, const char *const argv[]) {
                                   "instead to indicate you want to parse a "
                                   "dyld_shared_cache file\n",
                                   stderr);
-                            
+
                             if (full_path != path) {
                                 free(full_path);
                             }
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -752,7 +752,7 @@ int main(const int argc, const char *const argv[]) {
 
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-                            
+
                             return 1;
                         }
                     } else {
@@ -766,7 +766,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
 
@@ -779,7 +779,7 @@ int main(const int argc, const char *const argv[]) {
                         /*
                          * Prevent any ending slashes from being copied to make
                          * directory recursing easier.
-                         * 
+                         *
                          * We only need to do this when full_path was not
                          * created with the current-directory, as our path
                          * functions don't append ending slashes.
@@ -797,7 +797,7 @@ int main(const int argc, const char *const argv[]) {
                         full_path = strndup(full_path, full_path_length);
                         if (full_path == NULL) {
                             fputs("Failed to allocate memory\n", stderr);
-                            
+
                             tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
 
@@ -816,7 +816,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         return 1;
                     }
                 }
@@ -836,7 +836,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         free(tbd.parse_path);
                         return 1;
                     }
@@ -851,7 +851,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         free(tbd.parse_path);
                         return 1;
                     }
@@ -868,7 +868,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         free(tbd.parse_path);
                         return 1;
                     }
@@ -883,7 +883,7 @@ int main(const int argc, const char *const argv[]) {
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-                        
+
                         free(tbd.parse_path);
                         return 1;
                     }
@@ -900,7 +900,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -912,7 +912,7 @@ int main(const int argc, const char *const argv[]) {
                       stderr);
 
                 free(tbd.parse_path);
-                
+
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
@@ -927,7 +927,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1000,7 +1000,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1012,7 +1012,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1024,7 +1024,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1040,7 +1040,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1052,7 +1052,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1064,7 +1064,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 
@@ -1075,9 +1075,9 @@ int main(const int argc, const char *const argv[]) {
             if (tbd_for_main_parse_option(&global, argc, argv, opt, &index)) {
                 continue;
             }
-            
+
             fprintf(stderr, "Unrecognized option: %s\n", argument);
-            
+
             tbd_for_main_destroy(&global);
             destroy_tbds_array(&tbds);
 
@@ -1095,7 +1095,7 @@ int main(const int argc, const char *const argv[]) {
 
         tbd_for_main_destroy(&global);
         destroy_tbds_array(&tbds);
-        
+
         return 1;
     }
 
@@ -1128,7 +1128,7 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-                
+
                 return 1;
             }
 

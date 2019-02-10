@@ -28,7 +28,7 @@ request_input(const char *const prompt,
 
         if (inputs != NULL) {
             fprintf(stdout, " (%s", inputs[0]);
-            
+
             const char *const *iter = &inputs[1];
             const char *acceptable_input = *iter;
 
@@ -43,7 +43,7 @@ request_input(const char *const prompt,
         fflush(stdout);
 
         char *input = NULL;
-        
+
         size_t input_size = 0;
         ssize_t input_length = getline(&input, &input_size, stdin);
 
@@ -194,7 +194,7 @@ request_objc_constraint(struct tbd_for_main *const global,
 
     if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
-        
+
         free(should_replace);
         return false;
     } else if (strcmp(should_replace, "no") == 0) {
@@ -231,7 +231,7 @@ request_objc_constraint(struct tbd_for_main *const global,
         if (objc_constraint == 0) {
             fprintf(stderr, "Unrecognized objc-constraint type: %s\n", input);
             free(input);
-    
+
             continue;
         }
 
@@ -333,7 +333,7 @@ request_platform(struct tbd_for_main *const global,
         return false;
     }
 
-    if (info_in != NULL) { 
+    if (info_in != NULL) {
         if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM) {
             return false;
         }
@@ -487,7 +487,7 @@ request_swift_version(struct tbd_for_main *const global,
 
                 continue;
             }
-            
+
             const uint64_t input_number = strtoul(input, NULL, 10);
             if (input_number > UINT32_MAX) {
                 fprintf(stderr,
@@ -557,7 +557,7 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
 
     if (strcmp(should_replace, "never") == 0) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
-        
+
         free(should_replace);
         return false;
     } else if (strcmp(should_replace, "no") == 0) {

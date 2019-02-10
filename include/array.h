@@ -1,6 +1,6 @@
 //
 //  include/array.h
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 8/18/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
@@ -77,7 +77,7 @@ enum array_cached_index_type {
 /*
  * array_cached_index_info is a structure describing the information resulted
  * from the lookup in array_find_item_in_sorted. This is useful to avoid extra
- * lookups if adding the same item to the same array in 
+ * lookups if adding the same item to the same array in
  */
 
 struct array_cached_index_info {

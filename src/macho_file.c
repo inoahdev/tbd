@@ -37,7 +37,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
 {
     const bool is_64 =
         header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
-    
+
     if (is_64) {
         if (size < sizeof(struct mach_header_64)) {
             return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
@@ -83,7 +83,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         arch_info_for_cputype(header.cputype, header.cpusubtype);
 
     if (arch == NULL) {
-        return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;        
+        return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
     }
 
     const struct arch_info *const arch_info_list = arch_info_get_list();
@@ -106,7 +106,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
     };
 
     info_in->archs |= arch_bit;
-    const enum macho_file_parse_result parse_load_commands_result =    
+    const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_file(info_in,
                                                  fd,
                                                  range,
@@ -147,12 +147,12 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
 
     uint64_t archs_size = sizeof(struct fat_arch);
     if (guard_overflow_mul(&archs_size, nfat_arch)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     uint64_t total_headers_size = sizeof(struct fat_header);
     if (guard_overflow_add(&total_headers_size, archs_size)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     if (total_headers_size >= size) {
@@ -246,7 +246,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
 
         const struct range arch_range = {
             .begin = arch_offset,
-            .end = arch_end 
+            .end = arch_end
         };
 
         /*
@@ -315,7 +315,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
                 continue;
             }
-            
+
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -348,7 +348,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             free(archs);
             return handle_arch_result;
         }
-    
+
         parsed_one_arch = true;
     }
 
@@ -373,19 +373,19 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 {
     /*
      * Calculate the total-size of the architectures given.
-     * 
+     *
      * Since sizeof(struct fat_arch) is a power of 2 (32), use a shift by 5
      * instead.
      */
 
     uint64_t archs_size = nfat_arch;
     if (guard_overflow_shift_left(&archs_size, 5)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     uint64_t total_headers_size = sizeof(struct fat_header);
     if (guard_overflow_add(&total_headers_size, archs_size)) {
-        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES; 
+        return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
     if (total_headers_size >= size) {
@@ -558,7 +558,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
                 continue;
             }
-            
+
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -773,7 +773,7 @@ void macho_file_print_archs(const int fd) {
 
         /*
          * Calculate the total-size of the architectures given.
-         * 
+         *
          * Since sizeof(struct fat_arch_64) is a power of 2 (32), use a shift
          * by 5 instead.
          */
@@ -890,7 +890,7 @@ void macho_file_print_archs(const int fd) {
             struct mach_header header = {};
             const uint32_t read_size =
                 sizeof(header.cputype) + sizeof(header.cpusubtype);
-            
+
             if (read(fd, &header.cputype, read_size) < 0) {
                 fprintf(stderr,
                         "Failed to read data from mach-o, error: %s\n",

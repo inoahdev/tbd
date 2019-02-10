@@ -1,6 +1,6 @@
 //
 //  src/dsc_image.c
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 12/29/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
@@ -22,7 +22,7 @@
 /*
  * To avoid duplicating code, we pass on the mach-o verification to macho_file's
  * operations, which have a different error-code.
- * 
+ *
  * We have many of the same error-codes, save for a few (no fat support), so all
  * that is needed is a simple translation.
  */
@@ -68,7 +68,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
          */
 
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
-            return E_DSC_IMAGE_PARSE_NOT_A_MACHO;       
+            return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
 
         case E_MACHO_FILE_PARSE_NO_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
@@ -83,7 +83,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS:
             return E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS;
-    
+
         case E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
             return E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
 
@@ -92,7 +92,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS:
             return E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS;
-        
+
         case E_MACHO_FILE_PARSE_INVALID_SECTION:
             return E_DSC_IMAGE_PARSE_INVALID_SECTION;
 
@@ -142,10 +142,10 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
             return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
-        
+
         case E_MACHO_FILE_PARSE_NO_UUID:
             return E_DSC_IMAGE_PARSE_NO_UUID;
-        
+
         case E_MACHO_FILE_PARSE_NO_EXPORTS:
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
     }
@@ -201,7 +201,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      * To find out image's data, we have to recurse the mappings, to find the
      * one containing our file.
      */
-    
+
     uint64_t max_image_size = 0;
     const uint64_t file_offset =
         get_image_file_offset_from_address(dsc_info,
@@ -219,9 +219,9 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     const uint8_t *const map = dsc_info->map;
     const struct mach_header *const header =
         (const struct mach_header *)(map + file_offset);
-    
+
     const uint32_t magic = header->magic;
-    
+
     const bool is_64 = magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
     const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
 
@@ -258,10 +258,10 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      * The symbol-table and string-table offsets are absolute, not relative from
      * image's base, but we still need to account for shared-cache's start and
      * size. We do this by parsing the symbol-table separately.
-     * 
+     *
      * The section's offset are relative to the map, not to the header, and
      * therefore should be treated as 'absolute'.
-     */ 
+     */
 
     const uint64_t arch_bit = dsc_info->arch_bit;
     const uint64_t dsc_size = dsc_info->size;
@@ -271,7 +271,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
         macho_options;
 
-    const enum macho_file_parse_result parse_load_commands_result =    
+    const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_map(info_in,
                                                 map,
                                                 dsc_size,
@@ -294,7 +294,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     /*
      * If symtab is invalid, we can simply assume that no symbol-table was
      * found, but that this was ok from the options as
-     * macho_file_parse_load_commands_from_map didn't return an error-code. 
+     * macho_file_parse_load_commands_from_map didn't return an error-code.
      */
 
     if (symtab.cmd != LC_SYMTAB) {

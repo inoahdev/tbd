@@ -19,7 +19,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
     /*
      * We need to find the first arch-info to print the list, and then print
      * subsequent archs with a preceding comma.
-     */ 
+     */
 
     const struct arch_info *arch_info_list = arch_info_get_list();
 
@@ -36,7 +36,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
             archs_iter >>= 1;
             break;
         }
-        
+
         archs_iter >>= 1;
         if (archs_iter == 0) {
             /*
@@ -57,7 +57,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
     /*
      * After writing the first arch, write the following archs with a
      * preceding comma.
-     * 
+     *
      * Count the amount of archs on one line, starting off with one as we just
      * wrote one before looping over the rest. When the counter reaches 7, print
      * a newline and reset the counter.
@@ -67,7 +67,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
 
     do {
         index += 1;
-        
+
         if (archs_iter & 1) {
             const struct arch_info *const arch = arch_info_list + index;
             if (fprintf(file, ", %s", arch->name) < 0) {
@@ -113,7 +113,7 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
     /*
      * We need to find the first arch-info to print the list, and then print
      * subsequent archs with a preceding comma.
-     */ 
+     */
 
     const struct arch_info *arch_info_list = arch_info_get_list();
 
@@ -130,7 +130,7 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
             archs_iter >>= 1;
             break;
         }
-        
+
         archs_iter >>= 1;
         if (archs_iter == 0) {
             /*
@@ -150,7 +150,7 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
     /*
      * After writing the first arch, write the following archs with a
      * preceding comma.
-     * 
+     *
      * Count the amount of archs on one line, starting off with one as we just
      * wrote one before looping over the rest. When the counter reaches 7, print
      * a newline and reset the counter.
@@ -160,7 +160,7 @@ static int write_exported_archs(FILE *const file, const uint64_t archs) {
 
     do {
         index += 1;
-        
+
         if (archs_iter & 1) {
             const struct arch_info *const arch = arch_info_list + index;
             if (fprintf(file, ", %s", arch->name) < 0) {
@@ -422,7 +422,7 @@ int tbd_write_magic(FILE *const file, const enum tbd_version version) {
             }
 
             break;
-    
+
         case TBD_VERSION_V3:
             if (fputs("--- !tapi-tbd-v3\n", file) < 0) {
                 return 1;
@@ -506,7 +506,7 @@ tbd_write_swift_version(FILE *const file,
 {
     if (swift_version == 0) {
         return 0;
-    } 
+    }
 
     switch (tbd_version) {
         case TBD_VERSION_V1:
@@ -515,7 +515,7 @@ tbd_write_swift_version(FILE *const file,
         case TBD_VERSION_V2:
             if (fprintf(file, "swift-version:%-9s", "") < 0) {
                 return 1;
-            }   
+            }
 
             break;
 
@@ -526,7 +526,7 @@ tbd_write_swift_version(FILE *const file,
 
             break;
     }
-            
+
 
     switch (swift_version) {
         case 1:
@@ -554,7 +554,7 @@ tbd_write_swift_version(FILE *const file,
     return 0;
 }
 
-static inline int 
+static inline int
 write_uuid(FILE *const file,
            const struct arch_info *const arch,
            const uint8_t *const uuid,
@@ -644,13 +644,13 @@ int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
 
     uint64_t counter = 1;
     bool needs_comma = true;
-        
+
     do {
         uuid = uuid + 1;
         if (uuid == end) {
             break;
         }
-        
+
         if (write_uuid(file, uuid->arch, uuid->uuid, needs_comma)) {
             return 1;
         }
@@ -753,13 +753,13 @@ static uint32_t line_length_max = 105;
 /*
  * Write either a comma or a newline depending on either the current or new
  * line length, or the string-length.
- * 
+ *
  * Requires:
  *     line_length != 0
  *     string_length != 0
- * 
+ *
  * Returns:
- *     string_length, 
+ *     string_length,
  */
 
 enum write_comma_result {
@@ -897,7 +897,7 @@ tbd_write_exports(FILE *const file,
                 if (end_written_export_array(file)) {
                     return 1;
                 }
-                
+
                 break;
             }
 
@@ -925,7 +925,7 @@ tbd_write_exports(FILE *const file,
                  * Reset the line-length after ending the previous export-type
                  * array.
                  */
-                
+
                 line_length = info->length;
                 type = inner_type;
 

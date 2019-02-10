@@ -24,4 +24,3 @@ int16_t swap_int16(int16_t num);
 int32_t swap_int32(int32_t num);
 
 #endif /* SWAP_H */
-

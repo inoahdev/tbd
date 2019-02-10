@@ -33,7 +33,7 @@ dir_recurse(const char *const path,
          * readdir() fails by returning NULL _and_ setting errno. It's possible
          * for readdir to return NULL without an error (no more files in dir).
          */
-        
+
         const int prev_errno = errno;
         struct dirent *entry = readdir(dir);
 
@@ -62,7 +62,7 @@ dir_recurse(const char *const path,
                 if (!sub_dirs) {
                     continue;
                 }
-                
+
                 const uint64_t name_length =
                     strnlen(name, sizeof(entry->d_name));
 

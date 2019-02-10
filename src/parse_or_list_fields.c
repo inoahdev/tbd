@@ -116,7 +116,7 @@ parse_flags_list(const int argc,
                 } else {
                     fprintf(stderr, "Unrecognized flag: %s\n", arg);
                 }
-            
+
                 exit(1);
             }
 

@@ -36,7 +36,7 @@ static char *find_next_slash_skipping_first_row(char *const path) {
         if (ch != '/') {
             continue;
         }
-            
+
         return (char *)path_get_front_of_row_of_slashes(path, iter);
     }
 
@@ -68,7 +68,7 @@ reverse_mkdir_ignoring_last(char *const path,
      */
 
     const char possible_end = last_slash[1];
-    if (possible_end == '\0') {    
+    if (possible_end == '\0') {
         terminate_c_str(last_slash);
         first_ret = mkdir(path, mode);
         restore_slash_c_str(last_slash);
@@ -94,7 +94,7 @@ reverse_mkdir_ignoring_last(char *const path,
 
     /*
      * If the directory already exists, return successfully.
-     * 
+     *
      * Otherwise, if another error besides ENOENT (error given when a directory
      * in the hierarchy doesn't exist), return as fail.
      */
@@ -122,14 +122,14 @@ reverse_mkdir_ignoring_last(char *const path,
      * Iterate over the path-components backwayds, finding the final slash
      * within a range of the of the previous final slash, and terminate the
      * string at that slash.
-     * 
+     *
      * Then try creating that directory.
      * If that succeeds, break out of the loop to then iterate forwards and
      * create the directories afterwards.
-     * 
+     *
      * If the directory already exists, we can simply return as it cannot happen
      * unless the second-to-last path-component already exists.
-     * 
+     *
      * If a directory-component doesn't exist (ENOENT), continue with the
      * iteration.
      */
@@ -148,7 +148,7 @@ reverse_mkdir_ignoring_last(char *const path,
         if (ret == 0) {
             break;
         }
-        
+
         if (ret < 0) {
             /*
              * If the directory already exists, we are done, as the previous
@@ -194,9 +194,9 @@ reverse_mkdir_ignoring_last(char *const path,
     /*
      * Iterate forwards to create path-components following the final
      * path-component created in the previous loop.
-     * 
+     *
      * Note: We still terminate at final_slash, and only afterwards do we stop,
-     * as terminating at final_slash is needed to create the second-to-last 
+     * as terminating at final_slash is needed to create the second-to-last
      * path-component.
      */
 
@@ -231,7 +231,7 @@ open_r(char *const path,
        const mode_t mode,
        const mode_t dir_mode,
        char **const terminator_out)
-{    
+{
     int fd = open(path, O_CREAT | flags, mode);
     if (fd >= 0) {
         return fd;
@@ -240,7 +240,7 @@ open_r(char *const path,
     /*
      * The only allowed error is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
-     * 
+     *
      * Other errors may be due to permissions error and the sort, but which are
      * beyond the scope of this function.
      */
@@ -273,11 +273,11 @@ mkdir_r(char *const path,
 
     /*
      * If the directory already exists, return as a success.
-     * 
+     *
      * Note: To avoid multiple syscalls, we call mkdir() knowing that the
      * directory may already exist, preferring to check errno instead.
      */
-    
+
     if (errno == EEXIST) {
         return 0;
     }
@@ -285,7 +285,7 @@ mkdir_r(char *const path,
     /*
      * The only allowed error is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
-     * 
+     *
      * Other errors may be due to permissions error and the sort, but which are
      * beyond the scope of this function.
      */

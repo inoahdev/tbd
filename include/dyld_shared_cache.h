@@ -1,6 +1,6 @@
 //
 //  include/dyld_shared_cache.h
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 12/29/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
@@ -52,7 +52,7 @@ struct dyld_shared_cache_info {
 
     const struct dyld_cache_mapping_info *mappings;
     uint32_t mappings_count;
-    
+
     uint8_t *map;
     uint64_t size;
 
@@ -73,14 +73,14 @@ dyld_shared_cache_parse_from_range(struct dyld_shared_cache_info *info_in,
                                    int fd,
                                    uint64_t start,
                                    uint64_t end,
-                                   uint64_t options); 
+                                   uint64_t options);
 
 /*
  * dyld_shared_cache_iterate_images_with_callback callback.
  * Return true to continue iterating, false to stop.
  */
 
-typedef bool 
+typedef bool
 (*dyld_shared_cache_iterate_images_callback)(
     struct dyld_cache_image_info *image,
     const char *path,

@@ -80,7 +80,7 @@ is_objc_class_symbol(const char *const symbol,
                 return false;
             }
 
-            /* 
+            /*
             * The check below is `if (second == "TACLASS")`.
             */
 
@@ -109,7 +109,7 @@ is_objc_class_symbol(const char *const symbol,
                 return false;
             }
 
-            /* 
+            /*
             * The check below is `if (second == ".ass_name")`.
             */
 
@@ -123,7 +123,7 @@ is_objc_class_symbol(const char *const symbol,
 
             break;
         }
-        
+
         default:
             return false;
     }
@@ -131,12 +131,12 @@ is_objc_class_symbol(const char *const symbol,
     return true;
 }
 
-static inline 
+static inline
 bool is_objc_ivar_symbol(const char *const symbol, const uint32_t length) {
     if (length < 12) {
         return false;
     }
-    
+
     /*
      * The check here is `if (first == "_OBJC_IV")`.
      */
@@ -184,13 +184,13 @@ handle_symbol(struct tbd_create_info *const info,
             return E_MACHO_FILE_PARSE_OK;
         }
     }
-    
+
     const char *string = symbol_string;
     const uint64_t max_length = strsize - index;
 
     /*
      * Figure out the symbol-type from the symbol-string and desc.
-     * 
+     *
      * Also ensure only exported symbols are added, unless options have been
      * provided to allow otherwise.
      */
@@ -296,7 +296,7 @@ handle_symbol(struct tbd_create_info *const info,
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
-    
+
     const enum array_result add_export_info_result =
         array_add_item_with_cached_index_info(exports,
                                               sizeof(export_info),
@@ -311,7 +311,7 @@ handle_symbol(struct tbd_create_info *const info,
 
     return E_MACHO_FILE_PARSE_OK;
 }
-        
+
 enum macho_file_parse_result
 macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
                                    const int fd,
@@ -440,7 +440,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
             }
 
             const int16_t n_desc = swap_int16(nlist->n_desc);
-            
+
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info,
@@ -530,7 +530,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
     /*
      * Get the size of the symbol table by multipying the symbol-count and the
      * size of symbol-table-entry
-     * 
+     *
      * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
      * instead.
      */
@@ -709,7 +709,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 
     free(symbol_table);
     free(string_table);
-    
+
     return E_MACHO_FILE_PARSE_OK;
 }
 
@@ -905,7 +905,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
     /*
      * Get the size of the symbol table by multipying the symbol-count and the
      * size of symbol-table-entry
-     * 
+     *
      * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
      * instead.
      */
@@ -1006,7 +1006,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
             if (index >= strsize) {
                 continue;
             }
-            
+
             const uint16_t n_desc = nlist->n_desc;
 
             const char *const symbol_string = string_table + index;

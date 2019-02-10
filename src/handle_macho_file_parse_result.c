@@ -763,12 +763,12 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 fputs("The provided mach-o file has no clients, "
                       "re-exports, or symbols to be written out\n",
                       stderr);
-                
+
             }
 
             return false;
         }
-    }        
+    }
 
     /*
      * Handle the remove/replace fields
@@ -779,7 +779,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             tbd->info.archs &= ~archs_re;
         } else {
-            tbd->info.archs = archs_re; 
+            tbd->info.archs = archs_re;
         }
     }
 
@@ -788,7 +788,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             tbd->info.flags_field &= ~flags_re;
          } else {
-            tbd->info.flags_field = flags_re; 
+            tbd->info.flags_field = flags_re;
         }
     }
 
@@ -796,7 +796,7 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
      * If some of the fields are empty (for when
      * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from the
      * user.
-     * 
+     *
      * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
      * mandatory fields and aren't always provided.
      */

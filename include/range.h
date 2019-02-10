@@ -1,6 +1,6 @@
 //
 //  include/range.h
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 12/29/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.

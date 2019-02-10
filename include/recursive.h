@@ -26,7 +26,7 @@ int
 mkdir_r(char *path,
         uint64_t path_length,
         mode_t mode,
-        char **first_terminator_out); 
+        char **first_terminator_out);
 
 /*
  * Remove only directories whose path-strings are formed when terminating

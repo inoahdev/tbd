@@ -77,7 +77,7 @@ static struct arch_info arch_info_list[] = {
      */
 
     { CPU_TYPE_MC88000, CPU_SUBTYPE_MC88000_ALL, "m88k" },
-    
+
     /*
      * Following's index is 31.
      */

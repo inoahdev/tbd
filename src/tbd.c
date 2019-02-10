@@ -18,11 +18,11 @@
  * The arch-lists themselves are sorted to where arch-lists with more archs are
  * "greater", than those without.
  * Arch-lists with the same number of archs are just compared numberically.
- * 
+ *
  * Within each arch-list group, the symbols are then organized by their types.
  * Within each type group, the symbols are then finally organized
  * alphabetically.
- * 
+ *
  * This is done to make the creation of export-groups later on easier, as no
  * the symbols are already organized by their arch-lists, and then their types,
  * all alphabetically.
@@ -41,7 +41,7 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
 
-    if (array_type != type) {        
+    if (array_type != type) {
         return (int)(array_type - type);
     }
 
@@ -51,7 +51,7 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
     /*
      * We try to avoid iterating and comparing over the whole string, so we
      * could check to ensure their lengths match up.
-     * 
+     *
      * However, we don't want to symbols to ever be organized by their length,
      * which would be the case if `(array_length - length)` was returned.
      *
@@ -60,7 +60,7 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
      *
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
-     * 
+     *
      * Add one to also compare the null-terminator.
      */
 
@@ -108,7 +108,7 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
 
-    if (array_type != type) {        
+    if (array_type != type) {
         return (int)(array_type - type);
     }
 
@@ -118,7 +118,7 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     /*
      * We try to avoid iterating and comparing over the whole string, so we
      * could check to ensure their lengths match up.
-     * 
+     *
      * However, we don't want to symbols to ever be organized by their length,
      * which would be the case if `(array_length - length)` was returned.
      *
@@ -127,7 +127,7 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
      *
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
-     * 
+     *
      * Add one to also compare the null-terminator.
      */
 
@@ -188,7 +188,7 @@ tbd_create_with_info(const struct tbd_create_info *const info,
     if (tbd_write_platform(file, info->platform)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
-    
+
     if (version != TBD_VERSION_V1) {
         if (!(options & O_TBD_CREATE_IGNORE_FLAGS)) {
             if (tbd_write_flags(file, info->flags_field)) {
@@ -254,7 +254,7 @@ static void destroy_exports_array(struct array *const list) {
     for (; info != end; info++) {
         free(info->string);
     }
-    
+
     array_destroy(list);
 }
 

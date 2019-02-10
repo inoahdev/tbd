@@ -99,7 +99,7 @@ tbd_export_info_no_archs_comparator(const void *array_item, const void *item);
 
 struct tbd_uuid_info {
     const struct arch_info *arch;
-    uint8_t uuid[16];  
+    uint8_t uuid[16];
 };
 
 int tbd_uuid_info_comparator(const void *array_item, const void *item);
@@ -125,7 +125,7 @@ struct tbd_create_info {
 
     enum tbd_platform platform;
     enum tbd_objc_constraint objc_constraint;
-    
+
     const char *install_name;
     const char *parent_umbrella;
 

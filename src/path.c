@@ -273,7 +273,7 @@ path_append_component_with_len(const char *const path,
          * We prefer the componet to not have a front-slash, with instead the
          * path having a back-slash, or we providing the slash ourselves.
          */
-        
+
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
             return strndup(path, path_copy_length);
@@ -291,7 +291,7 @@ path_append_component_with_len(const char *const path,
 
     if (path_copy_length == 0) {
         return strndup(component_iter, component_copy_length);
-    } 
+    }
 
     /*
      * Add one for the back-slash on the path.
@@ -309,7 +309,7 @@ path_append_component_with_len(const char *const path,
     }
 
     char *combined_component_iter = combined + path_copy_length;
-    
+
     /*
      * Write the slash-separator between the path and the component.
      */
@@ -371,7 +371,7 @@ path_append_component_and_extension_with_len(const char *const path,
          * We prefer the componet to not have a front-slash, with instead the
          * path having a back-slash, or we providing the slash ourselves.
          */
-        
+
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
             return strndup(path, path_copy_length);
@@ -435,7 +435,7 @@ path_append_component_and_extension_with_len(const char *const path,
     /*
      * Write the slash-separator between the path and the component.
      */
-    
+
     *combined_component_iter = '/';
     combined_component_iter += 1;
 
@@ -472,12 +472,12 @@ path_get_last_path_component(const char *const path,
 {
     const char *component_end = &path[path_length];
     const char back_ch = path[path_length - 1];
-    
+
     if (ch_is_path_slash(back_ch)) {
         const char *const back = &path[path_length - 1];
         component_end =
             path_get_iter_before_front_of_row_of_slashes(path, back);
-    
+
         /*
          * If we get NULL, the entire path-string is just path-slashes.
          */
@@ -604,7 +604,7 @@ path_find_extension(const char *const path, const uint64_t length) {
          * We haven't found an extension if the path-component itself starts
          * with a dot.
          */
-        
+
         ch = *(iter - 1);
         if (ch_is_path_slash(ch)) {
             return NULL;

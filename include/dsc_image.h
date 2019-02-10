@@ -1,6 +1,6 @@
 //
 //  include/dsc_image.h
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 12/29/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
@@ -25,10 +25,10 @@ enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL,
 
     E_DSC_IMAGE_PARSE_INVALID_RANGE,
-    
+
     E_DSC_IMAGE_PARSE_NOT_A_MACHO,
     E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED,
-    
+
     E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS,
     E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS,
 
@@ -51,7 +51,7 @@ enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_NO_PLATFORM,
     E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE,
     E_DSC_IMAGE_PARSE_NO_UUID,
-    
+
     E_DSC_IMAGE_PARSE_NO_EXPORTS
 };
 

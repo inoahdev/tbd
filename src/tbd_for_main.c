@@ -48,7 +48,7 @@ add_image_filter(struct tbd_for_main *const tbd,
     if (add_filter_result != E_ARRAY_OK) {
         fprintf(stderr,
                 "Experienced an array failure trying to add image-filter %s\n",
-                string); 
+                string);
 
         exit(1);
     }
@@ -80,7 +80,7 @@ add_image_number(struct tbd_for_main *const tbd,
                 number_string);
 
         exit(1);
-    } 
+    }
 
     /*
      * Limit the number to only 32-bit as that's the range allowed by the
@@ -105,7 +105,7 @@ add_image_number(struct tbd_for_main *const tbd,
     if (add_number_result != E_ARRAY_OK) {
         fprintf(stderr,
                 "Experienced an array failure trying to add image-number %s\n",
-                number_string); 
+                number_string);
 
         exit(1);
     }
@@ -138,7 +138,7 @@ add_image_path(struct tbd_for_main *const tbd,
     if (add_path_result != E_ARRAY_OK) {
         fprintf(stderr,
                 "Experienced an array failure trying to add image-path %s\n",
-                string); 
+                string);
 
         exit(1);
     }
@@ -235,7 +235,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
                 exit(1);
             }
         }
-        
+
         index += 1;
 
         tbd->archs_re = parse_architectures_list(argc, argv, &index);
@@ -261,7 +261,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
             exit(1);
         }
-        
+
         index += 1;
         tbd->archs_re = parse_architectures_list(argc, argv, &index);
     } else if (strcmp(option, "replace-flags") == 0) {
@@ -332,7 +332,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->options |= O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |=
-            O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES; 
+            O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {
@@ -377,7 +377,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
-         * 
+         *
          * If file_path is related to tbd->parse_path, then we need to get the
          * sub-directories of file_path that are not in tbd->parse_path but are
          * in the hierarchy of file_path.
@@ -462,13 +462,13 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
                DEFFILEMODE,
                0755,
                &terminator);
-    
-    if (write_fd < 0) {        
+
+    if (write_fd < 0) {
         if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             /*
              * If the file already exists, we should just skip over to prevent
              * overwriting.
-             * 
+             *
              * Note: EEXIST is only returned when O_EXCL was set, which is only
              * set for O_TBD_FOR_MAIN_NO_OVERWRITE, meaning no check here is
              * necessary.
@@ -508,7 +508,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * as the directories we created (that are pointed to by terminator)
              * may now be populated with other files.
              */
-            
+
             remove_partial_r(write_path, write_path_length, terminator);
         }
 
@@ -534,7 +534,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
 
         return;
     }
-    
+
     const struct tbd_create_info *const create_info = &tbd->info;
     const enum tbd_create_result create_tbd_result =
         tbd_create_with_info(create_info, write_file, tbd->write_options);
@@ -558,7 +558,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * as the directories we created (that are pointed to by terminator)
              * may now be populated with other files.
              */
-            
+
             remove_partial_r(write_path, write_path_length, terminator);
         }
     }
@@ -660,7 +660,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
         /*
          * Only preset flags if we aren't later removing/replacing these flags.
          */
-        
+
         if (dst->flags_re != 0) {
             dst->info.flags_field = src->info.flags;
         }
@@ -685,7 +685,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     if (dst->info.swift_version == 0) {
         dst->info.swift_version = src->info.swift_version;
     }
-        
+
     if (dst->info.version == 0) {
         dst->info.version = src->info.version;
     }

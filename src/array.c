@@ -23,7 +23,7 @@ array_get_item_at_index(const struct array *const array,
         return NULL;
     }
 
-    return iter; 
+    return iter;
 }
 
 void *array_get_front(const struct array *const array) {
@@ -48,7 +48,7 @@ array_expand_if_necessary(struct array *const array,
                           const uint64_t add_byte_size)
 {
     void *const old_data = array->data;
-    
+
     const uint64_t used_size = array_get_used_size(array);
     const uint64_t old_capacity = (uint64_t)(array->alloc_end - old_data);
     const uint64_t wanted_capacity = used_size + add_byte_size;
@@ -90,24 +90,24 @@ array_add_item_to_byte_index(struct array *const array,
 {
     const enum array_result expand_result =
         array_expand_if_necessary(array, item_size);
-    
+
     if (expand_result != E_ARRAY_OK) {
         return expand_result;
     }
-    
+
     void *const position = array->data + byte_index;
     void *const data_end = array->data_end;
-    
+
     if (position != data_end) {
         void *const next_position = position + item_size;
         const uint64_t array_move_size = (uint64_t)(data_end - position);
-        
+
         memmove(next_position, position, array_move_size);
     }
-    
+
     memcpy(position, item, item_size);
     array->data_end = data_end + item_size;
-    
+
     if (item_out != NULL) {
         *item_out = position;
     }
@@ -139,11 +139,11 @@ array_add_item(struct array *const array,
                                      item,
                                      byte_index,
                                      item_out);
-        
+
     if (add_item_result != E_ARRAY_OK) {
         return add_item_result;
     }
-    
+
     return E_ARRAY_OK;
 }
 
@@ -154,7 +154,7 @@ array_add_items_from_array(struct array *const array,
     const uint64_t other_used_size = array_get_used_size(other);
     const enum array_result expand_result =
         array_expand_if_necessary(array, other_used_size);
-    
+
     if (expand_result != E_ARRAY_OK) {
         return expand_result;
     }
@@ -195,7 +195,7 @@ array_add_and_unique_items_from_array(struct array *const array,
             return add_item_result;
         }
     }
-    
+
     return E_ARRAY_OK;
 }
 
@@ -219,7 +219,7 @@ array_find_item(const struct array *const array,
         if (index_out != NULL) {
             *index_out = index;
         }
-        
+
         return data_iter;
     }
 
@@ -352,11 +352,11 @@ array_find_item_in_sorted(const struct array *const array,
             info_out->index = 0;
             info_out->type = ARRAY_CACHED_INDEX_EQUAL;
         }
-        
+
         return NULL;
     }
 
-    const uint64_t item_count = used_size / item_size; 
+    const uint64_t item_count = used_size / item_size;
     struct array_slice slice = {
         .front = 0,
         .back = item_count - 1
@@ -403,26 +403,26 @@ array_add_item_to_index(struct array *const array,
 {
     const uint64_t byte_index = item_size * index;
     void *const position = array->data + byte_index;
-    
+
     /*
      * Note: We do allow providing index of back + 1 (array->data_end).
      */
-    
+
     if (position > array->data_end) {
         return E_ARRAY_INDEX_OUT_OF_BOUNDS;
     }
-    
+
     const enum array_result add_item_result =
         array_add_item_to_byte_index(array,
                                      item_size,
                                      item,
                                      byte_index,
                                      item_out);
-        
+
     if (add_item_result != E_ARRAY_OK) {
         return add_item_result;
     }
-    
+
     return E_ARRAY_OK;
 }
 
@@ -442,7 +442,7 @@ array_add_item_with_cached_index_info(
          * If type isn't greater-than, simply have item at index 0 move up to
          * index 1 and return.
          */
-        
+
         if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
             return array_add_item_to_index(array, item_size, item, 0, item_out);
         }
@@ -456,11 +456,11 @@ array_add_item_with_cached_index_info(
          * Since we're at the back anyways, if the item is greater, simply add
          * item to the array-buffer's end.
          */
-        
+
         if (type == ARRAY_CACHED_INDEX_GREATER_THAN) {
             return array_add_item(array, item_size, item, NULL);
         }
-        
+
         /*
          * If the type isn't greater-than, have the last item move up one index,
          * with the new item replacing it at its old position.
@@ -472,24 +472,24 @@ array_add_item_with_cached_index_info(
                                     item,
                                     back_index,
                                     item_out);
-        
+
         if (add_item_result != E_ARRAY_OK) {
             return add_item_result;
         }
-        
+
         return E_ARRAY_OK;
     }
-    
+
     if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
         /*
          * If the type isn't greater than, have our new item replacing the old
          * item at index by having the old item move to (index + 1), with the
          * new-item replacing it.
          */
-        
+
         return array_add_item_to_index(array, item_size, item, index, item_out);
     }
-    
+
     /*
      * Since the type is greater than, have the new item be placed at index + 1.
      */
@@ -519,11 +519,11 @@ array_copy(struct array *const array, struct array *const array_out) {
 
     void *const end = data + used_size;
     memcpy(data, array->data, used_size);
-    
+
     array_out->data = data;
     array_out->data_end = end;
     array_out->alloc_end = end;
-    
+
     return E_ARRAY_OK;
 }
 
@@ -535,12 +535,12 @@ enum array_result array_destroy(struct array *const array) {
     /*
      * free(NULL) is allowed
      */
-    
+
     free(array->data);
-    
+
     array->data = NULL;
     array->data_end = NULL;
     array->alloc_end = NULL;
-    
+
     return E_ARRAY_OK;
 }

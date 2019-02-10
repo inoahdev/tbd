@@ -1,6 +1,6 @@
 //
 //  src/dyld_shared_cache.c
-//  tbd 
+//  tbd
 //
 //  Created by inoahdev on 12/29/18.
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
@@ -24,7 +24,7 @@
 
 static const uint64_t dsc_magic_64 = 2319765435151317348;
 
-static int 
+static int
 get_arch_info_from_magic(const char magic[16],
                          const struct arch_info **const arch_info_out,
                          uint64_t *const arch_bit_out)
@@ -83,7 +83,7 @@ get_arch_info_from_magic(const char magic[16],
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6).
              */
-            
+
             arch = arch_info_get_list() + 19;
             arch_bit = 1ull << 19;
 
@@ -154,7 +154,7 @@ get_arch_info_from_magic(const char magic[16],
     }
 
     *arch_info_out = arch;
-    *arch_bit_out = arch_bit; 
+    *arch_bit_out = arch_bit;
 
     return 0;
 }
@@ -193,7 +193,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     const uint64_t dsc_size = (uint64_t)sbuf.st_size;
     const struct range available_cache_range = {
-        .begin = sizeof(struct dyld_cache_header), 
+        .begin = sizeof(struct dyld_cache_header),
         .end = dsc_size
     };
 
@@ -206,7 +206,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     const uint32_t mapping_offset = header.mappingOffset;
-    const uint32_t images_offset = header.imagesOffset;    
+    const uint32_t images_offset = header.imagesOffset;
 
     if (!range_contains_location(available_cache_range, mapping_offset)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
@@ -226,7 +226,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     /*
      * Get the size of the mapping-infos table by multipying the mapping-count
      * and the size of a mapping-info
-     * 
+     *
      * Since sizeof(struct dyld_cache_mapping_info) is a power of 2 (32), use a
      * shift by 5 instead.
      */
@@ -244,7 +244,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     /*
      * Get the size of the image-infos table by multipying the images-count
      * and the size of a image-info
-     * 
+     *
      * Since sizeof(struct dyld_cache_image_info) is a power of 2 (32), use a
      * shift by 5 instead.
      */
@@ -319,8 +319,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     const struct range full_cache_range = {
-        .begin = 0, 
-        .end = dsc_size 
+        .begin = 0,
+        .end = dsc_size
     };
 
     /*
@@ -329,7 +329,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     for (uint32_t i = 0; i < mapping_count; i++) {
         const struct dyld_cache_mapping_info *const mapping = mappings + i;
-    
+
         /*
          * We skip validation of mapping's address-range as its irrelevant to
          * our operations, and because we aim to be lenient.
@@ -350,7 +350,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
         if (!range_contains_range(full_cache_range, mapping_file_range)) {
             munmap(map, dsc_size);
-            return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;            
+            return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
         }
 
         /*
@@ -369,7 +369,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
             const struct range inner_file_range = {
                 .begin = inner_file_begin,
-                .end = inner_file_end  
+                .end = inner_file_end
             };
 
             if (ranges_overlap(mapping_file_range, inner_file_range)) {
@@ -398,8 +398,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
                     return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
                 }
             }
- 
-            image->pad = 0;             
+
+            image->pad = 0;
         }
     } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
         for (uint32_t i = 0; i < images_count; i++) {
@@ -436,7 +436,7 @@ dyld_shared_cache_iterate_images_with_callback(
     const dyld_shared_cache_iterate_images_callback callback)
 {
     const uint8_t *const map = info_in->map;
-    const uint32_t images_count = info_in->images_count; 
+    const uint32_t images_count = info_in->images_count;
 
     for (uint32_t i = 0; i < images_count; i++) {
         struct dyld_cache_image_info *const image = info_in->images + i;
@@ -445,7 +445,7 @@ dyld_shared_cache_iterate_images_with_callback(
         const char *const path = (const char *)(map + path_file_offset);
 
         if (callback(image, path, item)) {
-            continue; 
+            continue;
         }
 
         break;

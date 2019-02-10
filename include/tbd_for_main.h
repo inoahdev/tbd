@@ -122,7 +122,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
                                uint64_t extension_length,
                                bool file_path_is_in_tbd,
                                uint64_t *length_out);
-                               
+
 void
 tbd_for_main_apply_from(struct tbd_for_main *dst,
                         const struct tbd_for_main *src);
