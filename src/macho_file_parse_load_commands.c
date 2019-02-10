@@ -316,6 +316,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                    const bool is_big_endian,
                    const uint64_t tbd_options,
                    const uint64_t options,
+                   const bool copy_strings,
                    bool *const found_identification_out,
                    struct symtab_command *const symtab_out)
 {
@@ -544,7 +545,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
 
                 if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
-                    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
+                    if (copy_strings) {
                         char *const install_name = strndup(name_ptr, length);
                         if (install_name == NULL) {
                             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
@@ -803,17 +804,15 @@ parse_load_command(struct tbd_create_info *const info_in,
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
             } else {
-                if (tbd_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
-                    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
-                        char *const umbrella_string = strndup(umbrella, length);
-                        if (umbrella_string == NULL) {
-                            return E_MACHO_FILE_PARSE_ALLOC_FAIL;
-                        }
-
-                        info_in->parent_umbrella = umbrella_string;
-                    } else {
-                        info_in->parent_umbrella = umbrella;
+                if (copy_strings) {
+                    char *const umbrella_string = strndup(umbrella, length);
+                    if (umbrella_string == NULL) {
+                        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                     }
+
+                    info_in->parent_umbrella = umbrella_string;
+                } else {
+                    info_in->parent_umbrella = umbrella;
                 }
 
                 info_in->parent_umbrella_length = length;
@@ -1110,9 +1109,6 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const uint64_t complete_options =
-        options | O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP;
-
     /*
      * Iterate over the load-commands, which is located directly after the
      * mach-o header.
@@ -1405,7 +1401,8 @@ macho_file_parse_load_commands_from_file(
                                        load_cmd_iter,
                                        is_big_endian,
                                        tbd_options,
-                                       complete_options,
+                                       options,
+                                       true,
                                        &found_identification,
                                        &symtab);
 
@@ -1968,6 +1965,9 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
             }
 
             default: {
+                const bool copy_strings =
+                    options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP;
+
                 const enum macho_file_parse_result parse_load_command_result =
                     parse_load_command(info_in,
                                        &uuid_info,
@@ -1978,6 +1978,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                        is_big_endian,
                                        tbd_options,
                                        options,
+                                       copy_strings,
                                        &found_identification,
                                        &symtab);
 
