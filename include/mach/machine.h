@@ -18,13 +18,14 @@ typedef int32_t cpu_subtype_t;
  * Capability bits used in the definition of cpu_type.
  */
 
-#define	CPU_ARCH_MASK	0xff000000		/* mask for architecture bits */
-#define CPU_ARCH_ABI64	0x01000000		/* 64 bit ABI */
+#define CPU_ARCH_MASK       0xff000000      /* mask for architecture bits */
+#define CPU_ARCH_ABI64      0x01000000      /* 64 bit ABI */
+#define CPU_ARCH_ABI64_32   0x02000000      /* ABI for 64-bit hardware with 32-bit types; LP32 */
 
 /*
  *	Machine types known by all.
  */
- 
+
 #define CPU_TYPE_ANY		((cpu_type_t) -1)
 #define CPU_TYPE_VAX		((cpu_type_t) 1)
 
@@ -45,6 +46,7 @@ typedef int32_t cpu_subtype_t;
 #define CPU_TYPE_HPPA       ((cpu_type_t) 11)
 #define CPU_TYPE_ARM		((cpu_type_t) 12)
 #define CPU_TYPE_ARM64      (CPU_TYPE_ARM | CPU_ARCH_ABI64)
+#define CPU_TYPE_ARM64_32   (CPU_TYPE_ARM | CPU_ARCH_ABI64_32)
 #define CPU_TYPE_MC88000	((cpu_type_t) 13)
 #define CPU_TYPE_SPARC		((cpu_type_t) 14)
 #define CPU_TYPE_I860		((cpu_type_t) 15)
@@ -92,7 +94,7 @@ typedef int32_t cpu_subtype_t;
  *	ID assigned by DEC available via the SID register).
  */
 
-#define	CPU_SUBTYPE_VAX_ALL	((cpu_subtype_t) 0) 
+#define	CPU_SUBTYPE_VAX_ALL	((cpu_subtype_t) 0)
 #define CPU_SUBTYPE_VAX780	((cpu_subtype_t) 1)
 #define CPU_SUBTYPE_VAX785	((cpu_subtype_t) 2)
 #define CPU_SUBTYPE_VAX750	((cpu_subtype_t) 3)
@@ -112,7 +114,7 @@ typedef int32_t cpu_subtype_t;
  * The subtype definitions here are unusual for historical reasons.
  * NeXT used to consider 68030 code as generic 68000 code.  For
  * backwards compatability:
- * 
+ *
  *	CPU_SUBTYPE_MC68030 symbol has been preserved for source code
  *	compatability.
  *
@@ -125,7 +127,7 @@ typedef int32_t cpu_subtype_t;
 
 #define	CPU_SUBTYPE_MC680x0_ALL		((cpu_subtype_t) 1)
 #define CPU_SUBTYPE_MC68030		((cpu_subtype_t) 1) /* compat */
-#define CPU_SUBTYPE_MC68040		((cpu_subtype_t) 2) 
+#define CPU_SUBTYPE_MC68040		((cpu_subtype_t) 2)
 #define	CPU_SUBTYPE_MC68030_ONLY	((cpu_subtype_t) 3)
 
 /*
@@ -195,7 +197,7 @@ typedef int32_t cpu_subtype_t;
 
 /*
  *	HPPA subtypes for Hewlett-Packard HP-PA family of
- *	risc processors. Port by NeXT to 700 series. 
+ *	risc processors. Port by NeXT to 700 series.
  */
 
 #define	CPU_SUBTYPE_HPPA_ALL		((cpu_subtype_t) 0)
@@ -254,7 +256,7 @@ typedef int32_t cpu_subtype_t;
 #define CPU_SUBTYPE_ARM_V7F		((cpu_subtype_t) 10)
 #define CPU_SUBTYPE_ARM_V7S		((cpu_subtype_t) 11)
 #define CPU_SUBTYPE_ARM_V7K		((cpu_subtype_t) 12)
-#define CPU_SUBTYPE_ARM_V6M		((cpu_subtype_t) 14) 
+#define CPU_SUBTYPE_ARM_V6M		((cpu_subtype_t) 14)
 #define CPU_SUBTYPE_ARM_V7M		((cpu_subtype_t) 15)
 #define CPU_SUBTYPE_ARM_V7EM	((cpu_subtype_t) 16)
 #define CPU_SUBTYPE_ARM_V8		((cpu_subtype_t) 13)

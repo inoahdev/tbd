@@ -15,14 +15,6 @@
 #include "array.h"
 #include "arch_info.h"
 
-#ifndef CPU_ARCH_ABI64_32
-#define CPU_ARCH_ABI64_32   0x02000000  /* ABI for 64-bit hardware with 32-bit types; LP32 */
-#endif
-
-#ifndef CPU_TYPE_ARM64_32
-#define CPU_TYPE_ARM64_32   (CPU_TYPE_ARM | CPU_ARCH_ABI64_32)
-#endif
-
 /*
  * To support the use of fake-arrays, and to prevent the compiler from freaking
  * out, we don't const our arch-info table.
