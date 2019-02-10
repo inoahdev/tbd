@@ -15,6 +15,14 @@
 #include "array.h"
 #include "arch_info.h"
 
+#ifndef CPU_ARCH_ABI64_32
+#define CPU_ARCH_ABI64_32   0x02000000  /* ABI for 64-bit hardware with 32-bit types; LP32 */
+#endif
+
+#ifndef CPU_TYPE_ARM64_32
+#define CPU_TYPE_ARM64_32   (CPU_TYPE_ARM | CPU_ARCH_ABI64_32)
+#endif
+
 /*
  * To support the use of fake-arrays, and to prevent the compiler from freaking
  * out, we don't const our arch-info table.
@@ -77,7 +85,7 @@ static struct arch_info arch_info_list[] = {
      */
 
     { CPU_TYPE_MC88000, CPU_SUBTYPE_MC88000_ALL, "m88k" },
-    
+
     /*
      * Following's index is 31.
      */
@@ -140,6 +148,12 @@ static struct arch_info arch_info_list[] = {
      * Following's index is 54
      */
 
+    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32" },
+
+    /*
+     * Following's index is 55
+     */
+
     { 0, 0, NULL }
 };
 
@@ -179,6 +193,7 @@ static struct arch_info_cputype_info cputype_info_list[] = {
     { CPU_TYPE_X86_64,    48, 49 },
     { CPU_TYPE_ARM64,     50, 51 },
     { CPU_TYPE_POWERPC64, 52, 53 },
+    { CPU_TYPE_ARM64_32,  54, 54 },
 };
 
 /*

@@ -51,7 +51,7 @@ clear_create_info(struct tbd_create_info *const info_in,
     *info_in = *orig;
 }
 
-static int 
+static int
 actually_parse_image(
     struct tbd_for_main *const tbd,
     struct dyld_cache_image_info *const image,
@@ -79,7 +79,7 @@ actually_parse_image(
                                       image_path,
                                       parse_image_result,
                                       callback_info->print_paths,
-                                      callback_info->retained_info); 
+                                      callback_info->retained_info);
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
@@ -139,11 +139,11 @@ find_image_flags_for_path(const struct array *const filters,
 {
     struct tbd_for_main_dsc_image_path *image_path = paths->data;
     const struct tbd_for_main_dsc_image_path *const image_paths_end =
-        paths->data_end; 
+        paths->data_end;
 
     for (; image_path != image_paths_end; image_path++) {
         if (strcmp(image_path->string, path) != 0) {
-            continue; 
+            continue;
         }
 
         return &image_path->flags;
@@ -233,7 +233,7 @@ verify_filters(const struct array *const filters,
         if (parsed_atleast_one) {
             continue;
         }
-   
+
         if (print_paths) {
             fprintf(stderr,
                     "dyld_shared_cache (at path %s) has no images that pass "
@@ -272,7 +272,7 @@ verify_paths(const struct array *const paths,
         if (found_image) {
             continue;
         }
-   
+
         if (print_paths) {
             fprintf(stderr,
                     "dyld_shared_cache (at path %s) has no image with "
@@ -321,7 +321,7 @@ read_magic(const int fd,
             handle_dsc_file_parse_result(path,
                                          E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
                                          print_paths);
-                                        
+
             return E_READ_MAGIC_READ_FAILED;
         }
     } else {
@@ -331,7 +331,7 @@ read_magic(const int fd,
     return E_READ_MAGIC_OK;
 }
 
-bool 
+bool
 parse_shared_cache(struct tbd_for_main *const global,
                    struct tbd_for_main *const tbd,
                    const char *const path,
@@ -405,7 +405,7 @@ parse_shared_cache(struct tbd_for_main *const global,
                                            "tbds",
                                            4,
                                            true,
-                                           &write_path_length); 
+                                           &write_path_length);
     }
 
     struct dsc_iterate_images_callback_info callback_info = {
@@ -430,7 +430,7 @@ parse_shared_cache(struct tbd_for_main *const global,
     const struct array *const paths = &tbd->dsc_image_paths;
 
     if (!array_is_empty(numbers)) {
-        const uint32_t *numbers_iter = numbers->data; 
+        const uint32_t *numbers_iter = numbers->data;
         const uint32_t *const numbers_end = numbers->data_end;
 
         for (; numbers_iter != numbers_end; numbers_iter++) {
@@ -453,7 +453,7 @@ parse_shared_cache(struct tbd_for_main *const global,
                             dsc_info.images_count);
                 }
 
-                return false; 
+                return false;
             }
 
             const uint32_t index = number - 1;
@@ -464,7 +464,7 @@ parse_shared_cache(struct tbd_for_main *const global,
                 (const char *)(dsc_info.map + image_path_offset);
 
             actually_parse_image(tbd, image, image_path, &callback_info);
-        } 
+        }
 
         /*
          * If there are no filters and no paths, we should simply return after
@@ -508,7 +508,7 @@ parse_shared_cache(struct tbd_for_main *const global,
 
     if (is_recursing) {
         free(write_path);
-    } 
+    }
 
     if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result(path, iterate_images_result, print_paths);
