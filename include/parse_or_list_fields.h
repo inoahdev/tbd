@@ -15,7 +15,7 @@
 uint64_t
 parse_architectures_list(int argc, const char *const *argv, int *index_in);
 
-uint64_t parse_flags_list(int argc, const char *const *argv, int *index_in);
+uint32_t parse_flags_list(int argc, const char *const *argv, int *index_in);
 uint32_t parse_swift_version(const char *const arg);
 
 enum tbd_objc_constraint parse_objc_constraint(const char *const constraint);

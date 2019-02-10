@@ -83,13 +83,13 @@ parse_architectures_list(const int argc,
     return archs;
 }
 
-uint64_t
+uint32_t
 parse_flags_list(const int argc,
                  const char *const *const argv,
                  int *const index_in)
 {
     int index = *index_in;
-    uint64_t flags = 0;
+    uint32_t flags = 0;
 
     for (; index != argc; index++) {
         const char *const arg = argv[index];

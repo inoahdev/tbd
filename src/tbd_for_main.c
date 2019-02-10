@@ -662,7 +662,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
          */
 
         if (dst->flags_re != 0) {
-            dst->info.flags_field = src->info.flags;
+            dst->info.flags_field = src->info.flags_field;
         }
     }
 

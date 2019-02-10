@@ -94,7 +94,7 @@ struct tbd_for_main {
      */
 
     uint64_t archs_re;
-    uint64_t flags_re;
+    uint32_t flags_re;
 
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
