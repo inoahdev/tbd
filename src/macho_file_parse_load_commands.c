@@ -198,7 +198,7 @@ parse_section_from_file(struct tbd_create_info *const info_in,
 
     if (image_info.flags & F_OBJC_IMAGE_INFO_REQUIRES_GC) {
         objc_constraint = TBD_OBJC_CONSTRAINT_GC;
-    } else if(image_info.flags & F_OBJC_IMAGE_INFO_SUPPORTS_GC) {
+    } else if (image_info.flags & F_OBJC_IMAGE_INFO_SUPPORTS_GC) {
         objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_OR_GC;
     } else if (image_info.flags & F_OBJC_IMAGE_INFO_IS_FOR_SIMULATOR) {
         objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_FOR_SIMULATOR;
@@ -1575,7 +1575,7 @@ parse_section_from_map(struct tbd_create_info *const info_in,
 
     if (flags & F_OBJC_IMAGE_INFO_REQUIRES_GC) {
         objc_constraint = TBD_OBJC_CONSTRAINT_GC;
-    } else if(flags & F_OBJC_IMAGE_INFO_SUPPORTS_GC) {
+    } else if (flags & F_OBJC_IMAGE_INFO_SUPPORTS_GC) {
         objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_OR_GC;
     } else if (flags & F_OBJC_IMAGE_INFO_IS_FOR_SIMULATOR) {
         objc_constraint = TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_FOR_SIMULATOR;

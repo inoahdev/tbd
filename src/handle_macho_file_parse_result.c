@@ -786,9 +786,9 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
     const uint64_t flags_re = tbd->flags_re;
     if (flags_re != 0) {
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            tbd->info.flags &= ~flags_re;
+            tbd->info.flags_field &= ~flags_re;
          } else {
-            tbd->info.flags = flags_re; 
+            tbd->info.flags_field = flags_re; 
         }
     }
 

@@ -156,22 +156,9 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     int index = *index_in;
     if (strcmp(option, "add-archs") == 0) {
         if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            fputs("Adding and replacing architectures is not supported, Please "
-                  "choose only a single option\n",
-                  stderr);
-
-            exit(1);
-        }
-
-        index += 1;
-
-        tbd->info.archs = parse_architectures_list(argc, argv, &index);
-        tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
-    } else if (strcmp(option, "add-flags") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            if (tbd->flags_re != 0) {
-                fputs("Replacing and adding flags is not supported, Please "
-                      "choose only a single option\n",
+            if (tbd->archs_re != 0) {
+                fputs("Both adding and replacing architectures is not "
+                      "supported. Please choose only a single option\n",
                       stderr);
 
                 exit(1);
@@ -180,7 +167,22 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         index += 1;
 
-        tbd->info.flags = parse_flags_list(argc, argv, &index);
+        tbd->info.archs |= parse_architectures_list(argc, argv, &index);
+        tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
+    } else if (strcmp(option, "add-flags") == 0) {
+        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+            if (tbd->flags_re != 0) {
+                fputs("Both replacing and adding flags is not supported. "
+                      "Please choose only a single option\n",
+                      stderr);
+
+                exit(1);
+            }
+        }
+
+        index += 1;
+
+        tbd->info.flags_field |= parse_flags_list(argc, argv, &index);
         tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
     } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS;
@@ -654,13 +656,13 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
         dst->info.compatibility_version = src->info.compatibility_version;
     }
 
-    if (dst->info.flags == 0) {
+    if (dst->info.flags_field == 0) {
         /*
          * Only preset flags if we aren't later removing/replacing these flags.
          */
         
         if (dst->flags_re != 0) {
-            dst->info.flags = src->info.flags;
+            dst->info.flags_field = src->info.flags;
         }
     }
 
@@ -751,6 +753,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     dst->write_options |= src->write_options;
 
     dst->options |= src->options;
+    dst->info.flags |= src->info.flags;
 }
 
 void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
