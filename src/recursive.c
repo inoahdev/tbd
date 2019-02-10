@@ -60,8 +60,6 @@ reverse_mkdir_ignoring_last(char *const path,
     char *last_slash =
         (char *)path_find_back_of_last_row_of_slashes(path, path_length);
 
-    int first_ret = 0;
-
     /*
      * We may have a slash at the back of the string, which we should ignore
      * as terminating at that point does not change the actual path.
@@ -69,27 +67,19 @@ reverse_mkdir_ignoring_last(char *const path,
 
     const char possible_end = last_slash[1];
     if (possible_end == '\0') {
-        terminate_c_str(last_slash);
-        first_ret = mkdir(path, mode);
-        restore_slash_c_str(last_slash);
-
-        if (first_ret == 0) {
-            return 0;
-        }
-
         last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
         last_slash =
             (char *)path_find_back_of_last_row_of_slashes_before_end(
                 path,
                 last_slash);
-    } else {
-        terminate_c_str(last_slash);
-        first_ret = mkdir(path, mode);
-        restore_slash_c_str(last_slash);
+    }
 
-        if (first_ret == 0) {
-            return 0;
-        }
+    terminate_c_str(last_slash);
+    const int first_ret = mkdir(path, mode);
+    restore_slash_c_str(last_slash);
+
+    if (first_ret == 0) {
+        return 0;
     }
 
     /*
@@ -100,9 +90,22 @@ reverse_mkdir_ignoring_last(char *const path,
      */
 
     if (first_ret < 0) {
+        /*
+         * If the directory already exists, we are done, as the previous
+         * mkdir should have gone through.
+         */
+
         if (errno == EEXIST) {
             return 0;
         }
+
+        /*
+         * errno is set to ENONENT when a previous path-component doesn't
+         * exist.
+         *
+         * So if we get any other error, its due to another reason, and we
+         * should just return immedietly.
+         */
 
         if (errno != ENOENT) {
             return 1;
@@ -161,9 +164,11 @@ reverse_mkdir_ignoring_last(char *const path,
 
             /*
              * errno is set to ENONENT when a previous path-component doesn't
-             * exist. So if we get any other error, its due to another reason,
-             * and we just should return immedietly.
-             */
+             * exist.
+             *
+             * So if we get any other error, its due to another reason, and we
+             * should just return immedietly.
+            */
 
             if (errno != ENOENT) {
                 return 1;
