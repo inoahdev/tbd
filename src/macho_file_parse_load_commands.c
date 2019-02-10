@@ -367,7 +367,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 return E_MACHO_FILE_PARSE_INVALID_PLATFORM;
             }
 
-            if (build_version_platform > TBD_PLATFORM_TVOS) {
+            if (build_version_platform > TBD_PLATFORM_WATCHOS) {
                 /*
                  * If we're ignoring invalid fields, simply goto the next
                  * load-command.

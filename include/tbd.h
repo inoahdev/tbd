@@ -65,8 +65,8 @@ enum tbd_objc_constraint {
 enum tbd_platform {
     TBD_PLATFORM_MACOS = 1,
     TBD_PLATFORM_IOS,
-    TBD_PLATFORM_WATCHOS,
     TBD_PLATFORM_TVOS,
+    TBD_PLATFORM_WATCHOS,
 };
 
 enum tbd_export_type {
