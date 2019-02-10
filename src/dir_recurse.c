@@ -20,7 +20,8 @@ dir_recurse(const char *const path,
             const uint64_t path_length,
             const bool sub_dirs,
             void *const callback_info,
-            const dir_recurse_callback callback)
+            const dir_recurse_callback callback,
+            const dir_recurse_fail_callback fail_callback)
 {
     DIR *const dir = opendir(path);
     if (dir == NULL) {
@@ -40,7 +41,11 @@ dir_recurse(const char *const path,
             closedir(dir);
 
             if (errno != prev_errno) {
-                return E_DIR_RECURSE_FAILED_TO_READ_ENTRY;
+                fail_callback(path,
+                              path_length,
+                              E_DIR_RECURSE_FAILED_TO_READ_ENTRY,
+                              entry,
+                              callback_info);
             }
 
             return E_DIR_RECURSE_OK;
@@ -57,7 +62,7 @@ dir_recurse(const char *const path,
                 if (!sub_dirs) {
                     continue;
                 }
-
+                
                 const uint64_t name_length =
                     strnlen(name, sizeof(entry->d_name));
 
@@ -70,10 +75,20 @@ dir_recurse(const char *const path,
                                                    &length);
 
                 if (entry_path == NULL) {
-                    free(entry_path);
-                    closedir(dir);
+                    const bool should_continue =
+                        fail_callback(entry_path,
+                                      length,
+                                      E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH,
+                                      entry,
+                                      callback_info);
 
-                    return E_DIR_RECURSE_ALLOC_FAIL;
+                    free(entry_path);
+
+                    if (!should_continue) {
+                        should_exit = true;
+                    }
+
+                    break;
                 }
 
                 const enum dir_recurse_result recurse_subdir_result =
@@ -81,23 +96,30 @@ dir_recurse(const char *const path,
                                 length,
                                 true,
                                 callback_info,
-                                callback);
-
-                free(entry_path);
+                                callback,
+                                fail_callback);
 
                 switch (recurse_subdir_result) {
                     case E_DIR_RECURSE_OK:
                         break;
 
-                    case E_DIR_RECURSE_FAILED_TO_OPEN:
-                        closedir(dir);
-                        return E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR;
+                    case E_DIR_RECURSE_FAILED_TO_OPEN: {
+                        const bool should_continue =
+                            fail_callback(entry_path,
+                                          length,
+                                          E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR,
+                                          entry,
+                                         callback_info);
 
-                    default:
-                        closedir(dir);
-                        return recurse_subdir_result;
+                        if (!should_continue) {
+                            should_exit = true;
+                        }
+
+                        break;
+                    }
                 }
 
+                free(entry_path);
                 break;
             }
 
@@ -114,8 +136,18 @@ dir_recurse(const char *const path,
                                                    &length);
 
                 if (entry_path == NULL) {
-                    closedir(dir);
-                    return E_DIR_RECURSE_ALLOC_FAIL;
+                    const bool should_continue =
+                        fail_callback(entry_path,
+                                    length,
+                                    E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH,
+                                    entry,
+                                    callback_info);
+
+                    if (!should_continue) {
+                        should_exit = true;
+                    }
+
+                    break;
                 }
 
                 if (!callback(entry_path, length, entry, callback_info)) {

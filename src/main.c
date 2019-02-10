@@ -127,6 +127,39 @@ recurse_directory_callback(const char *const parse_path,
     return true;
 }
 
+static bool
+recurse_directory_fail_callback(const char *const path,
+                                __unused const uint64_t path_length,
+                                enum dir_recurse_fail_result result,
+                                struct dirent *__unused const dirent,
+                                void *__unused const callback_info)
+{
+    switch (result) {
+        case E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH:
+            fputs("Failed to allocate memory for path-string\n", stderr);
+            break;
+
+        case E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR:
+            fprintf(stderr,
+                    "Failed to open sub-directory at path: %s, error: %s\n",
+                    path,
+                    strerror(errno));
+
+            break;
+
+        case E_DIR_RECURSE_FAILED_TO_READ_ENTRY:
+            fprintf(stderr,
+                    "Failed to read directory-entry while recursing directory "
+                    "at path: %s, error: %s\n",
+                    path,
+                    strerror(errno));
+
+            break;
+    }
+
+    return true;
+}
+
 static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
     struct stat sbuf = {};
     if (stat(tbd->write_path, &sbuf) < 0) {
@@ -1111,7 +1144,8 @@ int main(const int argc, const char *const argv[]) {
                             tbd->parse_path_length,
                             options & O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES,
                             &recurse_info,
-                            recurse_directory_callback);
+                            recurse_directory_callback,
+                            recurse_directory_fail_callback);
 
             if (recurse_dir_result != E_DIR_RECURSE_OK) {
                 if (should_print_paths) {
