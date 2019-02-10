@@ -18,8 +18,9 @@ typedef int32_t cpu_subtype_t;
  * Capability bits used in the definition of cpu_type.
  */
 
-#define	CPU_ARCH_MASK	0xff000000		/* mask for architecture bits */
-#define CPU_ARCH_ABI64	0x01000000		/* 64 bit ABI */
+#define CPU_ARCH_MASK       0xff000000      /* mask for architecture bits */
+#define CPU_ARCH_ABI64      0x01000000      /* 64 bit ABI */
+#define CPU_ARCH_ABI64_32   0x02000000      /* ABI for 64-bit hardware with 32-bit types; LP32 */
 
 /*
  *	Machine types known by all.
@@ -45,6 +46,7 @@ typedef int32_t cpu_subtype_t;
 #define CPU_TYPE_HPPA       ((cpu_type_t) 11)
 #define CPU_TYPE_ARM		((cpu_type_t) 12)
 #define CPU_TYPE_ARM64      (CPU_TYPE_ARM | CPU_ARCH_ABI64)
+#define CPU_TYPE_ARM64_32   (CPU_TYPE_ARM | CPU_ARCH_ABI64_32)
 #define CPU_TYPE_MC88000	((cpu_type_t) 13)
 #define CPU_TYPE_SPARC		((cpu_type_t) 14)
 #define CPU_TYPE_I860		((cpu_type_t) 15)

@@ -16,8 +16,7 @@
 #include "arch_info.h"
 
 /*
- * To support the use of fake-arrays, and to prevent the compiler from freaking
- * out, we don't const our arch-info table.
+ * To support the use of fake-arrays, we don't const our arch-info table.
  */
 
 static struct arch_info arch_info_list[] = {
@@ -138,20 +137,26 @@ static struct arch_info arch_info_list[] = {
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64" },
 
     /*
-     * Following's index is 55
+     * Following's index is 55.
+     */
+
+    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32" },
+
+    /*
+     * Following's index is 56.
      */
 
     { 0, 0, NULL }
 };
 
 /*
- * Create a fake array to pass on to binary-search with array's functions.
+ * Create a fake array to pass binary-search onto array's functions.
  */
 
 static const struct array arch_info_array = {
     .data = (void *)arch_info_list,
-    .data_end = (void *)(arch_info_list + 54),
-    .alloc_end = (void *)(arch_info_list + 54)
+    .data_end = (void *)(arch_info_list + 55),
+    .alloc_end = (void *)(arch_info_list + 55)
 };
 
 struct arch_info_cputype_info {
@@ -162,8 +167,7 @@ struct arch_info_cputype_info {
 };
 
 /*
- * To support the use of fake-arrays, and to prevent the compiler from freaking
- * out, we don't const our cputype-info table.
+ * To support the use of fake-arrays, we don't const our cputype-info table.
  */
 
 static struct arch_info_cputype_info cputype_info_list[] = {
@@ -180,16 +184,17 @@ static struct arch_info_cputype_info cputype_info_list[] = {
     { CPU_TYPE_X86_64,    48, 49 },
     { CPU_TYPE_ARM64,     50, 52 },
     { CPU_TYPE_POWERPC64, 53, 54 },
+    { CPU_TYPE_ARM64_32,  55, 55 }
 };
 
 /*
- * Create a fake array to pass on to binary-search with array's functions.
+ * Create a fake array to pass binary-search onto array's functions.
  */
 
 const struct array cputype_info_array = {
     .data = (void *)cputype_info_list,
-    .data_end = (void *)(cputype_info_list + 13),
-    .alloc_end = (void *)(cputype_info_list + 13)
+    .data_end = (void *)(cputype_info_list + 14),
+    .alloc_end = (void *)(cputype_info_list + 14)
 };
 
 const struct arch_info *arch_info_get_list(void) {
@@ -198,6 +203,10 @@ const struct arch_info *arch_info_get_list(void) {
 
 uint64_t arch_info_list_get_size(void) {
     return sizeof(arch_info_list) / sizeof(struct arch_info);
+}
+
+static uint64_t cputype_info_list_get_size(void) {
+    return sizeof(cputype_info_list) / sizeof(struct arch_info_cputype_info);
 }
 
 static int
@@ -209,8 +218,7 @@ cputype_info_comparator(const void *const left, const void *const right) {
 }
 
 static int
-arch_info_cpusubtype_comparator(const void *const left,
-                                 const void *const right)
+arch_info_cpusubtype_comparator(const void *const left, const void *const right)
 {
     const struct arch_info *const info = (const struct arch_info *)left;
     const cpu_subtype_t cpusubtype = *(const cpu_subtype_t *)right;
@@ -223,12 +231,13 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
 {
     /*
      * First find the cputype-info for the cputype provided to get the range
-     * inside arch_info_list, where we will then search within for the right.
+     * inside arch_info_list, where we will then search within for the right
+     * arch.
      */
 
     const struct array_slice cputype_info_slice = {
         .front = 0,
-        .back = 12
+        .back = cputype_info_list_get_size() - 1
     };
 
     const struct arch_info_cputype_info *const info =

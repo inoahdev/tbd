@@ -22,7 +22,15 @@
 #include "guard_overflow.h"
 #include "range.h"
 
+/*
+ * dyld_shared_cache file-headers usually have a magic beginning with a
+ * single 8-byte prefix.
+ *
+ * With the addition of the arm64_32 cpu-type, a new prefix was created.
+ */
+
 static const uint64_t dsc_magic_64 = 2319765435151317348;
+static const uint64_t dsc_magic_64_other = 7003509047616633188;
 
 static int
 get_arch_info_from_magic(const char magic[16],
@@ -31,7 +39,9 @@ get_arch_info_from_magic(const char magic[16],
 {
     const uint64_t first_part = *(const uint64_t *)magic;
     if (first_part != dsc_magic_64) {
-        return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
+        if (first_part != dsc_magic_64_other) {
+            return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
+        }
     }
 
     const struct arch_info *arch = NULL;
@@ -156,6 +166,16 @@ get_arch_info_from_magic(const char magic[16],
 
             arch = arch_info_get_list() + 52;
             arch_bit = 1ull << 52;
+
+            break;
+
+        case 14130232826424690:
+            /*
+             * (CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM_64_ALL).
+             */
+
+            arch = arch_info_get_list() + 55;
+            arch_bit = 1ull << 55;
 
             break;
 
