@@ -123,21 +123,22 @@ static struct arch_info arch_info_list[] = {
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,   "x86_64h" },
 
     /*
-     * Index starts from 50 and ends at 51.
+     * Index starts from 50 and ends at 52.
      */
 
-    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64" },
-    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_V8,  "arm64" },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64"  },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_V8,  "arm64"  },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E,    "arm64e" },
 
     /*
-     * Index starts at 52 and ends at 53.
+     * Index starts at 53 and ends at 54.
      */
 
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_ALL, "ppc64"     },
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64" },
 
     /*
-     * Following's index is 54
+     * Following's index is 55
      */
 
     { 0, 0, NULL }
@@ -149,8 +150,8 @@ static struct arch_info arch_info_list[] = {
 
 static const struct array arch_info_array = {
     .data = (void *)arch_info_list,
-    .data_end = (void *)(arch_info_list + 53),
-    .alloc_end = (void *)(arch_info_list + 53)
+    .data_end = (void *)(arch_info_list + 54),
+    .alloc_end = (void *)(arch_info_list + 54)
 };
 
 struct arch_info_cputype_info {
@@ -177,8 +178,8 @@ static struct arch_info_cputype_info cputype_info_list[] = {
     { CPU_TYPE_POWERPC,   33, 44 },
     { CPU_TYPE_VEO,       45, 47 },
     { CPU_TYPE_X86_64,    48, 49 },
-    { CPU_TYPE_ARM64,     50, 51 },
-    { CPU_TYPE_POWERPC64, 52, 53 },
+    { CPU_TYPE_ARM64,     50, 52 },
+    { CPU_TYPE_POWERPC64, 53, 54 },
 };
 
 /*

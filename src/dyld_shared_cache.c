@@ -141,11 +141,21 @@ get_arch_info_from_magic(const char magic[16],
 
         case 14696542487257120:
             /*
-             * (CPU_TYPE_ARM_64, CPU_SUBTYPE_ARM_64_ALL).
+             * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM_64_ALL).
              */
 
             arch = arch_info_get_list() + 50;
             arch_bit = 1ull << 50;
+
+            break;
+
+        case 28486381016867104:
+            /*
+             * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E).
+             */
+
+            arch = arch_info_get_list() + 52;
+            arch_bit = 1ull << 52;
 
             break;
 
