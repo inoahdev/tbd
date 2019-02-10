@@ -220,11 +220,6 @@ request_objc_constraint(struct tbd_for_main *const global,
             continue;
         }
 
-        /*
-         * To properly parse the objc-constraint, we need to remove the new-line
-         * given.
-         */
-
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(input);
 
