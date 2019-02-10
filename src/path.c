@@ -524,15 +524,8 @@ path_has_component(const char *const path,
                    const uint64_t component_length,
                    const bool allow_in_hierarchy)
 {
-    const char path_front = path[0];
-    if (strcmp(component, "/") == 0) {
-        if (ch_is_path_slash(path_front)) {
-            return true;
-        }
-    }
-
     const char *iter_begin = path;
-    if (ch_is_path_slash(path_front)) {
+    if (ch_is_path_slash(path[0])) {
         /*
          * If path is simply a row of slashes, we have no match unless component
          * is also a row of slashes.
