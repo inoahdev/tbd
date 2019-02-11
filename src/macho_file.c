@@ -95,14 +95,9 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
-    uint64_t end = start;
-    if (guard_overflow_add(&end, size)) {
-        return E_MACHO_FILE_PARSE_INVALID_RANGE;
-    }
-
     const struct range range = {
         .begin = start,
-        .end = end,
+        .end = start + size,
     };
 
     info_in->archs |= arch_bit;
