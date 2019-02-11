@@ -619,7 +619,9 @@ void print_list_of_dsc_images(const int fd) {
         exit(1);
     }
 
-    fprintf(stdout, "There are %d images\n", dsc_info.images_count);
+    fprintf(stdout,
+            "The provided dyld_shared_cache file has %d images\n",
+            dsc_info.images_count);
 
     struct dsc_list_images_callback callback_info = {};
     dyld_shared_cache_iterate_images_with_callback(&dsc_info,
