@@ -369,36 +369,33 @@ enum read_magic_result {
 };
 
 static enum read_magic_result
-read_magic(const int fd,
-           void *const magic,
+read_magic(void *const magic_in,
            const uint64_t magic_size,
+           const int fd,
            const char *const path,
-           const bool print_paths,
-           char *const magic_out)
+           const bool print_paths)
 {
-    if (magic_size < 16) {
-        memcpy(magic_out, magic, magic_size);
+    if (magic_size >= 16) {
+        return E_READ_MAGIC_OK;
+    }
 
-        const uint64_t read_size = 16 - magic_size;
-        if (read(fd, magic_out + magic_size, read_size) < 0) {
-            if (errno == EOVERFLOW) {
-                return E_READ_MAGIC_NOT_LARGE_ENOUGH;
-            }
-
-            /*
-             * Manually handle the read fail by passing on to
-             * handle_dsc_file_parse_result() as if we went to
-             * dyld_shared_cache_parse_from_file().
-             */
-
-            handle_dsc_file_parse_result(path,
-                                         E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
-                                         print_paths);
-
-            return E_READ_MAGIC_READ_FAILED;
+    const uint64_t read_size = 16 - magic_size;
+    if (read(fd, magic_in + magic_size, read_size) < 0) {
+        if (errno == EOVERFLOW) {
+            return E_READ_MAGIC_NOT_LARGE_ENOUGH;
         }
-    } else {
-        memcpy(magic_out, magic, 16);
+
+         /*
+          * Manually handle the read fail by passing on to
+          * handle_dsc_file_parse_result() as if we went to
+          * dyld_shared_cache_parse_from_file().
+          */
+
+        handle_dsc_file_parse_result(path,
+                                     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     print_paths);
+
+        return E_READ_MAGIC_READ_FAILED;
     }
 
     return E_READ_MAGIC_OK;
@@ -413,14 +410,12 @@ parse_shared_cache(struct tbd_for_main *const global,
                    const bool is_recursing,
                    const bool print_paths,
                    uint64_t *const retained_info_in,
-                   void *magic_in,
-                   uint64_t *magic_in_size_in)
+                   void *const magic_in,
+                   uint64_t *const magic_in_size_in)
 {
-    char magic[16] = {};
-
     const uint64_t magic_in_size = *magic_in_size_in;
     const enum read_magic_result read_magic_result =
-        read_magic(fd, magic_in, magic_in_size, path, print_paths, magic);
+        read_magic(magic_in, magic_in_size, fd, path, print_paths);
 
     switch (read_magic_result) {
         case E_READ_MAGIC_OK:
@@ -440,15 +435,10 @@ parse_shared_cache(struct tbd_for_main *const global,
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
         dyld_shared_cache_parse_from_file(&dsc_info,
                                           fd,
-                                          magic,
+                                          magic_in,
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (magic_in_size < sizeof(magic)) {
-            memcpy(magic_in, &magic, sizeof(magic));
-            *magic_in_size_in = sizeof(magic);
-        }
-
         return false;
     }
 
@@ -494,7 +484,7 @@ parse_shared_cache(struct tbd_for_main *const global,
     };
 
     /*
-     * If indexes have been provided, directly call the iterate_images callback
+     * If indexes have been provided, directly call actually_parse_image()
      * instead of waiting around for the indexes to match up.
      */
 
@@ -543,8 +533,8 @@ parse_shared_cache(struct tbd_for_main *const global,
          * If there are no filters and no paths, we should simply return after
          * handling the indexes.
          *
-         * Note: Since there were indexes, we do not parse all images as we
-         * do usually by default.
+         * Note: Since there were indexes, we do not parse all images as we do
+         * usually by default.
          */
 
         if (array_is_empty(filters) && array_is_empty(paths)) {
@@ -559,8 +549,9 @@ parse_shared_cache(struct tbd_for_main *const global,
     } else {
         /*
          * By default, if no filters, indexes, or paths are provided, we parse
-         * all images, otherwise, all images have to be explicitly allowed to be
-         & parsed.
+         * all images.
+         *
+         * Otherwise, all images have to be explicitly allowed to be parsed.
          */
 
         if (!array_is_empty(filters) || !array_is_empty(paths)) {
@@ -611,10 +602,11 @@ dsc_list_images_callback(struct dyld_cache_image_info *__unused const image,
 
 void print_list_of_dsc_images(const int fd) {
     char magic[16] = {};
-    const enum read_magic_result read_magic_result =
-        read_magic(fd, NULL, 0, NULL, false, magic);
+    if (read(fd, &magic, sizeof(magic)) < 0) {
+        handle_dsc_file_parse_result(NULL,
+                                     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     false);
 
-    if (read_magic_result != E_READ_MAGIC_OK) {
         exit(1);
     }
 
