@@ -62,7 +62,7 @@ add_image_error(struct dsc_iterate_images_callback_info *const callback_info,
                 const char *const image_path,
                 const enum dsc_image_parse_result result)
 {
-    struct image_error error = {
+    const struct image_error error = {
         .path = image_path,
         .result = result
     };
@@ -74,12 +74,16 @@ add_image_error(struct dsc_iterate_images_callback_info *const callback_info,
         if (callback_info->print_paths) {
             fprintf(stderr,
                     "Warning: Failed to append to list of errors encountered "
-                    "while parsing images for dyld_shared_cache (at path %s)\n",
+                    "while parsing image (at path %s) for dyld_shared_cache "
+                    "file (at path %s)\n",
+                    image_path,
                     callback_info->dsc_path);
         } else {
-            fputs("Warning: Failed to append to list of errors encountered "
-                  "while parsing images for the provided dyld_shared_cache\n",
-                  stderr);
+            fprintf(stderr,
+                    "Warning: Failed to append to list of errors encountered "
+                    "while parsing image (at path %s) for the provided "
+                    "dyld_shared_cache file\n",
+                    callback_info->dsc_path);
         }
     }
 }
