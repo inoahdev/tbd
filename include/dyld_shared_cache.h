@@ -86,7 +86,7 @@ typedef bool
     const char *path,
     void *item);
 
-enum dyld_shared_cache_parse_result
+void
 dyld_shared_cache_iterate_images_with_callback(
     const struct dyld_shared_cache_info *info_in,
     void *item,

@@ -429,7 +429,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
 
-enum dyld_shared_cache_parse_result
+void
 dyld_shared_cache_iterate_images_with_callback(
     const struct dyld_shared_cache_info *const info_in,
     void *const item,
@@ -450,8 +450,6 @@ dyld_shared_cache_iterate_images_with_callback(
 
         break;
     }
-
-    return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
 
 void dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *const info) {

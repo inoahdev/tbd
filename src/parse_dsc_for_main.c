@@ -21,6 +21,11 @@
 #include "recursive.h"
 #include "unused.h"
 
+struct image_error {
+    const char *path;
+    enum dsc_image_parse_result result;
+};
+
 struct dsc_iterate_images_callback_info {
     struct dyld_shared_cache_info *dsc_info;
 
@@ -31,6 +36,7 @@ struct dsc_iterate_images_callback_info {
     struct tbd_for_main *tbd;
 
     struct array images;
+    struct array errors;
 
     uint64_t write_path_length;
     uint64_t *retained_info;
@@ -51,12 +57,39 @@ clear_create_info(struct tbd_create_info *const info_in,
     *info_in = *orig;
 }
 
+static void
+add_image_error(struct dsc_iterate_images_callback_info *const callback_info,
+                const char *const image_path,
+                const enum dsc_image_parse_result result)
+{
+    struct image_error error = {
+        .path = image_path,
+        .result = result
+    };
+
+    const enum array_result add_image_error_result =
+        array_add_item(&callback_info->errors, sizeof(error), &error, NULL);
+
+    if (add_image_error_result != E_ARRAY_OK) {
+        if (callback_info->print_paths) {
+            fprintf(stderr,
+                    "Warning: Failed to append to list of errors encountered "
+                    "while parsing images for dyld_shared_cache (at path %s)\n",
+                    callback_info->dsc_path);
+        } else {
+            fputs("Warning: Failed to append to list of errors encountered "
+                  "while parsing images for the provided dyld_shared_cache\n",
+                  stderr);
+        }
+    }
+}
+
 static int
 actually_parse_image(
     struct tbd_for_main *const tbd,
     struct dyld_cache_image_info *const image,
     const char *const image_path,
-    const struct dsc_iterate_images_callback_info *const callback_info)
+    struct dsc_iterate_images_callback_info *const callback_info)
 {
     struct tbd_create_info *const create_info = &callback_info->tbd->info;
     const struct tbd_create_info original_info = *create_info;
@@ -82,7 +115,9 @@ actually_parse_image(
                                       callback_info->retained_info);
 
     if (!should_continue) {
+        add_image_error(callback_info, image_path, parse_image_result);
         clear_create_info(create_info, &original_info);
+
         return 1;
     }
 
@@ -138,10 +173,9 @@ find_image_flags_for_path(const struct array *const filters,
                           const uint64_t options)
 {
     struct tbd_for_main_dsc_image_path *image_path = paths->data;
-    const struct tbd_for_main_dsc_image_path *const image_paths_end =
-        paths->data_end;
+    const struct tbd_for_main_dsc_image_path *const paths_end = paths->data_end;
 
-    for (; image_path != image_paths_end; image_path++) {
+    for (; image_path != paths_end; image_path++) {
         if (strcmp(image_path->string, path) != 0) {
             continue;
         }
@@ -150,10 +184,10 @@ find_image_flags_for_path(const struct array *const filters,
     }
 
     struct tbd_for_main_dsc_image_filter *filter = filters->data;
-    const struct tbd_for_main_dsc_image_filter *const end =
+    const struct tbd_for_main_dsc_image_filter *const filters_end =
         filters->data_end;
 
-    for (; filter != end; filter++) {
+    for (; filter != filters_end; filter++) {
         const char *const string = filter->string;
         const uint64_t length = filter->length;
 
@@ -209,83 +243,122 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
     return true;
 }
 
+static bool found_at_least_one_image(const struct array *const filters) {
+    const struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
+
+    for (; filter != end; filter++) {
+        if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+static bool found_all_paths(const struct array *const paths) {
+    const struct tbd_for_main_dsc_image_path *path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+    for (; path != end; path++) {
+        if (path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 /*
- * Iterate over every filter to ensure that at least one image was found that
- * passed the filter.
+ * Iterate over every filter to print out errors if at least one image wasn't
+ * found for every filter.
  *
  * We verify this here, rather that in
  * dyld_shared_cache_iterate_images_with_callback as we don't want to loop over
  * the filters once for the error-code, then again here to print out.
  */
 
-static void
-verify_filters(const struct array *const filters,
-               const char *const dsc_path,
-               const bool print_paths)
-{
-    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+static void print_missing_filters(const struct array *const filters) {
+    const struct tbd_for_main_dsc_image_filter *filter = filters->data;
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
     for (; filter != end; filter++) {
-        const bool parsed_atleast_one =
-            filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-
-        if (parsed_atleast_one) {
+        if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
             continue;
         }
 
-        if (print_paths) {
-            fprintf(stderr,
-                    "dyld_shared_cache (at path %s) has no images that pass "
-                    "the provided filter (with name: %s)\n",
-                    dsc_path,
-                    filter->string);
-        } else {
-            fprintf(stderr,
-                    "The provided dyld_shared_cache has no images that pass "
-                    "the provided filter (with name: %s)\n",
-                    filter->string);
-        }
+        fprintf(stderr,
+                "\tNo images were found that pass the provided filter (with "
+                "name: %s)\n",
+                filter->string);
     }
 }
 
 /*
- * Iterate over every path to ensure that at least the image was found.
+ * Iterate over every path and print out an error if the corresponding image
+ * isn't found.
  *
  * We verify this here, rather that in
  * dyld_shared_cache_iterate_images_with_callback as we don't want to loop over
  * the paths once for the error-code, then again here to print out.
  */
 
-static void
-verify_paths(const struct array *const paths,
-             const char *const dsc_path,
-             const bool print_paths)
-{
-    struct tbd_for_main_dsc_image_path *path = paths->data;
+static void print_missing_paths(const struct array *const paths) {
+    const struct tbd_for_main_dsc_image_path *path = paths->data;
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
 
     for (; path != end; path++) {
-        const bool found_image =
-            path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-
-        if (found_image) {
+        if (path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
             continue;
         }
 
-        if (print_paths) {
-            fprintf(stderr,
-                    "dyld_shared_cache (at path %s) has no image with "
-                    "path: %s\n",
-                    dsc_path,
-                    path->string);
-        } else {
-            fprintf(stderr,
-                    "dyld_shared_cache at the provided path has no image with "
-                    "path: %s\n",
-                    path->string);
+        fprintf(stderr, "\tNo image was found with path: %s\n", path->string);
+    }
+}
+
+static void
+handle_errors(struct tbd_for_main *const tbd,
+              const char *const dsc_path,
+              const struct array *const errors,
+              const struct array *const filters,
+              const struct array *const paths,
+              const bool print_paths)
+{
+    if (array_is_empty(errors)) {
+        if (found_at_least_one_image(filters)) {
+            if (found_all_paths(paths)) {
+                return;
+            }
         }
     }
+
+    if (print_paths) {
+        fprintf(stderr,
+                "Parsing dyld_shared_cache file (at path %s) resulted in the "
+                "following warnings and errors:\n",
+                dsc_path);
+    } else {
+        fputs("Parsing the provided dyld_shared_cache file resulted in the "
+              "following warnings and errors:\n",
+              stderr);
+    }
+
+    const struct image_error *error = errors->data;
+    const struct image_error *const end = errors->data_end;
+
+    for (; error != end; error++) {
+        fputc('\t', stderr);
+        print_dsc_image_parse_error(tbd, error->path, error->result);
+    }
+
+    print_missing_filters(filters);
+    print_missing_paths(paths);
+
+    fputc('\n', stderr);
 }
 
 enum read_magic_result {
@@ -500,22 +573,18 @@ parse_shared_cache(struct tbd_for_main *const global,
      * unnecessary mkdir() calls for a shared-cache that may turn up empty.
      */
 
-    const enum dyld_shared_cache_parse_result iterate_images_result =
-        dyld_shared_cache_iterate_images_with_callback(
-            &dsc_info,
-            &callback_info,
-            dsc_iterate_images_callback);
+    dyld_shared_cache_iterate_images_with_callback(&dsc_info,
+                                                   &callback_info,
+                                                   dsc_iterate_images_callback);
 
     if (is_recursing) {
         free(write_path);
     }
 
-    if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(path, iterate_images_result, print_paths);
-    }
+    struct array *const image_errors = &callback_info.errors;
 
-    verify_filters(filters, path, print_paths);
-    verify_paths(paths, path, print_paths);
+    handle_errors(tbd, path, image_errors, filters, paths, print_paths);
+    array_destroy(image_errors);
 
     return true;
 }
@@ -561,14 +630,7 @@ void print_list_of_dsc_images(const int fd) {
     fprintf(stdout, "There are %d images\n", dsc_info.images_count);
 
     struct dsc_list_images_callback callback_info = {};
-    const enum dyld_shared_cache_parse_result iterate_images_result =
-        dyld_shared_cache_iterate_images_with_callback(
-            &dsc_info,
-            &callback_info,
-            dsc_list_images_callback);
-
-    if (iterate_images_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(NULL, parse_dsc_file_result, false);
-        exit(1);
-    }
+    dyld_shared_cache_iterate_images_with_callback(&dsc_info,
+                                                   &callback_info,
+                                                   dsc_list_images_callback);
 }
