@@ -257,10 +257,12 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     /*
      * The symbol-table and string-table offsets are absolute, not relative from
      * image's base, but we still need to account for shared-cache's start and
-     * size. We do this by parsing the symbol-table separately.
+     * size.
      *
-     * The section's offset are relative to the map, not to the header, and
-     * therefore should be treated as 'absolute'.
+     * To accomplish this, we parse the symbol-table separately.
+     *
+     * The section's offset are also absolute (relative to the map, not to the
+     * header).
      */
 
     const uint64_t arch_bit = dsc_info->arch_bit;
