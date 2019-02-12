@@ -453,7 +453,8 @@ print_dsc_image_parse_error(struct tbd_for_main *const tbd,
 
         case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
             fprintf(stderr,
-                    "Image (with path %s) is too small to be a valid image\n",
+                    "Image (with path %s) is too small to be a valid mach-o "
+                    "image\n",
                     image_path);
 
             break;
@@ -506,14 +507,15 @@ print_dsc_image_parse_error(struct tbd_for_main *const tbd,
 
         case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
             fprintf(stderr,
-                    "Image (with path %s) is an unsupported mach-o fat image\n",
+                    "Image (with path %s) has an invalid load-command\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
             fprintf(stderr,
-                    "Image (with path %s) is an unsupported mach-o fat image\n",
+                    "Image (with path %s) has a mach-o segment with too many "
+                    "sections for its size\n",
                     image_path);
 
             break;
