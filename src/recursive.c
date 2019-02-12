@@ -25,22 +25,30 @@ char *find_last_slash_before_end(char *const path, const char *const end) {
 }
 
 static char *find_next_slash_skipping_first_row(char *const path) {
-    char *iter = path;
+    char *iter = (char *)path_get_end_of_row_of_slashes(path);
+    if (iter == NULL) {
+        return NULL;
+    }
+
     char ch = '\0';
 
     do {
         ch = *(++iter);
-    } while (ch == '/');
-
-    for (; ch != '\0'; ch = *(++iter)) {
-        if (ch != '/') {
-            continue;
+        if (ch == '\0') {
+            return NULL;
         }
+    } while (ch != '/');
 
-        return (char *)path_get_front_of_row_of_slashes(path, iter);
-    }
+    return iter;
+}
 
-    return NULL;
+static inline
+char *find_next_slash_reverse(char *const path, char *const last_slash) {
+    char *const iter =
+        (char *)path_find_back_of_last_row_of_slashes_before_end(path,
+                                                                 last_slash);
+
+    return iter;
 }
 
 static inline void terminate_c_str(char *const iter) {
@@ -62,16 +70,14 @@ reverse_mkdir_ignoring_last(char *const path,
 
     /*
      * We may have a slash at the back of the string, which we should ignore
-     * as terminating at that point does not change the actual path.
+     * as terminating at that point does not lead us to the path of the
+     * immediate directory in the full-path's hierarchy.
      */
 
     const char possible_end = last_slash[1];
     if (possible_end == '\0') {
         last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
-        last_slash =
-            (char *)path_find_back_of_last_row_of_slashes_before_end(
-                path,
-                last_slash);
+        last_slash = find_next_slash_reverse(path, last_slash);
     }
 
     terminate_c_str(last_slash);
@@ -147,6 +153,15 @@ reverse_mkdir_ignoring_last(char *const path,
         terminate_c_str(last_slash);
         const int ret = mkdir(path, mode);
         restore_slash_c_str(last_slash);
+
+        /*
+         * We have finished with this loop when we're finally able to create a
+         * directory, in the hierarchy of the full path, without error.
+         *
+         * Now the job is to move back forwards, creating all the directories
+         * for all the path-components from after this one to the second-to-last
+         * path-component.
+         */
 
         if (ret == 0) {
             break;
