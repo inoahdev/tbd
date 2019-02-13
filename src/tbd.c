@@ -88,12 +88,10 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const uint64_t array_archs_count = array_info->archs_count;
     const uint64_t archs_count = info->archs_count;
 
-    if (array_archs_count != archs_count) {
-        if (array_archs_count > archs_count) {
-            return 1;
-        } else if (array_archs_count < archs_count) {
-            return -1;
-        }
+    if (array_archs_count > archs_count) {
+        return 1;
+    } else if (array_archs_count < archs_count) {
+        return -1;
     }
 
     const uint64_t array_archs = array_info->archs;
