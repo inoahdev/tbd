@@ -1109,6 +1109,8 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
+    info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+
     /*
      * Iterate over the load-commands, which is located directly after the
      * mach-o header.
@@ -1419,8 +1421,6 @@ macho_file_parse_load_commands_from_file(
     }
 
     free(load_cmd_buffer);
-    info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
-
     if (!found_identification) {
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
@@ -1696,6 +1696,10 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     uint64_t size = macho_size;
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
         size = map_size;
+    }
+
+    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
+        info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
     }
 
     uint32_t size_left = sizeofcmds;
@@ -1991,10 +1995,6 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         }
 
         load_cmd_iter += load_cmd.cmdsize;
-    }
-
-    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
-        info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
     }
 
     if (!found_identification) {
