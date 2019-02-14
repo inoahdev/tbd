@@ -488,14 +488,14 @@ parse_shared_cache(struct tbd_for_main *const global,
         .parse_all_images = true
     };
 
-    /*
-     * If indexes have been provided, directly call actually_parse_image()
-     * instead of waiting around for the indexes to match up.
-     */
-
     const struct array *const filters = &tbd->dsc_image_filters;
     const struct array *const numbers = &tbd->dsc_image_numbers;
     const struct array *const paths = &tbd->dsc_image_paths;
+
+    /*
+     * If numbers have been provided, directly call actually_parse_image()
+     * instead of waiting around for the numbers to match up.
+     */
 
     if (!array_is_empty(numbers)) {
         const uint32_t *numbers_iter = numbers->data;
@@ -522,7 +522,7 @@ parse_shared_cache(struct tbd_for_main *const global,
                 }
 
                 /*
-                 * Continue looping over the indexes so we can print out the
+                 * Continue looping over the numbers so we can print out the
                  * errors at the very end.
                  */
 
@@ -541,10 +541,10 @@ parse_shared_cache(struct tbd_for_main *const global,
 
         /*
          * If there are no filters and no paths, we should simply return after
-         * handling the indexes.
+         * handling the numbers.
          *
-         * Note: Since there were indexes, we do not parse all images as we do
-         * usually by default.
+         * Note: Since there are numbers, we do not parse all images as we do by
+         * default.
          */
 
         if (array_is_empty(filters) && array_is_empty(paths)) {
@@ -567,7 +567,7 @@ parse_shared_cache(struct tbd_for_main *const global,
         callback_info.parse_all_images = false;
     } else {
         /*
-         * By default, if no filters, indexes, or paths are provided, we parse
+         * By default, if no filters, numbers, or paths are provided, we parse
          * all images.
          *
          * Otherwise, all images have to be explicitly allowed to be parsed.
