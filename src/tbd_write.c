@@ -280,35 +280,36 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
         return 0;
     }
 
-    if (fprintf(file, "flags:%-17s[ ", "") < 0) {
-        return 1;
-    }
-
     if (flags & TBD_FLAG_FLAT_NAMESPACE) {
+        if (fprintf(file, "flags:%-17s[ ", "") < 0) {
+            return 1;
+        }
+
         if (fputs("flat_namespace", file) < 0) {
             return 1;
         }
-    }
 
-    if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
-        /*
-         * If flags was also marked flat_namespace, we need to write out a comma
-         * first for a valid yaml-list.
-         */
-
-        if (flags & TBD_FLAG_FLAT_NAMESPACE) {
+        if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (fputs(", not_app_extension_safe", file) < 0) {
                 return 1;
             }
-        } else {
-            if (fputs("not_app_extension_safe", file) < 0) {
-                return 1;
-            }
         }
-    }
 
-    if (fputs(" ]\n", file) < 0) {
-        return 1;
+        if (fputs(" ]\n", file) < 0) {
+            return 1;
+        }
+    } else if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (fprintf(file, "flags:%-17s[ ", "") < 0) {
+            return 1;
+        }
+
+        if (fputs("not_app_extension_safe", file) < 0) {
+            return 1;
+        }
+
+        if (fputs(" ]\n", file) < 0) {
+            return 1;
+        }
     }
 
     return 0;
@@ -527,7 +528,6 @@ tbd_write_swift_version(FILE *const file,
 
             break;
     }
-
 
     switch (swift_version) {
         case 1:
