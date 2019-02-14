@@ -59,24 +59,6 @@ path_get_absolute_path_if_necessary(const char *const path,
 }
 
 const char *
-path_get_iter_before_front_of_row_of_slashes(const char *const path,
-                                             const char *iter)
-{
-    char ch = '\0';
-
-    do {
-        --iter;
-        if (iter < path) {
-            return NULL;
-        }
-
-        ch = *iter;
-    } while (ch_is_path_slash(ch));
-
-    return iter;
-}
-
-const char *
 path_get_front_of_row_of_slashes(const char *const path, const char *iter) {
     /*
      * If we're already at the front of the entire string, simply return the
@@ -475,14 +457,13 @@ path_get_last_path_component(const char *const path,
 
     if (ch_is_path_slash(back_ch)) {
         const char *const back = &path[path_length - 1];
-        component_end =
-            path_get_iter_before_front_of_row_of_slashes(path, back);
+        component_end = path_get_front_of_row_of_slashes(path, back);
 
         /*
-         * If we get NULL, the entire path-string is just path-slashes.
+         * If we get a pointer back to path, the path-string is just slashes.
          */
 
-        if (component_end == NULL) {
+        if (component_end == path) {
             return NULL;
         }
     }
@@ -550,7 +531,7 @@ path_has_component(const char *const path,
     do {
         const uint64_t iter_length = (uint64_t)(iter_end - iter_begin);
         if (component_length == iter_length) {
-            if (strncmp(iter_begin, component, iter_length) == 0) {
+            if (memcmp(iter_begin, component, iter_length) == 0) {
                 if (component_is_in_hierarchy(iter_end)) {
                     if (allow_in_hierarchy) {
                         return true;
