@@ -518,9 +518,9 @@ int main(const int argc, const char *const argv[]) {
                             !is_dsc)
                         {
                             fputs("Writing to a directory while parsing a "
-                                  "single file is not supported, Please "
-                                  "provide a directory to write all found "
-                                  "files to\n",
+                                  "single mach-o file is not supported, Please "
+                                  "provide a path to a file to write the "
+                                  "mach-o file\n",
                                   stderr);
 
                             if (full_path != path) {
