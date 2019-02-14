@@ -217,7 +217,7 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
      */
 
     const uint16_t major = (version & 0xffff0000) >> 16;
-    if (fprintf(file, "%" PRIu8, major) < 0) {
+    if (fprintf(file, "%" PRIu16, major) < 0) {
         return 1;
     }
 
