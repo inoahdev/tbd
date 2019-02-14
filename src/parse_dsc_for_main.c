@@ -326,12 +326,12 @@ static void print_missing_paths(const struct array *const paths) {
 }
 
 static void
-handle_errors(struct tbd_for_main *const tbd,
-              const char *const dsc_path,
-              const struct array *const errors,
-              const struct array *const filters,
-              const struct array *const paths,
-              const bool print_paths)
+print_image_errors(struct tbd_for_main *const tbd,
+                   const char *const dsc_path,
+                   const struct array *const errors,
+                   const struct array *const filters,
+                   const struct array *const paths,
+                   const bool print_paths)
 {
     if (array_is_empty(errors)) {
         if (found_at_least_one_image(filters)) {
@@ -521,7 +521,12 @@ parse_shared_cache(struct tbd_for_main *const global,
                             dsc_info.images_count);
                 }
 
-                return false;
+                /*
+                 * Continue looping over the indexes so we can print out the
+                 * errors at the very end.
+                 */
+
+                continue;
             }
 
             const uint32_t index = number - 1;
@@ -547,6 +552,15 @@ parse_shared_cache(struct tbd_for_main *const global,
                 free(write_path);
             }
 
+            struct array *const image_errors = &callback_info.errors;
+            print_image_errors(tbd,
+                               path,
+                               image_errors,
+                               filters,
+                               paths,
+                               print_paths);
+
+            array_destroy(image_errors);
             return true;
         }
 
@@ -579,7 +593,7 @@ parse_shared_cache(struct tbd_for_main *const global,
 
     struct array *const image_errors = &callback_info.errors;
 
-    handle_errors(tbd, path, image_errors, filters, paths, print_paths);
+    print_image_errors(tbd, path, image_errors, filters, paths, print_paths);
     array_destroy(image_errors);
 
     return true;
