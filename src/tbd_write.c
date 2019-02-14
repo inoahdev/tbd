@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "tbd_write.h"
@@ -216,12 +217,12 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
      */
 
     const uint16_t major = (version & 0xffff0000) >> 16;
-    if (fprintf(file, "%u", major) < 0) {
+    if (fprintf(file, "%" PRIu8, major) < 0) {
         return 1;
     }
 
     if (minor != 0) {
-        if (fprintf(file, ".%u", minor) < 0) {
+        if (fprintf(file, ".%" PRIu8, minor) < 0) {
             return 1;
         }
     }
@@ -238,7 +239,7 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
             }
         }
 
-        if (fprintf(file, ".%u", revision) < 0) {
+        if (fprintf(file, ".%" PRIu8, revision) < 0) {
             return 1;
         }
     }
@@ -544,7 +545,7 @@ tbd_write_swift_version(FILE *const file,
             break;
 
         default:
-            if (fprintf(file, "%d\n", swift_version - 1) < 0) {
+            if (fprintf(file, "%" PRIu32 "\n", swift_version - 1) < 0) {
                 return 1;
             }
 

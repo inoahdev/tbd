@@ -8,6 +8,7 @@
 
 #include <errno.h>
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -505,16 +506,16 @@ parse_shared_cache(struct tbd_for_main *const global,
             if (number > dsc_info.images_count) {
                 if (print_paths) {
                     fprintf(stderr,
-                            "An image-number of %d goes beyond the "
-                            "images-count of %d the dyld_shared_cache "
+                            "An image-number of %" PRIu32 " goes beyond the "
+                            "images-count of %" PRIu32 " the dyld_shared_cache "
                             "(at path %s) has\n",
                             number,
                             dsc_info.images_count,
                             path);
                 } else {
                     fprintf(stderr,
-                            "An image-number of %d goes beyond the "
-                            "images-count of %d the dyld_shared_cache "
+                            "An image-number of %" PRIu32 " goes beyond the "
+                            "images-count of %" PRIu32 " the dyld_shared_cache "
                             "at the provided path has\n",
                             number,
                             dsc_info.images_count);
@@ -598,7 +599,7 @@ dsc_list_images_callback(struct dyld_cache_image_info *__unused const image,
 
     const uint64_t current_image_index = callback_info->current_image_index;
 
-    fprintf(stdout, "\t%ld. %s\n", current_image_index + 1, image_path);
+    fprintf(stdout, "\t%" PRIu64 ". %s\n", current_image_index + 1, image_path);
     callback_info->current_image_index = current_image_index + 1;
 
     return true;
@@ -624,7 +625,7 @@ void print_list_of_dsc_images(const int fd) {
     }
 
     fprintf(stdout,
-            "The provided dyld_shared_cache file has %d images\n",
+            "The provided dyld_shared_cache file has %" PRIu32 " images\n",
             dsc_info.images_count);
 
     struct dsc_list_images_callback callback_info = {};

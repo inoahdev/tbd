@@ -10,6 +10,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <inttypes.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -805,9 +806,11 @@ void macho_file_print_archs(const int fd) {
                 arch_info_for_cputype(arch.cputype, arch.cpusubtype);
 
             if (arch_info == NULL) {
-                fprintf(stdout, "\t%d. (Unsupported architecture)\n", i + 1);
+                fprintf(stdout,
+                        "\t%" PRIu32 ". (Unsupported architecture)\n",
+                        i + 1);
             } else {
-                fprintf(stdout, "\t%d. %s\n", i + 1, arch_info->name);
+                fprintf(stdout, "\t%" PRIu32 ". %s\n", i + 1, arch_info->name);
             }
         }
 
@@ -857,7 +860,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        fprintf(stdout, "%d architecture(s):\n", nfat_arch);
+        fprintf(stdout, "%" PRIu32 " architecture(s):\n", nfat_arch);
         for (uint32_t i = 0; i < nfat_arch; i++) {
             struct fat_arch arch = archs[i];
             if (is_big_endian) {
@@ -869,9 +872,11 @@ void macho_file_print_archs(const int fd) {
                 arch_info_for_cputype(arch.cputype, arch.cpusubtype);
 
             if (arch_info == NULL) {
-                fprintf(stdout, "\t%d. (Unsupported architecture)\n", i + 1);
+                fprintf(stdout,
+                        "\t%" PRIu32 ". (Unsupported architecture)\n",
+                        i + 1);
             } else {
-                fprintf(stdout, "\t%d. %s\n", i + 1, arch_info->name);
+                fprintf(stdout, "\t%" PRIu32 ". %s\n", i + 1, arch_info->name);
             }
         }
 
