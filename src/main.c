@@ -180,12 +180,12 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
 
     if (S_ISREG(sbuf.st_mode)) {
         /*
-         * We allow writing to regular files only on the following conditions:
+         * We allow writing to regular files only with the following conditions:
          *     (1) No filters have been provided. This is because we can't tell
-         *         before iterating and parsing how many images will pass the
-         *         filter.
+         *         before iterating how many images will pass the filter.
          *
-         *     (2) Either one image-number, or one image-path has been provided.
+         *     (2) Either only one image-number, or only one image-path has been
+         *         provided.
          */
 
         const struct array *const filters = &tbd->dsc_image_filters;
@@ -391,16 +391,11 @@ int main(const int argc, const char *const argv[]) {
 
                 const char *const path = inner_arg;
                 if (strcmp(path, "stdout") == 0) {
-                    const bool preserve_subdirs =
-                        tbd->options &
-                        O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
-
-                    if (preserve_subdirs) {
-                        fputs("Preserving sub-directories while writing to "
-                              "stdout is not possible. Please provide an "
-                              "output-directory to write files and directories "
-                              "to\n",
-                              stdout);
+                    if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                        fputs("Writing to stdout (terminal) while recursing "
+                              "a directory is not supported, Please provide "
+                              "a directory to write all found files to\n",
+                              stderr);
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
@@ -419,6 +414,8 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     has_stdout = true;
+                    found_path = true;
+
                     continue;
                 }
 
