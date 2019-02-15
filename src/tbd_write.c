@@ -281,11 +281,7 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
     }
 
     if (flags & TBD_FLAG_FLAT_NAMESPACE) {
-        if (fprintf(file, "flags:%-17s[ ", "") < 0) {
-            return 1;
-        }
-
-        if (fputs("flat_namespace", file) < 0) {
+        if (fprintf(file, "flags:%-17s[ flat_namespace", "") < 0) {
             return 1;
         }
 
@@ -299,15 +295,7 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
             return 1;
         }
     } else if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
-        if (fprintf(file, "flags:%-17s[ ", "") < 0) {
-            return 1;
-        }
-
-        if (fputs("not_app_extension_safe", file) < 0) {
-            return 1;
-        }
-
-        if (fputs(" ]\n", file) < 0) {
+        if (fprintf(file, "flags:%-17s[ not_app_extension_safe ]\n", "") < 0) {
             return 1;
         }
     }
