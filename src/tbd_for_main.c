@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "copy.h"
 #include "macho_file.h"
 #include "parse_or_list_fields.h"
 
@@ -423,7 +424,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                          &file_name_length);
 
         if (file_name == NULL) {
-            return strdup(folder_path);
+            return alloc_and_copy(folder_path, folder_path_length);
         }
 
         write_path =

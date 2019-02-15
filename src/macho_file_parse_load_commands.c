@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include <unistd.h>
+#include "copy.h"
 
 #include "guard_overflow.h"
 #include "objc.h"
@@ -285,7 +286,7 @@ add_export_to_info(struct tbd_create_info *const info_in,
      * load-command buffer which will soon be freed.
      */
 
-    export_info.string = strndup(export_info.string, export_info.length);
+    export_info.string = alloc_and_copy(export_info.string, export_info.length);
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -546,7 +547,9 @@ parse_load_command(struct tbd_create_info *const info_in,
 
                 if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
                     if (copy_strings) {
-                        char *const install_name = strndup(name_ptr, length);
+                        char *const install_name =
+                            alloc_and_copy(name_ptr, length);
+
                         if (install_name == NULL) {
                             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                         }
@@ -805,7 +808,9 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
             } else {
                 if (copy_strings) {
-                    char *const umbrella_string = strndup(umbrella, length);
+                    char *const umbrella_string =
+                        alloc_and_copy(umbrella, length);
+
                     if (umbrella_string == NULL) {
                         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                     }

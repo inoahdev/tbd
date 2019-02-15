@@ -16,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "copy.h"
 #include "path.h"
 
 static const char *current_directory = NULL;
@@ -258,7 +259,7 @@ path_append_component_with_len(const char *const path,
 
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
-            return strndup(path, path_copy_length);
+            return alloc_and_copy(path, path_copy_length);
         }
 
         /*
@@ -272,7 +273,7 @@ path_append_component_with_len(const char *const path,
     }
 
     if (path_copy_length == 0) {
-        return strndup(component_iter, component_copy_length);
+        return alloc_and_copy(component_iter, component_copy_length);
     }
 
     /*
@@ -356,7 +357,7 @@ path_append_component_and_extension_with_len(const char *const path,
 
         component_iter = path_get_end_of_row_of_slashes(component_iter);
         if (component_iter == NULL) {
-            return strndup(path, path_copy_length);
+            return alloc_and_copy(path, path_copy_length);
         }
 
         /*
@@ -370,7 +371,7 @@ path_append_component_and_extension_with_len(const char *const path,
     }
 
     if (path_copy_length == 0) {
-        return strndup(component_iter, component_copy_length);
+        return alloc_and_copy(component_iter, component_copy_length);
     }
 
     /*

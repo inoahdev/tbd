@@ -18,9 +18,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "copy.h"
 #include "dir_recurse.h"
-#include "parse_or_list_fields.h"
 
+#include "parse_or_list_fields.h"
 #include "parse_dsc_for_main.h"
 #include "parse_macho_for_main.h"
 
@@ -538,7 +539,7 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (full_path == path) {
-                    full_path = strndup(full_path, full_path_length);
+                    full_path = alloc_and_copy(full_path, full_path_length);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
 
@@ -791,7 +792,7 @@ int main(const int argc, const char *const argv[]) {
                                 (uint64_t)(last_slashes - full_path);
                         }
 
-                        full_path = strndup(full_path, full_path_length);
+                        full_path = alloc_and_copy(full_path, full_path_length);
                         if (full_path == NULL) {
                             fputs("Failed to allocate memory\n", stderr);
 

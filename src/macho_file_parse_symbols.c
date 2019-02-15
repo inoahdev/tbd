@@ -12,9 +12,10 @@
 #include <string.h>
 
 #include <unistd.h>
-
 #include "mach-o/nlist.h"
+
 #include "arch_info.h"
+#include "copy.h"
 
 #include "guard_overflow.h"
 #include "macho_file_parse_symbols.h"
@@ -292,7 +293,7 @@ handle_symbol(struct tbd_create_info *const info,
      * placing it in the list.
      */
 
-    export_info.string = strndup(export_info.string, export_info.length);
+    export_info.string = alloc_and_copy(export_info.string, export_info.length);
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
