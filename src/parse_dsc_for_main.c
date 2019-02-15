@@ -161,10 +161,10 @@ path_has_image_entry(const char *const path,
                      const uint64_t filter_length,
                      const uint64_t options)
 {
-    const bool allows_hierarchy =
+    const bool allow_hierarchy =
         !(options & O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS);
 
-    if (path_has_component(path, filter, filter_length, allows_hierarchy)) {
+    if (path_has_component(path, filter, filter_length, allow_hierarchy)) {
         return true;
     }
 
@@ -390,11 +390,11 @@ read_magic(void *const magic_in,
             return E_READ_MAGIC_NOT_LARGE_ENOUGH;
         }
 
-         /*
-          * Manually handle the read fail by passing on to
-          * handle_dsc_file_parse_result() as if we went to
-          * dyld_shared_cache_parse_from_file().
-          */
+        /*
+         * Manually handle the read fail by passing on to
+         * handle_dsc_file_parse_result() as if we went to
+         * dyld_shared_cache_parse_from_file().
+         */
 
         handle_dsc_file_parse_result(path,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
