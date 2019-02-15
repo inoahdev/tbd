@@ -394,7 +394,7 @@ int main(const int argc, const char *const argv[]) {
                     if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                         fputs("Writing to stdout (terminal) while recursing "
                               "a directory is not supported, Please provide "
-                              "a directory to write all found files to\n",
+                              "a directory to write all created files to\n",
                               stderr);
 
                         tbd_for_main_destroy(&global);
@@ -1120,7 +1120,7 @@ int main(const int argc, const char *const argv[]) {
             if (tbd->write_path == NULL) {
                 fputs("Writing to stdout (terminal) while recursing "
                       "a directory is not supported, Please provide "
-                      "a directory to write all found files to\n",
+                      "a directory to write all created files to\n",
                       stderr);
 
                 tbd_for_main_destroy(&global);
