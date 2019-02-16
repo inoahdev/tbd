@@ -73,8 +73,8 @@ is_objc_class_symbol(const char *const symbol,
 
         case 4993752304437055327: {
             /*
-            * The check here is `if (first == "_OBJC_ME")`, checking if the prefix
-            * is "_OBJC_METACLASS_$".
+            * The check here is `if (first == "_OBJC_ME")`, checking if the
+            * prefix is "_OBJC_METACLASS_$".
             */
 
             if (length < 17) {
@@ -102,8 +102,8 @@ is_objc_class_symbol(const char *const symbol,
 
         case 7810191059381808942: {
             /*
-            * The check here is `if (first == ".objc_cl")`, checking if the prefix
-            * is ".objc_class_name".
+            * The check here is `if (first == ".objc_cl")`, checking if the
+            * prefix is ".objc_class_name".
             */
 
             if (length < 16) {
