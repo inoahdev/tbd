@@ -415,8 +415,8 @@ int main(const int argc, const char *const argv[]) {
                         return 1;
                     }
 
-                    has_stdout = true;
                     found_path = true;
+                    has_stdout = true;
 
                     continue;
                 }
@@ -931,11 +931,11 @@ int main(const int argc, const char *const argv[]) {
                 return 1;
             }
 
-           /*
-            * Two modes exist for option --list-architectures:
-            *     - Listing the archs in the arch-info table
-            *     - Listing the archs in a provided mach-o file.
-            */
+            /*
+             * Two modes exist for option --list-architectures:
+             *     - Listing the archs in the arch-info table
+             *     - Listing the archs in a provided mach-o file.
+             */
 
             if (argc == 3) {
                 const char *const path = argv[2];

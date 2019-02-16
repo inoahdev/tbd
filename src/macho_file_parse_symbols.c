@@ -50,11 +50,11 @@ is_objc_class_symbol(const char *const symbol,
     switch (first) {
         case 5495340712935444319: {
             /*
-            * The check here is `if (first == "_OBJC_CL")`, checking of whether
-            * the prefix is "_OBJC_CLASS_$".
-            *
-            * The check below is `if (second == "ASS_")`.
-            */
+             * The check here is `if (first == "_OBJC_CL")`, checking of whether
+             * the prefix is "_OBJC_CLASS_$".
+             *
+             * The check below is `if (second == "ASS_")`.
+             */
 
             const uint32_t second = *(const uint32_t *)(symbol + 8);
             if (second != 1599296321) {
@@ -73,17 +73,17 @@ is_objc_class_symbol(const char *const symbol,
 
         case 4993752304437055327: {
             /*
-            * The check here is `if (first == "_OBJC_ME")`, checking if the
-            * prefix is "_OBJC_METACLASS_$".
-            */
+             * The check here is `if (first == "_OBJC_ME")`, checking if the
+             * prefix is "_OBJC_METACLASS_$".
+             */
 
             if (length < 17) {
                 return false;
             }
 
             /*
-            * The check below is `if (second == "TACLASS")`.
-            */
+             * The check below is `if (second == "TACLASS")`.
+             */
 
             const uint64_t second = *(const uint64_t *)(symbol + 8);
             if (second != 6868925396587594068) {
@@ -102,17 +102,17 @@ is_objc_class_symbol(const char *const symbol,
 
         case 7810191059381808942: {
             /*
-            * The check here is `if (first == ".objc_cl")`, checking if the
-            * prefix is ".objc_class_name".
-            */
+             * The check here is `if (first == ".objc_cl")`, checking if the
+             * prefix is ".objc_class_name".
+             */
 
             if (length < 16) {
                 return false;
             }
 
             /*
-            * The check below is `if (second == ".ass_name")`.
-            */
+             * The check below is `if (second == ".ass_name")`.
+             */
 
             const uint64_t second = *(const uint64_t *)(symbol + 8);
             if (second != 7308604896967881569) {
