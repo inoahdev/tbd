@@ -405,7 +405,8 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     if (has_stdout) {
-                        fputs("Cannot print more than one file to stdout\n",
+                        fputs("Printing more than one file to stdout is not "
+                              "allowed\n",
                               stderr);
 
                         tbd_for_main_destroy(&global);
@@ -424,8 +425,9 @@ int main(const int argc, const char *const argv[]) {
                  * Ensure options for recursing directories are not being
                  * provided for other contexts and circumstances.
                  *
-                 * We allow dyld_shared_cache files to slip through as they will
-                 * always be exported to a directory.
+                 * We allow dyld_shared_cache files to slip through as they can
+                 * be exported to a directory due to the fact that they store
+                 * multiple mach-o images.
                  */
 
                 const uint64_t options = tbd->options;
@@ -433,8 +435,8 @@ int main(const int argc, const char *const argv[]) {
                     tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE)
                 {
                     if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
-                        fputs("Option --preserve-subdirs can only be "
-                              "provided recursing directoriess\n",
+                        fputs("Option --preserve-subdirs can only be provided "
+                              "recursing directoriess\n",
                               stderr);
 
                         tbd_for_main_destroy(&global);
@@ -1119,9 +1121,9 @@ int main(const int argc, const char *const argv[]) {
              */
 
             if (tbd->write_path == NULL) {
-                fputs("Writing to stdout (terminal) while recursing "
-                      "a directory is not supported, Please provide "
-                      "a directory to write all created files to\n",
+                fputs("Writing to stdout (terminal) while recursing a "
+                      "directory is not supported, Please provide a directory "
+                      "to write all created files to\n",
                       stderr);
 
                 tbd_for_main_destroy(&global);
