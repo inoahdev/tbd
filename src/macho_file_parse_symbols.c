@@ -385,7 +385,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    struct nlist *const symbol_table = calloc(1, symbol_table_size);
+    struct nlist *const symbol_table = malloc(symbol_table_size);
     if (symbol_table == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -400,7 +400,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    char *const string_table = calloc(1, strsize);
+    char *const string_table = malloc(strsize);
     if (string_table == NULL) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -587,7 +587,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    struct nlist_64 *const symbol_table = calloc(1, symbol_table_size);
+    struct nlist_64 *const symbol_table = malloc(symbol_table_size);
     if (symbol_table == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -602,7 +602,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    char *const string_table = calloc(1, strsize);
+    char *const string_table = malloc(strsize);
     if (string_table == NULL) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;

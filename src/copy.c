@@ -12,11 +12,13 @@
 #include "copy.h"
 
 char *alloc_and_copy(const char *const string, const uint64_t length) {
-    char *const copy = calloc(1, length + 1);
+    char *const copy = malloc(length + 1);
     if (copy == NULL) {
         return NULL;
     }
 
     memcpy(copy, string, length);
+    copy[length] = '\0';
+
     return copy;
 }

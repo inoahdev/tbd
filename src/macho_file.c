@@ -155,7 +155,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
-    struct fat_arch *const archs = calloc(1, archs_size);
+    struct fat_arch *const archs = malloc(archs_size);
     if (archs == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -388,7 +388,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
-    struct fat_arch_64 *const archs = calloc(1, archs_size);
+    struct fat_arch_64 *const archs = malloc(archs_size);
     if (archs == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -780,7 +780,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        struct fat_arch_64 *const archs = calloc(1, archs_size);
+        struct fat_arch_64 *const archs = malloc(archs_size);
         if (archs == NULL) {
             fputs("Failed to allocate space for architectures\n", stderr);
             exit(1);
@@ -845,7 +845,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        struct fat_arch *const archs = calloc(1, archs_size);
+        struct fat_arch *const archs = malloc(archs_size);
         if (archs == NULL) {
             fputs("Failed to allocate space for architectures\n", stderr);
             exit(1);

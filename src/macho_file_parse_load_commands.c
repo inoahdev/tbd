@@ -1104,7 +1104,7 @@ macho_file_parse_load_commands_from_file(
      * Allocate the entire load-commands buffer to allow fast parsing.
      */
 
-    uint8_t *const load_cmd_buffer = calloc(1, sizeofcmds);
+    uint8_t *const load_cmd_buffer = malloc(sizeofcmds);
     if (load_cmd_buffer == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }

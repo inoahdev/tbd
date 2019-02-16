@@ -286,7 +286,7 @@ path_append_component_with_len(const char *const path,
      * Add one to the length for the null-terminator.
      */
 
-    char *const combined = calloc(1, combined_length + 1);
+    char *const combined = malloc(combined_length + 1);
     if (combined == NULL) {
         return NULL;
     }
@@ -307,6 +307,7 @@ path_append_component_with_len(const char *const path,
         *length_out = combined_length;
     }
 
+    combined[combined_length] = '\0';
     return combined;
 }
 
@@ -408,7 +409,7 @@ path_append_component_and_extension_with_len(const char *const path,
      * Add one for the null-terminator.
      */
 
-    char *const combined = calloc(1, combined_length + 1);
+    char *const combined = malloc(combined_length + 1);
     if (combined == NULL) {
         return NULL;
     }
@@ -445,6 +446,7 @@ path_append_component_and_extension_with_len(const char *const path,
         *length_out = combined_length;
     }
 
+    combined[combined_length] = '\0';
     return combined;
 }
 

@@ -66,7 +66,7 @@ array_expand_if_necessary(struct array *const array,
         new_capacity = wanted_capacity;
     }
 
-    void *const new_data = calloc(1, new_capacity);
+    void *const new_data = malloc(new_capacity);
     if (new_data == NULL) {
         return E_ARRAY_ALLOC_FAIL;
     }
@@ -511,7 +511,7 @@ array_sort_items_with_comparator(struct array *const array,
 enum array_result
 array_copy(struct array *const array, struct array *const array_out) {
     const uint64_t used_size = array_get_used_size(array);
-    void *const data = calloc(1, used_size);
+    void *const data = malloc(used_size);
 
     if (data == NULL) {
         return E_ARRAY_OK;
