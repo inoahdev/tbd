@@ -33,15 +33,14 @@
 
 static inline bool
 is_objc_class_symbol(const char *const symbol,
-                     const uint32_t length,
+                     const uint64_t first,
+                     const uint32_t max_length,
                      const char **const symbol_out,
                      uint32_t *const length_out)
 {
-    if (length < 13) {
+    if (max_length < 13) {
         return false;
     }
-
-    const uint64_t first = *(const uint64_t *)symbol;
 
     /*
      * Objc-class symbols can have different prefixes.
@@ -65,8 +64,10 @@ is_objc_class_symbol(const char *const symbol,
                 return false;
             }
 
-            *symbol_out = symbol + 13;
-            *length_out = length - 13;
+            const char *const real_symbol = symbol + 13;
+
+            *symbol_out = real_symbol;
+            *length_out = (uint32_t)strnlen(real_symbol, max_length - 13);
 
             break;
         }
@@ -77,7 +78,7 @@ is_objc_class_symbol(const char *const symbol,
              * prefix is "_OBJC_METACLASS_$".
              */
 
-            if (length < 17) {
+            if (max_length < 17) {
                 return false;
             }
 
@@ -94,8 +95,11 @@ is_objc_class_symbol(const char *const symbol,
                 return false;
             }
 
-            *symbol_out = symbol + 17;
-            *length_out = length - 17;
+            const char *const real_symbol = symbol + 17;
+
+            *symbol_out = real_symbol;
+            *length_out = (uint32_t)strnlen(real_symbol, max_length - 17);
+
 
             break;
         }
@@ -106,7 +110,7 @@ is_objc_class_symbol(const char *const symbol,
              * prefix is ".objc_class_name".
              */
 
-            if (length < 16) {
+            if (max_length < 16) {
                 return false;
             }
 
@@ -119,8 +123,11 @@ is_objc_class_symbol(const char *const symbol,
                 return false;
             }
 
-            *symbol_out = symbol + 16;
-            *length_out = length - 16;
+            const char *const real_symbol = symbol + 16;
+
+            *symbol_out = real_symbol;
+            *length_out = (uint32_t)strnlen(real_symbol, max_length - 16);
+
 
             break;
         }
@@ -133,16 +140,11 @@ is_objc_class_symbol(const char *const symbol,
 }
 
 static inline
-bool is_objc_ivar_symbol(const char *const symbol, const uint32_t length) {
-    if (length < 12) {
-        return false;
-    }
-
+bool is_objc_ivar_symbol(const char *const symbol, const uint64_t first) {
     /*
      * The check here is `if (first == "_OBJC_IV")`.
      */
 
-    const uint64_t first = *(const uint64_t *)symbol;
     if (first != 6217605503174987615) {
         return false;
     }
@@ -162,8 +164,8 @@ bool is_objc_ivar_symbol(const char *const symbol, const uint32_t length) {
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *const info,
               const uint64_t arch_bit,
-              const uint64_t index,
-              const uint64_t strsize,
+              const uint32_t index,
+              const uint32_t strsize,
               const char *const symbol_string,
               const uint16_t n_desc,
               const uint8_t n_type,
@@ -187,7 +189,7 @@ handle_symbol(struct tbd_create_info *const info,
     }
 
     const char *string = symbol_string;
-    const uint64_t max_length = strsize - index;
+    const uint32_t max_len = strsize - index;
 
     /*
      * Figure out the symbol-type from the symbol-string and desc.
@@ -207,42 +209,61 @@ handle_symbol(struct tbd_create_info *const info,
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-        length = (uint32_t)strnlen(symbol_string, max_length);
+        length = (uint32_t)strnlen(symbol_string, max_len);
 
         if (length == 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
     } else {
-        length = (uint32_t)strnlen(symbol_string, max_length);
-        if (length == 0) {
-            return E_MACHO_FILE_PARSE_OK;
-        }
+        /*
+         * Only check for symbols who max potential length is greater than 12,
+         * as that is the minimum length for an objc-ivar symbol.
+         */
 
-        if (is_objc_class_symbol(string, length, &string, &length)) {
-            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
-                if (!(n_type & N_EXT)) {
-                    return E_MACHO_FILE_PARSE_OK;
+        if (max_len >= 12) {
+            const uint64_t first = *(const uint64_t *)string;
+            const char *const str = string;
+
+            if (is_objc_class_symbol(str, first, max_len, &string, &length)) {
+                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
+                    if (!(n_type & N_EXT)) {
+                        return E_MACHO_FILE_PARSE_OK;
+                    }
                 }
+
+                symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
+            } else if (is_objc_ivar_symbol(symbol_string, first)) {
+                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
+                    if (!(n_type & N_EXT)) {
+                        return E_MACHO_FILE_PARSE_OK;
+                    }
+                }
+
+                string += 12;
+                length = (uint32_t)strnlen(string, max_len - 12);
+
+                symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
+            } else {
+                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
+                    if (!(n_type & N_EXT)) {
+                        return E_MACHO_FILE_PARSE_OK;
+                    }
+                }
+
+                length = (uint32_t)strnlen(string, max_len);
             }
 
-            symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-        } else if (is_objc_ivar_symbol(symbol_string, length)) {
-            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
-                if (!(n_type & N_EXT)) {
-                    return E_MACHO_FILE_PARSE_OK;
-                }
+            if (length == 0) {
+                return E_MACHO_FILE_PARSE_OK;
             }
-
-            string += 12;
-            length -= 12;
-
-            symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
         } else {
             if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
                 if (!(n_type & N_EXT)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
             }
+
+            length = (uint32_t)strnlen(string, max_len);
         }
     }
 
@@ -268,8 +289,8 @@ handle_symbol(struct tbd_create_info *const info,
         const uint64_t archs = existing_info->archs;
 
         /*
-         * Ensure multiple symbols for the same arch (which we, for sake of
-         * leniency, ignore) are ignored.
+         * Ensure multiple symbols for the same arch are ignored (For the sake
+         * of leniency).
          */
 
         if (!(archs & arch_bit)) {
@@ -413,7 +434,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    struct nlist *nlist = symbol_table;
+    const struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + nsyms;
 
     if (is_big_endian) {
@@ -615,7 +636,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    struct nlist_64 *nlist = symbol_table;
+    const struct nlist_64 *nlist = symbol_table;
     const struct nlist_64 *const end = symbol_table + nsyms;
 
     if (is_big_endian) {
@@ -784,7 +805,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an
+             * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
              */
 
@@ -946,7 +967,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
     if (is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an
+             * Ensure that each symbol either connects back to __TEXT, or is an
              * indirect symbol.
              */
 
