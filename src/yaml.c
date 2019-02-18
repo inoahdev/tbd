@@ -11,22 +11,33 @@
 
 #include "yaml.h"
 
-static const char needs_quotes[] = {
-    ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '<', '>', '=',
-    '!', '%', '@', '`', ' '
-};
-
 static inline bool char_needs_quotes(const char ch) {
-    for (uint64_t i = 0; i < sizeof(needs_quotes); i++) {
-        const char needs_quotes_ch = needs_quotes[i];
-        if (ch != needs_quotes_ch) {
-            continue;
-        }
+    switch (ch) {
+        case ':':
+        case '{':
+        case '}':
+        case '[':
+        case ']':
+        case ',':
+        case '&':
+        case '*':
+        case '#':
+        case '?':
+        case '|':
+        case '-':
+        case '<':
+        case '>':
+        case '=':
+        case '!':
+        case '%':
+        case '@':
+        case '`':
+        case ' ':
+            return true;
 
-        return true;
+        default:
+            return false;
     }
-
-    return false;
 }
 
 bool yaml_check_c_str(const char *const string, const uint64_t length) {
