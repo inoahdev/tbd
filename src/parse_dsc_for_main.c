@@ -37,13 +37,13 @@ struct dsc_iterate_images_callback_info {
     struct tbd_for_main *tbd;
 
     struct array images;
-    struct array errors;
 
     uint64_t write_path_length;
     uint64_t *retained_info;
 
     bool print_paths;
     bool parse_all_images;
+    bool did_print_messages_header;
 };
 
 enum dyld_cache_image_info_pad {
@@ -59,34 +59,34 @@ clear_create_info(struct tbd_create_info *const info_in,
 }
 
 static void
-add_image_error(struct dsc_iterate_images_callback_info *const callback_info,
-                const char *const image_path,
-                const enum dsc_image_parse_result result)
+print_messages_header(
+    struct dsc_iterate_images_callback_info *const callback_info)
 {
-    const struct image_error error = {
-        .path = image_path,
-        .result = result
-    };
-
-    const enum array_result add_image_error_result =
-        array_add_item(&callback_info->errors, sizeof(error), &error, NULL);
-
-    if (add_image_error_result != E_ARRAY_OK) {
+    if (!callback_info->did_print_messages_header) {
         if (callback_info->print_paths) {
             fprintf(stderr,
-                    "Warning: Failed to append to list of errors encountered "
-                    "while parsing image (at path %s) for dyld_shared_cache "
-                    "file (at path %s)\n",
-                    image_path,
+                    "Parsing dyld_shared_cache file (at path %s) resulted in "
+                    "the following warnings and errors:\n",
                     callback_info->dsc_path);
         } else {
-            fprintf(stderr,
-                    "Warning: Failed to append to list of errors encountered "
-                    "while parsing image (at path %s) for the provided "
-                    "dyld_shared_cache file\n",
-                    callback_info->dsc_path);
+            fputs("Parsing the provided dyld_shared_cache file resulted in the "
+                  "following warnings and errors:\n",
+                  stderr);
         }
+
+        callback_info->did_print_messages_header = true;
     }
+}
+
+static void
+print_image_error(struct dsc_iterate_images_callback_info *const callback_info,
+                  const char *const image_path,
+                  const enum dsc_image_parse_result result)
+{
+    print_messages_header(callback_info);
+
+    fputc('\t', stderr);
+    print_dsc_image_parse_error(callback_info->tbd, image_path, result);
 }
 
 static int
@@ -120,8 +120,8 @@ actually_parse_image(
                                       callback_info->retained_info);
 
     if (!should_continue) {
-        add_image_error(callback_info, image_path, parse_image_result);
         clear_create_info(create_info, &original_info);
+        print_image_error(callback_info, image_path, parse_image_result);
 
         return 1;
     }
@@ -326,44 +326,19 @@ static void print_missing_paths(const struct array *const paths) {
 }
 
 static void
-print_image_errors(struct tbd_for_main *const tbd,
-                   const char *const dsc_path,
-                   const struct array *const errors,
+print_dsc_warnings(struct dsc_iterate_images_callback_info *const callback_info,
                    const struct array *const filters,
-                   const struct array *const paths,
-                   const bool print_paths)
+                   const struct array *const paths)
 {
-    if (array_is_empty(errors)) {
-        if (found_at_least_one_image(filters)) {
-            if (found_all_paths(paths)) {
-                return;
-            }
+    if (found_at_least_one_image(filters)) {
+        if (found_all_paths(paths)) {
+            return;
         }
     }
 
-    if (print_paths) {
-        fprintf(stderr,
-                "Parsing dyld_shared_cache file (at path %s) resulted in the "
-                "following warnings and errors:\n",
-                dsc_path);
-    } else {
-        fputs("Parsing the provided dyld_shared_cache file resulted in the "
-              "following warnings and errors:\n",
-              stderr);
-    }
-
-    const struct image_error *error = errors->data;
-    const struct image_error *const end = errors->data_end;
-
-    for (; error != end; error++) {
-        fputc('\t', stderr);
-        print_dsc_image_parse_error(tbd, error->path, error->result);
-    }
-
+    print_messages_header(callback_info);
     print_missing_filters(filters);
     print_missing_paths(paths);
-
-    fputc('\n', stderr);
 }
 
 enum read_magic_result {
@@ -530,7 +505,7 @@ parse_shared_cache(struct tbd_for_main *const global,
             }
 
             const uint32_t index = number - 1;
-            struct dyld_cache_image_info *const image = &dsc_info.images[index];
+            struct dyld_cache_image_info *const image = dsc_info.images + index;
 
             const uint32_t image_path_offset = image->pathFileOffset;
             const char *const image_path =
@@ -552,15 +527,7 @@ parse_shared_cache(struct tbd_for_main *const global,
                 free(write_path);
             }
 
-            struct array *const image_errors = &callback_info.errors;
-            print_image_errors(tbd,
-                               path,
-                               image_errors,
-                               filters,
-                               paths,
-                               print_paths);
-
-            array_destroy(image_errors);
+            print_dsc_warnings(&callback_info, filters, paths);
             return true;
         }
 
@@ -591,11 +558,7 @@ parse_shared_cache(struct tbd_for_main *const global,
         free(write_path);
     }
 
-    struct array *const image_errors = &callback_info.errors;
-
-    print_image_errors(tbd, path, image_errors, filters, paths, print_paths);
-    array_destroy(image_errors);
-
+    print_dsc_warnings(&callback_info, filters, paths);
     return true;
 }
 
