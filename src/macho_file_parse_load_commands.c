@@ -1063,8 +1063,8 @@ macho_file_parse_load_commands_from_file(
      * instead.
      */
 
-    uint32_t minimum_size = ncmds;
-    if (guard_overflow_shift_left(&minimum_size, 3)) {
+    uint32_t minimum_size = sizeof(struct load_command);
+    if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
@@ -1641,13 +1641,10 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     /*
      * Get the minimum size by multiplying the ncmds and
      * sizeof(struct load_command).
-     *
-     * Since sizeof(struct load_command) is a power of 2 (8), use a shift by 3
-     * instead.
      */
 
-    uint32_t minimum_size = ncmds;
-    if (guard_overflow_shift_left(&minimum_size, 3)) {
+    uint32_t minimum_size = sizeof(struct load_command);
+    if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 

@@ -369,13 +369,10 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 {
     /*
      * Calculate the total-size of the architectures given.
-     *
-     * Since sizeof(struct fat_arch) is a power of 2 (32), use a shift by 5
-     * instead.
      */
 
-    uint64_t archs_size = nfat_arch;
-    if (guard_overflow_shift_left(&archs_size, 5)) {
+    uint64_t archs_size = sizeof(struct fat_arch_64);
+    if (guard_overflow_mul(&archs_size, nfat_arch)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
@@ -769,13 +766,10 @@ void macho_file_print_archs(const int fd) {
 
         /*
          * Calculate the total-size of the architectures given.
-         *
-         * Since sizeof(struct fat_arch_64) is a power of 2 (32), use a shift
-         * by 5 instead.
          */
 
-        uint64_t archs_size = nfat_arch;
-        if (guard_overflow_shift_left(&archs_size, 5)) {
+        uint64_t archs_size = sizeof(struct fat_arch_64);
+        if (guard_overflow_mul(&archs_size, nfat_arch)) {
             fputs("File has too many architectures\n", stderr);
             exit(1);
         }

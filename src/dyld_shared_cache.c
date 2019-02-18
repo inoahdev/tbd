@@ -255,14 +255,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     /*
      * Get the size of the mapping-infos table by multipying the mapping-count
-     * and the size of a mapping-info
-     *
-     * Since sizeof(struct dyld_cache_mapping_info) is a power of 2 (32), use a
-     * shift by 5 instead.
+     * and the size of a mapping-info.
      */
 
-    uint64_t mapping_size = mapping_count;
-    if (guard_overflow_shift_left(&mapping_size, 5)) {
+    uint64_t mapping_size = sizeof(struct dyld_cache_mapping_info);
+    if (guard_overflow_mul(&mapping_size, mapping_count)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
@@ -273,14 +270,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     /*
      * Get the size of the image-infos table by multipying the images-count
-     * and the size of a image-info
-     *
-     * Since sizeof(struct dyld_cache_image_info) is a power of 2 (32), use a
-     * shift by 5 instead.
+     * and the size of a image-info.
      */
 
-    uint64_t images_size = images_count;
-    if (guard_overflow_shift_left(&images_size, 5)) {
+    uint64_t images_size = sizeof(struct dyld_cache_image_info);
+    if (guard_overflow_mul(&images_size, images_count)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 

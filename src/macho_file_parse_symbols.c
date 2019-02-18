@@ -551,14 +551,11 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 
     /*
      * Get the size of the symbol table by multipying the symbol-count and the
-     * size of symbol-table-entry
-     *
-     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
-     * instead.
+     * size of symbol-table-entry.
      */
 
-    uint64_t symbol_table_size = nsyms;
-    if (guard_overflow_shift_left(&symbol_table_size, 4)) {
+    uint64_t symbol_table_size = sizeof(struct nlist_64);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -926,14 +923,11 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
 
     /*
      * Get the size of the symbol table by multipying the symbol-count and the
-     * size of symbol-table-entry
-     *
-     * Since sizeof(struct nlist_64) is a power of 2 (16), use a shift by 4
-     * instead.
+     * size of symbol-table-entry.
      */
 
-    uint64_t symbol_table_size = nsyms;
-    if (guard_overflow_shift_left(&symbol_table_size, 4)) {
+    uint64_t symbol_table_size = sizeof(struct nlist_64);
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
