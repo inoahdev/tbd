@@ -177,15 +177,24 @@ find_image_flags_for_path(const struct array *const filters,
                           const char *const path,
                           const uint64_t options)
 {
-    struct tbd_for_main_dsc_image_path *image_path = paths->data;
-    const struct tbd_for_main_dsc_image_path *const paths_end = paths->data_end;
+    if (!array_is_empty(paths)) {
+        const uint64_t path_length = strlen(path);
 
-    for (; image_path != paths_end; image_path++) {
-        if (strcmp(image_path->string, path) != 0) {
-            continue;
+        struct tbd_for_main_dsc_image_path *image_path = paths->data;
+        const struct tbd_for_main_dsc_image_path *const paths_end =
+            paths->data_end;
+
+        for (; image_path != paths_end; image_path++) {
+            if (image_path->length != path_length) {
+                continue;
+            }
+
+            if (memcmp(image_path->string, path, path_length) != 0) {
+                continue;
+            }
+
+            return &image_path->flags;
         }
-
-        return &image_path->flags;
     }
 
     struct tbd_for_main_dsc_image_filter *filter = filters->data;

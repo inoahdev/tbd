@@ -131,6 +131,7 @@ add_image_path(struct tbd_for_main *const tbd,
     const char *const string = argv[index + 1];
     const struct tbd_for_main_dsc_image_path path = {
         .string = string,
+        .length = strlen(string)
     };
 
     const enum array_result add_path_result =
@@ -632,7 +633,16 @@ tbd_for_main_dsc_image_path_comparator(const void *const array_item,
     const struct tbd_for_main_dsc_image_path *const path =
         (const struct tbd_for_main_dsc_image_path *)item;
 
-    return strcmp(array_path->string, path->string);
+    const uint64_t array_path_length = array_path->length;
+    const uint64_t path_length = path->length;
+
+    if (array_path_length > path_length) {
+        return memcmp(array_path->string, path->string, path_length + 1);
+    } else if (array_path_length < path_length) {
+        return memcmp(array_path->string, path->string, array_path_length + 1);
+    }
+
+    return memcmp(array_path->string, path->string, path_length);
 }
 
 void

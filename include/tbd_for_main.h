@@ -25,6 +25,8 @@ struct tbd_for_main_dsc_image_filter {
 
 struct tbd_for_main_dsc_image_path {
     const char *string;
+
+    uint64_t length;
     uint64_t flags;
 };
 
