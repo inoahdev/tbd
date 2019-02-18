@@ -28,19 +28,19 @@ dir_recurse(const char *const path,
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }
 
+    /*
+     * Set errno to zero so we can distinguish later when readdir() has failed,
+     * and when there are no more files and sub-directories left.
+     */
+
+    errno = 0;
+
     do {
-        /*
-         * readdir() fails by returning NULL _and_ setting errno. It's possible
-         * for readdir to return NULL without an error (no more files in dir).
-         */
-
-        const int prev_errno = errno;
         struct dirent *entry = readdir(dir);
-
         if (entry == NULL) {
             closedir(dir);
 
-            if (errno != prev_errno) {
+            if (errno != 0) {
                 fail_callback(path,
                               path_length,
                               E_DIR_RECURSE_FAILED_TO_READ_ENTRY,
@@ -99,6 +99,17 @@ dir_recurse(const char *const path,
                                 callback,
                                 fail_callback);
 
+                /*
+                 * Clear errno after reading sub-directories so our readdir()
+                 * calls and checks work properly.
+                 *
+                 * Note: For the top-level directory, which the caller asked
+                 * for, we do not set errno to zero at the very end, so the
+                 * caller can have, at the least, a posibility of reading errno.
+                 */
+
+                errno = 0;
+
                 switch (recurse_subdir_result) {
                     case E_DIR_RECURSE_OK:
                         break;
@@ -138,10 +149,10 @@ dir_recurse(const char *const path,
                 if (entry_path == NULL) {
                     const bool should_continue =
                         fail_callback(entry_path,
-                                    length,
-                                    E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH,
-                                    entry,
-                                    callback_info);
+                                      length,
+                                      E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH,
+                                      entry,
+                                      callback_info);
 
                     if (!should_continue) {
                         should_exit = true;
