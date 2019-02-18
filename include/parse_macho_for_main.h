@@ -16,14 +16,15 @@
  */
 
 bool
-parse_macho_file(struct tbd_for_main *global,
+parse_macho_file(void *magic_in,
+                 uint64_t *magic_in_size_in,
+                 uint64_t *retained_info_in,
+                 struct tbd_for_main *global,
                  struct tbd_for_main *tbd,
                  const char *path,
                  uint64_t path_length,
                  int fd,
-                 bool print_paths,
-                 uint64_t *retained_info_in,
-                 void *magic_in,
-                 uint64_t *magic_in_size_in);
+                 bool ignore_non_macho_error,
+                 bool print_paths);
 
 #endif /* PARSE_MACHO_FOR_MAIN_H */

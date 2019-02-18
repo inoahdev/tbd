@@ -13,11 +13,11 @@
 #include "tbd_for_main.h"
 
 bool
-handle_macho_file_parse_result(struct tbd_for_main *global,
+handle_macho_file_parse_result(uint64_t *retained_info_in,
+                               struct tbd_for_main *global,
                                struct tbd_for_main *tbd,
                                const char *path,
                                enum macho_file_parse_result parse_result,
-                               bool print_paths,
-                               uint64_t *retained_info_in);
+                               bool print_paths);
 
 #endif /* HANDLE_MACHO_PARSE_RESULT_H */

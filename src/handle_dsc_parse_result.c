@@ -165,13 +165,13 @@ handle_dsc_file_parse_result(
 }
 
 bool
-handle_dsc_image_parse_result(struct tbd_for_main *const global,
+handle_dsc_image_parse_result(uint64_t *const info_in,
+                              struct tbd_for_main *const global,
                               struct tbd_for_main *const tbd,
                               const char *const dsc_path,
                               const char *const image_path,
                               const enum dsc_image_parse_result parse_result,
-                              const bool print_paths,
-                              uint64_t *const info_in)
+                              const bool print_paths)
 {
     switch (parse_result) {
         case E_DSC_IMAGE_PARSE_OK:

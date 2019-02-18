@@ -19,13 +19,13 @@ handle_dsc_file_parse_result(const char *path,
                              bool print_paths);
 
 bool
-handle_dsc_image_parse_result(struct tbd_for_main *global,
+handle_dsc_image_parse_result(uint64_t *retained_info_in,
+                              struct tbd_for_main *global,
                               struct tbd_for_main *tbd,
                               const char *dsc_path,
                               const char *image_path,
                               enum dsc_image_parse_result parse_result,
-                              bool print_paths,
-                              uint64_t *retained_info_in);
+                              bool print_paths);
 
 void
 print_dsc_image_parse_error(struct tbd_for_main *tbd,

@@ -83,15 +83,16 @@ recurse_directory_callback(const char *const parse_path,
 
     if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
         const bool parse_as_macho_result =
-            parse_macho_file(global,
+            parse_macho_file(&magic,
+                             &magic_size,
+                             retained,
+                             global,
                              tbd,
                              parse_path,
                              parse_path_length,
                              fd,
                              true,
-                             retained,
-                             &magic,
-                             &magic_size);
+                             true);
 
         if (parse_as_macho_result) {
             close(fd);
@@ -108,16 +109,16 @@ recurse_directory_callback(const char *const parse_path,
     }
 
     const bool parse_as_dsc_result =
-        parse_shared_cache(global,
+        parse_shared_cache(&magic,
+                           &magic_size,
+                           retained,
+                           global,
                            tbd,
                            parse_path,
                            parse_path_length,
                            fd,
                            true,
-                           true,
-                           retained,
-                           &magic,
-                           &magic_size);
+                           true);
 
     if (parse_as_dsc_result) {
         close(fd);
@@ -1185,15 +1186,16 @@ int main(const int argc, const char *const argv[]) {
 
             switch (tbd->filetype) {
                 case TBD_FOR_MAIN_FILETYPE_MACHO:
-                    parse_macho_file(&global,
+                    parse_macho_file(&magic,
+                                     &magic_size,
+                                     &retained_info,
+                                     &global,
                                      tbd,
                                      parse_path,
                                      tbd->parse_path_length,
                                      fd,
-                                     true,
-                                     &retained_info,
-                                     &magic,
-                                     &magic_size);
+                                     false,
+                                     should_print_paths);
 
                     break;
 
@@ -1204,16 +1206,16 @@ int main(const int argc, const char *const argv[]) {
                      */
 
                     verify_dsc_write_path(tbd);
-                    parse_shared_cache(&global,
+                    parse_shared_cache(&magic,
+                                       &magic_size,
+                                       &retained_info,
+                                       &global,
                                        tbd,
                                        parse_path,
                                        tbd->parse_path_length,
                                        fd,
                                        false,
-                                       should_print_paths,
-                                       &retained_info,
-                                       &magic,
-                                       &magic_size);
+                                       should_print_paths);
 
                     break;
                 }

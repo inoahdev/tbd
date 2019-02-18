@@ -27,15 +27,16 @@ clear_create_info(struct tbd_create_info *const info_in,
 }
 
 bool
-parse_macho_file(struct tbd_for_main *const global,
+parse_macho_file(void *const magic_in,
+                 uint64_t *const magic_in_size_in,
+                 uint64_t *const retained_info_in,
+                 struct tbd_for_main *const global,
                  struct tbd_for_main *const tbd,
                  const char *const path,
                  const uint64_t path_length,
                  const int fd,
-                 const bool print_paths,
-                 uint64_t *const retained_info_in,
-                 void *const magic_in,
-                 uint64_t *const magic_in_size_in)
+                 const bool ignore_non_macho_error,
+                 const bool print_paths)
 {
     uint32_t magic =  *(uint32_t *)magic_in;
 
@@ -53,12 +54,12 @@ parse_macho_file(struct tbd_for_main *const global,
              * macho_file_parse_from_file().
              */
 
-            handle_macho_file_parse_result(global,
+            handle_macho_file_parse_result(retained_info_in,
+                                           global,
                                            tbd,
                                            path,
                                            E_MACHO_FILE_PARSE_READ_FAIL,
-                                           print_paths,
-                                           retained_info_in);
+                                           print_paths);
 
             return true;
         }
@@ -84,16 +85,25 @@ parse_macho_file(struct tbd_for_main *const global,
             *magic_in_size_in = sizeof(magic);
         }
 
+        if (!ignore_non_macho_error) {
+            handle_macho_file_parse_result(retained_info_in,
+                                           global,
+                                           tbd,
+                                           path,
+                                           parse_result,
+                                           print_paths);
+        }
+
         return false;
     }
 
     const bool should_continue =
-        handle_macho_file_parse_result(global,
+        handle_macho_file_parse_result(retained_info_in,
+                                       global,
                                        tbd,
                                        path,
                                        parse_result,
-                                       print_paths,
-                                       retained_info_in);
+                                       print_paths);
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);

@@ -16,16 +16,16 @@
  */
 
 bool
-parse_shared_cache(struct tbd_for_main *global,
+parse_shared_cache(void *magic_in,
+                   uint64_t *magic_in_size_in,
+                   uint64_t *retained_info_in,
+                   struct tbd_for_main *global,
                    struct tbd_for_main *tbd,
                    const char *path,
                    uint64_t path_length,
                    int fd,
                    bool is_recursing,
-                   bool print_paths,
-                   uint64_t *retained_info_in,
-                   void *magic_in,
-                   uint64_t *magic_in_size_in);
+                   bool print_paths);
 
 void print_list_of_dsc_images(int fd);
 

@@ -111,13 +111,13 @@ actually_parse_image(
                         0);
 
     const bool should_continue =
-        handle_dsc_image_parse_result(callback_info->global,
+        handle_dsc_image_parse_result(callback_info->retained_info,
+                                      callback_info->global,
                                       callback_info->tbd,
                                       callback_info->dsc_path,
                                       image_path,
                                       parse_image_result,
-                                      callback_info->print_paths,
-                                      callback_info->retained_info);
+                                      callback_info->print_paths);
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
@@ -382,16 +382,16 @@ read_magic(void *const magic_in,
 }
 
 bool
-parse_shared_cache(struct tbd_for_main *const global,
+parse_shared_cache(void *const magic_in,
+                   uint64_t *const magic_in_size_in,
+                   uint64_t *const retained_info_in,
+                   struct tbd_for_main *const global,
                    struct tbd_for_main *const tbd,
                    const char *const path,
                    const uint64_t path_length,
                    const int fd,
                    const bool is_recursing,
-                   const bool print_paths,
-                   uint64_t *const retained_info_in,
-                   void *const magic_in,
-                   uint64_t *const magic_in_size_in)
+                   const bool print_paths)
 {
     const uint64_t magic_in_size = *magic_in_size_in;
     const enum read_magic_result read_magic_result =

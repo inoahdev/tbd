@@ -13,18 +13,27 @@
 #include "request_user_input.h"
 
 bool
-handle_macho_file_parse_result(struct tbd_for_main *const global,
+handle_macho_file_parse_result(uint64_t *const info_in,
+                               struct tbd_for_main *const global,
                                struct tbd_for_main *const tbd,
                                const char *const path,
                                const enum macho_file_parse_result parse_result,
-                               const bool print_paths,
-                               uint64_t *const info_in)
+                               const bool print_paths)
 {
     switch (parse_result) {
         case E_MACHO_FILE_PARSE_OK:
             break;
 
         case E_MACHO_FILE_PARSE_NOT_A_MACHO:
+            if (print_paths) {
+                fprintf(stderr,
+                        "File (at path %s) is not a valid mach-o file\n",
+                        path);
+            } else {
+                fputs("File at provided path is not a valid mach-o file\n",
+                      stderr);
+            }
+
             return false;
 
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
@@ -74,11 +83,11 @@ handle_macho_file_parse_result(struct tbd_for_main *const global,
                 fprintf(stderr,
                         "Mach-o file (at path %s), or one of its "
                         "architectures, is too small to be a valid "
-                        "mach-o\n",
+                        "mach-o file\n",
                         path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
-                      "is too small to be a valid mach-o\n",
+                      "is too small to be a valid mach-o file\n",
                       stderr);
             }
 
