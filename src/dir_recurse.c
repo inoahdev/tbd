@@ -120,7 +120,7 @@ dir_recurse(const char *const path,
                                           length,
                                           E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR,
                                           entry,
-                                         callback_info);
+                                          callback_info);
 
                         if (!should_continue) {
                             should_exit = true;
