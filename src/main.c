@@ -118,6 +118,7 @@ recurse_directory_callback(const char *const parse_path,
                            parse_path_length,
                            fd,
                            true,
+                           true,
                            true);
 
     if (parse_as_dsc_result) {
@@ -1225,6 +1226,7 @@ int main(const int argc, const char *const argv[]) {
                                        parse_path,
                                        tbd->parse_path_length,
                                        fd,
+                                       false,
                                        false,
                                        should_print_paths);
 

@@ -25,6 +25,7 @@ parse_shared_cache(void *magic_in,
                    uint64_t path_length,
                    int fd,
                    bool is_recursing,
+                   bool ignore_non_cache,
                    bool print_paths);
 
 void print_list_of_dsc_images(int fd);

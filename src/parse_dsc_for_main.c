@@ -414,6 +414,7 @@ parse_shared_cache(void *const magic_in,
                    const uint64_t path_length,
                    const int fd,
                    const bool is_recursing,
+                   const bool ignore_non_cache,
                    const bool print_paths)
 {
     const uint64_t magic_in_size = *magic_in_size_in;
@@ -441,11 +442,13 @@ parse_shared_cache(void *const magic_in,
                                           magic_in,
                                           dsc_options);
 
-    if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        return false;
-    }
-
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
+        if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
+            if (ignore_non_cache) {
+                return false;
+            }
+        }
+
         handle_dsc_file_parse_result(path, parse_dsc_file_result, print_paths);
         return true;
     }

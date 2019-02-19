@@ -84,8 +84,20 @@ handle_dsc_file_parse_result(
             break;
         }
 
-        case E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE:
+        case E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "File (at path %s) is not a valid dyld_shared_cache "
+                        "file\n",
+                        path);
+            } else {
+                fputs("File at the provided path is not a valid "
+                      "dyld_shared_cache file\n",
+                      stderr);
+            }
+
             break;
+        }
 
         case E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES: {
             if (print_paths) {

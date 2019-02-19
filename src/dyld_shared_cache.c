@@ -235,14 +235,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * versioning, more stringent validation is not performed.
      */
 
-    const uint32_t mapping_offset = header.mappingOffset;
-    const uint32_t images_offset = header.imagesOffset;
-
-    if (!range_contains_location(available_cache_range, mapping_offset)) {
+    if (!range_contains_location(available_cache_range, header.mappingOffset)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    if (!range_contains_location(available_cache_range, images_offset)) {
+    if (!range_contains_location(available_cache_range, header.imagesOffset)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -263,7 +260,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    uint64_t mapping_end = mapping_offset;
+    uint64_t mapping_end = header.mappingOffset;
     if (guard_overflow_add(&mapping_end, mapping_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
@@ -283,7 +280,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * completely within the cache-file.
      */
 
-    uint64_t images_end = images_offset;
+    uint64_t images_end = header.imagesOffset;
     if (guard_overflow_add(&images_end, images_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
@@ -310,12 +307,12 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     const struct range mappings_range = {
-        .begin = mapping_offset,
+        .begin = header.mappingOffset,
         .end = mapping_end
     };
 
     const struct range images_range = {
-        .begin = images_offset,
+        .begin = header.imagesOffset,
         .end = images_end
     };
 
@@ -336,7 +333,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     const struct dyld_cache_mapping_info *const mappings =
-        (const struct dyld_cache_mapping_info *)(map + mapping_offset);
+        (const struct dyld_cache_mapping_info *)(map + header.mappingOffset);
 
     /*
      * Mappings are like mach-o segments, covering entire swaths of the file.
@@ -406,7 +403,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     struct dyld_cache_image_info *const images =
-        (struct dyld_cache_image_info *)(map + images_offset);
+        (struct dyld_cache_image_info *)(map + header.imagesOffset);
 
     /*
      * Perform the image operations if need be.
