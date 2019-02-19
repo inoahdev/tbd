@@ -47,7 +47,7 @@ Ignore options:
         --ignore-current-version,       Ignore current-version field
         --ignore-exports,               Ignore exports field
         --ignore-objc-constraint,       Ignore objc-constraint field
-        --ignore-parent-umbrell         Ignore parent-umbrella field
+        --ignore-parent-umbrella        Ignore parent-umbrella field
         --ignore-reexports,             Ignore swift-version field
         --ignore-swift-version,         Ignore swift-version field
         --ignore-uuids,                 Ignore uuids field
