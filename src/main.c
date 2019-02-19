@@ -37,7 +37,9 @@ struct recurse_callback_info {
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
 
+    uint64_t files_parsed;
     uint64_t retained_info;
+
     bool print_paths;
 };
 
@@ -95,6 +97,8 @@ recurse_directory_callback(const char *const parse_path,
                              true);
 
         if (parse_as_macho_result) {
+            recurse_info->files_parsed += 1;
+
             close(fd);
             return true;
         }
@@ -122,6 +126,8 @@ recurse_directory_callback(const char *const parse_path,
                            true);
 
     if (parse_as_dsc_result) {
+        recurse_info->files_parsed += 1;
+
         close(fd);
         return true;
     }
@@ -176,14 +182,16 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
     }
 
     struct stat sbuf = {};
-    if (stat(tbd->write_path, &sbuf) < 0) {
+    if (stat(write_path, &sbuf) < 0) {
         /*
-         * Ignore error if the object doesn't even exist.
+         * Ignore any errors if the object doesn't even exist.
          */
 
         if (errno != ENOENT) {
             fprintf(stderr,
-                    "Failed to get information on object at path, error: %s\n",
+                    "Failed to get information on object at the provided "
+                    "write-path (%s), error: %s\n",
+                    write_path,
                     strerror(errno));
 
             exit(1);
@@ -1167,6 +1175,20 @@ int main(const int argc, const char *const argv[]) {
                             tbd->parse_path);
                 } else {
                     fputs("Failed to recurse the provided directory\n", stderr);
+                }
+            }
+
+            if (recurse_info.files_parsed == 0) {
+                if (should_print_paths) {
+                    fprintf(stderr,
+                            "No suitable files were found to create .tbd files "
+                            "from while recursing directory (at path %s)\n",
+                            tbd->parse_path);
+                } else {
+                    fputs("No suitable files were found to create .tbd files "
+                          "from while recursing directory at the provided "
+                          "path\n",
+                          stderr);
                 }
             }
         } else {
