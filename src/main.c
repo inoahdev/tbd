@@ -163,6 +163,17 @@ recurse_directory_fail_callback(const char *const path,
 }
 
 static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
+    const char *const write_path = tbd->write_path;
+    if (write_path == NULL) {
+        fprintf(stderr,
+                "Please provide a directory to write .tbd files created from "
+                "images of the dyld_shared_cache file at the provided "
+                "path: %s\n",
+                tbd->parse_path);
+
+        exit(1);
+    }
+
     struct stat sbuf = {};
     if (stat(tbd->write_path, &sbuf) < 0) {
         /*
@@ -742,9 +753,9 @@ int main(const int argc, const char *const argv[]) {
                             tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
                         if (!recurse_directories) {
-                            fputs("Unable to open a directory as a "
-                                  "mach-o file, Please provide option '-r' to "
-                                  "indicate recursing\n",
+                            fputs("Unable to open a directory as a mach-o file "
+                                  ", Please provide option '-r' to indicate "
+                                  "recursing\n",
                                   stderr);
 
                             if (full_path != path) {
