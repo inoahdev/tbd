@@ -1,5 +1,5 @@
 //
-//  include/parse_dsc_for_main.h
+//  include/parse_macho_for_main.h
 //  tbd
 //
 //  Created by inoahdev on 12/01/18.

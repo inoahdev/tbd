@@ -1,5 +1,5 @@
 //
-//  include/handle_macho_parse_result.h
+//  include/handle_macho_file_parse_result.h
 //  tbd
 //
 //  Created by inoahdev on 12/02/18.

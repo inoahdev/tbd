@@ -1,5 +1,5 @@
 //
-//  src/macho_fd_load_commands.c
+//  src/macho_file_parse_load_commands.c
 //  tbd
 //
 //  Created by inoahdev on 11/20/18.

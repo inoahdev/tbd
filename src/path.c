@@ -98,7 +98,7 @@ const char *path_get_end_of_row_of_slashes(const char *const path) {
     return iter;
 }
 
-const char *path_get_next_slash(const char *const path) {
+static const char *get_next_slash(const char *const path) {
     const char *iter = path;
     for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
         if (ch_is_path_slash(ch)) {
@@ -109,7 +109,7 @@ const char *path_get_next_slash(const char *const path) {
     return NULL;
 }
 
-const char *path_get_next_slash_or_end(const char *const path) {
+static const char *get_next_slash_or_end(const char *const path) {
     const char *iter = path;
     char ch = *iter;
 
@@ -486,7 +486,7 @@ path_get_last_path_component(const char *const path,
 }
 
 static bool component_is_in_hierarchy(const char *const component_end) {
-    const char *const next_slash = path_get_next_slash(component_end);
+    const char *const next_slash = get_next_slash(component_end);
     if (next_slash != NULL) {
         /*
          * We may have hit a row of slashes at the very end of the
@@ -529,7 +529,7 @@ path_has_component(const char *const path,
         }
     }
 
-    const char *iter_end = path_get_next_slash_or_end(iter_begin);
+    const char *iter_end = get_next_slash_or_end(iter_begin);
 
     do {
         const uint64_t iter_length = (uint64_t)(iter_end - iter_begin);
@@ -550,7 +550,7 @@ path_has_component(const char *const path,
             return NULL;
         }
 
-        iter_end = path_get_next_slash_or_end(iter_begin);
+        iter_end = get_next_slash_or_end(iter_begin);
         if (iter_end == NULL) {
             return NULL;
         }

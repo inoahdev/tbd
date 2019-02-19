@@ -171,6 +171,30 @@ path_has_image_entry(const char *const path,
     return false;
 }
 
+static struct tbd_for_main_dsc_image_path *
+find_image_path_for_path(const struct array *const paths,
+                         const char *const path,
+                         const uint64_t path_length)
+{
+    struct tbd_for_main_dsc_image_path *image_path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const paths_end =
+        paths->data_end;
+
+    for (; image_path != paths_end; image_path++) {
+        if (image_path->length != path_length) {
+            continue;
+        }
+
+        if (memcmp(image_path->string, path, path_length) != 0) {
+            continue;
+        }
+
+        return image_path;
+    }
+
+    return NULL;
+}
+
 static uint64_t *
 find_image_flags_for_path(const struct array *const filters,
                           const struct array *const paths,
@@ -179,20 +203,10 @@ find_image_flags_for_path(const struct array *const filters,
 {
     if (!array_is_empty(paths)) {
         const uint64_t path_length = strlen(path);
+        struct tbd_for_main_dsc_image_path *const image_path =
+            find_image_path_for_path(paths, path, path_length);
 
-        struct tbd_for_main_dsc_image_path *image_path = paths->data;
-        const struct tbd_for_main_dsc_image_path *const paths_end =
-            paths->data_end;
-
-        for (; image_path != paths_end; image_path++) {
-            if (image_path->length != path_length) {
-                continue;
-            }
-
-            if (memcmp(image_path->string, path, path_length) != 0) {
-                continue;
-            }
-
+        if (image_path != NULL) {
             return &image_path->flags;
         }
     }

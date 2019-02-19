@@ -1,5 +1,5 @@
 //
-//  include/macho_file_parse_symbol_table.h
+//  include/macho_file_parse_symbols.h
 //  tbd
 //
 //  Created by inoahdev on 11/21/18.

@@ -169,8 +169,8 @@ reverse_mkdir_ignoring_last(char *const path,
 
         if (ret < 0) {
             /*
-             * If the directory already exists, we are done, as the previous
-             * mkdir should have gone through.
+             * If the directory already exists, we are done, as all the previous
+             * mkdir calls should have gone through.
              */
 
             if (errno == EEXIST) {

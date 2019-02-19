@@ -1,5 +1,5 @@
 //
-//  src/macho_file.c
+//  src/arch_info.c
 //  tbd
 //
 //  Created by inoahdev on 11/19/18.
