@@ -99,17 +99,6 @@ dir_recurse(const char *const path,
                                 callback,
                                 fail_callback);
 
-                /*
-                 * Clear errno after reading sub-directories so our readdir()
-                 * calls and checks work properly.
-                 *
-                 * Note: For the top-level directory, which the caller asked
-                 * for, we do not set errno to zero at the very end, so the
-                 * caller can have, at the least, a posibility of reading errno.
-                 */
-
-                errno = 0;
-
                 switch (recurse_subdir_result) {
                     case E_DIR_RECURSE_OK:
                         break;
@@ -129,6 +118,17 @@ dir_recurse(const char *const path,
                         break;
                     }
                 }
+
+                /*
+                 * Clear errno after reading sub-directories so our readdir()
+                 * calls and checks work properly.
+                 *
+                 * Note: For the top-level directory, which the caller asked
+                 * for, we do not set errno to zero at the very end, so the
+                 * caller can have, at the least, a posibility of reading errno.
+                 */
+
+                errno = 0;
 
                 free(entry_path);
                 break;
