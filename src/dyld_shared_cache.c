@@ -247,16 +247,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * Validate that the mapping-infos array and images-array have no overflows.
      */
 
-    const uint32_t mapping_count = header.mappingCount;
-    const uint32_t images_count = header.imagesCount;
-
-    /*
-     * Get the size of the mapping-infos table by multipying the mapping-count
-     * and the size of a mapping-info.
-     */
-
     uint64_t mapping_size = sizeof(struct dyld_cache_mapping_info);
-    if (guard_overflow_mul(&mapping_size, mapping_count)) {
+    if (guard_overflow_mul(&mapping_size, header.mappingCount)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
@@ -271,7 +263,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     uint64_t images_size = sizeof(struct dyld_cache_image_info);
-    if (guard_overflow_mul(&images_size, images_count)) {
+    if (guard_overflow_mul(&images_size, header.imagesCount)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -348,7 +340,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * Verify we don't have any overlapping mappings.
      */
 
-    for (uint32_t i = 0; i < mapping_count; i++) {
+    for (uint32_t i = 0; i < header.mappingCount; i++) {
         const struct dyld_cache_mapping_info *const mapping = mappings + i;
 
         /*
@@ -413,7 +405,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      */
 
     if (options & O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS) {
-        for (uint32_t i = 0; i < images_count; i++) {
+        for (uint32_t i = 0; i < header.imagesCount; i++) {
             struct dyld_cache_image_info *const image = images + i;
 
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
@@ -429,7 +421,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             image->pad = 0;
         }
     } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
-        for (uint32_t i = 0; i < images_count; i++) {
+        for (uint32_t i = 0; i < header.imagesCount; i++) {
             struct dyld_cache_image_info *const image = images + i;
             const uint32_t location = image->pathFileOffset;
 
@@ -443,10 +435,10 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     info_in->images = images;
-    info_in->images_count = images_count;
+    info_in->images_count = header.imagesCount;
 
     info_in->mappings = mappings;
-    info_in->mappings_count = mapping_count;
+    info_in->mappings_count = header.mappingCount;
 
     info_in->arch = arch;
     info_in->arch_bit = arch_bit;

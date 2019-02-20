@@ -554,6 +554,8 @@ parse_shared_cache(void *const magic_in,
             }
 
             print_dsc_warnings(&callback_info, filters, paths);
+            dyld_shared_cache_info_destroy(&dsc_info);
+
             return true;
         }
 
@@ -585,6 +587,8 @@ parse_shared_cache(void *const magic_in,
     }
 
     print_dsc_warnings(&callback_info, filters, paths);
+    dyld_shared_cache_info_destroy(&dsc_info);
+
     return true;
 }
 
