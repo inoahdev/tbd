@@ -128,9 +128,9 @@ dir_recurse(const char *const path,
                  * caller can have, at the least, a posibility of reading errno.
                  */
 
+                free(entry_path);
                 errno = 0;
 
-                free(entry_path);
                 break;
             }
 
@@ -166,6 +166,8 @@ dir_recurse(const char *const path,
                 }
 
                 free(entry_path);
+                errno = 0;
+
                 break;
             }
 
