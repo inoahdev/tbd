@@ -26,6 +26,25 @@ clear_create_info(struct tbd_create_info *const info_in,
     *info_in = *orig;
 }
 
+static int
+read_magic(void *const magic_in,
+           uint64_t *const magic_in_size_in,
+           const int fd)
+{
+    const uint64_t magic_in_size = *magic_in_size_in;
+    if (magic_in_size >= sizeof(uint32_t)) {
+        return 0;
+    }
+
+    const uint64_t read_size = sizeof(uint32_t) - magic_in_size;
+    if (read(fd, magic_in + magic_in_size, read_size) < 0) {
+        return 1;
+    }
+
+    *magic_in_size_in = sizeof(uint32_t);
+    return 0;
+}
+
 bool
 parse_macho_file(void *const magic_in,
                  uint64_t *const magic_in_size_in,
@@ -38,32 +57,28 @@ parse_macho_file(void *const magic_in,
                  const bool ignore_non_macho_error,
                  const bool print_paths)
 {
-    uint32_t magic =  *(uint32_t *)magic_in;
-
-    const uint64_t magic_in_size = *magic_in_size_in;
-    if (magic_in_size < sizeof(uint32_t)) {
-        const uint64_t read_size = sizeof(uint32_t) - magic_in_size;
-        if (read(fd, &magic + magic_in_size, read_size) < 0) {
-            if (errno == EOVERFLOW) {
-                return false;
-            }
-
-            /*
-             * Manually handle the read fail by passing on to
-             * handle_macho_file_parse_result() as if we went to
-             * macho_file_parse_from_file().
-             */
-
-            handle_macho_file_parse_result(retained_info_in,
-                                           global,
-                                           tbd,
-                                           path,
-                                           E_MACHO_FILE_PARSE_READ_FAIL,
-                                           print_paths);
-
-            return true;
+    if (read_magic(magic_in, magic_in_size_in, fd)) {
+        if (errno == EOVERFLOW) {
+            return false;
         }
+
+        /*
+         * Manually handle the read fail by passing on to
+         * handle_macho_file_parse_result() as if we went to
+         * macho_file_parse_from_file().
+         */
+
+        handle_macho_file_parse_result(retained_info_in,
+                                       global,
+                                       tbd,
+                                       path,
+                                       E_MACHO_FILE_PARSE_READ_FAIL,
+                                       print_paths);
+
+        return true;
     }
+
+    const uint32_t magic = *(uint32_t *)magic_in;
 
     const uint64_t parse_options = tbd->parse_options;
     const uint64_t macho_options =
@@ -80,11 +95,6 @@ parse_macho_file(void *const magic_in,
                                    macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        if (magic_in_size < sizeof(magic)) {
-            memcpy(magic_in, &magic, sizeof(magic));
-            *magic_in_size_in = sizeof(magic);
-        }
-
         if (!ignore_non_macho_error) {
             handle_macho_file_parse_result(retained_info_in,
                                            global,
