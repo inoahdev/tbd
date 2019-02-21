@@ -156,7 +156,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 static uint64_t
 get_image_file_offset_from_address(struct dyld_shared_cache_info *const info,
                                    const uint64_t address,
-                                   uint64_t *const size_out)
+                                   uint64_t *const max_size_out)
 {
     const struct dyld_cache_mapping_info *const mappings = info->mappings;
     const uint64_t count = info->mappings_count;
@@ -179,7 +179,7 @@ get_image_file_offset_from_address(struct dyld_shared_cache_info *const info,
         const uint64_t delta = address - mapping_begin;
         const uint64_t file_offset = mapping->fileOffset + delta;
 
-        *size_out = mapping->size - delta;
+        *max_size_out = mapping->size - delta;
         return file_offset;
     }
 

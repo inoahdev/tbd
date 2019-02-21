@@ -313,8 +313,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     /*
-     * Map file to memory only at the last moment, after all checking has been
-     * done to ensure this is a valid dyld_shared_cache file.
+     * After validating all our fields, we then finally map the
+     * dyld_shared_cache file to memory.
      */
 
     uint8_t *const map =

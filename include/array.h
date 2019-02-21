@@ -100,7 +100,7 @@ struct array_slice {
 void *
 array_find_item_in_sorted_with_slice(const struct array *array,
                                      size_t item_size,
-                                     const struct array_slice *slice,
+                                     struct array_slice slice,
                                      const void *item,
                                      array_item_comparator comparator,
                                      struct array_cached_index_info *info_out);

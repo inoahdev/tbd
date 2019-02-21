@@ -244,7 +244,7 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
         array_find_item_in_sorted_with_slice(
             &cputype_info_array,
             sizeof(struct arch_info_cputype_info),
-            &cputype_info_slice,
+            cputype_info_slice,
             &cputype,
             cputype_info_comparator,
             NULL);
@@ -271,7 +271,7 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
     const struct arch_info *const arch =
         array_find_item_in_sorted_with_slice(&arch_info_array,
                                              sizeof(struct arch_info),
-                                             &slice,
+                                             slice,
                                              &cpusubtype,
                                              arch_info_cpusubtype_comparator,
                                              NULL);

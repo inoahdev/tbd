@@ -227,11 +227,9 @@ array_find_item(const struct array *const array,
 }
 
 static uint64_t
-array_slice_get_middle_index(const struct array_slice *const slice) {
-    const uint64_t front = slice->front;
-	const uint64_t length = slice->back - front;
-
-    return front + (length >> 1);
+array_slice_get_middle_index(const struct array_slice slice) {
+    const uint64_t length = slice.back - slice.front;
+    return slice.front + (length >> 1);
 }
 
 /*
@@ -253,13 +251,13 @@ array_slice_set_to_upper_half(struct array_slice *const slice,
 }
 
 static bool
-array_slice_holds_one_element(const struct array_slice *const slice) {
-    return slice->back - slice->front == 0;
+array_slice_holds_one_element(const struct array_slice slice) {
+    return slice.front == slice.back;
 }
 
 static bool
-array_slice_holds_two_elements(const struct array_slice *const slice) {
-    return slice->back - slice->front == 1;
+array_slice_holds_two_elements(const struct array_slice slice) {
+    return slice.back - slice.front == 1;
 }
 
 static inline
@@ -276,8 +274,8 @@ enum array_cached_index_type get_cached_index_type_from_ret(const int ret) {
 static void *
 array_slice_get_sorted_array_item_for_item(
     const struct array *const array,
-    struct array_slice *const slice,
     const size_t item_size,
+    struct array_slice slice,
     const void *const item,
     const array_item_comparator comparator,
     struct array_cached_index_info *const info_out)
@@ -301,7 +299,7 @@ array_slice_get_sorted_array_item_for_item(
 
         if (array_slice_holds_one_element(slice)) {
             if (info_out != NULL) {
-                info_out->index = slice->front;
+                info_out->index = slice.front;
                 info_out->type = get_cached_index_type_from_ret(compare);
             }
 
@@ -319,22 +317,22 @@ array_slice_get_sorted_array_item_for_item(
         if (compare > 0) {
             /*
              * Since middle-index for a two-element slice is always
-             * slice->front, we cannot go anywhere if slice->front is
+             * slice->front, we cannot go anywhere if slice->front is already
              * "greater than" the item provided
              */
 
             if (array_slice_holds_two_elements(slice)) {
                 if (info_out != NULL) {
-                    info_out->index = slice->front;
+                    info_out->index = slice.front;
                     info_out->type = ARRAY_CACHED_INDEX_LESS_THAN;
                 }
 
                 return NULL;
             }
 
-            array_slice_set_to_lower_half(slice, index);
+            array_slice_set_to_lower_half(&slice, index);
         } else {
-            array_slice_set_to_upper_half(slice, index);
+            array_slice_set_to_upper_half(&slice, index);
         }
     } while (true);
 }
@@ -357,15 +355,15 @@ array_find_item_in_sorted(const struct array *const array,
     }
 
     const uint64_t item_count = used_size / item_size;
-    struct array_slice slice = {
+    const struct array_slice slice = {
         .front = 0,
         .back = item_count - 1
     };
 
     void *const array_item =
         array_slice_get_sorted_array_item_for_item(array,
-                                                   &slice,
                                                    item_size,
+                                                   slice,
                                                    item,
                                                    comparator,
                                                    info_out);
@@ -377,16 +375,15 @@ void *
 array_find_item_in_sorted_with_slice(
     const struct array *array,
     const size_t item_size,
-    const struct array_slice *const slice,
+    const struct array_slice slice,
     const void *const item,
     const array_item_comparator comparator,
     struct array_cached_index_info *const info_out)
 {
-    struct array_slice copy = *slice;
     void *const array_item =
         array_slice_get_sorted_array_item_for_item(array,
-                                                   &copy,
                                                    item_size,
+                                                   slice,
                                                    item,
                                                    comparator,
                                                    info_out);

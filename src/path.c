@@ -398,7 +398,7 @@ path_append_component_and_extension_with_len(const char *const path,
     uint64_t combined_length = path_copy_length + component_copy_length + 1;
 
     /*
-     * Add one for the extension-dot (if we have one).
+     * Add one for the extension-dot.
      */
 
     if (extension_copy_length != 0) {
@@ -427,19 +427,18 @@ path_append_component_and_extension_with_len(const char *const path,
     memcpy(combined_component_iter, component_iter, component_copy_length);
 
     if (extension_copy_length != 0) {
-        char *combined_extension_iter =
+        char *const combined_extension_iter =
             combined_component_iter + component_copy_length;
 
         /*
-         * Add a dot before actually writing out the extension.
+         * Add one for the extension-dot.
          */
 
-        *combined_extension_iter = '.';
-        combined_extension_iter += 1;
-
-        memcpy(combined_extension_iter,
+        memcpy(combined_extension_iter + 1,
                extension_copy_iter,
                extension_copy_length);
+
+        *combined_extension_iter = '.';
     }
 
     if (length_out != NULL) {
@@ -459,7 +458,7 @@ path_get_last_path_component(const char *const path,
     const char back_ch = path[path_length - 1];
 
     if (ch_is_path_slash(back_ch)) {
-        const char *const back = &path[path_length - 1];
+        const char *const back = component_end - 1;
         component_end = path_get_front_of_row_of_slashes(path, back);
 
         /*

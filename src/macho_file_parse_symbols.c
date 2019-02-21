@@ -100,7 +100,6 @@ is_objc_class_symbol(const char *const symbol,
             *symbol_out = real_symbol;
             *length_out = (uint32_t)strnlen(real_symbol, max_length - 17);
 
-
             break;
         }
 
@@ -162,7 +161,46 @@ bool is_objc_ivar_symbol(const char *const symbol, const uint64_t first) {
 }
 
 static enum macho_file_parse_result
-handle_symbol(struct tbd_create_info *const info,
+add_export_info(uint64_t *const export_count_in,
+                struct tbd_create_info *const info,
+                struct tbd_export_info export_info)
+{
+    const bool needs_quotes =
+        yaml_check_c_str(export_info.string, export_info.length);
+
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+    }
+
+    /*
+     * Add our symbol-info to the list, as a matching symbol-info was not found.
+     *
+     * Note: As the symbol is from a large allocation in the call hierarchy that
+     * will eventually be freed, we need to allocate a copy of the symbol before
+     * placing it in the list.
+     */
+
+    export_info.string = alloc_and_copy(export_info.string, export_info.length);
+    if (export_info.string == NULL) {
+        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+    }
+
+    struct array *const exports = &info->exports;
+    const enum array_result add_export_info_result =
+        array_add_item(exports, sizeof(export_info), &export_info, NULL);
+
+    if (add_export_info_result != E_ARRAY_OK) {
+        free(export_info.string);
+        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+    }
+
+    *export_count_in += 1;
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+static enum macho_file_parse_result
+handle_symbol(struct tbd_create_info *const info_in,
+              uint64_t *const exports_count_in,
               const uint64_t arch_bit,
               const uint32_t index,
               const uint32_t strsize,
@@ -210,10 +248,6 @@ handle_symbol(struct tbd_create_info *const info,
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
         length = (uint32_t)strnlen(symbol_string, max_len);
-
-        if (length == 0) {
-            return E_MACHO_FILE_PARSE_OK;
-        }
     } else {
         /*
          * Only check for symbols who max potential length is greater than 12,
@@ -275,15 +309,27 @@ handle_symbol(struct tbd_create_info *const info,
         .type = symbol_type,
     };
 
-    struct array *const exports = &info->exports;
-    struct array_cached_index_info cached_info = {};
+    struct array *const exports = &info_in->exports;
+    const uint64_t exports_count = *exports_count_in;
 
+    if (exports_count == 0) {
+        return add_export_info(exports_count_in, info_in, export_info);
+    }
+
+    const struct array_slice slice = {
+        .front = 0,
+        .back = exports_count - 1
+    };
+
+    struct array_cached_index_info cached_info = {};
     struct tbd_export_info *const existing_info =
-        array_find_item_in_sorted(exports,
-                                  sizeof(export_info),
-                                  &export_info,
-                                  tbd_export_info_no_archs_comparator,
-                                  &cached_info);
+        array_find_item_in_sorted_with_slice(
+            exports,
+            sizeof(export_info),
+            slice,
+            &export_info,
+            tbd_export_info_no_archs_comparator,
+            &cached_info);
 
     if (existing_info != NULL) {
         const uint64_t archs = existing_info->archs;
@@ -331,11 +377,12 @@ handle_symbol(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_ARRAY_FAIL;
     }
 
+    *exports_count_in = exports_count + 1;
     return E_MACHO_FILE_PARSE_OK;
 }
 
 enum macho_file_parse_result
-macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
+macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
                                    const int fd,
                                    const struct range range,
                                    const uint64_t arch_bit,
@@ -434,6 +481,9 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
+    uint64_t exports_count =
+        array_get_item_count(&info_in->exports, sizeof(struct tbd_export_info));
+
     const struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + nsyms;
 
@@ -465,7 +515,8 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -509,7 +560,8 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -534,7 +586,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info,
 }
 
 enum macho_file_parse_result
-macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
+macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
                                       const int fd,
                                       const struct range range,
                                       const uint64_t arch_bit,
@@ -633,6 +685,9 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
+    uint64_t exports_count =
+        array_get_item_count(&info_in->exports, sizeof(struct tbd_export_info));
+
     const struct nlist_64 *nlist = symbol_table;
     const struct nlist_64 *const end = symbol_table + nsyms;
 
@@ -664,7 +719,8 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -708,7 +764,8 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -733,7 +790,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info,
 }
 
 enum macho_file_parse_result
-macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
+macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
                                   const uint8_t *const map,
                                   const uint64_t size,
                                   const uint64_t arch_bit,
@@ -794,6 +851,9 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
+    uint64_t exports_count =
+        array_get_item_count(&info_in->exports, sizeof(struct tbd_export_info));
+
     const char *const string_table = (const char *)(map + stroff);
 
     const struct nlist *nlist = (const struct nlist *)(map + symoff);
@@ -827,7 +887,8 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -868,7 +929,8 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -887,7 +949,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info,
 }
 
 enum macho_file_parse_result
-macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
+macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
                                      const uint8_t *const map,
                                      const uint64_t size,
                                      const uint64_t arch_bit,
@@ -953,6 +1015,9 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
+    uint64_t exports_count =
+        array_get_item_count(&info_in->exports, sizeof(struct tbd_export_info));
+
     const char *const string_table = (const char *)(map + stroff);
 
     const struct nlist_64 *nlist = (const struct nlist_64 *)(map + symoff);
@@ -986,7 +1051,8 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
@@ -1027,7 +1093,8 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info,
 
             const char *const symbol_string = string_table + index;
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(info,
+                handle_symbol(info_in,
+                              &exports_count,
                               arch_bit,
                               index,
                               strsize,
