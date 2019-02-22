@@ -247,13 +247,13 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * Validate that the mapping-infos array and images-array have no overflows.
      */
 
-    uint64_t mapping_size = sizeof(struct dyld_cache_mapping_info);
-    if (guard_overflow_mul(&mapping_size, header.mappingCount)) {
+    uint64_t mappings_size = sizeof(struct dyld_cache_mapping_info);
+    if (guard_overflow_mul(&mappings_size, header.mappingCount)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
     uint64_t mapping_end = header.mappingOffset;
-    if (guard_overflow_add(&mapping_end, mapping_size)) {
+    if (guard_overflow_add(&mapping_end, mappings_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
@@ -289,8 +289,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * Ensure that the total-size of the mappings and images can be quantified.
      */
 
-    uint64_t infos_end = mapping_size;
-    if (guard_overflow_add(&infos_end, images_size)) {
+    uint64_t total_infos_size = mappings_size;
+    if (guard_overflow_add(&total_infos_size, images_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -438,6 +438,9 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     info_in->images_count = header.imagesCount;
 
     info_in->mappings = mappings;
+    info_in->mappings_size = mappings_size;
+
+    info_in->mappings_offset = header.mappingOffset;
     info_in->mappings_count = header.mappingCount;
 
     info_in->arch = arch;

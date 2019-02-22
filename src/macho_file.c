@@ -96,9 +96,20 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
+    const uint64_t macho_end = start + size;
     const struct range range = {
         .begin = start,
-        .end = start + size,
+        .end = macho_end,
+    };
+
+    uint32_t headers_size = sizeof(struct mach_header);
+    if (is_64) {
+        headers_size += sizeof(uint32_t);
+    }
+
+    const struct range available_range = {
+        .begin = start + headers_size,
+        .end = macho_end
     };
 
     info_in->archs |= arch_bit;
@@ -106,6 +117,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         macho_file_parse_load_commands_from_file(info_in,
                                                  fd,
                                                  range,
+                                                 available_range,
                                                  arch,
                                                  arch_bit,
                                                  is_64,

@@ -20,7 +20,8 @@
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
                                          int fd,
-                                         struct range range,
+                                         struct range full_range,
+                                         struct range available_range,
                                          const struct arch_info *arch,
                                          uint64_t arch_bit,
                                          bool is_64,
@@ -34,7 +35,7 @@ macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(struct tbd_create_info *info,
                                         const uint8_t *map,
-                                        uint64_t map_size,
+                                        struct range map_range,
                                         const uint8_t *macho,
                                         uint64_t macho_size,
                                         const struct arch_info *arch,

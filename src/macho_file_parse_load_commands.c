@@ -1032,7 +1032,8 @@ enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
     struct tbd_create_info *const info_in,
     const int fd,
-    const struct range range,
+    const struct range full_range,
+    const struct range available_range,
     const struct arch_info *const arch,
     const uint64_t arch_bit,
     const bool is_64,
@@ -1076,21 +1077,17 @@ macho_file_parse_load_commands_from_file(
      * Ensure that sizeofcmds doesn't go past mach-o's size.
      */
 
-    uint32_t header_size = sizeof(struct mach_header);
-    if (is_64) {
-        header_size += sizeof(uint32_t);
-    }
+    const uint64_t macho_size = full_range.end - full_range.begin;
+    const uint32_t max_sizeofcmds =
+        (uint32_t)(available_range.end - available_range.begin);
 
-    const uint64_t macho_size = range.end - range.begin;
-    const uint32_t available_load_cmd_size =
-        (uint32_t)(macho_size - header_size);
-
-    if (sizeofcmds > available_load_cmd_size) {
+    if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
+    const uint64_t header_size = available_range.begin - full_range.begin;
     const struct range relative_range = {
-        .begin = 0,
+        .begin = header_size,
         .end = macho_size
     };
 
@@ -1253,7 +1250,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                range,
+                                                full_range,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -1369,7 +1366,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                range,
+                                                full_range,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -1500,7 +1497,8 @@ macho_file_parse_load_commands_from_file(
         ret =
             macho_file_parse_symbols_64_from_file(info_in,
                                                   fd,
-                                                  range,
+                                                  full_range,
+                                                  available_range,
                                                   arch_bit,
                                                   is_big_endian,
                                                   symtab.symoff,
@@ -1512,7 +1510,8 @@ macho_file_parse_load_commands_from_file(
         ret =
             macho_file_parse_symbols_from_file(info_in,
                                                fd,
-                                               range,
+                                               full_range,
+                                               available_range,
                                                arch_bit,
                                                is_big_endian,
                                                symtab.symoff,
@@ -1613,7 +1612,7 @@ parse_section_from_map(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                         const uint8_t *const map,
-                                        const uint64_t map_size,
+                                        struct range map_range,
                                         const uint8_t *const macho,
                                         const uint64_t macho_size,
                                         const struct arch_info *const arch,
@@ -1661,21 +1660,14 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         header_size += sizeof(uint32_t);
     }
 
-    const uint32_t available_load_cmd_size =
-        (uint32_t)(macho_size - header_size);
-
-    if (sizeofcmds > available_load_cmd_size) {
+    const uint32_t max_sizeofcmds = (uint32_t)(macho_size - header_size);
+    if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
     const struct range relative_range = {
         .begin = 0,
         .end = macho_size
-    };
-
-    const struct range map_range = {
-        .begin = 0,
-        .end = map_size
     };
 
     bool found_identification = false;
@@ -1697,7 +1689,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
 
     uint64_t size = macho_size;
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-        size = map_size;
+        size = map_range.end - map_range.begin;
     }
 
     if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
@@ -2073,7 +2065,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_64_from_map(info_in,
                                                  map,
-                                                 size,
+                                                 map_range,
                                                  arch_bit,
                                                  is_big_endian,
                                                  symtab.symoff,
@@ -2085,7 +2077,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_from_map(info_in,
                                               map,
-                                              size,
+                                              map_range,
                                               arch_bit,
                                               is_big_endian,
                                               symtab.symoff,

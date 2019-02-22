@@ -268,6 +268,11 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     const uint64_t arch_bit = dsc_info->arch_bit;
     const uint64_t dsc_size = dsc_info->size;
 
+    const struct range map_range = {
+        .begin = 0,
+        .end = dsc_size
+    };
+
     const uint64_t lc_options =
         O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
@@ -276,7 +281,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
     const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_map(info_in,
                                                 map,
-                                                dsc_size,
+                                                map_range,
                                                 (const uint8_t *)header,
                                                 max_image_size,
                                                 dsc_info->arch,
@@ -309,12 +314,20 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      * map, not relative to the mach-o header.
      */
 
+    const uint64_t available_begin =
+        dsc_info->mappings_offset + dsc_info->mappings_size;
+
+    const struct range available_range = {
+        .begin = available_begin,
+        .end = dsc_size
+    };
+
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_64) {
         ret =
             macho_file_parse_symbols_64_from_map(info_in,
                                                  map,
-                                                 dsc_size,
+                                                 available_range,
                                                  arch_bit,
                                                  is_big_endian,
                                                  symtab.symoff,
@@ -326,7 +339,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_from_map(info_in,
                                               map,
-                                              dsc_size,
+                                              available_range,
                                               arch_bit,
                                               is_big_endian,
                                               symtab.symoff,

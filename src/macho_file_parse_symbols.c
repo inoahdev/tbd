@@ -384,7 +384,8 @@ handle_symbol(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
                                    const int fd,
-                                   const struct range range,
+                                   const struct range full_range,
+                                   const struct range available_range,
                                    const uint64_t arch_bit,
                                    const bool is_big_endian,
                                    const uint32_t symoff,
@@ -407,7 +408,7 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)range.begin;
+    uint32_t absolute_symoff = (uint32_t)full_range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -422,13 +423,18 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
         .end = symbol_table_end
     };
 
-    if (!range_contains_range(range, symbol_table_range)) {
-        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    /*
+     * Validate that the symbol-table range is fully within the given
+     * available-range.
+     */
+
+    if (!range_contains_range(available_range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)range.begin;
+    uint32_t absolute_stroff = (uint32_t)full_range.begin;
     if (guard_overflow_add(&absolute_stroff, stroff)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
     const uint64_t string_table_end = absolute_stroff + strsize;
@@ -437,8 +443,13 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
         .end = string_table_end
     };
 
-    if (!range_contains_range(range, string_table_range)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    /*
+     * Validate that the string-table range is fully within the given
+     * available-range.
+     */
+
+    if (!range_contains_range(available_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
     /*
@@ -588,7 +599,8 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
                                       const int fd,
-                                      const struct range range,
+                                      const struct range full_range,
+                                      const struct range available_range,
                                       const uint64_t arch_bit,
                                       const bool is_big_endian,
                                       const uint32_t symoff,
@@ -611,7 +623,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)range.begin;
+    uint32_t absolute_symoff = (uint32_t)full_range.begin;
     if (guard_overflow_add(&absolute_symoff, symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -626,11 +638,16 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
         .end = symbol_table_end
     };
 
-    if (!range_contains_range(range, symbol_table_range)) {
-        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    /*
+     * Validate that the symbol-table range is fully within the given
+     * available-range.
+     */
+
+    if (!range_contains_range(available_range, symbol_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)range.begin;
+    uint32_t absolute_stroff = (uint32_t)full_range.begin;
     if (guard_overflow_add(&absolute_stroff, stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -641,8 +658,13 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
         .end = string_table_end
     };
 
-    if (!range_contains_range(range, string_table_range)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    /*
+     * Validate that the string-table range is fully within the given
+     * available-range.
+     */
+
+    if (!range_contains_range(available_range, string_table_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
     /*
@@ -792,7 +814,7 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
                                   const uint8_t *const map,
-                                  const uint64_t size,
+                                  const struct range available_range,
                                   const uint64_t arch_bit,
                                   const bool is_big_endian,
                                   const uint32_t symoff,
@@ -805,22 +827,12 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const uint64_t string_table_end = stroff + strsize;
-    if (string_table_end > size) {
-        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
-    }
-
-    const struct range map_range = {
-        .begin = 0,
-        .end = size
-    };
-
     const struct range string_table_range = {
         .begin = stroff,
-        .end = string_table_end
+        .end = stroff + strsize
     };
 
-    if (!range_contains_range(map_range, string_table_range)) {
+    if (!range_contains_range(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -839,7 +851,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
         .end = symbol_table_end
     };
 
-    if (!range_contains_range(map_range, symbol_table_range)) {
+    if (!range_contains_range(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -951,7 +963,7 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
                                      const uint8_t *const map,
-                                     const uint64_t size,
+                                     const struct range available_range,
                                      const uint64_t arch_bit,
                                      const bool is_big_endian,
                                      const uint32_t symoff,
@@ -964,22 +976,12 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const uint64_t string_table_end = stroff + strsize;
-    if (string_table_end > size) {
-        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
-    }
-
-    const struct range map_range = {
-        .begin = 0,
-        .end = size
-    };
-
     const struct range string_table_range = {
         .begin = stroff,
-        .end = string_table_end
+        .end = stroff + strsize
     };
 
-    if (!range_contains_range(map_range, string_table_range)) {
+    if (!range_contains_range(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -1003,7 +1005,7 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
         .end = symbol_table_end
     };
 
-    if (!range_contains_range(map_range, symbol_table_range)) {
+    if (!range_contains_range(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
