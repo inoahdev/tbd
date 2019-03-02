@@ -11,7 +11,7 @@
 
 #include "tbd.h"
 
-int tbd_write_header_archs(FILE *file, uint64_t archs);
+int tbd_write_archs_for_header(FILE *file, uint64_t archs);
 int tbd_write_current_version(FILE *file, uint32_t version);
 int tbd_write_compatibility_version(FILE *file, uint32_t version);
 

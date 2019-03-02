@@ -171,7 +171,7 @@ tbd_create_with_info(const struct tbd_create_info *const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    if (tbd_write_header_archs(file, info->archs)) {
+    if (tbd_write_archs_for_header(file, info->archs)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
 

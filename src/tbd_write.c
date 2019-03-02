@@ -12,7 +12,7 @@
 #include "tbd_write.h"
 #include "yaml.h"
 
-int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
+int tbd_write_archs_for_header(FILE *const file, const uint64_t archs) {
     if (archs == 0) {
         return 1;
     }
@@ -106,7 +106,7 @@ int tbd_write_header_archs(FILE *const file, const uint64_t archs) {
     return 0;
 }
 
-static int write_exported_archs(FILE *const file, const uint64_t archs) {
+static int write_archs_for_exports(FILE *const file, const uint64_t archs) {
     if (archs == 0) {
         return 1;
     }
@@ -840,7 +840,7 @@ tbd_write_exports(FILE *const file,
 
     do {
         const uint64_t archs = info->archs;
-        if (write_exported_archs(file, archs)) {
+        if (write_archs_for_exports(file, archs)) {
             return 1;
         }
 
