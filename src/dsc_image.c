@@ -314,20 +314,12 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      * map, not relative to the mach-o header.
      */
 
-    const uint64_t available_begin =
-        dsc_info->mappings_offset + dsc_info->mappings_size;
-
-    const struct range available_range = {
-        .begin = available_begin,
-        .end = dsc_size
-    };
-
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_64) {
         ret =
             macho_file_parse_symbols_64_from_map(info_in,
                                                  map,
-                                                 available_range,
+                                                 dsc_info->available_range,
                                                  arch_bit,
                                                  is_big_endian,
                                                  symtab.symoff,
@@ -339,7 +331,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_from_map(info_in,
                                               map,
-                                              available_range,
+                                              dsc_info->available_range,
                                               arch_bit,
                                               is_big_endian,
                                               symtab.symoff,

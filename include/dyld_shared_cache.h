@@ -13,6 +13,7 @@
 #include "mach/machine.h"
 
 #include "dyld_shared_cache_format.h"
+#include "range.h"
 
 enum dyld_shared_cache_parse_options {
     O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS           = 1 << 0,
@@ -44,8 +45,6 @@ enum dyld_shared_cache_parse_result {
 
 struct dyld_shared_cache_info {
     struct dyld_cache_image_info *images;
-
-    uint32_t images_offset;
     uint32_t images_count;
 
     /*
@@ -53,15 +52,13 @@ struct dyld_shared_cache_info {
      */
 
     const struct dyld_cache_mapping_info *mappings;
-
-    uint32_t mappings_offset;
     uint32_t mappings_count;
-    uint64_t mappings_size;
 
     uint8_t *map;
     uint64_t size;
 
     const struct arch_info *arch;
+    struct range available_range;
 
     uint64_t arch_bit;
     uint64_t flags;

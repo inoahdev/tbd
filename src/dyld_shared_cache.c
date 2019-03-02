@@ -222,7 +222,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     const uint64_t dsc_size = (uint64_t)sbuf.st_size;
-    const struct range available_cache_range = {
+    const struct range no_main_header_range = {
         .begin = sizeof(struct dyld_cache_header),
         .end = dsc_size
     };
@@ -235,11 +235,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * versioning, more stringent validation is not performed.
      */
 
-    if (!range_contains_location(available_cache_range, header.mappingOffset)) {
+    if (!range_contains_location(no_main_header_range, header.mappingOffset)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    if (!range_contains_location(available_cache_range, header.imagesOffset)) {
+    if (!range_contains_location(no_main_header_range, header.imagesOffset)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -277,11 +277,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
-    if (!range_contains_end(available_cache_range, mapping_end)) {
+    if (!range_contains_end(no_main_header_range, mapping_end)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    if (!range_contains_end(available_cache_range, images_end)) {
+    if (!range_contains_end(no_main_header_range, images_end)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -394,6 +394,21 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         }
     }
 
+    /*
+     * Create an "available range" where other data structures may lie without
+     * overlapping with dyld_shared_cache file structures.
+     */
+
+    uint64_t available_range_start = images_end;
+    if (available_range_start < mapping_end) {
+        available_range_start = mapping_end;
+    }
+
+    const struct range available_range = {
+        .begin = available_range_start,
+        .end = dsc_size
+    };
+
     struct dyld_cache_image_info *const images =
         (struct dyld_cache_image_info *)(map + header.imagesOffset);
 
@@ -410,7 +425,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
                 const uint32_t location = image->pathFileOffset;
-                if (range_contains_location(available_cache_range, location)) {
+                if (range_contains_location(available_range, location)) {
                     continue;
                 }
 
@@ -425,7 +440,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             struct dyld_cache_image_info *const image = images + i;
             const uint32_t location = image->pathFileOffset;
 
-            if (range_contains_location(available_cache_range, location)) {
+            if (range_contains_location(available_range, location)) {
                 continue;
             }
 
@@ -438,9 +453,6 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     info_in->images_count = header.imagesCount;
 
     info_in->mappings = mappings;
-    info_in->mappings_size = mappings_size;
-
-    info_in->mappings_offset = header.mappingOffset;
     info_in->mappings_count = header.mappingCount;
 
     info_in->arch = arch;
@@ -449,7 +461,9 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     info_in->map = map;
     info_in->size = dsc_size;
 
+    info_in->available_range = available_range;
     info_in->flags |= F_DYLD_SHARED_CACHE_UNMAP_MAP;
+
     return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
 

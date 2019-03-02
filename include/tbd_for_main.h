@@ -13,7 +13,8 @@
 #include "tbd.h"
 
 enum tbd_for_main_dsc_image_flags {
-    F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE = 1 << 0
+    F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE         = 1 << 0,
+    F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING = 1 << 1
 };
 
 struct tbd_for_main_dsc_image_filter {

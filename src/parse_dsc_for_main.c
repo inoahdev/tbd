@@ -171,43 +171,39 @@ path_has_image_entry(const char *const path,
     return false;
 }
 
-static struct tbd_for_main_dsc_image_path *
-find_image_path_for_path(const struct array *const paths,
-                         const char *const path,
-                         const uint64_t path_length)
+static bool
+should_parse_image(const struct array *const filters,
+                   const struct array *const paths,
+                   const char *const path,
+                   const uint64_t options)
 {
-    struct tbd_for_main_dsc_image_path *image_path = paths->data;
-    const struct tbd_for_main_dsc_image_path *const paths_end =
-        paths->data_end;
-
-    for (; image_path != paths_end; image_path++) {
-        if (image_path->length != path_length) {
-            continue;
-        }
-
-        if (memcmp(image_path->string, path, path_length) != 0) {
-            continue;
-        }
-
-        return image_path;
-    }
-
-    return NULL;
-}
-
-static uint64_t *
-find_image_flags_for_path(const struct array *const filters,
-                          const struct array *const paths,
-                          const char *const path,
-                          const uint64_t options)
-{
+    bool should_parse = false;
     if (!array_is_empty(paths)) {
         const uint64_t path_length = strlen(path);
-        struct tbd_for_main_dsc_image_path *const image_path =
-            find_image_path_for_path(paths, path, path_length);
 
-        if (image_path != NULL) {
-            return &image_path->flags;
+        struct tbd_for_main_dsc_image_path *image_path = paths->data;
+        const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+        for (; image_path != end; image_path++) {
+            /*
+             * We here make the assumption that there is only one path for every
+             * image.
+             */
+
+            if (image_path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+                continue;
+            }
+
+            if (image_path->length != path_length) {
+                continue;
+            }
+
+            if (memcmp(image_path->string, path, path_length) != 0) {
+                continue;
+            }
+
+            image_path->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
+            should_parse = true;
         }
     }
 
@@ -216,15 +212,113 @@ find_image_flags_for_path(const struct array *const filters,
         filters->data_end;
 
     for (; filter != filters_end; filter++) {
+        /*
+         * If we've already concluded that the image should be parsed, and the
+         * filter doesn't need to be marked as completed, we should skip the
+         * expensive path_has_image_entry() call.
+         */
+
+        if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+            if (should_parse) {
+                continue;
+            }
+        }
+
         const char *const string = filter->string;
         const uint64_t length = filter->length;
 
         if (path_has_image_entry(path, string, length, options)) {
-            return &filter->flags;
+            filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
+            should_parse = true;
         }
     }
 
-    return NULL;
+    return should_parse;
+}
+
+static void
+mark_found_for_all_currently_parsing_cond(const struct array *const filters,
+                                          const struct array *const paths)
+{
+    const uint64_t anti_currently_parsing_flag =
+        (uint64_t)~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
+
+    struct tbd_for_main_dsc_image_path *image_path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+    for (; image_path != end; image_path++) {
+        if (!(image_path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
+            continue;
+        }
+
+        image_path->flags &= anti_currently_parsing_flag;
+        image_path->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+    }
+
+    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const filters_end =
+        filters->data_end;
+
+    for (; filter != filters_end; filter++) {
+        if (!(filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
+            continue;
+        }
+
+        filter->flags &= anti_currently_parsing_flag;
+        filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+    }
+}
+
+static void
+mark_found_for_all_matching_cond(const struct array *const filters,
+                                 const struct array *const paths,
+                                 const char *const path,
+                                 const uint64_t options)
+{
+    if (!array_is_empty(paths)) {
+        const uint64_t path_length = strlen(path);
+
+        struct tbd_for_main_dsc_image_path *image_path = paths->data;
+        const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+        for (; image_path != end; image_path++) {
+            /*
+             * We here make the assumption that there is only one path for every
+             * image.
+             */
+
+            if (image_path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+                continue;
+            }
+
+            if (image_path->length != path_length) {
+                continue;
+            }
+
+            if (memcmp(image_path->string, path, path_length) != 0) {
+                continue;
+            }
+
+            image_path->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+        }
+    }
+
+    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const filters_end =
+        filters->data_end;
+
+    for (; filter != filters_end; filter++) {
+        if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
+            continue;
+        }
+
+        const char *const string = filter->string;
+        const uint64_t length = filter->length;
+
+        if (path_has_image_entry(path, string, length, options)) {
+            filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+        }
+    }
 }
 
 static bool
@@ -232,12 +326,32 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
                             const char *const image_path,
                             void *const item)
 {
-    if (image->pad & E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
-        return true;
-    }
-
     struct dsc_iterate_images_callback_info *const callback_info =
        (struct dsc_iterate_images_callback_info *)item;
+
+    if (image->pad & E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
+        if (callback_info->parse_all_images) {
+            return true;
+        }
+
+        /*
+         * An image that has already been parsed (presumably by the user
+         * providing a dsc-image number) may have been the only image to pass
+         * user-provided conditions (filters, paths).
+         *
+         * To remedy this, we mark found for all fiters and paths that are
+         * compliant with this path.
+         */
+
+        struct tbd_for_main *const tbd = callback_info->tbd;
+        const uint64_t options = tbd->options;
+
+        const struct array *const filters = &tbd->dsc_image_filters;
+        const struct array *const paths = &tbd->dsc_image_paths;
+
+        mark_found_for_all_matching_cond(filters, paths, image_path, options);
+        return true;
+    }
 
     struct tbd_for_main *const tbd = callback_info->tbd;
     const uint64_t options = tbd->options;
@@ -251,10 +365,8 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
     const struct array *const filters = &tbd->dsc_image_filters;
     const struct array *const paths = &tbd->dsc_image_paths;
 
-    uint64_t *flags = NULL;
     if (!callback_info->parse_all_images) {
-        flags = find_image_flags_for_path(filters, paths, image_path, options);
-        if (flags == NULL) {
+        if (!should_parse_image(filters, paths, image_path, options)) {
             return true;
         }
     }
@@ -263,11 +375,9 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
         return true;
     }
 
-    if (flags != NULL) {
-        *flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-    }
-
+    mark_found_for_all_currently_parsing_cond(filters, paths);
     image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
+
     return true;
 }
 
@@ -347,6 +457,11 @@ static void print_missing_paths(const struct array *const paths) {
         fprintf(stderr, "\tNo image was found with path: %s\n", path->string);
     }
 }
+
+/*
+ * Print out any errors we may have received after parsing all images from the
+ * dyld shared-cache file.
+ */
 
 static void
 print_dsc_warnings(struct dsc_iterate_images_callback_info *const callback_info,
