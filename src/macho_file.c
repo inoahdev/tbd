@@ -182,14 +182,76 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
      * basic verification to ensure no architectures overflow.
      */
 
+    struct fat_arch *const first_arch = archs;
+
+    uint32_t first_arch_offset = first_arch->offset;
+    uint32_t first_arch_size = first_arch->size;
+
     if (is_big_endian) {
-        struct fat_arch *const arch = archs;
+        first_arch->cputype = swap_int32(first_arch->cputype);
+        first_arch->cpusubtype = swap_int32(first_arch->cpusubtype);
 
-        arch->cputype = swap_int32(arch->cputype);
-        arch->cpusubtype = swap_int32(arch->cpusubtype);
+        first_arch_offset = swap_uint32(first_arch_offset);
+        first_arch_size = swap_uint32(first_arch_size);
 
-        arch->offset = swap_uint32(arch->offset);
-        arch->size = swap_uint32(arch->size);
+        first_arch->offset = first_arch_offset;
+        first_arch->size = first_arch_size;
+    }
+
+    /*
+     * Ensure the arch's mach-o isn't within the fat-header or the
+     * arch-headers.
+     */
+
+    if (first_arch_offset < total_headers_size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify each architecture is a valid mach-o by ensuring that it
+     * can hold at the least a mach_header.
+     */
+
+    if (first_arch_size < sizeof(struct mach_header)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
+    }
+
+    /*
+     * Verify that the architecture is not located beyond end of file.
+     */
+
+    if (first_arch_offset >= size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is fully within the given size.
+     */
+
+    const uint64_t first_arch_end = first_arch_offset + first_arch_size;
+    if (first_arch_end > size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture can fully exist within the range of the
+     * provided file.
+     */
+
+    uint64_t first_real_arch_offset = start;
+    if (guard_overflow_add(&first_real_arch_offset, first_arch_offset)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t first_real_arch_end = start;
+    if (guard_overflow_add(&first_real_arch_end, first_arch_end)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
     /*
@@ -252,11 +314,6 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        const struct range arch_range = {
-            .begin = arch_offset,
-            .end = arch_end
-        };
-
         /*
          * Verify that the architecture can fully exist within the range of the
          * provided file.
@@ -273,6 +330,11 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
+
+        const struct range arch_range = {
+            .begin = arch_offset,
+            .end = arch_end
+        };
 
         for (uint32_t j = 0; j < i; j++) {
             struct fat_arch inner = archs[j];
@@ -412,14 +474,85 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
      * basic verification to ensure no architectures overflow.
      */
 
+    struct fat_arch_64 *const first_arch = archs;
+
+    uint64_t first_arch_offset = first_arch->offset;
+    uint64_t first_arch_size = first_arch->size;
+
     if (is_big_endian) {
-        struct fat_arch_64 *const arch = archs;
+        first_arch->cputype = swap_int32(first_arch->cputype);
+        first_arch->cpusubtype = swap_int32(first_arch->cpusubtype);
 
-        arch->cputype = swap_int32(arch->cputype);
-        arch->cpusubtype = swap_int32(arch->cpusubtype);
+        first_arch_offset = swap_uint64(first_arch_offset);
+        first_arch_size = swap_uint64(first_arch_size);
 
-        arch->offset = swap_uint64(arch->offset);
-        arch->size = swap_uint64(arch->size);
+        first_arch->offset = first_arch_offset;
+        first_arch->size = first_arch_size;
+    }
+
+    /*
+     * Ensure the arch's mach-o isn't within the fat-header or the
+     * arch-headers.
+     */
+
+    if (first_arch_offset < total_headers_size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify each architecture is a valid mach-o by ensuring that it
+     * can hold at the least a mach_header.
+     */
+
+    if (first_arch_size < sizeof(struct mach_header)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
+    }
+
+    /*
+     * Verify that no overflow occurs when finding arch's end.
+     */
+
+    uint64_t first_arch_end = first_arch_offset;
+    if (guard_overflow_add(&first_arch_end, first_arch_size)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is not located beyond end of file.
+     */
+
+    if (first_arch_offset > size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is fully within the given size.
+     */
+
+    if (first_arch_end > size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture can fully exist within the range of the
+     * provided file.
+     */
+
+    uint64_t first_real_arch_offset = start;
+    if (guard_overflow_add(&first_real_arch_offset, first_arch_offset)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t first_real_arch_end = start;
+    if (guard_overflow_add(&first_real_arch_end, first_arch_end)) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
     /*
