@@ -1612,7 +1612,8 @@ parse_section_from_map(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                                         const uint8_t *const map,
-                                        struct range map_range,
+                                        const uint64_t map_size,
+                                        struct range available_map_range,
                                         const uint8_t *const macho,
                                         const uint64_t macho_size,
                                         const struct arch_info *const arch,
@@ -1689,7 +1690,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
 
     uint64_t size = macho_size;
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-        size = map_range.end - map_range.begin;
+        size = map_size;
     }
 
     if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
@@ -1821,7 +1822,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     const enum macho_file_parse_result parse_section_result =
                         parse_section_from_map(info_in,
                                                &swift_version,
-                                               map_range,
+                                               available_map_range,
                                                relative_range,
                                                map,
                                                macho,
@@ -1933,7 +1934,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
                     const enum macho_file_parse_result parse_section_result =
                         parse_section_from_map(info_in,
                                                &swift_version,
-                                               map_range,
+                                               available_map_range,
                                                relative_range,
                                                map,
                                                macho,
@@ -2065,7 +2066,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_64_from_map(info_in,
                                                  map,
-                                                 map_range,
+                                                 available_map_range,
                                                  arch_bit,
                                                  is_big_endian,
                                                  symtab.symoff,
@@ -2077,7 +2078,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
         ret =
             macho_file_parse_symbols_from_map(info_in,
                                               map,
-                                              map_range,
+                                              available_map_range,
                                               arch_bit,
                                               is_big_endian,
                                               symtab.symoff,
