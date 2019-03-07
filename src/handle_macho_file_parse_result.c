@@ -764,13 +764,12 @@ handle_macho_file_parse_result(uint64_t *const info_in,
                 }
 
                 fprintf(stderr,
-                        "Warning: Mach-o file (at path %s) has no "
-                        "clients, re-exports, or symbols to be written "
-                        "out\n",
+                        "Mach-o file (at path %s) has no clients, re-exports, "
+                        "or symbols to be written out\n",
                         path);
             } else {
-                fputs("The provided mach-o file has no clients, "
-                      "re-exports, or symbols to be written out\n",
+                fputs("The provided mach-o file has no clients, re-exports, or "
+                      "symbols to be written out\n",
                       stderr);
 
             }
