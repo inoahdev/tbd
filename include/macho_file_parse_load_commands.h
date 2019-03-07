@@ -17,36 +17,57 @@
 #include "macho_file.h"
 #include "range.h"
 
-enum macho_file_parse_result
-macho_file_parse_load_commands_from_file(struct tbd_create_info *info,
-                                         int fd,
-                                         struct range full_range,
-                                         struct range available_range,
-                                         const struct arch_info *arch,
-                                         uint64_t arch_bit,
-                                         bool is_64,
-                                         bool is_big_endian,
-                                         uint32_t ncmds,
-                                         uint32_t sizeofcmds,
-                                         uint64_t tbd_options,
-                                         uint64_t options,
-                                         struct symtab_command *symtab_out);
+struct mf_parse_load_commands_from_file_info {
+    int fd;
+
+    const struct arch_info *arch;
+    uint64_t arch_bit;
+
+    struct range full_range;
+    struct range available_range;
+
+    bool is_64;
+    bool is_big_endian;
+
+    uint32_t ncmds;
+    uint32_t sizeofcmds;
+
+    uint64_t tbd_options;
+    uint64_t options;
+};
 
 enum macho_file_parse_result
-macho_file_parse_load_commands_from_map(struct tbd_create_info *info,
-                                        const uint8_t *map,
-                                        uint64_t map_size,
-                                        struct range available_map_range,
-                                        const uint8_t *macho,
-                                        uint64_t macho_size,
-                                        const struct arch_info *arch,
-                                        uint64_t arch_bit,
-                                        bool is_64,
-                                        bool is_big_endian,
-                                        uint32_t ncmds,
-                                        uint32_t sizeofcmds,
-                                        uint64_t tbd_options,
-                                        uint64_t options,
-                                        struct symtab_command *symtab_out);
+macho_file_parse_load_commands_from_file(
+    struct tbd_create_info *info_in,
+    const struct mf_parse_load_commands_from_file_info *parse_info,
+    struct symtab_command *symtab_out);
+
+struct mf_parse_load_commands_from_map_info {
+    const uint8_t *map;
+    uint64_t map_size;
+
+    const uint8_t *macho;
+    uint64_t macho_size;
+
+    const struct arch_info *arch;
+    uint64_t arch_bit;
+
+    struct range available_map_range;
+
+    bool is_64;
+    bool is_big_endian;
+
+    uint32_t ncmds;
+    uint32_t sizeofcmds;
+
+    uint64_t tbd_options;
+    uint64_t options;
+};
+
+enum macho_file_parse_result
+macho_file_parse_load_commands_from_map(
+    struct tbd_create_info *info_in,
+    const struct mf_parse_load_commands_from_map_info *parse_info,
+    struct symtab_command *symtab_out);
 
 #endif /* MACHO_FILE_PARSE_LOAD_COMMANDS_H */

@@ -1031,19 +1031,10 @@ parse_load_command(struct tbd_create_info *const info_in,
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
     struct tbd_create_info *const info_in,
-    const int fd,
-    const struct range full_range,
-    const struct range available_range,
-    const struct arch_info *const arch,
-    const uint64_t arch_bit,
-    const bool is_64,
-    const bool is_big_endian,
-    const uint32_t ncmds,
-    const uint32_t sizeofcmds,
-    const uint64_t tbd_options,
-    const uint64_t options,
+    const struct mf_parse_load_commands_from_file_info *const parse_info,
     struct symtab_command *const symtab_out)
 {
+    const uint32_t ncmds = parse_info->ncmds;
     if (ncmds == 0) {
         return E_MACHO_FILE_PARSE_NO_LOAD_COMMANDS;
     }
@@ -1052,6 +1043,7 @@ macho_file_parse_load_commands_from_file(
      * Verify the size and integrity of the load-commands.
      */
 
+    const uint32_t sizeofcmds = parse_info->sizeofcmds;
     if (sizeofcmds < sizeof(struct load_command)) {
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
@@ -1077,6 +1069,9 @@ macho_file_parse_load_commands_from_file(
      * Ensure that sizeofcmds doesn't go past mach-o's size.
      */
 
+    const struct range full_range = parse_info->full_range;
+    const struct range available_range = parse_info->available_range;
+
     const uint64_t macho_size = full_range.end - full_range.begin;
     const uint32_t max_sizeofcmds =
         (uint32_t)(available_range.end - available_range.begin);
@@ -1095,7 +1090,7 @@ macho_file_parse_load_commands_from_file(
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
-    struct tbd_uuid_info uuid_info = { .arch = arch };
+    struct tbd_uuid_info uuid_info = { .arch = parse_info->arch };
 
     /*
      * Allocate the entire load-commands buffer to allow fast parsing.
@@ -1106,6 +1101,7 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
+    const int fd = parse_info->fd;
     if (read(fd, load_cmd_buffer, sizeofcmds) < 0) {
         free(load_cmd_buffer);
         return E_MACHO_FILE_PARSE_READ_FAIL;
@@ -1117,6 +1113,13 @@ macho_file_parse_load_commands_from_file(
      * Iterate over the load-commands, which is located directly after the
      * mach-o header.
      */
+
+    const bool is_64 = parse_info->is_64;
+    const bool is_big_endian = parse_info->is_big_endian;
+
+    const uint64_t arch_bit = parse_info->arch_bit;
+    const uint64_t options = parse_info->options;
+    const uint64_t tbd_options = parse_info->tbd_options;
 
     uint8_t *load_cmd_iter = load_cmd_buffer;
     uint32_t size_left = sizeofcmds;
@@ -1610,22 +1613,12 @@ parse_section_from_map(struct tbd_create_info *const info_in,
 }
 
 enum macho_file_parse_result
-macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
-                                        const uint8_t *const map,
-                                        const uint64_t map_size,
-                                        struct range available_map_range,
-                                        const uint8_t *const macho,
-                                        const uint64_t macho_size,
-                                        const struct arch_info *const arch,
-                                        const uint64_t arch_bit,
-                                        const bool is_64,
-                                        const bool is_big_endian,
-                                        const uint32_t ncmds,
-                                        const uint32_t sizeofcmds,
-                                        const uint64_t tbd_options,
-                                        const uint64_t options,
-                                        struct symtab_command *const symtab_out)
+macho_file_parse_load_commands_from_map(
+    struct tbd_create_info *const info_in,
+    const struct mf_parse_load_commands_from_map_info *const parse_info,
+    struct symtab_command *const symtab_out)
 {
+    const uint32_t ncmds = parse_info->ncmds;
     if (ncmds == 0) {
         return E_MACHO_FILE_PARSE_NO_LOAD_COMMANDS;
     }
@@ -1634,6 +1627,7 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
      * Verify the size and integrity of the load-commands.
      */
 
+    const uint32_t sizeofcmds = parse_info->sizeofcmds;
     if (sizeofcmds < sizeof(struct load_command)) {
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
@@ -1653,15 +1647,19 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Ensure that sizeofcmds doesn't go past the end of map.
+     * Ensure that sizeofcmds doesn't go beyond end of mach-o.
      */
 
+    const bool is_64 = parse_info->is_64;
     uint32_t header_size = sizeof(struct mach_header);
+
     if (is_64) {
         header_size += sizeof(uint32_t);
     }
 
+    const uint64_t macho_size = parse_info->macho_size;
     const uint32_t max_sizeofcmds = (uint32_t)(macho_size - header_size);
+
     if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
@@ -1675,29 +1673,30 @@ macho_file_parse_load_commands_from_map(struct tbd_create_info *const info_in,
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
-    struct tbd_uuid_info uuid_info = { .arch = arch };
+    struct tbd_uuid_info uuid_info = { .arch = parse_info->arch };
 
     /*
      * Allocate the entire load-commands buffer to allow fast parsing.
      */
 
+    const uint8_t *const macho = parse_info->macho;
+
     const uint8_t *load_cmd_iter = macho + header_size;
-
-    /*
-     * Iterate over the load-commands, which is located directly after the
-     * mach-o header.
-     */
-
-    uint64_t size = macho_size;
-    if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-        size = map_size;
-    }
+    const uint64_t options = parse_info->options;
 
     if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
         info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
     }
 
+    const bool is_big_endian = parse_info->is_big_endian;
+    const uint64_t tbd_options = parse_info->tbd_options;
+
+    const uint8_t *const map = parse_info->map;
+    const uint64_t arch_bit = parse_info->arch_bit;
+
+    const struct range available_map_range = parse_info->available_map_range;
     uint32_t size_left = sizeofcmds;
+
     for (uint32_t i = 0; i != ncmds; i++) {
         /*
          * Verify that we still have space for a load-command.

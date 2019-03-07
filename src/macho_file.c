@@ -96,37 +96,37 @@ parse_thin_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
     }
 
-    const uint64_t macho_end = start + size;
-    const struct range range = {
-        .begin = start,
-        .end = macho_end,
+    info_in->archs |= arch_bit;
+
+    struct mf_parse_load_commands_from_file_info info = {
+        .fd = fd,
+
+        .arch = arch,
+        .arch_bit = arch_bit,
+
+        .is_64 = is_64,
+        .is_big_endian = is_big_endian,
+
+        .ncmds = header.ncmds,
+        .sizeofcmds = header.sizeofcmds,
+
+        .tbd_options = tbd_options,
+        .options = options
     };
+
+    info.full_range.begin = start;
+    info.full_range.end = start + size;
 
     uint32_t headers_size = sizeof(struct mach_header);
     if (is_64) {
         headers_size += sizeof(uint32_t);
     }
 
-    const struct range available_range = {
-        .begin = start + headers_size,
-        .end = macho_end
-    };
+    info.available_range.begin = start + headers_size;
+    info.available_range.end = info.full_range.end;
 
-    info_in->archs |= arch_bit;
     const enum macho_file_parse_result parse_load_commands_result =
-        macho_file_parse_load_commands_from_file(info_in,
-                                                 fd,
-                                                 range,
-                                                 available_range,
-                                                 arch,
-                                                 arch_bit,
-                                                 is_64,
-                                                 is_big_endian,
-                                                 header.ncmds,
-                                                 header.sizeofcmds,
-                                                 tbd_options,
-                                                 options,
-                                                 NULL);
+        macho_file_parse_load_commands_from_file(info_in, &info, NULL);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return parse_load_commands_result;

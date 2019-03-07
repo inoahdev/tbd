@@ -266,29 +266,35 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      */
 
     const uint64_t arch_bit = dsc_info->arch_bit;
-    const uint64_t dsc_size = dsc_info->size;
-
     const uint64_t lc_options =
         O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
         macho_options;
 
+    struct mf_parse_load_commands_from_map_info info = {
+        .map = map,
+        .map_size = dsc_info->size,
+
+        .macho = (const uint8_t *)header,
+        .macho_size = max_image_size,
+
+        .arch = dsc_info->arch,
+        .arch_bit = arch_bit,
+
+        .available_map_range = dsc_info->available_range,
+
+        .is_64 = is_64,
+        .is_big_endian = is_big_endian,
+
+        .ncmds = header->ncmds,
+        .sizeofcmds = header->sizeofcmds,
+
+        .tbd_options = tbd_options,
+        .options = lc_options
+    };
+
     const enum macho_file_parse_result parse_load_commands_result =
-        macho_file_parse_load_commands_from_map(info_in,
-                                                map,
-                                                dsc_size,
-                                                dsc_info->available_range,
-                                                (const uint8_t *)header,
-                                                max_image_size,
-                                                dsc_info->arch,
-                                                arch_bit,
-                                                is_64,
-                                                is_big_endian,
-                                                header->ncmds,
-                                                header->sizeofcmds,
-                                                tbd_options,
-                                                lc_options,
-                                                &symtab);
+        macho_file_parse_load_commands_from_map(info_in, &info, &symtab);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(parse_load_commands_result);
