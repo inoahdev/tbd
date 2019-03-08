@@ -28,7 +28,7 @@ handle_dsc_image_parse_result(uint64_t *retained_info_in,
                               bool print_paths);
 
 void
-print_dsc_image_parse_error(struct tbd_for_main *tbd,
+print_dsc_image_parse_error(const struct tbd_for_main *tbd,
                             const char *image_path,
                             enum dsc_image_parse_result parse_error);
 

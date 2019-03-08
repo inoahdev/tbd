@@ -83,10 +83,24 @@ print_image_error(struct dsc_iterate_images_callback_info *const callback_info,
                   const char *const image_path,
                   const enum dsc_image_parse_result result)
 {
+    /*
+     * We ignore warnings while recursing of any dsc-images lacking exports.
+     */
+
+    const struct tbd_for_main *const tbd = callback_info->tbd;
+    if (result == E_DSC_IMAGE_PARSE_NO_EXPORTS) {
+        const uint64_t options = tbd->options;
+        if (options & O_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                return;
+            }
+        }
+    }
+
     print_messages_header(callback_info);
 
     fputc('\t', stderr);
-    print_dsc_image_parse_error(callback_info->tbd, image_path, result);
+    print_dsc_image_parse_error(tbd, image_path, result);
 }
 
 static int

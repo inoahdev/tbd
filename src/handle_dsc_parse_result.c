@@ -418,7 +418,7 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 }
 
 void
-print_dsc_image_parse_error(struct tbd_for_main *const tbd,
+print_dsc_image_parse_error(const struct tbd_for_main *const tbd,
                             const char *const image_path,
                             const enum dsc_image_parse_result parse_error)
 {
@@ -598,14 +598,11 @@ print_dsc_image_parse_error(struct tbd_for_main *const tbd,
             break;
 
         case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
-            const uint64_t options = tbd->options;
-            if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-                    fprintf(stderr,
-                            "Image (with path %s) has no clients, re-exports, "
-                            "or symbols to be written out\n",
-                            image_path);
-                }
+            if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                fprintf(stderr,
+                        "Image (with path %s) has no clients, re-exports, "
+                        "or symbols to be written out\n",
+                        image_path);
             } else {
                 fprintf(stderr,
                         "Image (with path %s) has no clients, re-exports, "
