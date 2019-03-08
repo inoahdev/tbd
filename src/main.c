@@ -172,6 +172,33 @@ recurse_directory_fail_callback(const char *const path,
 static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
+        /*
+         * If we have exactly zero filters and zero numbers, and exactly one
+         * path, we can write to stdout (which is what NULL write_path
+         * represents).
+         *
+         * The reason why no filters, no numbers, and no paths is not allowed to
+         * write to stdout is because no filters, no numbers, and no paths means
+         * all images are parsed.
+         */
+
+        const struct array *const filters = &tbd->dsc_image_filters;
+        const struct array *const numbers = &tbd->dsc_image_numbers;
+        const struct array *const paths = &tbd->dsc_image_paths;
+
+        if (array_is_empty(filters)) {
+            if (array_is_empty(numbers)) {
+                const uint64_t paths_count =
+                    array_get_item_count(
+                        paths,
+                        sizeof(struct tbd_for_main_dsc_image_path));
+
+                if (paths_count == 1) {
+                    return;
+                }
+            }
+        }
+
         fprintf(stderr,
                 "Please provide a directory to write .tbd files created from "
                 "images of the dyld_shared_cache file at the provided "

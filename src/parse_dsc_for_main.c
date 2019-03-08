@@ -129,6 +129,13 @@ actually_parse_image(
     char *write_path = callback_info->write_path;
     uint64_t length = callback_info->write_path_length;
 
+    if (write_path == NULL) {
+        tbd_for_main_write_to_stdout(tbd, image_path, true);
+        clear_create_info(create_info, &original_info);
+
+        return 0;
+    }
+
     if (!(tbd->options & O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE)) {
         write_path =
             tbd_for_main_create_write_path(tbd,
@@ -145,13 +152,14 @@ actually_parse_image(
             fputs("Failed to allocate memory\n", stderr);
             exit(1);
         }
+
+        tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
+        free(write_path);
+    } else {
+        tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
     }
 
-    tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
-
     clear_create_info(create_info, &original_info);
-    free(write_path);
-
     return 0;
 }
 
