@@ -17,8 +17,14 @@ enum tbd_for_main_dsc_image_flags {
     F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING = 1 << 1
 };
 
+enum tbd_for_main_dsc_image_filter_type {
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE,
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY
+};
+
 struct tbd_for_main_dsc_image_filter {
     const char *string;
+    enum tbd_for_main_dsc_image_filter_type type;
 
     uint64_t length;
     uint64_t flags;
@@ -46,15 +52,13 @@ enum tbd_for_main_options {
     O_TBD_FOR_MAIN_IGNORE_WARNINGS = 1 << 9,
     O_TBD_FOR_MAIN_NO_REQUESTS     = 1 << 10,
 
-    O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC     = 1 << 11,
-    O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS = 1 << 12,
-
     /*
      * dyld_shared_cache extractions can be stored in either a file or a
      * directory. (Depending on the configuration)
      */
 
-    O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 13
+    O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC    = 1 << 11,
+    O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 12
 };
 
 enum tbd_for_main_filetype {

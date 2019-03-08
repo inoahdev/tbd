@@ -23,10 +23,11 @@
 #include "tbd_for_main.h"
 
 static void
-add_image_filter(struct tbd_for_main *const tbd,
+add_image_filter(int *const index_in,
+                 struct tbd_for_main *const tbd,
                  const int argc,
                  const char *const *const argv,
-                 int *const index_in)
+                 const bool is_directory)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -38,10 +39,14 @@ add_image_filter(struct tbd_for_main *const tbd,
     }
 
     const char *const string = argv[index + 1];
-    const struct tbd_for_main_dsc_image_filter filter = {
+    struct tbd_for_main_dsc_image_filter filter = {
         .string = string,
         .length = strlen(string)
     };
+
+    if (is_directory) {
+        filter.type = TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY;
+    }
 
     const enum array_result add_filter_result =
         array_add_item(&tbd->dsc_image_filters, sizeof(filter), &filter, NULL);
@@ -58,10 +63,10 @@ add_image_filter(struct tbd_for_main *const tbd,
 }
 
 static void
-add_image_number(struct tbd_for_main *const tbd,
+add_image_number(int *const index_in,
+                 struct tbd_for_main *const tbd,
                  const int argc,
-                 const char *const *const argv,
-                 int *const index_in)
+                 const char *const *const argv)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -221,10 +226,12 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->options |= O_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->options |= O_TBD_FOR_MAIN_IGNORE_WARNINGS;
-    } else if (strcmp(option, "image-filter-name") == 0) {
-        add_image_filter(tbd, argc, argv, &index);
+    } else if (strcmp(option, "image-filter-directory") == 0) {
+        add_image_filter(&index, tbd, argc, argv, true);
+    } else if (strcmp(option, "image-filter-filename") == 0) {
+        add_image_filter(&index, tbd, argc, argv, false);
     } else if (strcmp(option, "image-filter-number") == 0) {
-        add_image_number(tbd, argc, argv, &index);
+        add_image_number(&index, tbd, argc, argv);
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(tbd, argc, argv, &index);
     } else if (strcmp(option, "remove-archs") == 0) {
@@ -330,8 +337,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         tbd->info.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
-    } else if (strcmp(option, "skip-image-dirs") == 0) {
-        tbd->options |= O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |=
             O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;

@@ -33,13 +33,14 @@ Usage: tbd -o [options] path
                                   creating an output-file (Instead of simply appending .tbd)
 
 Both local and global options:
-            --filter-image-name,   Specify a name (a path-component) to filter out images
-            --filter-image-number, Specify the number of an image to parse out.
-                                   To get the numbers of all available images, Use the option --list-images
-            --image-path,          Specify the path of an image to parse out.
-                                   To get the paths of all available images, Use the option --list-images
-        -v, --version,             Specify version of tbd to convert to (default is v2).
-                                   This applies to all files where tbd-version was not explicitly set
+            --filter-image-directory, Specify a directory to filter images from
+            --filter-image-filename,  Specify a filename to filter images from
+            --filter-image-number,    Specify the number of an image to parse out.
+                                      To get the numbers of all available images, Use the option --list-images
+            --image-path,             Specify the path of an image to parse out.
+                                      To get the paths of all available images, Use the option --list-images
+        -v, --version,                Specify version of tbd to convert to (default is v2).
+                                      This applies to all files where tbd-version was not explicitly set
 
 Ignore options:
         --ignore-clients,               Ignore clients field
@@ -55,7 +56,6 @@ Ignore options:
 General ignore options:
         --ignore-requests,    Ignore requests of all kinds (both path and global option)
         --ignore-warnings,    Ignore any warnings (both path and global option)
-        --skip-invalid-archs, Skip (Ignore) any architectures that are invalid
 
 Symbol options: (Both path and global options)
         --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)

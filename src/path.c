@@ -98,36 +98,6 @@ const char *path_get_end_of_row_of_slashes(const char *const path) {
     return iter;
 }
 
-static const char *get_next_slash(const char *const path) {
-    const char *iter = path;
-    for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
-        if (ch_is_path_slash(ch)) {
-            return iter;
-        }
-    }
-
-    return NULL;
-}
-
-static const char *get_next_slash_or_end(const char *const path) {
-    const char *iter = path;
-    char ch = *iter;
-
-    if (ch == '\0') {
-        return NULL;
-    }
-
-    do {
-        if (ch_is_path_slash(ch)) {
-            return iter;
-        }
-
-        ch = *(++iter);
-    } while (ch != '\0');
-
-    return NULL;
-}
-
 const char *
 path_find_last_row_of_slashes(const char *const path,
                               const uint64_t path_length)
@@ -484,14 +454,26 @@ path_get_last_path_component(const char *const path,
     return component_begin;
 }
 
-static bool component_is_in_hierarchy(const char *const component_end) {
+static const char *get_next_slash(const char *const path) {
+    const char *iter = path;
+    for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
+        if (ch_is_path_slash(ch)) {
+            return iter;
+        }
+    }
+
+    return NULL;
+}
+
+static bool component_is_a_directory(const char *const component_end) {
+    /*
+     * We have a directory if there's no null-terminator at component-end, and
+     * component_end doesn't point to a row of slashes leading to a
+     * null-terminator.
+     */
+
     const char *const next_slash = get_next_slash(component_end);
     if (next_slash != NULL) {
-        /*
-         * We may have hit a row of slashes at the very end of the
-         * path-string.
-         */
-
         const char *const end = path_get_end_of_row_of_slashes(next_slash);
         if (end != NULL) {
             return true;
@@ -501,11 +483,29 @@ static bool component_is_in_hierarchy(const char *const component_end) {
     return false;
 }
 
+static const char *get_next_slash_or_end(const char *const path) {
+    const char *iter = path;
+    char ch = *iter;
+
+    if (ch == '\0') {
+        return iter;
+    }
+
+    do {
+        if (ch_is_path_slash(ch)) {
+            break;
+        }
+
+        ch = *(++iter);
+    } while (ch != '\0');
+
+    return iter;
+}
+
 bool
-path_has_component(const char *const path,
-                   const char *const component,
-                   const uint64_t component_length,
-                   const bool allow_in_hierarchy)
+path_has_dir_component(const char *const path,
+                       const char *const component,
+                       const uint64_t component_length)
 {
     const char *iter_begin = path;
     if (ch_is_path_slash(path[0])) {
@@ -534,13 +534,11 @@ path_has_component(const char *const path,
         const uint64_t iter_length = (uint64_t)(iter_end - iter_begin);
         if (component_length == iter_length) {
             if (memcmp(iter_begin, component, iter_length) == 0) {
-                if (component_is_in_hierarchy(iter_end)) {
-                    if (allow_in_hierarchy) {
-                        return true;
-                    }
-                } else {
+                if (component_is_a_directory(iter_end)) {
                     return true;
                 }
+
+                return false;
             }
         }
 
@@ -550,12 +548,79 @@ path_has_component(const char *const path,
         }
 
         iter_end = get_next_slash_or_end(iter_begin);
-        if (iter_end == NULL) {
-            return NULL;
-        }
     } while (true);
 
     return false;
+}
+
+bool
+path_has_filename(const char *const path,
+                  const uint64_t path_length,
+                  const char *const filename,
+                  const uint64_t filename_length)
+{
+    const char *const path_back = path + (path_length - 1);
+    const char *path_iter = path_back;
+
+    if (*path_back == '/') {
+        const char *const row_front =
+            path_get_front_of_row_of_slashes(path, path_back);
+
+        /*
+         * If the first character is a slash, then the entire string is a row of
+         * slashes.
+         */
+
+        if (row_front == path) {
+            return false;
+        }
+
+        path_iter = row_front - 1;
+    }
+
+    const char *filename_iter = filename + (filename_length - 1);
+
+    char path_ch = *path_iter;
+    char filename_ch = *filename_iter;
+
+    do {
+        if (path_ch != filename_ch) {
+            return false;
+        }
+
+        --path_iter;
+        --filename_iter;
+
+        /*
+         * We have reached the "reverse version" of the null-terminator if the
+         * filename_iter is located before filename.
+         */
+
+        if (path_iter == path) {
+            if (filename_iter < filename) {
+                return true;
+            }
+
+            return false;
+        }
+
+        path_ch = *path_iter;
+        if (path_ch == '/') {
+            if (filename_iter < filename) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (filename_iter < filename) {
+            return false;
+        }
+
+        filename_ch = *filename_iter;
+    } while (true);
+
+    return true;
 }
 
 const char *

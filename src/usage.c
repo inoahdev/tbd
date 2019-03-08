@@ -43,13 +43,14 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
-    fputs("            --filter-image-name,   Specify a name (a path-component) to filter out images\n", stdout);
-    fputs("            --filter-image-number, Specify the number of an image to parse out.\n", stdout);
-    fputs("                                   To get the numbers of all available images, Use the option --list-images\n", stdout);
-    fputs("            --image-path,          Specify the path of an image to parse out.\n", stdout);
-    fputs("                                   To get the paths of all available images, Use the option --list-images\n", stdout);
-    fputs("        -v, --version,             Specify version of tbd to convert to (default is v2).\n", stdout);
-    fputs("                                   This applies to all files where tbd-version was not explicitly set\n", stdout);
+    fputs("            --filter-image-directory, Specify a directory to filter images from\n", stdout);
+    fputs("            --filter-image-filename,  Specify a filename to filter images from\n", stdout);
+    fputs("            --filter-image-number,    Specify the number of an image to parse out.\n", stdout);
+    fputs("                                      To get the numbers of all available images, Use the option --list-images\n", stdout);
+    fputs("            --image-path,             Specify the path of an image to parse out.\n", stdout);
+    fputs("                                      To get the paths of all available images, Use the option --list-images\n", stdout);
+    fputs("        -v, --version,                Specify version of tbd to convert to (default is v2).\n", stdout);
+    fputs("                                      This applies to all files where tbd-version was not explicitly set\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);
@@ -67,7 +68,6 @@ void print_usage(void) {
     fputs("General ignore options:\n", stdout);
     fputs("        --ignore-requests,    Ignore requests of all kinds (both path and global option)\n", stdout);
     fputs("        --ignore-warnings,    Ignore any warnings (both path and global option)\n", stdout);
-    fputs("        --skip-invalid-archs, Skip (Ignore) any architectures that are invalid\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);

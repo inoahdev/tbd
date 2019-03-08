@@ -156,16 +156,26 @@ actually_parse_image(
 }
 
 static bool
-path_has_image_entry(const char *const path,
-                     const char *const filter,
-                     const uint64_t filter_length,
-                     const uint64_t options)
+path_passes_through_filter(
+    const char *const path,
+    const struct tbd_for_main_dsc_image_filter *const filter)
 {
-    const bool allow_hierarchy =
-        !(options & O_TBD_FOR_MAIN_RECURSE_SKIP_IMAGE_DIRS);
+    const char *const string = filter->string;
 
-    if (path_has_component(path, filter, filter_length, allow_hierarchy)) {
-        return true;
+    switch (filter->type) {
+        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
+            if (path_has_filename(path, strlen(path), string, filter->length)) {
+                return true;
+            }
+
+            break;
+
+        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
+            if (path_has_dir_component(path, string, filter->length)) {
+                return true;
+            }
+
+            break;
     }
 
     return false;
@@ -174,8 +184,7 @@ path_has_image_entry(const char *const path,
 static bool
 should_parse_image(const struct array *const filters,
                    const struct array *const paths,
-                   const char *const path,
-                   const uint64_t options)
+                   const char *const path)
 {
     bool should_parse = false;
     if (!array_is_empty(paths)) {
@@ -215,7 +224,7 @@ should_parse_image(const struct array *const filters,
         /*
          * If we've already concluded that the image should be parsed, and the
          * filter doesn't need to be marked as completed, we should skip the
-         * expensive path_has_image_entry() call.
+         * expensive path_passes_through_filter() call.
          */
 
         if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
@@ -224,10 +233,7 @@ should_parse_image(const struct array *const filters,
             }
         }
 
-        const char *const string = filter->string;
-        const uint64_t length = filter->length;
-
-        if (path_has_image_entry(path, string, length, options)) {
+        if (path_passes_through_filter(path, filter)) {
             filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
             should_parse = true;
         }
@@ -313,7 +319,6 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
        (struct dsc_iterate_images_callback_info *)item;
 
     struct tbd_for_main *const tbd = callback_info->tbd;
-    const uint64_t options = tbd->options;
 
     /*
      * Skip any dyld_shared_cache images if we haven't been prompted to accept
@@ -325,8 +330,7 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
     const struct array *const paths = &tbd->dsc_image_paths;
 
     if (!callback_info->parse_all_images) {
-        if (!should_parse_image(filters, paths, image_path, options)) {
-            unmark_currently_parsing_conds(filters, paths);
+        if (!should_parse_image(filters, paths, image_path)) {
             return true;
         }
     }
@@ -483,8 +487,7 @@ read_magic(void *const magic_in,
 static void
 mark_found_for_matching_conds(const struct array *const filters,
                               const struct array *const paths,
-                              const char *const path,
-                              const uint64_t options)
+                              const char *const path)
 {
     if (!array_is_empty(paths)) {
         const uint64_t path_length = strlen(path);
@@ -523,10 +526,7 @@ mark_found_for_matching_conds(const struct array *const filters,
             continue;
         }
 
-        const char *const string = filter->string;
-        const uint64_t length = filter->length;
-
-        if (path_has_image_entry(path, string, length, options)) {
+        if (path_passes_through_filter(path, filter)) {
             filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
         }
     }
@@ -661,14 +661,12 @@ parse_shared_cache(void *const magic_in,
             const uint32_t index = number - 1;
             struct dyld_cache_image_info *const image = dsc_info.images + index;
 
-            const uint64_t options = tbd->options;
             const uint32_t path_offset = image->pathFileOffset;
-
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
             actually_parse_image(tbd, image, path, &callback_info);
-            mark_found_for_matching_conds(filters, paths, image_path, options);
+            mark_found_for_matching_conds(filters, paths, image_path);
         }
 
         /*
