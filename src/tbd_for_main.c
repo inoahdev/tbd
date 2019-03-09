@@ -162,7 +162,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 {
     int index = *index_in;
     if (strcmp(option, "add-archs") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             if (tbd->archs_re != 0) {
                 fputs("Both adding and replacing architectures is not "
                       "supported. Please choose only a single option\n",
@@ -175,9 +175,9 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
 
         tbd->info.archs |= parse_architectures_list(argc, argv, &index);
-        tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
+        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
     } else if (strcmp(option, "add-flags") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             if (tbd->flags_re != 0) {
                 fputs("Both replacing and adding flags is not supported. "
                       "Please choose only a single option\n",
@@ -190,7 +190,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
 
         tbd->info.flags_field |= parse_flags_list(argc, argv, &index);
-        tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
+        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
     } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS;
     } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
@@ -223,9 +223,9 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "ignore-swift-version") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "ignore-requests") == 0) {
-        tbd->options |= O_TBD_FOR_MAIN_NO_REQUESTS;
+        tbd->flags |= F_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
-        tbd->options |= O_TBD_FOR_MAIN_IGNORE_WARNINGS;
+        tbd->flags |= F_TBD_FOR_MAIN_IGNORE_WARNINGS;
     } else if (strcmp(option, "image-filter-directory") == 0) {
         add_image_filter(&index, tbd, argc, argv, true);
     } else if (strcmp(option, "image-filter-filename") == 0) {
@@ -235,7 +235,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(tbd, argc, argv, &index);
     } else if (strcmp(option, "remove-archs") == 0) {
-        if (!(tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
+        if (!(tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
             if (tbd->archs_re != 0) {
                 fputs("Replacing and removing architectures is not supported, "
                       "Please choose only a single option\n",
@@ -248,9 +248,9 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
 
         tbd->archs_re = parse_architectures_list(argc, argv, &index);
-        tbd->options |= O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
+        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
     } else if (strcmp(option, "remove-flags") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             if (tbd->info.flags != 0) {
                 fputs("Replacing and removing flags is not supported, Please "
                       "choose only a single option\n",
@@ -263,7 +263,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
         tbd->flags_re = parse_flags_list(argc, argv, &index);
     } else if (strcmp(option, "replace-archs") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             fputs("Adding/removing and replacing architectures is not "
                   "supported, Please choose only a single option\n",
                   stderr);
@@ -274,7 +274,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
         tbd->archs_re = parse_architectures_list(argc, argv, &index);
     } else if (strcmp(option, "replace-flags") == 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             fputs("Adding/removing and replacing flags is not supported, "
                   "Please choose only a single option\n",
                   stderr);
@@ -380,7 +380,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                uint64_t *const length_out)
 {
     char *write_path = NULL;
-    if (tbd->options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
@@ -400,7 +400,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
             subdirs_length -= parse_path_length;
         }
 
-        if (tbd->options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+        if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
             const char *const original_extension =
                 path_find_extension(subdirs_iter, subdirs_length);
 
@@ -451,17 +451,16 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
     return write_path;
 }
 
-void
+enum tbd_for_main_write_to_path_result
 tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
-                           const char *const input_path,
                            char *const write_path,
                            const uint64_t write_path_length,
                            const bool print_paths)
 {
     char *terminator = NULL;
-    const uint64_t options = tbd->options;
+    const uint64_t options = tbd->flags;
 
-    const int flags = (options & O_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
     const int write_fd =
         open_r(write_path,
                write_path_length,
@@ -471,42 +470,10 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
                &terminator);
 
     if (write_fd < 0) {
-        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note: EEXIST is only returned when O_EXCL was set, which is only
-             * set for O_TBD_FOR_MAIN_NO_OVERWRITE, meaning no check here is
-             * necessary.
-             */
-
-            if (errno == EEXIST) {
-                fprintf(stderr,
-                        "Warning: Skipping over file (at path %s) as a file at "
-                        "its output-path (%s) already exists\n",
-                        input_path,
-                        write_path);
-            } else {
-                if (print_paths) {
-                    fprintf(stderr,
-                            "Failed to open output-file (for path: %s), "
-                            "error: %s\n",
-                            write_path,
-                            strerror(errno));
-                } else {
-                    fprintf(stderr,
-                            "Failed to open the provided output-file, "
-                            "error: %s\n",
-                            strerror(errno));
-                }
-            }
-        }
-
         /*
-         * Although getting the file descriptor failed, its likely open_r
-         * still created the directory hierarchy (and if so the terminator
-         * shouldn't be NULL).
+         * Although getting the file descriptor failed, its likely open_r still
+         * created the directory hierarchy (and if so the terminator shouldn't
+         * be NULL).
          */
 
         if (terminator != NULL) {
@@ -519,12 +486,40 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
             remove_partial_r(write_path, write_path_length, terminator);
         }
 
-        return;
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             *
+             * Note: EEXIST is only returned when O_EXCL was set, which is only
+             * set for F_TBD_FOR_MAIN_NO_OVERWRITE, meaning no check here is
+             * necessary.
+             */
+
+            if (errno == EEXIST) {
+                return E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS;
+            }
+
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to open output-file (for path: %s), "
+                        "error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided output-file, "
+                        "error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
     }
 
     FILE *const write_file = fdopen(write_fd, "w");
     if (write_file == NULL) {
-        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to open output-file (for path: %s) as FILE, "
@@ -539,7 +534,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
             }
         }
 
-        return;
+        return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
     }
 
     const struct tbd_create_info *const create_info = &tbd->info;
@@ -547,18 +542,6 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
         tbd_create_with_info(create_info, write_file, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to write to output-file (for input-file at "
-                        "path: %s, to output-file's path: %s)\n",
-                        input_path,
-                        write_path);
-            } else {
-                fputs("Failed to write to provided output-file\n", stderr);
-            }
-        }
-
         if (terminator != NULL) {
             /*
              * Ignore the return value as we cannot be sure if the remove failed
@@ -568,9 +551,16 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
 
             remove_partial_r(write_path, write_path_length, terminator);
         }
+
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            fclose(write_file);
+            return E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL;
+        }
+
     }
 
     fclose(write_file);
+    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
 void
@@ -583,7 +573,7 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
         tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(tbd->options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to stdout (the terminal) (for "
@@ -768,7 +758,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     dst->parse_options |= src->parse_options;
     dst->write_options |= src->write_options;
 
-    dst->options |= src->options;
+    dst->flags |= src->flags;
     dst->info.flags |= src->info.flags;
 }
 
@@ -792,5 +782,5 @@ void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
     tbd->parse_options = 0;
 
     tbd->filetype = 0;
-    tbd->options = 0;
+    tbd->flags = 0;
 }

@@ -89,9 +89,9 @@ print_image_error(struct dsc_iterate_images_callback_info *const callback_info,
 
     const struct tbd_for_main *const tbd = callback_info->tbd;
     if (result == E_DSC_IMAGE_PARSE_NO_EXPORTS) {
-        const uint64_t options = tbd->options;
-        if (options & O_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-            if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+        const uint64_t flags = tbd->flags;
+        if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            if (flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                 return;
             }
         }
@@ -101,6 +101,274 @@ print_image_error(struct dsc_iterate_images_callback_info *const callback_info,
 
     fputc('\t', stderr);
     print_dsc_image_parse_error(tbd, image_path, result);
+}
+
+static void
+print_write_to_path_result(struct tbd_for_main *const tbd,
+                           const char *const image_path,
+                           const enum tbd_for_main_write_to_path_result result)
+{
+    switch (result) {
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_OK:
+            break;
+
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS:
+            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                break;
+            }
+
+            fprintf(stderr,
+                    "Image (with path %s) already has an existing file at "
+                    "(one of) its write-paths that could not be overwritten. "
+                    "Skipping\n",
+                    image_path);
+
+            break;
+
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
+            fprintf(stderr,
+                    "Image (with path %s) could not be parsed and written out "
+                    "due to a write fail\n",
+                    image_path);
+
+            break;
+    }
+}
+
+static void
+print_write_error(struct dsc_iterate_images_callback_info *const callback_info,
+                  struct tbd_for_main *const tbd,
+                  const char *const image_path,
+                  const enum tbd_for_main_write_to_path_result result)
+{
+    print_messages_header(callback_info);
+
+    fputc('\t', stderr);
+    print_write_to_path_result(tbd, image_path, result);
+}
+
+static enum tbd_for_main_write_to_path_result
+write_out_tbd_info_for_single_filter_dir(struct tbd_for_main *const tbd,
+                                         const char *const filter_dir,
+                                         const uint64_t filter_length,
+                                         const char *const image_path,
+                                         const uint64_t image_path_length)
+{
+    const char *const subdirs_ptr =
+        path_get_next_component(filter_dir, filter_length);
+
+    const uint64_t delta = (uint64_t)(subdirs_ptr - image_path);
+    const uint64_t subdirs_length = image_path_length - delta;
+
+    uint64_t length = 0;
+    char *const write_path =
+        tbd_for_main_create_write_path(tbd,
+                                       tbd->write_path,
+                                       tbd->write_path_length,
+                                       subdirs_ptr,
+                                       subdirs_length,
+                                       "tbd",
+                                       3,
+                                       false,
+                                       &length);
+
+    const enum tbd_for_main_write_to_path_result result =
+        tbd_for_main_write_to_path(tbd, write_path, length, true);
+
+    free(write_path);
+
+    if (result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+        return result;
+    }
+
+    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
+}
+
+static enum tbd_for_main_write_to_path_result
+write_out_tbd_info_for_single_filter_filename(struct tbd_for_main *const tbd,
+                                              const char *const filter_filename,
+                                              const uint64_t filter_length)
+{
+    uint64_t length = 0;
+    char *const write_path =
+        tbd_for_main_create_write_path(tbd,
+                                       tbd->write_path,
+                                       tbd->write_path_length,
+                                       filter_filename,
+                                       filter_length,
+                                       "tbd",
+                                       3,
+                                       false,
+                                       &length);
+
+    const enum tbd_for_main_write_to_path_result write_result =
+        tbd_for_main_write_to_path(tbd, write_path, length, true);
+
+    free(write_path);
+
+    if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+        return write_result;
+    }
+
+    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
+}
+
+static enum tbd_for_main_write_to_path_result
+write_out_tbd_info_for_single_filter(
+    const struct tbd_for_main_dsc_image_filter *const filter,
+    struct tbd_for_main *const tbd,
+    const char *const image_path,
+    const uint64_t image_path_length)
+{
+    enum tbd_for_main_write_to_path_result result =
+        E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
+
+    switch (filter->type) {
+        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
+            result =
+                write_out_tbd_info_for_single_filter_dir(tbd,
+                                                         filter->tmp_ptr,
+                                                         filter->length,
+                                                         image_path,
+                                                         image_path_length);
+
+            break;
+
+        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
+            result =
+                write_out_tbd_info_for_single_filter_filename(tbd,
+                                                              filter->tmp_ptr,
+                                                              filter->length);
+
+            break;
+    }
+
+    return result;
+}
+
+static void
+write_out_tbd_info_for_filters(
+    struct dsc_iterate_images_callback_info *const info,
+    struct tbd_for_main *const tbd,
+    const char *const image_path,
+    const uint64_t length)
+{
+    const struct array *const filters = &tbd->dsc_image_filters;
+
+    struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
+
+    for (; filter != end; filter++) {
+        uint64_t flags = filter->flags;
+        if (!(flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
+            continue;
+        }
+
+        flags &= (const uint64_t)~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
+        flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+
+        filter->flags = flags;
+
+        const enum tbd_for_main_write_to_path_result write_result =
+            write_out_tbd_info_for_single_filter(filter,
+                                                 tbd,
+                                                 image_path,
+                                                 length);
+
+        if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+            print_write_error(info, tbd, image_path, write_result);
+            continue;
+        }
+    }
+}
+
+static enum tbd_for_main_write_to_path_result
+write_out_tbd_info_for_image_path(const struct tbd_for_main *const tbd,
+                                  const char *const image_path,
+                                  const uint64_t image_path_length)
+{
+    uint64_t length = 0;
+    char *const write_path =
+        tbd_for_main_create_write_path(tbd,
+                                       tbd->write_path,
+                                       tbd->write_path_length,
+                                       image_path,
+                                       image_path_length,
+                                       "tbd",
+                                       3,
+                                       false,
+                                       &length);
+
+    const enum tbd_for_main_write_to_path_result write_result =
+        tbd_for_main_write_to_path(tbd, write_path, length, true);
+
+    free(write_path);
+
+    if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+        return write_result;
+    }
+
+    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
+}
+
+static void
+write_out_tbd_info_for_paths(
+    struct dsc_iterate_images_callback_info *const info,
+    struct tbd_for_main *const tbd,
+    const char *const image_path,
+    const uint64_t length)
+{
+    const struct array *const paths = &tbd->dsc_image_paths;
+
+    struct tbd_for_main_dsc_image_path *path = paths->data;
+    const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
+
+    for (; path != end; path++) {
+        uint64_t flags = path->flags;
+        if (!(flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
+            continue;
+        }
+
+        flags &= (const uint64_t)~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
+        flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
+
+        path->flags = flags;
+
+        const enum tbd_for_main_write_to_path_result write_result =
+            write_out_tbd_info_for_image_path(tbd, image_path, length);
+
+        if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+            print_write_error(info, tbd, image_path, write_result);
+            continue;
+        }
+    }
+}
+
+static void
+write_out_tbd_info(struct dsc_iterate_images_callback_info *const info,
+                   struct tbd_for_main *const tbd,
+                   const char *const image_path,
+                   const uint64_t image_path_length)
+{
+    char *const write_path = info->write_path;
+    if (write_path == NULL) {
+        tbd_for_main_write_to_stdout(tbd, image_path, true);
+        return;
+    }
+
+    const uint64_t length = info->write_path_length;
+    if (tbd->flags & F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE) {
+        tbd_for_main_write_to_path(tbd, write_path, length, true);
+        return;
+    }
+
+    if (info->parse_all_images) {
+        write_out_tbd_info_for_image_path(tbd, image_path, image_path_length);
+        return;
+    }
+
+    write_out_tbd_info_for_filters(info, tbd, image_path, image_path_length);
+    write_out_tbd_info_for_paths(info, tbd, image_path, image_path_length);
 }
 
 static int
@@ -140,60 +408,34 @@ actually_parse_image(
         return 1;
     }
 
-    char *write_path = callback_info->write_path;
-    uint64_t length = callback_info->write_path_length;
-
-    if (write_path == NULL) {
-        tbd_for_main_write_to_stdout(tbd, image_path, true);
-        clear_create_info(create_info, &original_info);
-
-        return 0;
-    }
-
-    if (!(tbd->options & O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE)) {
-        write_path =
-            tbd_for_main_create_write_path(tbd,
-                                           write_path,
-                                           length,
-                                           image_path,
-                                           strlen(image_path),
-                                           "tbd",
-                                           3,
-                                           false,
-                                           &length);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
-
-        tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
-        free(write_path);
-    } else {
-        tbd_for_main_write_to_path(tbd, image_path, write_path, length, true);
-    }
-
+    write_out_tbd_info(callback_info, tbd, image_path, strlen(image_path));
     clear_create_info(create_info, &original_info);
+
     return 0;
 }
 
 static bool
 path_passes_through_filter(
     const char *const path,
-    const struct tbd_for_main_dsc_image_filter *const filter)
+    struct tbd_for_main_dsc_image_filter *const filter)
 {
     const char *const string = filter->string;
+    const uint64_t length = filter->length;
+
+    const char **const tmp_ptr = &filter->tmp_ptr;
 
     switch (filter->type) {
-        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
-            if (path_has_filename(path, strlen(path), string, filter->length)) {
+        case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE: {
+            const uint64_t path_length = strlen(path);
+            if (path_has_filename(path, path_length, string, length, tmp_ptr)) {
                 return true;
             }
 
             break;
+        }
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
-            if (path_has_dir_component(path, string, filter->length)) {
+            if (path_has_dir_component(path, string, length, tmp_ptr)) {
                 return true;
             }
 
@@ -265,39 +507,6 @@ should_parse_image(const struct array *const filters,
 }
 
 static void
-mark_found_for_currently_parsing_conds(const struct array *const filters,
-                                       const struct array *const paths)
-{
-    const uint64_t anti_currently_parsing_flag =
-        (uint64_t)~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
-
-    struct tbd_for_main_dsc_image_path *image_path = paths->data;
-    const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
-
-    for (; image_path != end; image_path++) {
-        if (!(image_path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
-            continue;
-        }
-
-        image_path->flags &= anti_currently_parsing_flag;
-        image_path->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-    }
-
-    struct tbd_for_main_dsc_image_filter *filter = filters->data;
-    const struct tbd_for_main_dsc_image_filter *const filters_end =
-        filters->data_end;
-
-    for (; filter != filters_end; filter++) {
-        if (!(filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
-            continue;
-        }
-
-        filter->flags &= anti_currently_parsing_flag;
-        filter->flags |= F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE;
-    }
-}
-
-static void
 unmark_currently_parsing_conds(const struct array *const filters,
                                const struct array *const paths)
 {
@@ -362,9 +571,7 @@ dsc_iterate_images_callback(struct dyld_cache_image_info *const image,
         return true;
     }
 
-    mark_found_for_currently_parsing_conds(filters, paths);
     image->pad |= E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
-
     return true;
 }
 
@@ -416,10 +623,24 @@ static void print_missing_filters(const struct array *const filters) {
             continue;
         }
 
-        fprintf(stderr,
-                "\tNo images were found that pass the provided filter (with "
-                "name: %s)\n",
-                filter->string);
+        switch (filter->type) {
+            case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
+                fprintf(stderr,
+                        "\tNo images were found that pass the provided filter "
+                        "(a directory with name: %s)\n",
+                        filter->string);
+
+                break;
+
+            case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
+                fprintf(stderr,
+                        "\tNo images were found that pass the provided filter "
+                        "(with file-name: %s)\n",
+                        filter->string);
+
+                break;
+        }
+
     }
 }
 

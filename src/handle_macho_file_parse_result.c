@@ -757,9 +757,9 @@ handle_macho_file_parse_result(uint64_t *const info_in,
             return false;
 
         case E_MACHO_FILE_PARSE_NO_EXPORTS: {
-            const uint64_t options = tbd->options;
-            if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                if (options & O_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            const uint64_t flags = tbd->flags;
+            if (flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
                     return false;
                 }
 
@@ -784,7 +784,7 @@ handle_macho_file_parse_result(uint64_t *const info_in,
 
     const uint64_t archs_re = tbd->archs_re;
     if (archs_re != 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             tbd->info.archs &= ~archs_re;
         } else {
             tbd->info.archs = archs_re;
@@ -793,7 +793,7 @@ handle_macho_file_parse_result(uint64_t *const info_in,
 
     const uint32_t flags_re = tbd->flags_re;
     if (flags_re != 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             tbd->info.flags_field &= ~flags_re;
          } else {
             tbd->info.flags_field = flags_re;

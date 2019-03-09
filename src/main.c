@@ -54,11 +54,11 @@ recurse_directory_callback(const char *const parse_path,
 
     struct tbd_for_main *const tbd = recurse_info->tbd;
 
-    const uint64_t options = tbd->options;
+    const uint64_t flags = tbd->flags;
     const int fd = open(parse_path, O_RDONLY);
 
     if (fd < 0) {
-        if (!(options & O_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!(flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             fprintf(stderr,
                     "Warning: Failed to open file (at path %s), error: %s\n",
                     parse_path,
@@ -103,11 +103,11 @@ recurse_directory_callback(const char *const parse_path,
             return true;
         }
 
-        if (!(options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
+        if (!(flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
             close(fd);
             return true;
         }
-    } else if (!(options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
+    } else if (!(flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
         close(fd);
         return true;
     }
@@ -251,12 +251,12 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
                     sizeof(struct tbd_for_main_dsc_image_path));
 
             if (numbers_count == 1 && paths_count == 0) {
-                tbd->options |= O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
                 return;
             }
 
             if (numbers_count == 0 && paths_count == 1) {
-                tbd->options |= O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
                 return;
             }
         }
@@ -410,14 +410,12 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     if (strcmp(inner_opt, "preserve-subdirs") == 0) {
-                        tbd->options |=
-                            O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
+                        tbd->flags |= F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
                     } else if (strcmp(inner_opt, "no-overwrite") == 0) {
-                        tbd->options |= O_TBD_FOR_MAIN_NO_OVERWRITE;
+                        tbd->flags |= F_TBD_FOR_MAIN_NO_OVERWRITE;
                     } else {
                         if (strcmp(inner_opt, "replace-path-extension") == 0) {
-                            tbd->options |=
-                                O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION;
+                            tbd->flags |= F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION;
                         } else {
                             fprintf(stderr,
                                     "Unrecognized option: %s\n",
@@ -440,7 +438,7 @@ int main(const int argc, const char *const argv[]) {
 
                 const char *const path = inner_arg;
                 if (strcmp(path, "stdout") == 0) {
-                    if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                    if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                         fputs("Writing to stdout (terminal) while recursing "
                               "a directory is not supported, Please provide "
                               "a directory to write all created files to\n",
@@ -478,11 +476,11 @@ int main(const int argc, const char *const argv[]) {
                  * multiple mach-o images.
                  */
 
-                const uint64_t options = tbd->options;
-                if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
+                const uint64_t options = tbd->flags;
+                if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
                     tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE)
                 {
-                    if (options & O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+                    if (options & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
                         fputs("Option --preserve-subdirs can only be provided "
                               "recursing directoriess\n",
                               stderr);
@@ -493,7 +491,7 @@ int main(const int argc, const char *const argv[]) {
                         return 1;
                     }
 
-                    if (options & O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+                    if (options & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
                         fputs("Option --replace-path-extension can only be "
                               "provided for recursing directories. You can "
                               "change the extension of your output-file when "
@@ -537,7 +535,7 @@ int main(const int argc, const char *const argv[]) {
                 struct stat info = {};
                 if (stat(path, &info) == 0) {
                     if (S_ISREG(info.st_mode)) {
-                        if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                        if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                             fputs("Writing to a regular file while recursing a "
                                   "directory is not supported, Please provide "
                                   "a directory to write all found files to\n",
@@ -562,7 +560,7 @@ int main(const int argc, const char *const argv[]) {
                             tbd->filetype ==
                             TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
 
-                        if (!(options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
+                        if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
                             !is_dsc)
                         {
                             fputs("Writing to a directory while parsing a "
@@ -650,7 +648,7 @@ int main(const int argc, const char *const argv[]) {
                     if (strcmp(inner_opt, "r") == 0 ||
                         strcmp(inner_opt, "recurse") == 0)
                     {
-                        tbd.options |= O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+                        tbd.flags |= F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
                         /*
                          * -r/--recurse may have an extra argument specifying
@@ -665,8 +663,8 @@ int main(const int argc, const char *const argv[]) {
 
                             if (strcmp(specification, "all") == 0) {
                                 index += 1;
-                                tbd.options |=
-                                    O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
+                                tbd.flags |=
+                                    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
                             } else if (strcmp(specification, "once") == 0) {
                                 index += 1;
                             }
@@ -674,7 +672,7 @@ int main(const int argc, const char *const argv[]) {
                     } else if (strcmp(inner_opt, "dsc") == 0) {
                         tbd.filetype = TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
                     } else if (strcmp(inner_opt, "include-dsc") == 0) {
-                        tbd.options |= O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
+                        tbd.flags |= F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,
@@ -749,7 +747,7 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     if (S_ISREG(info.st_mode)) {
-                        if (tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                        if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                             fprintf(stderr,
                                     "Recursing file (at path %s) is not "
                                     "supported, Please provide a path to a "
@@ -766,7 +764,7 @@ int main(const int argc, const char *const argv[]) {
                             return 1;
                         }
 
-                        if (tbd.options & O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
+                        if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
                             fputs("Option (--include-dsc) is used to indicate "
                                   "that dyld_shared_cache files should also be "
                                   "parsed while recursing, in addition to "
@@ -786,7 +784,7 @@ int main(const int argc, const char *const argv[]) {
                         }
                     } else if (S_ISDIR(info.st_mode)) {
                         const uint64_t recurse_directories =
-                            tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+                            tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
                         if (!recurse_directories) {
                             fputs("Unable to open a directory as a mach-o file"
@@ -856,7 +854,7 @@ int main(const int argc, const char *const argv[]) {
                     tbd.parse_path = full_path;
                     tbd.parse_path_length = full_path_length;
                 } else {
-                    if (tbd.options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                    if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                         fputs("Recursing the input file is not supported, "
                               "Please provide a path to a directory if "
                               "recursing is needed\n",
@@ -874,7 +872,7 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
-                    if (tbd.options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+                    if (tbd.flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
                         fprintf(stderr,
                                 "Both modifying tbd-flags and removing the "
                                 "field entirely for path (%s) is not "
@@ -1106,6 +1104,8 @@ int main(const int argc, const char *const argv[]) {
 
             print_tbd_version_list();
             return 0;
+        } else if (strcmp(option, "no-overwrite") == 0) {
+            global.flags |= F_TBD_FOR_MAIN_NO_OVERWRITE;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--usage needs to be run by itself\n", stderr);
@@ -1161,8 +1161,8 @@ int main(const int argc, const char *const argv[]) {
     for (; tbd != end; tbd++) {
         tbd_for_main_apply_from(tbd, &global);
 
-        const uint64_t options = tbd->options;
-        if (options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+        const uint64_t options = tbd->flags;
+        if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             /*
              * We have to check here, as its possible output-commands were not
              * provided for the parse commands.
@@ -1190,7 +1190,7 @@ int main(const int argc, const char *const argv[]) {
             const enum dir_recurse_result recurse_dir_result =
                 dir_recurse(tbd->parse_path,
                             tbd->parse_path_length,
-                            options & O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES,
+                            options & F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES,
                             &recurse_info,
                             recurse_directory_callback,
                             recurse_directory_fail_callback);

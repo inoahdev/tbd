@@ -27,8 +27,6 @@ Outputting options:
 Usage: tbd -o [options] path
         --preserve-subdirs,       Preserve the sub-directories of where files were found in
                                   when recursing in relation to the actual provided recurse-path
-        --no-overwrite,           Prevent overwriting of files when writing out.
-                                  This may result in some files being skipped
         --replace-path-extension, Replace the path-extension(s) of provided file(s) when
                                   creating an output-file (Instead of simply appending .tbd)
 
@@ -39,6 +37,8 @@ Both local and global options:
                                       To get the numbers of all available images, Use the option --list-images
             --image-path,             Specify the path of an image to parse out.
                                       To get the paths of all available images, Use the option --list-images
+        --no-overwrite,               Prevent overwriting of files when writing out.
+                                      This may result in some files being skipped
         -v, --version,                Specify version of tbd to convert to (default is v2).
                                       This applies to all files where tbd-version was not explicitly set
 

@@ -329,7 +329,7 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 
     const uint64_t archs_re = tbd->archs_re;
     if (archs_re != 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             tbd->info.archs &= ~archs_re;
         } else {
             tbd->info.archs = archs_re;
@@ -338,7 +338,7 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 
     const uint32_t flags_re = tbd->flags_re;
     if (flags_re != 0) {
-        if (tbd->options & O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             tbd->info.flags_field &= ~flags_re;
          } else {
             tbd->info.flags_field = flags_re;
@@ -598,7 +598,7 @@ print_dsc_image_parse_error(const struct tbd_for_main *const tbd,
             break;
 
         case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
-            if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+            if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                 fprintf(stderr,
                         "Image (with path %s) has no clients, re-exports, "
                         "or symbols to be written out\n",

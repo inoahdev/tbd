@@ -23,7 +23,14 @@ enum tbd_for_main_dsc_image_filter_type {
 };
 
 struct tbd_for_main_dsc_image_filter {
+    /*
+     * tmp_ptr is used to store a pointer to the path-component needed when
+     * creating the right write-path.
+     */
+
     const char *string;
+    const char *tmp_ptr;
+
     enum tbd_for_main_dsc_image_filter_type type;
 
     uint64_t length;
@@ -37,28 +44,28 @@ struct tbd_for_main_dsc_image_path {
     uint64_t flags;
 };
 
-enum tbd_for_main_options {
-    O_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1 << 0,
-    O_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1 << 1,
+enum tbd_for_main_flags {
+    F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1 << 0,
+    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1 << 1,
 
-    O_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1 << 2,
-    O_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1 << 3,
+    F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1 << 2,
+    F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1 << 3,
 
-    O_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1 << 5,
+    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1 << 5,
 
-    O_TBD_FOR_MAIN_NO_OVERWRITE           = 1 << 6,
-    O_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1 << 7,
+    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1 << 6,
+    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1 << 7,
 
-    O_TBD_FOR_MAIN_IGNORE_WARNINGS = 1 << 9,
-    O_TBD_FOR_MAIN_NO_REQUESTS     = 1 << 10,
+    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1 << 9,
+    F_TBD_FOR_MAIN_NO_REQUESTS     = 1 << 10,
 
     /*
      * dyld_shared_cache extractions can be stored in either a file or a
      * directory. (Depending on the configuration)
      */
 
-    O_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC    = 1 << 11,
-    O_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 12
+    F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC    = 1 << 11,
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 12
 };
 
 enum tbd_for_main_filetype {
@@ -93,7 +100,7 @@ struct tbd_for_main {
     uint64_t parse_options;
     uint64_t write_options;
 
-    uint64_t options;
+    uint64_t flags;
 
     /*
      * Archs and flags to either replace/remove ones found in a mach-o file.
@@ -134,9 +141,15 @@ void
 tbd_for_main_apply_from(struct tbd_for_main *dst,
                         const struct tbd_for_main *src);
 
-void
+enum tbd_for_main_write_to_path_result {
+    E_TBD_FOR_MAIN_WRITE_TO_PATH_OK,
+
+    E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS,
+    E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL
+};
+
+enum tbd_for_main_write_to_path_result
 tbd_for_main_write_to_path(const struct tbd_for_main *tbd,
-                           const char *input_path,
                            char *write_path,
                            uint64_t write_path_length,
                            bool print_paths);

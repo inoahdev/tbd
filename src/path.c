@@ -424,6 +424,12 @@ path_get_last_path_component(const char *const path,
                              const uint64_t path_length,
                              uint64_t *const length_out)
 {
+    const char path_front_ch = *path;
+    if (!ch_is_path_slash(path_front_ch)) {
+        *length_out = path_length;
+        return path;
+    }
+
     const char *component_end = &path[path_length];
     const char back_ch = path[path_length - 1];
 
@@ -452,6 +458,18 @@ path_get_last_path_component(const char *const path,
     *length_out = (uint64_t)(component_end - component_begin);
 
     return component_begin;
+}
+
+const char *
+path_get_next_component(const char *const component,
+                        const uint64_t component_length)
+{
+    const char *const next_component = component + component_length;
+    if (ch_is_path_slash(*next_component)) {
+        return path_get_end_of_row_of_slashes(next_component);
+    }
+
+    return next_component;
 }
 
 static const char *get_next_slash(const char *const path) {
@@ -505,7 +523,8 @@ static const char *get_next_slash_or_end(const char *const path) {
 bool
 path_has_dir_component(const char *const path,
                        const char *const component,
-                       const uint64_t component_length)
+                       const uint64_t component_length,
+                       const char **const dir_component_out)
 {
     const char *iter_begin = path;
     if (ch_is_path_slash(path[0])) {
@@ -535,6 +554,10 @@ path_has_dir_component(const char *const path,
         if (component_length == iter_length) {
             if (memcmp(iter_begin, component, iter_length) == 0) {
                 if (component_is_a_directory(iter_end)) {
+                    if (dir_component_out != NULL) {
+                        *dir_component_out = iter_begin;
+                    }
+
                     return true;
                 }
 
@@ -557,7 +580,8 @@ bool
 path_has_filename(const char *const path,
                   const uint64_t path_length,
                   const char *const filename,
-                  const uint64_t filename_length)
+                  const uint64_t filename_length,
+                  const char **const filename_out)
 {
     const char *const path_back = path + (path_length - 1);
     const char *path_iter = path_back;
@@ -598,6 +622,10 @@ path_has_filename(const char *const path,
 
         if (path_iter == path) {
             if (filename_iter < filename) {
+                if (filename_out != NULL) {
+                    *filename_out = path_iter;
+                }
+
                 return true;
             }
 
@@ -607,6 +635,10 @@ path_has_filename(const char *const path,
         path_ch = *path_iter;
         if (path_ch == '/') {
             if (filename_iter < filename) {
+                if (filename_out != NULL) {
+                    *filename_out = path_iter + 1;
+                }
+
                 return true;
             }
 

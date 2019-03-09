@@ -61,6 +61,9 @@ const char *
 path_find_ending_row_of_slashes(const char *path, uint64_t path_length);
 
 const char *
+path_get_next_component(const char *component, uint64_t component_length);
+
+const char *
 path_get_last_path_component(const char *path,
                              uint64_t path_length,
                              uint64_t *length_out);
@@ -69,12 +72,14 @@ bool
 path_has_filename(const char *path,
                   uint64_t path_length,
                   const char *component,
-                  uint64_t component_length);
+                  uint64_t component_length,
+                  const char **filename_out);
 
 bool
 path_has_dir_component(const char *path,
                        const char *component,
-                       uint64_t component_length);
+                       uint64_t component_length,
+                       const char **dir_component_out);
 
 const char *path_find_extension(const char *path, uint64_t length);
 

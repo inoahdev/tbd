@@ -45,6 +45,48 @@ read_magic(void *const magic_in,
     return 0;
 }
 
+static void
+handle_write_result(const struct tbd_for_main *const tbd,
+                    const char *const path,
+                    const char *const write_path,
+                    const enum tbd_for_main_write_to_path_result result,
+                    const bool print_paths)
+{
+    switch (result) {
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_OK:
+            break;
+
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS:
+            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                return;
+            }
+
+            if (print_paths) {
+                fprintf(stderr,
+                        "Skipping over file (at path %s) as a file at its "
+                        "output-path (%s) already exists\n",
+                        path,
+                        write_path);
+            } else {
+                fputs("Skipping over file at provided-path as a file at its "
+                      "provided output-path already exists\n", stderr);
+            }
+
+            break;
+
+        case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to output-file (at path %s)\n",
+                        write_path);
+            } else {
+                fputs("Failed to write to provided output-file\n", stderr);
+            }
+
+            break;
+    }
+}
+
 bool
 parse_macho_file(void *const magic_in,
                  uint64_t *const magic_in_size_in,
@@ -122,28 +164,35 @@ parse_macho_file(void *const magic_in,
 
     char *write_path = tbd->write_path;
     if (write_path != NULL) {
-        uint64_t length = tbd->write_path_length;
-        if (tbd->options & O_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+        uint64_t len = tbd->write_path_length;
+        enum tbd_for_main_write_to_path_result ret =
+            E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
+
+        if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             write_path =
                 tbd_for_main_create_write_path(tbd,
                                                write_path,
-                                               length,
+                                               len,
                                                path,
                                                path_length,
                                                "tbd",
                                                3,
                                                true,
-                                               &length);
+                                               &len);
 
             if (write_path == NULL) {
                 fputs("Failed to allocate memory\n", stderr);
                 exit(1);
             }
 
-            tbd_for_main_write_to_path(tbd, path, write_path, length, true);
+            ret = tbd_for_main_write_to_path(tbd, write_path, len, true);
             free(write_path);
         } else {
-            tbd_for_main_write_to_path(tbd, path, write_path, length, true);
+            ret = tbd_for_main_write_to_path(tbd, write_path, len, print_paths);
+        }
+
+        if (ret != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+            handle_write_result(tbd, path, write_path, ret, print_paths);
         }
     } else {
         tbd_for_main_write_to_stdout(tbd, path, true);

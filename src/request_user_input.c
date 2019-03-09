@@ -91,7 +91,7 @@ request_install_name(struct tbd_for_main *const global,
                      const char *const prompt,
                      ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -158,7 +158,7 @@ request_objc_constraint(struct tbd_for_main *const global,
                         const char *const prompt,
                         ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -254,7 +254,7 @@ request_parent_umbrella(struct tbd_for_main *const global,
                         const char *const prompt,
                         ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -324,7 +324,7 @@ request_platform(struct tbd_for_main *const global,
                  const char *const prompt,
                  ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -428,7 +428,7 @@ request_swift_version(struct tbd_for_main *const global,
                       const char *const prompt,
                       ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -524,7 +524,7 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
                                const char *const prompt,
                                ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
@@ -577,7 +577,7 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
                                           const char *const prompt,
                                           ...)
 {
-    if (tbd->options & O_TBD_FOR_MAIN_NO_REQUESTS) {
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
