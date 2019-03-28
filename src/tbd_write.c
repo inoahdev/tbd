@@ -710,6 +710,13 @@ write_export_type_key(FILE *const file,
 
             break;
 
+        case TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL:
+            if (fprintf(file, "%-4sobjc-eh-types:%5s[ ", "", "") < 0) {
+                return 1;
+            }
+
+            break;
+
         case TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL:
             if (fprintf(file, "%-4sobjc-ivars:%9s[ ", "", "") < 0) {
                 return 1;
@@ -779,7 +786,7 @@ write_comma_or_newline(FILE *const file,
 
     /*
      * If writing the symbol (and it's corresponding comma + space) gets the
-     * line's length to beyond the limit, write a comma+newline and have the
+     * line's length to beyond the limit, write a comma+newline to have the
      * symbol written on the next line.
      */
 

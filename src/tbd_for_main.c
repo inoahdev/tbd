@@ -197,9 +197,12 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS;
     } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
     } else if (strcmp(option, "allow-private-objc-class-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
+    } else if (strcmp(option, "allow-private-objc-ehtype-symbols") == 0) {
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
     } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
     } else if (strcmp(option, "ignore-clients") == 0) {

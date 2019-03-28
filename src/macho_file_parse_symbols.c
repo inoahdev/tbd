@@ -138,6 +138,41 @@ is_objc_class_symbol(const char *const symbol,
     return true;
 }
 
+static inline bool
+is_objc_ehtype_symbol(const char *const symbol,
+                      const uint64_t first,
+                      const enum tbd_version version)
+{
+    /*
+     * Obj-c eh-type symbols are only officially classified in tbd-version v3.
+     */
+
+    if (version != TBD_VERSION_V3) {
+        return false;
+    }
+
+    if (first != 5207673286737153887) {
+        return false;
+    }
+
+    const uint32_t second = *(uint32_t *)(symbol + 8);
+    if (second != 1162893652) {
+        return false;
+    }
+
+    const uint16_t third = *(uint16_t *)(symbol + 12);
+    if (third != 9311) {
+        return false;
+    }
+
+    const uint8_t fourth = *(uint8_t *)(symbol + 14);
+    if (fourth != 95) {
+        return false;
+    }
+
+    return true;
+}
+
 static inline
 bool is_objc_ivar_symbol(const char *const symbol, const uint64_t first) {
     /*
@@ -266,7 +301,19 @@ handle_symbol(struct tbd_create_info *const info_in,
                 }
 
                 symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-            } else if (is_objc_ivar_symbol(symbol_string, first)) {
+            } else if (is_objc_ehtype_symbol(str, first, info_in->version)) {
+                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
+                {
+                    if (!(n_type & N_EXT)) {
+                        return E_MACHO_FILE_PARSE_OK;
+                    }
+                }
+
+                string += 15;
+                length = (uint32_t)strnlen(string, max_len - 15);
+
+                symbol_type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
+            } else if (is_objc_ivar_symbol(str, first)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
                     if (!(n_type & N_EXT)) {
                         return E_MACHO_FILE_PARSE_OK;

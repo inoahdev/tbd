@@ -76,6 +76,7 @@ void print_usage(void) {
     fputs("        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)\n", stdout);
     fputs("        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars\n", stdout);
     fputs("        --allow-private-objc-classes,   Allow all non-external objc-classes\n", stdout);
+    fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc eh-types\n", stdout);
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
 
     fputc('\n', stdout);
