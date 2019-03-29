@@ -602,7 +602,21 @@ tbd_for_main_dsc_image_filter_comparator(const void *const array_item,
     const struct tbd_for_main_dsc_image_filter *const filter =
         (const struct tbd_for_main_dsc_image_filter *)item;
 
-    return strcmp(array_filter->string, filter->string);
+    const uint64_t array_filter_length = array_filter->length;
+    const uint64_t filter_length = filter->length;
+
+    const char *const array_string = array_filter->string;
+    const char *const string = filter->string;
+
+    if (array_filter_length > filter_length) {
+        return memcmp(array_string, string, filter_length + 1);
+    }
+
+    if (array_filter_length < filter_length) {
+        return memcmp(array_string, string, array_filter_length + 1);
+    }
+
+    return memcmp(array_string, string, filter_length);
 }
 
 static int
