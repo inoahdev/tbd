@@ -262,7 +262,7 @@ handle_symbol(struct tbd_create_info *const info_in,
     }
 
     const char *string = symbol_string;
-    const uint32_t max_len = strsize - index;
+    uint32_t max_len = strsize - index;
 
     /*
      * Figure out the symbol-type from the symbol-string and desc.
@@ -328,6 +328,16 @@ handle_symbol(struct tbd_create_info *const info_in,
                     if (!(n_type & N_EXT)) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
+                }
+
+                /*
+                 * On tbd-version v3, the underscore at front of the symbol is
+                 * removed.
+                 */
+
+                if (info_in->version == TBD_VERSION_V3) {
+                    string += 1;
+                    max_len -= 1;
                 }
 
                 string += 12;
