@@ -84,7 +84,7 @@ recurse_directory_callback(const char *const parse_path,
      */
 
     if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
-        const bool parse_as_macho_result =
+        const enum parse_macho_file_result parse_as_macho_result =
             parse_macho_file(&magic,
                              &magic_size,
                              retained,
@@ -96,11 +96,20 @@ recurse_directory_callback(const char *const parse_path,
                              true,
                              true);
 
-        if (parse_as_macho_result) {
-            recurse_info->files_parsed += 1;
+        switch (parse_as_macho_result) {
+            case E_PARSE_MACHO_FILE_OK: {
+                recurse_info->files_parsed += 1;
 
-            close(fd);
-            return true;
+                close(fd);
+                return true;
+            }
+
+            case E_PARSE_MACHO_FILE_NOT_A_MACHO:
+                break;
+
+            case E_PARSE_MACHO_FILE_OTHER_ERROR:
+                close(fd);
+                return true;
         }
 
         if (!(flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
@@ -112,7 +121,7 @@ recurse_directory_callback(const char *const parse_path,
         return true;
     }
 
-    const bool parse_as_dsc_result =
+    const enum parse_shared_cache_result parse_as_dsc_result =
         parse_shared_cache(&magic,
                            &magic_size,
                            retained,
@@ -125,11 +134,19 @@ recurse_directory_callback(const char *const parse_path,
                            true,
                            true);
 
-    if (parse_as_dsc_result) {
-        recurse_info->files_parsed += 1;
+    switch (parse_as_dsc_result) {
+        case E_PARSE_SHARED_CACHE_OK:
+            recurse_info->files_parsed += 1;
 
-        close(fd);
-        return true;
+            close(fd);
+            return true;
+
+        case E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE:
+            break;
+
+        case E_PARSE_SHARED_CACHE_OTHER_ERROR:
+            close(fd);
+            return true;
     }
 
     close(fd);

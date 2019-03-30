@@ -15,7 +15,13 @@
  * magic_in should be atleast 4 bytes large.
  */
 
-bool
+enum parse_macho_file_result {
+    E_PARSE_MACHO_FILE_OK,
+    E_PARSE_MACHO_FILE_NOT_A_MACHO,
+    E_PARSE_MACHO_FILE_OTHER_ERROR
+};
+
+enum parse_macho_file_result
 parse_macho_file(void *magic_in,
                  uint64_t *magic_in_size_in,
                  uint64_t *retained_info_in,

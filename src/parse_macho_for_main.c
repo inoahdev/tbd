@@ -87,7 +87,7 @@ handle_write_result(const struct tbd_for_main *const tbd,
     }
 }
 
-bool
+enum parse_macho_file_result
 parse_macho_file(void *const magic_in,
                  uint64_t *const magic_in_size_in,
                  uint64_t *const retained_info_in,
@@ -101,7 +101,7 @@ parse_macho_file(void *const magic_in,
 {
     if (read_magic(magic_in, magic_in_size_in, fd)) {
         if (errno == EOVERFLOW) {
-            return false;
+            return E_PARSE_MACHO_FILE_NOT_A_MACHO;
         }
 
         /*
@@ -117,7 +117,7 @@ parse_macho_file(void *const magic_in,
                                        E_MACHO_FILE_PARSE_READ_FAIL,
                                        print_paths);
 
-        return true;
+        return E_PARSE_MACHO_FILE_OTHER_ERROR;
     }
 
     const uint32_t magic = *(uint32_t *)magic_in;
@@ -146,7 +146,7 @@ parse_macho_file(void *const magic_in,
                                            print_paths);
         }
 
-        return false;
+        return E_PARSE_MACHO_FILE_NOT_A_MACHO;
     }
 
     const bool should_continue =
@@ -159,7 +159,7 @@ parse_macho_file(void *const magic_in,
 
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
-        return true;
+        return E_PARSE_MACHO_FILE_OTHER_ERROR;
     }
 
     char *write_path = tbd->write_path;
@@ -186,18 +186,21 @@ parse_macho_file(void *const magic_in,
             }
 
             ret = tbd_for_main_write_to_path(tbd, write_path, len, true);
+            if (ret != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+                handle_write_result(tbd, path, write_path, ret, print_paths);
+            }
+
             free(write_path);
         } else {
             ret = tbd_for_main_write_to_path(tbd, write_path, len, print_paths);
-        }
-
-        if (ret != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-            handle_write_result(tbd, path, write_path, ret, print_paths);
+            if (ret != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+                handle_write_result(tbd, path, write_path, ret, print_paths);
+            }
         }
     } else {
         tbd_for_main_write_to_stdout(tbd, path, true);
     }
 
     clear_create_info(create_info, &original_info);
-    return true;
+    return E_PARSE_MACHO_FILE_OK;
 }

@@ -775,7 +775,7 @@ mark_found_for_matching_conds(const struct array *const filters,
     }
 }
 
-bool
+enum parse_shared_cache_result
 parse_shared_cache(void *const magic_in,
                    uint64_t *const magic_in_size_in,
                    uint64_t *const retained_info_in,
@@ -816,12 +816,12 @@ parse_shared_cache(void *const magic_in,
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
             if (ignore_non_cache) {
-                return false;
+                return E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE;
             }
         }
 
         handle_dsc_file_parse_result(path, parse_dsc_file_result, print_paths);
-        return true;
+        return E_PARSE_SHARED_CACHE_OTHER_ERROR;
     }
 
     char *write_path = tbd->write_path;
@@ -928,7 +928,7 @@ parse_shared_cache(void *const magic_in,
             print_dsc_warnings(&callback_info, filters, paths);
             dyld_shared_cache_info_destroy(&dsc_info);
 
-            return true;
+            return E_PARSE_SHARED_CACHE_OK;
         }
 
         callback_info.parse_all_images = false;
@@ -961,7 +961,7 @@ parse_shared_cache(void *const magic_in,
     print_dsc_warnings(&callback_info, filters, paths);
     dyld_shared_cache_info_destroy(&dsc_info);
 
-    return true;
+    return E_PARSE_SHARED_CACHE_OK;
 }
 
 struct dsc_list_images_callback {

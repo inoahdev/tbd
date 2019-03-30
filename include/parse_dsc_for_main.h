@@ -15,7 +15,13 @@
  * magic_in should be atleast 16 bytes large.
  */
 
-bool
+enum parse_shared_cache_result {
+    E_PARSE_SHARED_CACHE_OK,
+    E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE,
+    E_PARSE_SHARED_CACHE_OTHER_ERROR
+};
+
+enum parse_shared_cache_result
 parse_shared_cache(void *magic_in,
                    uint64_t *magic_in_size_in,
                    uint64_t *retained_info_in,
