@@ -300,6 +300,16 @@ handle_symbol(struct tbd_create_info *const info_in,
                     }
                 }
 
+                /*
+                 * On tbd-version v3, the underscore at front of the class-name
+                 * is removed.
+                 */
+
+                if (info_in->version == TBD_VERSION_V3) {
+                    string += 1;
+                    length -= 1;
+                }
+
                 symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
             } else if (is_objc_ehtype_symbol(str, first, info_in->version)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
