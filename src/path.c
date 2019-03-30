@@ -660,7 +660,32 @@ path_find_extension(const char *const path, const uint64_t length) {
     const char *const back = path + (length - 1);
     const char *iter = back;
 
-    for (char ch = *iter; iter >= path; ch = *(--iter)) {
+    /*
+     * If we have a row of slashes at the back of the path-string, remove them
+     * from our parsing range.
+     */
+
+    char ch = *iter;
+    if (ch_is_path_slash(ch)) {
+        iter = path_get_front_of_row_of_slashes(path, iter);
+        if (iter == path) {
+            return NULL;
+        }
+
+        iter -= 1;
+        ch = *iter;
+    }
+
+    for (ch = *(--iter); iter >= path; ch = *(--iter)) {
+        /*
+         * If we hit a path-slash, we are about to leave the range of the last
+         * path-component without a dot.
+         */
+
+        if (ch_is_path_slash(ch)) {
+            return NULL;
+        }
+
         if (ch != '.') {
             continue;
         }
