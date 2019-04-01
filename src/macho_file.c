@@ -58,7 +58,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         }
     }
 
-    if (info_in->flags != 0) {
+    if (info_in->flags_field != 0) {
         if (info_in->flags_field & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
