@@ -29,27 +29,26 @@
  * With the addition of the arm64_32 cpu-type, a new prefix was created.
  */
 
-static const uint64_t dsc_magic_64 = 2319765435151317348;
-static const uint64_t dsc_magic_64_other = 7003509047616633188;
+static const uint64_t dsc_magic_64_normal = 2319765435151317348;
+static const uint64_t dsc_magic_64_arm64_32 = 7003509047616633188;
 
 static int
 get_arch_info_from_magic(const char magic[16],
                          const struct arch_info **const arch_info_out,
                          uint64_t *const arch_bit_out)
 {
-    const uint64_t first_part = *(const uint64_t *)magic;
-    if (first_part != dsc_magic_64) {
-        if (first_part != dsc_magic_64_other) {
-            return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
-        }
-    }
-
     const struct arch_info *arch = NULL;
     uint64_t arch_bit = 0;
 
+    const uint64_t first_part = *(const uint64_t *)magic;
     const uint64_t second_part = *((const uint64_t *)magic + 1);
+
     switch (second_part) {
         case 15261442200576032:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_X86, CPU_SUBTYPE_I386_ALL).
              */
@@ -60,6 +59,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 14696481348417568:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL).
              */
@@ -70,6 +73,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 29330805708175480:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H).
              */
@@ -80,6 +87,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 15048386208145440:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V5TEJ).
              */
@@ -90,6 +101,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 15329861184856096:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6).
              */
@@ -100,6 +115,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 15611336161566752:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7).
              */
@@ -110,6 +129,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 3996502057361088544:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7F).
              */
@@ -120,6 +143,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 7725773898219855904:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7K).
              */
@@ -130,6 +157,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 8302234650523279392:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7S).
              */
@@ -140,6 +171,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 7869889086295711776:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6M).
              */
@@ -150,6 +185,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 14696542487257120:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM_64_ALL).
              */
@@ -160,6 +199,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 28486381016867104:
+            if (first_part != dsc_magic_64_normal) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E).
              */
@@ -170,6 +213,10 @@ get_arch_info_from_magic(const char magic[16],
             break;
 
         case 14130232826424690:
+            if (first_part != dsc_magic_64_arm64_32) {
+                return 1;
+            }
+
             /*
              * (CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM_64_ALL).
              */
@@ -256,11 +303,6 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     if (guard_overflow_add(&mapping_end, mappings_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
-
-    /*
-     * Get the size of the image-infos table by multipying the images-count
-     * and the size of a image-info.
-     */
 
     uint64_t images_size = sizeof(struct dyld_cache_image_info);
     if (guard_overflow_mul(&images_size, header.imagesCount)) {
