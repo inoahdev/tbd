@@ -106,19 +106,15 @@ array_add_item_to_byte_index(struct array *const array,
     }
 
     memcpy(position, item, item_size);
+
     array->data_end = data_end + item_size;
+    array->item_count += 1;
 
     if (item_out != NULL) {
         *item_out = position;
     }
 
     return E_ARRAY_OK;
-}
-
-uint64_t
-array_get_item_count(const struct array *const array, const size_t item_size) {
-    const uint64_t used_size = array_get_used_size(array);
-    return used_size / item_size;
 }
 
 uint64_t array_get_used_size(const struct array *const array) {
@@ -149,47 +145,49 @@ array_add_item(struct array *const array,
 
 enum array_result
 array_add_items_from_array(struct array *const array,
-                           const struct array *const other)
+                           const struct array *const src)
 {
-    const uint64_t other_used_size = array_get_used_size(other);
+    const uint64_t src_used_size = array_get_used_size(src);
     const enum array_result expand_result =
-        array_expand_if_necessary(array, other_used_size);
+        array_expand_if_necessary(array, src_used_size);
 
     if (expand_result != E_ARRAY_OK) {
         return expand_result;
     }
 
     void *const data_end = array->data_end;
-    memcpy(data_end, other->data, other_used_size);
+    memcpy(data_end, src->data, src_used_size);
 
-    array->data_end = data_end + other_used_size;
+    array->data_end = data_end + src_used_size;
+    array->item_count += src->item_count;
+
     return E_ARRAY_OK;
 }
 
 enum array_result
 array_add_and_unique_items_from_array(struct array *const array,
                                       const size_t item_size,
-                                      const struct array *const other,
+                                      const struct array *const src,
                                       const array_item_comparator comparator)
 {
     const uint64_t array_used_size = array_get_used_size(array);
     if (array_used_size == 0) {
-        return array_add_items_from_array(array, other);
+        return array_add_items_from_array(array, src);
     }
 
-    const void *other_iter = other->data;
-    const void *const end = other->data_end;
+    const void *src_iter = src->data;
+    const void *const end = src->data_end;
 
-    for (; other_iter != end; other_iter += item_size) {
+    for (; src_iter != end; src_iter += item_size) {
         const void *const match =
-            array_find_item(array, item_size, other_iter, comparator, NULL);
+            array_find_item(array, item_size, src_iter, comparator, NULL);
 
         if (match != NULL) {
             continue;
         }
 
         const enum array_result add_item_result =
-            array_add_item(array, item_size, other_iter, NULL);
+            array_add_item(array, item_size, src_iter, NULL);
 
         if (add_item_result != E_ARRAY_OK) {
             return add_item_result;
@@ -354,7 +352,11 @@ array_find_item_in_sorted(const struct array *const array,
         return NULL;
     }
 
-    const uint64_t item_count = used_size / item_size;
+    const uint64_t item_count = array->item_count;
+    if (item_count == 0) {
+        return NULL;
+    }
+
     const struct array_slice slice = {
         .front = 0,
         .back = item_count - 1
@@ -447,7 +449,7 @@ array_add_item_with_cached_index_info(
         return array_add_item_to_index(array, item_size, item, 1, item_out);
     }
 
-    const uint64_t back_index = array_get_item_count(array, item_size) - 1;
+    const uint64_t back_index = array->item_count - 1;
     if (index == back_index) {
         /*
          * Since we're at the back anyways, if the item is greater, simply add
@@ -499,9 +501,7 @@ array_sort_items_with_comparator(struct array *const array,
                                  const size_t item_size,
                                  const array_item_comparator comparator)
 {
-    const uint64_t item_count = array_get_item_count(array, item_size);
-    qsort(array->data, item_count, item_size, comparator);
-
+    qsort(array->data, array->item_count, item_size, comparator);
     return E_ARRAY_OK;
 }
 

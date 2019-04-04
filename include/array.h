@@ -24,6 +24,13 @@ struct array {
     void *data;
     void *data_end;
     void *alloc_end;
+
+    /*
+     * To improve performance while using the sort APIs, store the item-count of
+     * an array to avoid re-calculating.
+     */
+
+    uint64_t item_count;
 };
 
 enum array_result {
@@ -35,8 +42,6 @@ enum array_result {
 };
 
 bool array_is_empty(const struct array *array);
-
-uint64_t array_get_item_count(const struct array *array, size_t item_size);
 uint64_t array_get_used_size(const struct array *array);
 
 void *array_get_front(const struct array *array);

@@ -205,12 +205,7 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
 
         if (array_is_empty(filters)) {
             if (array_is_empty(numbers)) {
-                const uint64_t paths_count =
-                    array_get_item_count(
-                        paths,
-                        sizeof(struct tbd_for_main_dsc_image_path));
-
-                if (paths_count == 1) {
+                if (paths->item_count == 1) {
                     return;
                 }
             }
@@ -259,13 +254,8 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
             const struct array *const numbers = &tbd->dsc_image_numbers;
             const struct array *const paths = &tbd->dsc_image_paths;
 
-            const uint64_t numbers_count =
-                array_get_item_count(numbers, sizeof(uint32_t));
-
-            const uint64_t paths_count =
-                array_get_item_count(
-                    paths,
-                    sizeof(struct tbd_for_main_dsc_image_path));
+            const uint64_t numbers_count = numbers->item_count;
+            const uint64_t paths_count = paths->item_count;
 
             if (numbers_count == 1 && paths_count == 0) {
                 tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
@@ -1151,10 +1141,7 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
-    const uint64_t item_count =
-        array_get_item_count(&tbds, sizeof(struct tbd_for_main));
-
-    if (item_count == 0) {
+    if (tbds.item_count == 0) {
         fputs("Please provide paths to either files to parse or directories to "
               "recurse\n",
               stderr);
@@ -1172,7 +1159,7 @@ int main(const int argc, const char *const argv[]) {
 
     uint64_t retained_info = 0;
 
-    const bool should_print_paths = item_count != 1;
+    const bool should_print_paths = tbds.item_count != 1;
     const struct tbd_for_main *const end = tbds.data_end;
 
     struct tbd_for_main *tbd = tbds.data;
