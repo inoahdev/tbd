@@ -930,7 +930,7 @@ tbd_write_exports(FILE *const file,
 
             /*
              * Write either a comma or a newline before writing the next export
-             * to preserve a limit on line-lengths
+             * to preserve a limit on line-lengths.
              */
 
             const uint32_t length = info->length;
@@ -956,6 +956,119 @@ tbd_write_exports(FILE *const file,
             line_length += length;
         } while (true);
     } while (info != end);
+
+    return 0;
+}
+
+int
+tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
+                                  FILE *const file)
+{
+    const struct array *const exports = &tbd->exports;
+
+    const struct tbd_export_info *info = exports->data;
+    const struct tbd_export_info *const end = exports->data_end;
+
+    if (info == end) {
+        return 0;
+    }
+
+    if (fputs("exports:\n", file) < 0) {
+        return 1;
+    }
+
+    const uint64_t archs = tbd->archs;
+    if (write_archs_for_exports(file, archs)) {
+        return 1;
+    }
+
+    const enum tbd_version version = tbd->version;
+    enum tbd_export_type type = info->type;
+
+    if (write_export_type_key(file, type, version)) {
+        return 1;
+    }
+
+    if (write_export_info(file, info)) {
+        return 1;
+    }
+
+    uint32_t line_length = info->length;
+
+    do {
+        info++;
+
+        /*
+         * If we've written out all exports, simply end the current
+         * export-type array and return.
+         */
+
+        if (info == end) {
+            if (end_written_export_array(file)) {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        /*
+         * If the current export-info has a different type from the previous
+         * ones written out, end the current-export-info array and create
+         * the new one of the current export-info.
+         */
+
+        const enum tbd_export_type inner_type = info->type;
+        if (inner_type != type) {
+            if (end_written_export_array(file)) {
+                return 1;
+            }
+
+            if (write_export_type_key(file, inner_type, version)) {
+                return 1;
+            }
+
+            if (write_export_info(file, info)) {
+                return 1;
+            }
+
+            /*
+             * Reset the line-length after ending the previous export-type
+             * array.
+             */
+
+            line_length = info->length;
+            type = inner_type;
+
+            continue;
+        }
+
+        /*
+         * Write either a comma or a newline before writing the next export
+         * to preserve a limit on line-lengths.
+         */
+
+        const uint32_t length = info->length;
+        const enum write_comma_result write_comma_result =
+            write_comma_or_newline(file, line_length, length);
+
+        switch (write_comma_result) {
+            case E_WRITE_COMMA_OK:
+                break;
+
+            case E_WRITE_COMMA_WRITE_FAIL:
+                return 1;
+
+            case E_WRITE_COMMA_RESET_LINE_LENGTH:
+                line_length = 0;
+                break;
+        }
+
+        if (write_export_info(file, info)) {
+            return 1;
+        }
+
+        line_length += length;
+    } while (true);
 
     return 0;
 }

@@ -173,9 +173,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         }
 
         index += 1;
+        tbd->info.archs |=
+            parse_architectures_list(&index,
+                                     argc,
+                                     argv,
+                                     &tbd->info.archs_count);
 
-        tbd->info.archs |= parse_architectures_list(argc, argv, &index);
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
+        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
     } else if (strcmp(option, "add-flags") == 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             if (tbd->flags_re != 0) {
@@ -189,8 +194,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         index += 1;
 
-        tbd->info.flags_field |= parse_flags_list(argc, argv, &index);
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
+        tbd->info.flags_field |= parse_flags_list(&index, argc, argv);
     } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS;
     } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
@@ -240,7 +245,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "remove-archs") == 0) {
         if (!(tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
             if (tbd->archs_re != 0) {
-                fputs("Replacing and removing architectures is not supported, "
+                fputs("Replacing and removing architectures is not supported. "
                       "Please choose only a single option\n",
                       stderr);
 
@@ -250,7 +255,8 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         index += 1;
 
-        tbd->archs_re = parse_architectures_list(argc, argv, &index);
+        tbd->archs_re = parse_architectures_list(&index, argc, argv, NULL);
+        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
     } else if (strcmp(option, "remove-flags") == 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
@@ -264,7 +270,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         }
 
         index += 1;
-        tbd->flags_re = parse_flags_list(argc, argv, &index);
+        tbd->flags_re = parse_flags_list(&index, argc, argv);
     } else if (strcmp(option, "replace-archs") == 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             fputs("Adding/removing and replacing architectures is not "
@@ -275,10 +281,19 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         }
 
         index += 1;
-        tbd->archs_re = parse_architectures_list(argc, argv, &index);
+        tbd->info.archs =
+            parse_architectures_list(&index,
+                                     argc,
+                                     argv,
+                                     &tbd->info.archs_count);
+
+        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_UUIDS;
+        tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
     } else if (strcmp(option, "replace-flags") == 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            fputs("Adding/removing and replacing flags is not supported, "
+            fputs("Adding/removing and replacing flags is not supported. "
                   "Please choose only a single option\n",
                   stderr);
 
@@ -286,7 +301,9 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         }
 
         index += 1;
-        tbd->flags_re = parse_flags_list(argc, argv, &index);
+
+        tbd->info.flags_field = parse_flags_list(&index, argc, argv);
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
         if (index == argc) {
@@ -661,14 +678,12 @@ void
 tbd_for_main_apply_from(struct tbd_for_main *const dst,
                         const struct tbd_for_main *const src)
 {
-    if (dst->info.archs == 0) {
-        /*
-         * Only preset archs if we aren't later removing/replacing these archs.
-         */
+    if (dst->archs_re == 0) {
+        dst->archs_re = src->archs_re;
+    }
 
-        if (dst->archs_re != 0) {
-            dst->info.archs = src->info.archs;
-        }
+    if (dst->info.archs == 0) {
+        dst->info.archs = src->info.archs;
     }
 
     if (dst->info.current_version == 0) {
@@ -679,14 +694,12 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
         dst->info.compatibility_version = src->info.compatibility_version;
     }
 
-    if (dst->info.flags_field == 0) {
-        /*
-         * Only preset flags if we aren't later removing/replacing these flags.
-         */
+    if (dst->flags_re == 0) {
+        dst->flags_re = src->flags_re;
+    }
 
-        if (dst->flags_re != 0) {
-            dst->info.flags_field = src->info.flags_field;
-        }
+    if (dst->info.flags_field == 0) {
+        dst->info.flags_field = src->info.flags_field;
     }
 
     if (dst->info.install_name == NULL) {

@@ -19,35 +19,38 @@
  */
 
 enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_CLIENTS               = 1 << 0,
-    O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1 << 1,
-    O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1 << 2,
-    O_TBD_PARSE_IGNORE_FLAGS                 = 1 << 3,
-    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1 << 4,
-    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1 << 5,
-    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1 << 6,
-    O_TBD_PARSE_IGNORE_PLATFORM              = 1 << 7,
-    O_TBD_PARSE_IGNORE_REEXPORTS             = 1 << 8,
-    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1 << 9,
-    O_TBD_PARSE_IGNORE_SYMBOLS               = 1 << 10,
-    O_TBD_PARSE_IGNORE_UUID                  = 1 << 11,
+    O_TBD_PARSE_IGNORE_ARCHS                 = 1 << 0,
+    O_TBD_PARSE_IGNORE_CLIENTS               = 1 << 1,
+    O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1 << 2,
+    O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1 << 3,
+    O_TBD_PARSE_IGNORE_FLAGS                 = 1 << 4,
+    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1 << 5,
+    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1 << 6,
+    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1 << 7,
+    O_TBD_PARSE_IGNORE_PLATFORM              = 1 << 8,
+    O_TBD_PARSE_IGNORE_REEXPORTS             = 1 << 9,
+    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1 << 10,
+    O_TBD_PARSE_IGNORE_SYMBOLS               = 1 << 11,
+    O_TBD_PARSE_IGNORE_UUIDS                 = 1 << 12,
 
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS      = 1 << 12,
-    O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS    = 1 << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1 << 14,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1 << 15,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1 << 16,
+    O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS      = 1 << 13,
+    O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS    = 1 << 14,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1 << 15,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1 << 16,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1 << 17,
 
-    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1 << 17,
-    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1 << 18,
-    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1 << 19,
-    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1 << 20,
-    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1 << 21,
+    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1 << 18,
+    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1 << 19,
+    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1 << 20,
+    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1 << 21,
+    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1 << 22,
+
+    O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS = 1 << 23
 };
 
 enum tbd_flags {
@@ -115,14 +118,24 @@ enum tbd_version {
 enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1 << 0,
     F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1 << 1,
+    F_TBD_CREATE_INFO_STRINGS_WERE_COPIED          = 1 << 2,
 
-    F_TBD_CREATE_INFO_STRINGS_WERE_COPIED = 1 << 2,
+    /*
+     * Indicte that all exports have the same arch-set as the tbd.
+     *
+     * This can lead to a performance boost as a different function is used that
+     * does not check for archs.
+     */
+
+    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS = 1 << 3
 };
 
 struct tbd_create_info {
     enum tbd_version version;
 
     uint64_t archs;
+    uint64_t archs_count;
+
     uint32_t flags_field;
 
     enum tbd_platform platform;

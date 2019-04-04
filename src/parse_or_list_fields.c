@@ -23,13 +23,15 @@
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(const int argc,
+parse_architectures_list(int *const index_in,
+                         const int argc,
                          const char *const *const argv,
-                         int *const index_in)
+                         uint64_t *const count_out)
 {
-    int index = *index_in;
     uint64_t archs = 0;
+    uint64_t count = 0;
 
+    int index = *index_in;
     const struct arch_info *const arch_info_list = arch_info_get_list();
 
     do {
@@ -67,6 +69,8 @@ parse_architectures_list(const int argc,
         const uint64_t arch_info_mask = 1ull << arch_info_index;
 
         archs |= arch_info_mask;
+
+        count++;
         index++;
 
         if (index == argc) {
@@ -79,14 +83,18 @@ parse_architectures_list(const int argc,
      * to the last argument.
      */
 
+    if (count_out != NULL) {
+        *count_out = count;
+    }
+
     *index_in = index - 1;
     return archs;
 }
 
 uint32_t
-parse_flags_list(const int argc,
-                 const char *const *const argv,
-                 int *const index_in)
+parse_flags_list(int *const index_in,
+                 const int argc,
+                 const char *const *const argv)
 {
     int index = *index_in;
     uint32_t flags = 0;

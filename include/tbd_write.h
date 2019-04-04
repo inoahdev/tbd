@@ -20,6 +20,10 @@ tbd_write_exports(FILE *file,
                   const struct array *exports,
                   enum tbd_version version);
 
+int
+tbd_write_exports_with_full_archs(const struct tbd_create_info *info,
+                                  FILE *file);
+
 int tbd_write_flags(FILE *file, uint64_t flags);
 int tbd_write_footer(FILE *file);
 

@@ -120,7 +120,11 @@ parse_macho_file(void *const magic_in,
         return E_PARSE_MACHO_FILE_OTHER_ERROR;
     }
 
-    const uint32_t magic = *(uint32_t *)magic_in;
+    /*
+     * Handle the replacement options if provided.
+     */
+
+    const uint32_t magic = *(const uint32_t *)magic_in;
 
     const uint64_t parse_options = tbd->parse_options;
     const uint64_t macho_options =

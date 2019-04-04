@@ -13,9 +13,12 @@
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(int argc, const char *const *argv, int *index_in);
+parse_architectures_list(int *index_in,
+                         int argc,
+                         const char *const *argv,
+                         uint64_t *count_out);
 
-uint32_t parse_flags_list(int argc, const char *const *argv, int *index_in);
+uint32_t parse_flags_list(int *index_in, int argc, const char *const *argv);
 uint32_t parse_swift_version(const char *const arg);
 
 enum tbd_objc_constraint parse_objc_constraint(const char *const constraint);

@@ -237,7 +237,8 @@ add_export_to_info(struct tbd_create_info *const info_in,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
                    const char *const string,
-                   const uint32_t string_length)
+                   const uint32_t string_length,
+                   const uint64_t tbd_options)
 {
     struct tbd_export_info export_info = {
         .archs = arch_bit,
@@ -246,6 +247,11 @@ add_export_to_info(struct tbd_create_info *const info_in,
         .string = (char *)string,
         .type = type
     };
+
+    if (tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+        export_info.archs = info_in->archs;
+        export_info.archs_count = info_in->archs_count;
+    }
 
     struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};
@@ -258,10 +264,12 @@ add_export_to_info(struct tbd_create_info *const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        const uint64_t archs = existing_info->archs;
-        if (!(archs & arch_bit)) {
-            existing_info->archs = archs | arch_bit;
-            existing_info->archs_count += 1;
+        if (!(tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
+            const uint64_t archs = existing_info->archs;
+            if (!(archs & arch_bit)) {
+                existing_info->archs = archs | arch_bit;
+                existing_info->archs_count += 1;
+            }
         }
 
         return E_MACHO_FILE_PARSE_OK;
@@ -625,7 +633,8 @@ parse_load_command(struct tbd_create_info *const info_in,
                                    arch_bit,
                                    TBD_EXPORT_TYPE_REEXPORT,
                                    reexport_string,
-                                   length);
+                                   length,
+                                   tbd_options);
 
             if (add_reexport_result != E_MACHO_FILE_PARSE_OK) {
                 return add_reexport_result;
@@ -701,7 +710,8 @@ parse_load_command(struct tbd_create_info *const info_in,
                                    arch_bit,
                                    TBD_EXPORT_TYPE_CLIENT,
                                    string,
-                                   length);
+                                   length,
+                                   tbd_options);
 
             if (add_client_result != E_MACHO_FILE_PARSE_OK) {
                 return add_client_result;
@@ -857,7 +867,7 @@ parse_load_command(struct tbd_create_info *const info_in,
              * If uuids aren't needed, skip the unnecessary parsing.
              */
 
-            if (tbd_options & O_TBD_PARSE_IGNORE_UUID) {
+            if (tbd_options & O_TBD_PARSE_IGNORE_UUIDS) {
                 break;
             }
 
@@ -1435,22 +1445,28 @@ macho_file_parse_load_commands_from_file(
      * adding to the fd's uuid arrays.
      */
 
-    const uint8_t *const array_uuid =
-        array_find_item(&info_in->uuids,
-                        sizeof(uuid_info),
-                        &uuid_info,
-                        tbd_uuid_info_comparator,
-                        NULL);
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUIDS)) {
+        if (!found_uuid) {
+            return E_MACHO_FILE_PARSE_NO_UUID;
+        }
 
-    if (array_uuid != NULL) {
-        return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
-    }
+        const uint8_t *const array_uuid =
+            array_find_item(&info_in->uuids,
+                            sizeof(uuid_info),
+                            &uuid_info,
+                            tbd_uuid_info_comparator,
+                            NULL);
 
-    const enum array_result add_uuid_info_result =
-        array_add_item(&info_in->uuids, sizeof(uuid_info), &uuid_info, NULL);
+        if (array_uuid != NULL) {
+            return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+        }
 
-    if (add_uuid_info_result != E_ARRAY_OK) {
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+        const enum array_result add_uuid_info_result =
+            array_add_item(&info_in->uuids, sizeof(uuid_info), &uuid_info, NULL);
+
+        if (add_uuid_info_result != E_ARRAY_OK) {
+            return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+        }
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_PLATFORM)) {
@@ -1462,12 +1478,6 @@ macho_file_parse_load_commands_from_file(
     if (!(tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS)) {
         if (symtab.cmd != LC_SYMTAB) {
             return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
-        }
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
-        if (!found_uuid) {
-            return E_MACHO_FILE_PARSE_NO_UUID;
         }
     }
 
@@ -1995,7 +2005,7 @@ macho_file_parse_load_commands_from_map(
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUID)) {
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUIDS)) {
         if (!found_uuid) {
             return E_MACHO_FILE_PARSE_NO_UUID;
         }

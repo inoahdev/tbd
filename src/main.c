@@ -499,7 +499,8 @@ int main(const int argc, const char *const argv[]) {
                 {
                     if (options & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
                         fputs("Option --preserve-subdirs can only be provided "
-                              "recursing directoriess\n",
+                              "for either recursing directoriess, or parsing "
+                              "parsing dyld_shared_cache files\n",
                               stderr);
 
                         tbd_for_main_destroy(&global);

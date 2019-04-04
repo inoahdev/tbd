@@ -10,10 +10,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
-#include "mach-o/nlist.h"
 
+#include "mach-o/nlist.h"
 #include "arch_info.h"
 #include "copy.h"
 
@@ -144,7 +143,7 @@ is_objc_ehtype_symbol(const char *const symbol,
                       const enum tbd_version version)
 {
     /*
-     * Obj-c eh-type symbols are only officially classified in tbd-version v3.
+     * ObjC eh-type symbols are only officially classified in tbd-version v3.
      */
 
     if (version != TBD_VERSION_V3) {
@@ -155,17 +154,17 @@ is_objc_ehtype_symbol(const char *const symbol,
         return false;
     }
 
-    const uint32_t second = *(uint32_t *)(symbol + 8);
+    const uint32_t second = *(const uint32_t *)(symbol + 8);
     if (second != 1162893652) {
         return false;
     }
 
-    const uint16_t third = *(uint16_t *)(symbol + 12);
+    const uint16_t third = *(const uint16_t *)(symbol + 12);
     if (third != 9311) {
         return false;
     }
 
-    const uint8_t fourth = *(uint8_t *)(symbol + 14);
+    const uint8_t fourth = *(const uint8_t *)(symbol + 14);
     if (fourth != 95) {
         return false;
     }
@@ -376,9 +375,12 @@ handle_symbol(struct tbd_create_info *const info_in,
         .type = symbol_type,
     };
 
-    struct array *const exports = &info_in->exports;
-    const uint64_t exports_count = *exports_count_in;
+    if (options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+        export_info.archs = info_in->archs;
+        export_info.archs_count = info_in->archs_count;
+    }
 
+    const uint64_t exports_count = *exports_count_in;
     if (exports_count == 0) {
         return add_export_info(exports_count_in, info_in, export_info);
     }
@@ -388,7 +390,9 @@ handle_symbol(struct tbd_create_info *const info_in,
         .back = exports_count - 1
     };
 
+    struct array *const exports = &info_in->exports;
     struct array_cached_index_info cached_info = {};
+
     struct tbd_export_info *const existing_info =
         array_find_item_in_sorted_with_slice(
             exports,
@@ -399,16 +403,18 @@ handle_symbol(struct tbd_create_info *const info_in,
             &cached_info);
 
     if (existing_info != NULL) {
-        const uint64_t archs = existing_info->archs;
+        if (!(options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
+            const uint64_t archs = existing_info->archs;
 
-        /*
-         * Ensure multiple symbols for the same arch are ignored (For the sake
-         * of leniency).
-         */
+            /*
+             * Ensure multiple symbols for the same arch are ignored (For the
+             * sake of leniency).
+             */
 
-        if (!(archs & arch_bit)) {
-            existing_info->archs = archs | arch_bit;
-            existing_info->archs_count += 1;
+            if (!(archs & arch_bit)) {
+                existing_info->archs = archs | arch_bit;
+                existing_info->archs_count += 1;
+            }
         }
 
         return E_MACHO_FILE_PARSE_OK;

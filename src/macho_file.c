@@ -29,10 +29,11 @@
 static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *const info_in,
                 const int fd,
-                const struct mach_header header,
-                const bool is_big_endian,
                 const uint64_t start,
                 const uint64_t size,
+                const struct mach_header header,
+                const struct arch_info *const arch,
+                const bool is_big_endian,
                 const uint64_t tbd_options,
                 const uint64_t options)
 {
@@ -80,29 +81,17 @@ parse_thin_file(struct tbd_create_info *const info_in,
         }
     }
 
-    const struct arch_info *const arch =
-        arch_info_for_cputype(header.cputype, header.cpusubtype);
-
-    if (arch == NULL) {
-        return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+    uint32_t headers_size = sizeof(struct mach_header);
+    if (is_64) {
+        headers_size += sizeof(uint32_t);
     }
 
-    const struct arch_info *const arch_info_list = arch_info_get_list();
-
-    const uint64_t arch_index = (uint64_t)(arch - arch_info_list);
-    const uint64_t arch_bit = 1ull << arch_index;
-
-    if (info_in->archs & arch_bit) {
-        return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-    }
-
-    info_in->archs |= arch_bit;
-
+    const uint64_t arch_index = (uint64_t)(arch - arch_info_get_list());
     struct mf_parse_load_commands_from_file_info info = {
         .fd = fd,
 
         .arch = arch,
-        .arch_bit = arch_bit,
+        .arch_bit = 1ull << arch_index,
 
         .is_64 = is_64,
         .is_big_endian = is_big_endian,
@@ -110,20 +99,15 @@ parse_thin_file(struct tbd_create_info *const info_in,
         .ncmds = header.ncmds,
         .sizeofcmds = header.sizeofcmds,
 
+        .full_range.begin = start,
+        .full_range.end = start + size,
+
+        .available_range.begin = start + headers_size,
+        .available_range.end = info.full_range.end,
+
         .tbd_options = tbd_options,
         .options = options
     };
-
-    info.full_range.begin = start;
-    info.full_range.end = start + size;
-
-    uint32_t headers_size = sizeof(struct mach_header);
-    if (is_64) {
-        headers_size += sizeof(uint32_t);
-    }
-
-    info.available_range.begin = start + headers_size;
-    info.available_range.end = info.full_range.end;
 
     const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_file(info_in, &info, NULL);
@@ -184,15 +168,21 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
 
     struct fat_arch *const first_arch = archs;
 
+    cpu_type_t first_arch_cputype = first_arch->cputype;
+    cpu_subtype_t first_arch_cpusubtype = first_arch->cpusubtype;
+
     uint32_t first_arch_offset = first_arch->offset;
     uint32_t first_arch_size = first_arch->size;
 
     if (is_big_endian) {
-        first_arch->cputype = swap_int32(first_arch->cputype);
-        first_arch->cpusubtype = swap_int32(first_arch->cpusubtype);
+        first_arch_cputype = swap_int32(first_arch_cputype);
+        first_arch_cpusubtype = swap_int32(first_arch_cpusubtype);
 
         first_arch_offset = swap_uint32(first_arch_offset);
         first_arch_size = swap_uint32(first_arch_size);
+
+        first_arch->cputype = first_arch_cputype;
+        first_arch->cpusubtype = first_arch_cpusubtype;
 
         first_arch->offset = first_arch_offset;
         first_arch->size = first_arch_size;
@@ -254,6 +244,35 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+        const struct arch_info *const first_arch_info =
+            arch_info_for_cputype(first_arch_cputype, first_arch_cpusubtype);
+
+        if (first_arch_info == NULL) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+        }
+
+        const struct arch_info *const arch_info_list = arch_info_get_list();
+        const uint64_t first_arch_index =
+            (uint64_t)(first_arch_info - arch_info_list);
+
+        const uint64_t first_arch_bit = 1ull << first_arch_index;
+        if (info_in->archs & first_arch_bit) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+        }
+
+        info_in->archs |= first_arch_bit;
+
+        /*
+         * To avoid re-lookup of arch-info, we store the pointer within the
+         * cputype and cpusubtype fields.
+         */
+
+        memcpy(&first_arch->cputype, &first_arch_info, sizeof(first_arch_info));
+    }
+
     /*
      * Before parsing, verify each architecture.
      */
@@ -261,15 +280,21 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
     for (uint32_t i = 1; i < nfat_arch; i++) {
         struct fat_arch *const arch = archs + i;
 
+        cpu_type_t arch_cputype = arch->cputype;
+        cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+
         uint32_t arch_offset = arch->offset;
         uint32_t arch_size = arch->size;
 
         if (is_big_endian) {
-            arch->cputype = swap_int32(arch->cputype);
-            arch->cpusubtype = swap_int32(arch->cpusubtype);
+            arch_cputype = swap_int32(arch_cputype);
+            arch_cpusubtype = swap_int32(arch_cpusubtype);
 
             arch_offset = swap_uint32(arch_offset);
             arch_size = swap_uint32(arch_size);
+
+            arch->cputype = arch_cputype;
+            arch->cpusubtype = arch_cpusubtype;
 
             arch->offset = arch_offset;
             arch->size = arch_size;
@@ -329,6 +354,34 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
         if (guard_overflow_add(&real_arch_end, arch_end)) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        const struct arch_info *arch_info = NULL;
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+            arch_info = arch_info_for_cputype(arch_cputype, arch_cpusubtype);
+            if (arch_info == NULL) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+            }
+
+            const struct arch_info *const arch_info_list = arch_info_get_list();
+
+            const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
+            const uint64_t arch_bit = 1ull << arch_index;
+
+            if (info_in->archs & arch_bit) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+            }
+
+            info_in->archs |= arch_bit;
+
+            /*
+             * To avoid re-lookup of arch-info, we store the pointer within the
+             * cputype and cpusubtype fields.
+             */
+
+            memcpy(&arch->cputype, &arch_info, sizeof(arch_info));
         }
 
         const struct range arch_range = {
@@ -394,23 +447,38 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
          * Verify that header's cpu-type matches arch's cpu-type.
          */
 
-        if (header.cputype != arch.cputype) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
+        const struct arch_info *arch_info = NULL;
+        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS) {
+            if (header.cputype != arch.cputype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
 
-        if (header.cpusubtype != arch.cpusubtype) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (header.cpusubtype != arch.cpusubtype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+        } else {
+            arch_info = *(const struct arch_info **)&arch.cputype;
+            if (header.cputype != arch_info->cputype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+
+            if (header.cpusubtype != arch_info->cpusubtype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
         }
 
         const enum macho_file_parse_result handle_arch_result =
             parse_thin_file(info_in,
                             fd,
-                            header,
-                            arch_is_big_endian,
-                            start + arch.offset,
+                            (uint64_t)arch_offset,
                             arch.size,
+                            header,
+                            arch_info,
+                            arch_is_big_endian,
                             tbd_options,
                             options);
 
@@ -476,15 +544,21 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 
     struct fat_arch_64 *const first_arch = archs;
 
+    cpu_type_t first_arch_cputype = first_arch->cputype;
+    cpu_subtype_t first_arch_cpusubtype = first_arch->cpusubtype;
+
     uint64_t first_arch_offset = first_arch->offset;
     uint64_t first_arch_size = first_arch->size;
 
     if (is_big_endian) {
-        first_arch->cputype = swap_int32(first_arch->cputype);
-        first_arch->cpusubtype = swap_int32(first_arch->cpusubtype);
+        first_arch_cputype = swap_int32(first_arch_cputype);
+        first_arch_cpusubtype = swap_int32(first_arch_cpusubtype);
 
         first_arch_offset = swap_uint64(first_arch_offset);
         first_arch_size = swap_uint64(first_arch_size);
+
+        first_arch->cputype = first_arch_cputype;
+        first_arch->cpusubtype = first_arch_cpusubtype;
 
         first_arch->offset = first_arch_offset;
         first_arch->size = first_arch_size;
@@ -555,6 +629,35 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+        const struct arch_info *const first_arch_info =
+            arch_info_for_cputype(first_arch->cputype, first_arch->cpusubtype);
+
+        if (first_arch_info == NULL) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+        }
+
+        const struct arch_info *const arch_info_list = arch_info_get_list();
+        const uint64_t first_arch_index =
+            (uint64_t)(first_arch_info - arch_info_list);
+
+        const uint64_t first_arch_bit = 1ull << first_arch_index;
+        if (info_in->archs & first_arch_bit) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+        }
+
+        info_in->archs |= first_arch_bit;
+
+        /*
+         * To avoid re-lookup of arch-info, we store the pointer within the
+         * cputype and cpusubtype fields.
+         */
+
+        memcpy(&first_arch->cputype, &first_arch_info, sizeof(first_arch_info));
+    }
+
     /*
      * Before parsing, verify each architecture.
      */
@@ -562,15 +665,21 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
     for (uint32_t i = 1; i < nfat_arch; i++) {
         struct fat_arch_64 *const arch = archs + i;
 
+        cpu_type_t arch_cputype = arch->cputype;
+        cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+
         uint64_t arch_offset = arch->offset;
         uint64_t arch_size = arch->size;
 
         if (is_big_endian) {
-            arch->cputype = swap_int32(arch->cputype);
-            arch->cpusubtype = swap_int32(arch->cpusubtype);
+            arch_cputype = swap_int32(arch_cputype);
+            arch_cpusubtype = swap_int32(arch_cpusubtype);
 
             arch_offset = swap_uint64(arch_offset);
             arch_size = swap_uint64(arch_size);
+
+            arch->cputype = arch_cputype;
+            arch->cpusubtype = arch_cpusubtype;
 
             arch->offset = arch_offset;
             arch->size = arch_size;
@@ -641,6 +750,28 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+            const struct arch_info *const arch_info =
+                arch_info_for_cputype(arch_cputype, arch_cpusubtype);
+
+            if (arch_info == NULL) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+            }
+
+            const struct arch_info *const arch_info_list = arch_info_get_list();
+
+            const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
+            const uint64_t arch_bit = 1ull << arch_index;
+
+            if (info_in->archs & arch_bit) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+            }
+
+            info_in->archs |= arch_bit;
+        }
+
         const struct range arch_range = {
             .begin = arch_offset,
             .end = arch_end
@@ -705,23 +836,38 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
          * Verify that header's cpu-type matches arch's cpu-type.
          */
 
-        if (header.cputype != arch.cputype) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
+        const struct arch_info *arch_info = NULL;
+        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS) {
+            if (header.cputype != arch.cputype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
 
-        if (header.cpusubtype != arch.cpusubtype) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (header.cpusubtype != arch.cpusubtype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+        } else {
+            arch_info = *(const struct arch_info **)&arch.cputype;
+            if (header.cputype != arch_info->cputype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
+
+            if (header.cpusubtype != arch_info->cpusubtype) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            }
         }
 
         const enum macho_file_parse_result handle_arch_result =
             parse_thin_file(info_in,
                             fd,
-                            header,
-                            arch_is_big_endian,
-                            start + arch.offset,
+                            (uint64_t)arch_offset,
                             arch.size,
+                            header,
+                            arch_info,
+                            arch_is_big_endian,
                             tbd_options,
                             options);
 
@@ -778,6 +924,10 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_FSTAT_FAIL;
         }
 
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+            info_in->archs_count = nfat_arch;
+        }
+
         const bool is_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
         const uint64_t file_size = (uint64_t)sbuf.st_size;
 
@@ -801,6 +951,33 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
                                    file_size,
                                    tbd_options,
                                    options);
+        }
+
+        if (ret != E_MACHO_FILE_PARSE_OK) {
+            return ret;
+        }
+
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+            if (array_is_empty(&info_in->exports)) {
+                return E_MACHO_FILE_PARSE_NO_EXPORTS;
+            }
+        }
+
+        if (!(tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
+            /*
+             * Finally sort the exports array.
+             */
+
+            const enum array_result sort_exports_result =
+                array_sort_items_with_comparator(&info_in->exports,
+                                                 sizeof(struct tbd_export_info),
+                                                 tbd_export_info_comparator);
+
+            if (sort_exports_result != E_ARRAY_OK) {
+                return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+            }
+        } else {
+            info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }
     } else {
         const bool is_thin =
@@ -827,6 +1004,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
 
         const uint64_t file_size = (uint64_t)sbuf.st_size;
         const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+
         /*
          * Swap the mach_header's fields if big-endian.
          */
@@ -841,38 +1019,44 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             header.flags = swap_uint32(header.flags);
         }
 
+        const struct arch_info *const arch =
+            arch_info_for_cputype(header.cputype, header.cpusubtype);
+
+        if (arch == NULL) {
+            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+        }
+
+        const struct arch_info *const arch_info_list = arch_info_get_list();
+
+        const uint64_t arch_index = (uint64_t)(arch - arch_info_list);
+        const uint64_t arch_bit = 1ull << arch_index;
+
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+            info_in->archs |= arch_bit;
+            info_in->archs_count = 1;
+            info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
+        }
+
         ret =
             parse_thin_file(info_in,
                             fd,
-                            header,
-                            is_big_endian,
                             0,
                             file_size,
+                            header,
+                            arch,
+                            is_big_endian,
                             tbd_options,
                             options);
-    }
 
-    if (ret != E_MACHO_FILE_PARSE_OK) {
-        return ret;
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-        if (array_is_empty(&info_in->exports)) {
-            return E_MACHO_FILE_PARSE_NO_EXPORTS;
+        if (ret != E_MACHO_FILE_PARSE_OK) {
+            return ret;
         }
-    }
 
-    /*
-     * Finally sort the exports array.
-     */
-
-    const enum array_result sort_exports_result =
-        array_sort_items_with_comparator(&info_in->exports,
-                                         sizeof(struct tbd_export_info),
-                                         tbd_export_info_comparator);
-
-    if (sort_exports_result != E_ARRAY_OK) {
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+            if (array_is_empty(&info_in->exports)) {
+                return E_MACHO_FILE_PARSE_NO_EXPORTS;
+            }
+        }
     }
 
     return E_MACHO_FILE_PARSE_OK;

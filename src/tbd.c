@@ -48,6 +48,9 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
     const uint64_t array_length = array_info->length;
     const uint64_t length = info->length;
 
+    const char *const array_string = array_info->string;
+    const char *const string = info->string;
+
     /*
      * We try to avoid iterating and comparing over the whole string, so we
      * could check to ensure their lengths match up.
@@ -65,13 +68,10 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
      */
 
     if (array_length > length) {
-        return memcmp(array_info->string, info->string, length + 1);
+        return memcmp(array_string, string, length + 1);
     } else if (array_length < length) {
-        return memcmp(array_info->string, info->string, array_length + 1);
+        return memcmp(array_string, string, array_length + 1);
     }
-
-    const char *const array_string = array_info->string;
-    const char *const string = info->string;
 
     return memcmp(array_string, string, length);
 }
@@ -113,6 +113,9 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     const uint64_t array_length = array_info->length;
     const uint64_t length = info->length;
 
+    const char *const array_string = array_info->string;
+    const char *const string = info->string;
+
     /*
      * We try to avoid iterating and comparing over the whole string, so we
      * could check to ensure their lengths match up.
@@ -130,13 +133,10 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
      */
 
     if (array_length > length) {
-        return memcmp(array_info->string, info->string, length + 1);
+        return memcmp(array_string, string, length + 1);
     } else if (array_length < length) {
-        return memcmp(array_info->string, info->string, array_length + 1);
+        return memcmp(array_string, string, array_length + 1);
     }
-
-    const char *const array_string = array_info->string;
-    const char *const string = info->string;
 
     return memcmp(array_string, string, length);
 }
@@ -233,8 +233,14 @@ tbd_create_with_info(const struct tbd_create_info *const info,
     }
 
     if (!(options & O_TBD_CREATE_IGNORE_EXPORTS)) {
-        if (tbd_write_exports(file, &info->exports, version)) {
-            return E_TBD_CREATE_WRITE_FAIL;
+        if (info->flags & F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS) {
+            if (tbd_write_exports_with_full_archs(info, file)) {
+                return E_TBD_CREATE_WRITE_FAIL;
+            }
+        } else {
+            if (tbd_write_exports(file, &info->exports, version)) {
+                return E_TBD_CREATE_WRITE_FAIL;
+            }
         }
     }
 

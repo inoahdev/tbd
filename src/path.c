@@ -174,12 +174,14 @@ static uint64_t
 get_length_by_trimming_back_slashes(const char *const string,
                                     const uint64_t length)
 {
-    const char back_ch = string[length - 1];
+    const uint64_t back_index = length - 1;
+    const char back_ch = string[back_index];
+
     if (!ch_is_path_slash(back_ch)) {
         return length;
     }
 
-    const char *iter = &string[length - 1];
+    const char *iter = string + back_index;
     for (char ch = *(--iter); iter >= string; ch = *(--iter)) {
         if (ch_is_path_slash(ch)) {
             continue;
@@ -673,7 +675,6 @@ path_find_extension(const char *const path, const uint64_t length) {
         }
 
         iter -= 1;
-        ch = *iter;
     }
 
     for (ch = *(--iter); iter >= path; ch = *(--iter)) {

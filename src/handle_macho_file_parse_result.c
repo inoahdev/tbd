@@ -786,8 +786,6 @@ handle_macho_file_parse_result(uint64_t *const info_in,
     if (archs_re != 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             tbd->info.archs &= ~archs_re;
-        } else {
-            tbd->info.archs = archs_re;
         }
     }
 
@@ -795,8 +793,6 @@ handle_macho_file_parse_result(uint64_t *const info_in,
     if (flags_re != 0) {
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             tbd->info.flags_field &= ~flags_re;
-         } else {
-            tbd->info.flags_field = flags_re;
         }
     }
 
