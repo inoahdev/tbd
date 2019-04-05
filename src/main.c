@@ -1292,6 +1292,10 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
+    extern int total_comparator_calls;
+
+    printf("\n\nTOTAL_NUMERATOR_CALLS: %d\n\n", total_comparator_calls);
+
     tbd_for_main_destroy(&global);
     destroy_tbds_array(&tbds);
 

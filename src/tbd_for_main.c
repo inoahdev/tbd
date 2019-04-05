@@ -162,6 +162,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 {
     int index = *index_in;
     if (strcmp(option, "add-archs") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of architectures to add onto archs "
+                  "found in input files\n", stderr);
+
+            exit(1);
+        }
+
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             if (tbd->archs_re != 0) {
                 fputs("Both adding and replacing architectures is not "
@@ -172,7 +180,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
             }
         }
 
-        index += 1;
         tbd->info.archs |=
             parse_architectures_list(&index,
                                      argc,
@@ -182,6 +189,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
         tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
     } else if (strcmp(option, "add-flags") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of flags to add onto flags found in "
+                  "input files\n", stderr);
+
+            exit(1);
+        }
+
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             if (tbd->flags_re != 0) {
                 fputs("Both replacing and adding flags is not supported. "
@@ -191,8 +206,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
                 exit(1);
             }
         }
-
-        index += 1;
 
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
         tbd->info.flags_field |= parse_flags_list(&index, argc, argv);
@@ -243,6 +256,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(tbd, argc, argv, &index);
     } else if (strcmp(option, "remove-archs") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of architectures to remove from archs "
+                  "found in input files\n", stderr);
+
+            exit(1);
+        }
+
         if (!(tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
             if (tbd->archs_re != 0) {
                 fputs("Replacing and removing architectures is not supported. "
@@ -253,12 +274,18 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
             }
         }
 
-        index += 1;
-
         tbd->archs_re = parse_architectures_list(&index, argc, argv, NULL);
         tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
     } else if (strcmp(option, "remove-flags") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of flags to remove from flags found "
+                  "in input files\n", stderr);
+
+            exit(1);
+        }
+
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             if (tbd->info.flags != 0) {
                 fputs("Replacing and removing flags is not supported, Please "
@@ -269,9 +296,16 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
             }
         }
 
-        index += 1;
         tbd->flags_re = parse_flags_list(&index, argc, argv);
     } else if (strcmp(option, "replace-archs") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of architectures to replace archs "
+                  "found in input files\n", stderr);
+
+            exit(1);
+        }
+
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
             fputs("Adding/removing and replacing architectures is not "
                   "supported, Please choose only a single option\n",
@@ -280,7 +314,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
             exit(1);
         }
 
-        index += 1;
         tbd->info.archs =
             parse_architectures_list(&index,
                                      argc,
@@ -292,6 +325,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
     } else if (strcmp(option, "replace-flags") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of flags to replace ones found in "
+                  "input files\n", stderr);
+
+            exit(1);
+        }
+
         if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
             fputs("Adding/removing and replacing flags is not supported. "
                   "Please choose only a single option\n",
@@ -299,8 +340,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
             exit(1);
         }
-
-        index += 1;
 
         tbd->info.flags_field = parse_flags_list(&index, argc, argv);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
