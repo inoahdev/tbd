@@ -813,13 +813,11 @@ parse_shared_cache(void *const magic_in,
                                           magic_in,
                                           dsc_options);
 
-    if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-            if (ignore_non_cache) {
-                return E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE;
-            }
+    if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
+        if (!ignore_non_cache) {
+            return E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE;
         }
-
+    } else if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result(path, parse_dsc_file_result, print_paths);
         return E_PARSE_SHARED_CACHE_OTHER_ERROR;
     }
