@@ -397,8 +397,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->info.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
-        tbd->macho_options |=
-            O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
+        tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {

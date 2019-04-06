@@ -28,14 +28,10 @@
  * all alphabetically.
  */
 
-int total_comparator_calls = 0;
-
 int
 tbd_export_info_no_archs_comparator(const void *const array_item,
                                     const void *const item)
 {
-    total_comparator_calls++;
-
     const struct tbd_export_info *const array_info =
         (const struct tbd_export_info *)array_item;
 

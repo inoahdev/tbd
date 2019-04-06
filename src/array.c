@@ -224,15 +224,16 @@ array_find_item(const struct array *const array,
     return NULL;
 }
 
+/*
+ * Use wrapper-functions here to make the code in
+ * array_slice_get_sorted_array_item_for_item() easier to read.
+ */
+
 static uint64_t
 array_slice_get_middle_index(const struct array_slice slice) {
     const uint64_t length = slice.back - slice.front;
     return slice.front + (length >> 1);
 }
-
-/*
- * Use wrapper-functions here to make the code below it easier to read.
- */
 
 static void
 array_slice_set_to_lower_half(struct array_slice *const slice,
@@ -267,6 +268,18 @@ enum array_cached_index_type get_cached_index_type_from_ret(const int ret) {
     }
 
     return ARRAY_CACHED_INDEX_EQUAL;
+}
+
+static inline bool array_item_is_greater(const int compare_ret) {
+    /*
+     * compare is greater than 0 when array_item is "greater than"
+     * item, in which case we need to set slice to its lower half.
+     *
+     * Otherwise if it's less than 0, when array_item is "less than" item,
+     * so we need to set slice to its upper half.
+     */
+
+    return compare_ret > 0;
 }
 
 static void *
@@ -304,15 +317,7 @@ array_slice_get_sorted_array_item_for_item(
             return NULL;
         }
 
-        /*
-         * compare is greater than 0 when array_item is "greater than"
-         * item, in which case we need to set slice to its lower half.
-         *
-         * Otherwise if it's less than 0, when array_item is "less than" item,
-         * so we need to set slice to its upper half.
-         */
-
-        if (compare > 0) {
+        if (array_item_is_greater(compare)) {
             /*
              * Since middle-index for a two-element slice is always
              * slice->front, we cannot go anywhere if slice->front is already
@@ -342,18 +347,13 @@ array_find_item_in_sorted(const struct array *const array,
                           const array_item_comparator comparator,
                           struct array_cached_index_info *const info_out)
 {
-    const uint64_t used_size = array_get_used_size(array);
-    if (used_size == 0) {
+    const uint64_t item_count = array->item_count;
+    if (item_count == 0) {
         if (info_out != NULL) {
             info_out->index = 0;
             info_out->type = ARRAY_CACHED_INDEX_EQUAL;
         }
 
-        return NULL;
-    }
-
-    const uint64_t item_count = array->item_count;
-    if (item_count == 0) {
         return NULL;
     }
 
@@ -438,13 +438,18 @@ array_add_item_with_cached_index_info(
 
     if (index == 0) {
         /*
-         * If type isn't greater-than, simply have item at index 0 move up to
-         * index 1 and return.
+         * If our item isn't greater than the array-item at index 0, simply have
+         * the array-item at index 0 move up to index 1 and return.
          */
 
         if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
             return array_add_item_to_index(array, item_size, item, 0, item_out);
         }
+
+        /*
+         * Otherwise, if our item is greater than the array-item at index 0, add
+         * the item to index 1 and return.
+         */
 
         return array_add_item_to_index(array, item_size, item, 1, item_out);
     }
@@ -452,8 +457,8 @@ array_add_item_with_cached_index_info(
     const uint64_t back_index = array->item_count - 1;
     if (index == back_index) {
         /*
-         * Since we're at the back anyways, if the item is greater, simply add
-         * item to the array-buffer's end.
+         * Since we're at the back anyways, if the item is greater than the
+         * array-item, simply add item to the end.
          */
 
         if (type == ARRAY_CACHED_INDEX_GREATER_THAN) {
@@ -461,8 +466,8 @@ array_add_item_with_cached_index_info(
         }
 
         /*
-         * If the type isn't greater-than, have the last item move up one index,
-         * with the new item replacing it at its old position.
+         * If our item is less than array's back-item, have the last item move
+         * up one index, with the new item replacing it at its old position.
          */
 
         const enum array_result add_item_result =
@@ -481,16 +486,17 @@ array_add_item_with_cached_index_info(
 
     if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
         /*
-         * If the type isn't greater than, have our new item replacing the old
-         * item at index by having the old item move to (index + 1), with the
-         * new-item replacing it.
+         * If our item isn't greater than array-item at the provided index, have
+         * our item replace the old array-item at index by having the old
+         * array-item move to (index + 1), with the our item replacing it.
          */
 
         return array_add_item_to_index(array, item_size, item, index, item_out);
     }
 
     /*
-     * Since the type is greater than, have the new item be placed at index + 1.
+     * Since our item is greater than array-item at index + 1, have the new item
+     * be placed at index + 1.
      */
 
     return array_add_item_to_index(array, item_size, item, index + 1, item_out);
@@ -523,10 +529,6 @@ array_copy(struct array *const array, struct array *const array_out) {
 
     return E_ARRAY_OK;
 }
-
-/*
- * Deallocate the array's buffer and reset the array's fields.
- */
 
 enum array_result array_destroy(struct array *const array) {
     /*

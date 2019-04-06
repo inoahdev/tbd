@@ -70,8 +70,8 @@ parse_architectures_list(int *const index_in,
 
         archs |= arch_info_mask;
 
-        count++;
         index++;
+        count++;
 
         if (index == argc) {
             break;
@@ -87,7 +87,7 @@ parse_architectures_list(int *const index_in,
         *count_out = count;
     }
 
-    *index_in = index - 1;
+    *index_in = index;
     return archs;
 }
 

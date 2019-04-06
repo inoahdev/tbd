@@ -588,7 +588,7 @@ path_has_filename(const char *const path,
     const char *const path_back = path + (path_length - 1);
     const char *path_iter = path_back;
 
-    if (*path_back == '/') {
+    if (ch_is_path_slash(*path_back)) {
         const char *const row_front =
             path_get_front_of_row_of_slashes(path, path_back);
 

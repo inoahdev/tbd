@@ -88,13 +88,6 @@ reverse_mkdir_ignoring_last(char *const path,
         return 0;
     }
 
-    /*
-     * If the directory already exists, return successfully.
-     *
-     * Otherwise, if another error besides ENOENT (error given when a directory
-     * in the hierarchy doesn't exist), return as fail.
-     */
-
     if (first_ret < 0) {
         /*
          * If the directory already exists, we are done, as the previous
