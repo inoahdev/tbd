@@ -37,7 +37,7 @@ is_objc_class_symbol(const char *const symbol,
                      const char **const symbol_out,
                      uint32_t *const length_out)
 {
-    if (max_length < 13) {
+    if (max_length <= 13) {
         return false;
     }
 
@@ -77,7 +77,7 @@ is_objc_class_symbol(const char *const symbol,
              * prefix is "_OBJC_METACLASS_$".
              */
 
-            if (max_length < 17) {
+            if (max_length <= 17) {
                 return false;
             }
 
@@ -108,7 +108,7 @@ is_objc_class_symbol(const char *const symbol,
              * prefix is ".objc_class_name".
              */
 
-            if (max_length < 16) {
+            if (max_length <= 16) {
                 return false;
             }
 
@@ -140,6 +140,7 @@ is_objc_class_symbol(const char *const symbol,
 static inline bool
 is_objc_ehtype_symbol(const char *const symbol,
                       const uint64_t first,
+                      const uint64_t max_len,
                       const enum tbd_version version)
 {
     /*
@@ -147,6 +148,10 @@ is_objc_ehtype_symbol(const char *const symbol,
      */
 
     if (version != TBD_VERSION_V3) {
+        return false;
+    }
+
+    if (max_len <= 15) {
         return false;
     }
 
@@ -249,7 +254,8 @@ handle_symbol(struct tbd_create_info *const info_in,
          * as that is the minimum length for an objc-ivar symbol.
          */
 
-        if (max_len >= 12) {
+        if (max_len > 12) {
+            const enum tbd_version version = info_in->version;
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
 
@@ -258,6 +264,10 @@ handle_symbol(struct tbd_create_info *const info_in,
                     if (!(n_type & N_EXT)) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
+                }
+
+                if (length == 0) {
+                    return E_MACHO_FILE_PARSE_OK;
                 }
 
                 /*
@@ -271,7 +281,7 @@ handle_symbol(struct tbd_create_info *const info_in,
                 }
 
                 symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-            } else if (is_objc_ehtype_symbol(str, first, info_in->version)) {
+            } else if (is_objc_ehtype_symbol(str, first, max_len, version)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
                 {
                     if (!(n_type & N_EXT)) {
@@ -281,6 +291,10 @@ handle_symbol(struct tbd_create_info *const info_in,
 
                 string += 15;
                 length = (uint32_t)strnlen(string, max_len - 15);
+
+                if (length == 0) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
 
                 symbol_type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else if (is_objc_ivar_symbol(str, first)) {
@@ -303,6 +317,10 @@ handle_symbol(struct tbd_create_info *const info_in,
                 string += 12;
                 length = (uint32_t)strnlen(string, max_len - 12);
 
+                if (length == 0) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
+
                 symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
             } else {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
@@ -312,10 +330,9 @@ handle_symbol(struct tbd_create_info *const info_in,
                 }
 
                 length = (uint32_t)strnlen(string, max_len);
-            }
-
-            if (length == 0) {
-                return E_MACHO_FILE_PARSE_OK;
+                if (length == 0) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
             }
         } else {
             if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
@@ -325,6 +342,9 @@ handle_symbol(struct tbd_create_info *const info_in,
             }
 
             length = (uint32_t)strnlen(string, max_len);
+            if (length == 0) {
+                return E_MACHO_FILE_PARSE_OK;
+            }
         }
     }
 
