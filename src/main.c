@@ -194,6 +194,9 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
          * path, we can write to stdout (which is what NULL write_path
          * represents).
          *
+         * Or if we have exactly zero filtera and zero paths, and exactly one
+         * number, we can write to stdout.
+         *
          * The reason why no filters, no numbers, and no paths is not allowed to
          * write to stdout is because no filters, no numbers, and no paths means
          * all images are parsed.
@@ -206,6 +209,12 @@ static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
         if (array_is_empty(filters)) {
             if (array_is_empty(numbers)) {
                 if (paths->item_count == 1) {
+                    return;
+                }
+            }
+
+            if (array_is_empty(paths)) {
+                if (numbers->item_count == 1) {
                     return;
                 }
             }

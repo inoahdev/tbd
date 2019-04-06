@@ -247,11 +247,11 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         tbd->flags |= F_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->flags |= F_TBD_FOR_MAIN_IGNORE_WARNINGS;
-    } else if (strcmp(option, "image-filter-directory") == 0) {
+    } else if (strcmp(option, "filter-image-directory") == 0) {
         add_image_filter(&index, tbd, argc, argv, true);
-    } else if (strcmp(option, "image-filter-filename") == 0) {
+    } else if (strcmp(option, "filter-image-filename") == 0) {
         add_image_filter(&index, tbd, argc, argv, false);
-    } else if (strcmp(option, "image-filter-number") == 0) {
+    } else if (strcmp(option, "filter-image-number") == 0) {
         add_image_number(&index, tbd, argc, argv);
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(tbd, argc, argv, &index);
