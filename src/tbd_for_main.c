@@ -48,8 +48,9 @@ add_image_filter(int *const index_in,
         filter.type = TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY;
     }
 
+    struct array *const filters = &tbd->dsc_image_filters;
     const enum array_result add_filter_result =
-        array_add_item(&tbd->dsc_image_filters, sizeof(filter), &filter, NULL);
+        array_add_item(filters, sizeof(filter), &filter, NULL);
 
     if (add_filter_result != E_ARRAY_OK) {
         fprintf(stderr,
@@ -89,7 +90,7 @@ add_image_number(int *const index_in,
     }
 
     /*
-     * Limit the number to only 32-bit as that's the range allowed by the
+     * Limit the number to only 32-bits as that's the range allowed by the
      * dyld_cache_header structure.
      */
 
@@ -139,8 +140,9 @@ add_image_path(struct tbd_for_main *const tbd,
         .length = strlen(string)
     };
 
+    struct array *const paths = &tbd->dsc_image_paths;
     const enum array_result add_path_result =
-        array_add_item(&tbd->dsc_image_paths, sizeof(path), &path, NULL);
+        array_add_item(paths, sizeof(path), &path, NULL);
 
     if (add_path_result != E_ARRAY_OK) {
         fprintf(stderr,
@@ -428,14 +430,39 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
 char *
 tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
-                               const char *const folder_path,
-                               const uint64_t folder_path_length,
-                               const char *const file_path,
-                               const uint64_t file_path_length,
+                               const char *const file_name,
+                               const uint64_t file_name_length,
                                const char *const extension,
                                const uint64_t extension_length,
-                               const bool file_path_is_in_tbd,
                                uint64_t *const length_out)
+{
+    char *const write_path =
+        path_append_component_and_extension_with_len(tbd->write_path,
+                                                     tbd->write_path_length,
+                                                     file_name,
+                                                     file_name_length,
+                                                     extension,
+                                                     extension_length,
+                                                     length_out);
+
+    if (write_path == NULL) {
+        fputs("Failed to allocate memory\n", stderr);
+        exit(1);
+    }
+
+    return write_path;
+}
+
+char *
+tbd_for_main_create_write_path_while_recursing(
+    const struct tbd_for_main *const tbd,
+    const char *const folder_path,
+    const uint64_t folder_path_length,
+    const char *const file_name,
+    const uint64_t file_name_length,
+    const char *const extension,
+    const uint64_t extension_length,
+    uint64_t *const length_out)
 {
     char *write_path = NULL;
     if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
@@ -448,30 +475,41 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
          * in the hierarchy of file_path.
          */
 
-        const char *subdirs_iter = file_path;
-        uint64_t subdirs_length = file_path_length;
+        const uint64_t parse_path_length = tbd->parse_path_length;
+        const char *subdirs_iter = folder_path + parse_path_length;
 
-        if (file_path_is_in_tbd) {
-            const uint64_t parse_path_length = tbd->parse_path_length;
-
-            subdirs_iter += parse_path_length;
-            subdirs_length -= parse_path_length;
-        }
-
+        uint64_t subdirs_length = folder_path_length - parse_path_length;
         if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const original_extension =
+            const char *const path_extension =
                 path_find_extension(subdirs_iter, subdirs_length);
 
-            if (original_extension != NULL) {
-                subdirs_length = (uint64_t)(original_extension - subdirs_iter);
+            if (path_extension != NULL) {
+                subdirs_length = (uint64_t)(path_extension - subdirs_iter);
             }
         }
 
         write_path =
-            path_append_component_and_extension_with_len(folder_path,
-                                                         folder_path_length,
-                                                         subdirs_iter,
-                                                         subdirs_length,
+            path_append_two_components_and_extension_with_len(
+                tbd->write_path,
+                tbd->write_path_length,
+                subdirs_iter,
+                subdirs_length,
+                file_name,
+                file_name_length,
+                extension,
+                extension_length,
+                length_out);
+
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    } else {
+        write_path =
+            path_append_component_and_extension_with_len(tbd->write_path,
+                                                         tbd->write_path_length,
+                                                         file_name,
+                                                         file_name_length,
                                                          extension,
                                                          extension_length,
                                                          length_out);
@@ -480,20 +518,95 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
             fputs("Failed to allocate memory\n", stderr);
             exit(1);
         }
-    } else {
-        uint64_t file_name_length = 0;
-        const char *const file_name =
-            path_get_last_path_component(file_path,
-                                         file_path_length,
-                                         &file_name_length);
+    }
 
-        if (file_name == NULL) {
-            return alloc_and_copy(folder_path, folder_path_length);
+    return write_path;
+}
+
+char *
+tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *const tbd,
+                                         const char *const write_path,
+                                         const uint64_t write_path_length,
+                                         const char *const image_path,
+                                         const uint64_t image_path_length,
+                                         const char *const extension,
+                                         const uint64_t extension_length,
+                                         uint64_t *const length_out)
+{
+    uint64_t image_path_copy_length = image_path_length;
+    if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+        const char *const path_extension =
+            path_find_extension(image_path, image_path_length);
+
+        if (path_extension != NULL) {
+            image_path_copy_length = (uint64_t)(path_extension - image_path);
         }
+    }
+
+    char *const image_write_path =
+        path_append_component_and_extension_with_len(
+            write_path,
+            write_path_length,
+            image_path,
+            image_path_copy_length,
+            extension,
+            extension_length,
+            length_out);
+
+    if (write_path == NULL) {
+        fputs("Failed to allocate memory\n", stderr);
+        exit(1);
+    }
+
+    return image_write_path;
+}
+
+char *
+tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *const tbd,
+                                    const char *const folder_path,
+                                    const uint64_t folder_path_length,
+                                    const char *const file_name,
+                                    const uint64_t file_name_length,
+                                    const char *const extension,
+                                    const uint64_t extension_length,
+                                    uint64_t *const length_out)
+{
+    char *write_path = NULL;
+    if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+        /*
+         * The subdirectories are simply the directories following the
+         * user-provided recurse-directory.
+         *
+         * Since the folder-path is a a sub-directory of tbd->parse_path, we
+         * need to simply add the parse_path's length to get our sub-directories
+         * to recreate in our write-path.
+         */
+
+        const uint64_t parse_path_length = tbd->parse_path_length;
+
+        const char *subdirs_iter = folder_path + parse_path_length;
+        const uint64_t subdirs_length = folder_path_length - parse_path_length;
 
         write_path =
-            path_append_component_and_extension_with_len(folder_path,
-                                                         folder_path_length,
+            path_append_two_components_and_extension_with_len(
+                tbd->write_path,
+                tbd->write_path_length,
+                subdirs_iter,
+                subdirs_length,
+                file_name,
+                file_name_length,
+                extension,
+                extension_length,
+                length_out);
+
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    } else {
+        write_path =
+            path_append_component_and_extension_with_len(tbd->write_path,
+                                                         tbd->write_path_length,
                                                          file_name,
                                                          file_name_length,
                                                          extension,
@@ -599,6 +712,8 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
     const enum tbd_create_result create_tbd_result =
         tbd_create_with_info(create_info, write_file, tbd->write_options);
 
+    fclose(write_file);
+
     if (create_tbd_result != E_TBD_CREATE_OK) {
         if (terminator != NULL) {
             /*
@@ -611,13 +726,11 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
         }
 
         if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            fclose(write_file);
             return E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL;
         }
 
     }
 
-    fclose(write_file);
     return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
@@ -642,6 +755,67 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
                 fputs("Failed to write to stdout (the terminal) for "
                       "the provided input-file, error: %s\n",
                       stderr);
+            }
+        }
+    }
+}
+
+void
+tbd_for_main_write_to_stdout_while_recursing(
+    const struct tbd_for_main *const tbd,
+    const char *const input_dir_path,
+    const char *const input_name,
+    const bool print_paths)
+{
+    const struct tbd_create_info *const create_info = &tbd->info;
+    const enum tbd_create_result create_tbd_result =
+        tbd_create_with_info(create_info, stdout, tbd->write_options);
+
+    if (create_tbd_result != E_TBD_CREATE_OK) {
+        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to stdout (the terminal) (for "
+                        "input-file at path: %s/%s) error: %s\n",
+                        input_dir_path,
+                        input_name,
+                        strerror(errno));
+            } else {
+                fputs("Failed to write to stdout (the terminal) for "
+                      "the provided input-file, error: %s\n",
+                      stderr);
+            }
+        }
+    }
+}
+
+void
+tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *const tbd,
+                                           const char *const dsc_path,
+                                           const char *const image_path,
+                                           const bool print_paths)
+{
+    const struct tbd_create_info *const create_info = &tbd->info;
+    const enum tbd_create_result create_tbd_result =
+        tbd_create_with_info(create_info, stdout, tbd->write_options);
+
+    if (create_tbd_result != E_TBD_CREATE_OK) {
+        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to stdout (the terminal), for image "
+                        "(at path %s) in dyld shared-cache (at path: %s), "
+                        "error: %s\n",
+                        dsc_path,
+                        image_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to write to stdout (the terminal) for "
+                        "image (at path %s) in the provided dyld_shared_cache, "
+                        "error: %s\n",
+                        image_path,
+                        strerror(errno));
             }
         }
     }

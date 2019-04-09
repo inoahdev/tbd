@@ -12,12 +12,25 @@
 #include "macho_file.h"
 #include "tbd_for_main.h"
 
+struct handle_macho_file_parse_result_args {
+    uint64_t *retained_info_in;
+    struct tbd_for_main *global;
+    struct tbd_for_main *tbd;
+    const char *dir_path;
+    const char *name;
+    enum macho_file_parse_result parse_result;
+    bool print_paths;
+};
+
+/*
+ * args.dir_path should be the full-path, while args.name is unused.
+ */
+
 bool
-handle_macho_file_parse_result(uint64_t *retained_info_in,
-                               struct tbd_for_main *global,
-                               struct tbd_for_main *tbd,
-                               const char *path,
-                               enum macho_file_parse_result parse_result,
-                               bool print_paths);
+handle_macho_file_parse_result(struct handle_macho_file_parse_result_args args);
+
+bool
+handle_macho_file_parse_result_while_recursing(
+	struct handle_macho_file_parse_result_args args);
 
 #endif /* HANDLE_MACHO_PARSE_RESULT_H */

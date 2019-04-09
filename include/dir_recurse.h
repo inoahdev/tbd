@@ -19,20 +19,31 @@ enum dir_recurse_result {
 };
 
 enum dir_recurse_fail_result {
-    E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH,
+    E_DIR_RECURSE_FAILED_TO_ALLOC_PATH,
+    E_DIR_RECURSE_FAILED_TO_OPEN_FILE,
     E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR,
     E_DIR_RECURSE_FAILED_TO_READ_ENTRY
 };
 
+/*
+ * caller is expected to close the file-descriptor.
+ */
+
 typedef bool
-(*dir_recurse_callback)(const char *path,
-                        uint64_t length,
+(*dir_recurse_callback)(const char *dir_path,
+                        uint64_t dir_path_length,
+                        int fd,
                         struct dirent *dirent,
                         void *info);
 
+/*
+ * dir_path and dir_path_length refer to the sub-directory when result is
+ * E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR.
+ */
+
 typedef bool
-(*dir_recurse_fail_callback)(const char *path,
-                             uint64_t length,
+(*dir_recurse_fail_callback)(const char *dir_path,
+                             uint64_t dir_path_length,
                              enum dir_recurse_fail_result result,
                              struct dirent *dirent,
                              void *info);
@@ -40,9 +51,17 @@ typedef bool
 enum dir_recurse_result
 dir_recurse(const char *path,
             uint64_t path_length,
-            bool sub_dirs,
+            int file_open_flags,
             void *callback_info,
             dir_recurse_callback callback,
             dir_recurse_fail_callback fail_callback);
+
+enum dir_recurse_result
+dir_recurse_with_subdirs(const char *const path,
+                         const uint64_t path_length,
+                         int file_open_flags,
+                         void *const callback_info,
+                         const dir_recurse_callback callback,
+                         const dir_recurse_fail_callback fail_callback);
 
 #endif /* DIR_RECURSE_H */

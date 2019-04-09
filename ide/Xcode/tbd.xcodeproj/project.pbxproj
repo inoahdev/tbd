@@ -31,7 +31,6 @@
 		C361A50422489453001BD07A /* yaml.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4EB22489453001BD07A /* yaml.c */; };
 		C361A50522489453001BD07A /* parse_dsc_for_main.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4EC22489453001BD07A /* parse_dsc_for_main.c */; };
 		C361A50622489453001BD07A /* tbd.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4ED22489453001BD07A /* tbd.c */; };
-		C361A52A224894C1001BD07A /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = C361A529224894C1001BD07A /* Makefile */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -266,6 +265,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = C392B6062233686600419D2D;
 			productRefGroup = C392B6102233686600419D2D /* Products */;
@@ -292,7 +292,6 @@
 				C361A4FD22489453001BD07A /* range.c in Sources */,
 				C361A50622489453001BD07A /* tbd.c in Sources */,
 				C361A4F022489453001BD07A /* tbd_write.c in Sources */,
-				C361A52A224894C1001BD07A /* Makefile in Sources */,
 				C361A4F322489453001BD07A /* macho_file_parse_load_commands.c in Sources */,
 				C361A4EF22489453001BD07A /* request_user_input.c in Sources */,
 				C361A4F522489453001BD07A /* arch_info.c in Sources */,

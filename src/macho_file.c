@@ -81,10 +81,10 @@ parse_thin_file(struct tbd_create_info *const info_in,
         }
     }
 
-    uint32_t headers_size = sizeof(struct mach_header);
-    if (is_64) {
-        headers_size += sizeof(uint32_t);
-    }
+    const uint32_t header_size =
+        (is_64) ?
+            sizeof(struct mach_header_64) :
+            sizeof(struct mach_header);
 
     const uint64_t arch_index = (uint64_t)(arch - arch_info_get_list());
     struct mf_parse_load_commands_from_file_info info = {
@@ -102,7 +102,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
         .full_range.begin = start,
         .full_range.end = start + size,
 
-        .available_range.begin = start + headers_size,
+        .available_range.begin = start + header_size,
         .available_range.end = info.full_range.end,
 
         .tbd_options = tbd_options,

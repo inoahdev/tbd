@@ -44,8 +44,9 @@ struct recurse_callback_info {
 };
 
 static bool
-recurse_directory_callback(const char *const parse_path,
-                           const uint64_t parse_path_length,
+recurse_directory_callback(const char *const dir_path,
+                           const uint64_t dir_path_length,
+                           const int fd,
                            struct dirent *__unused const dirent,
                            void *const callback_info)
 {
@@ -53,26 +54,12 @@ recurse_directory_callback(const char *const parse_path,
         (struct recurse_callback_info *)callback_info;
 
     struct tbd_for_main *const tbd = recurse_info->tbd;
-
-    const uint64_t flags = tbd->flags;
-    const int fd = open(parse_path, O_RDONLY);
-
-    if (fd < 0) {
-        if (!(flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            fprintf(stderr,
-                    "Warning: Failed to open file (at path %s), error: %s\n",
-                    parse_path,
-                    strerror(errno));
-        }
-
-        return true;
-    }
-
     struct tbd_for_main *const global = recurse_info->global;
+
     uint64_t *const retained = &recurse_info->retained_info;
 
     /*
-     * Keep a buffer for magic around to use.
+     * Keep a buffer around for magic to use.
      */
 
     char magic[16] = {};
@@ -83,31 +70,47 @@ recurse_directory_callback(const char *const parse_path,
      * dyld_shared_cache, we only recurse for dyld_shared_cache.
      */
 
+    const char *const name = dirent->d_name;
+
+    const uint64_t flags = tbd->flags;
+    const uint64_t name_length = strnlen(name, sizeof(dirent->d_name));
+
     if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
-        const enum parse_macho_file_result parse_as_macho_result =
-            parse_macho_file(&magic,
-                             &magic_size,
-                             retained,
-                             global,
-                             tbd,
-                             parse_path,
-                             parse_path_length,
-                             fd,
-                             true,
-                             true);
+        const struct parse_macho_for_main_args args = {
+            .fd = fd,
+            .magic_in = &magic,
+
+            .magic_in_size_in = &magic_size,
+            .retained_info_in = retained,
+
+            .global = global,
+            .tbd = tbd,
+
+            .dir_path = dir_path,
+            .dir_path_length = dir_path_length,
+
+            .name = name,
+            .name_length = name_length,
+
+            .ignore_non_macho_error = true,
+            .print_paths = true
+        };
+
+        const enum parse_macho_for_main_result parse_as_macho_result =
+            parse_macho_file_for_main_while_recursing(args);
 
         switch (parse_as_macho_result) {
-            case E_PARSE_MACHO_FILE_OK: {
+            case E_PARSE_MACHO_FOR_MAIN_OK: {
                 recurse_info->files_parsed += 1;
-
                 close(fd);
+
                 return true;
             }
 
-            case E_PARSE_MACHO_FILE_NOT_A_MACHO:
+            case E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO:
                 break;
 
-            case E_PARSE_MACHO_FILE_OTHER_ERROR:
+            case E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR:
                 close(fd);
                 return true;
         }
@@ -121,54 +124,71 @@ recurse_directory_callback(const char *const parse_path,
         return true;
     }
 
-    const enum parse_shared_cache_result parse_as_dsc_result =
-        parse_shared_cache(&magic,
-                           &magic_size,
-                           retained,
-                           global,
-                           tbd,
-                           parse_path,
-                           parse_path_length,
-                           fd,
-                           true,
-                           true,
-                           true);
+    const struct parse_dsc_for_main_args args = {
+        .fd = fd,
+        .magic_in = &magic,
+
+        .magic_in_size_in = &magic_size,
+        .retained_info_in = retained,
+
+        .global = global,
+        .tbd = tbd,
+
+        .dsc_dir_path = dir_path,
+        .dsc_dir_path_length = dir_path_length,
+
+        .dsc_name = dirent->d_name,
+        .dsc_name_length = name_length,
+
+        .ignore_non_cache_error = true,
+        .print_paths = true
+    };
+
+    const enum parse_dsc_for_main_result parse_as_dsc_result =
+        parse_dsc_for_main_while_recursing(args);
+
+    close(fd);
 
     switch (parse_as_dsc_result) {
-        case E_PARSE_SHARED_CACHE_OK:
+        case E_PARSE_DSC_FOR_MAIN_OK:
             recurse_info->files_parsed += 1;
-
-            close(fd);
             return true;
 
-        case E_PARSE_SHARED_CACHE_NOT_A_SHARED_CACHE:
+        case E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE:
             break;
 
-        case E_PARSE_SHARED_CACHE_OTHER_ERROR:
-            close(fd);
+        case E_PARSE_DSC_FOR_MAIN_OTHER_ERROR:
             return true;
     }
 
-    close(fd);
     return true;
 }
 
 static bool
-recurse_directory_fail_callback(const char *const path,
-                                __unused const uint64_t path_length,
+recurse_directory_fail_callback(const char *const dir_path,
+                                __unused const uint64_t dir_path_length,
                                 enum dir_recurse_fail_result result,
-                                struct dirent *__unused const dirent,
+                                struct dirent *const dirent,
                                 void *__unused const callback_info)
 {
     switch (result) {
-        case E_DIR_RECURSE_FAILED_TO_ALLOCATE_PATH:
-            fputs("Failed to allocate memory for path-string\n", stderr);
+        case E_DIR_RECURSE_FAILED_TO_ALLOC_PATH:
+            fputs("Failed to allocate memory for a path-string\n", stderr);
+            break;
+
+        case E_DIR_RECURSE_FAILED_TO_OPEN_FILE:
+            fprintf(stderr,
+                    "Failed to open file (at path %s/%s), error: %s\n",
+                    dir_path,
+                    dirent->d_name,
+                    strerror(errno));
+
             break;
 
         case E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR:
             fprintf(stderr,
                     "Failed to open sub-directory at path: %s, error: %s\n",
-                    path,
+                    dir_path,
                     strerror(errno));
 
             break;
@@ -176,8 +196,9 @@ recurse_directory_fail_callback(const char *const path,
         case E_DIR_RECURSE_FAILED_TO_READ_ENTRY:
             fprintf(stderr,
                     "Failed to read directory-entry while recursing directory "
-                    "at path: %s, error: %s\n",
-                    path,
+                    "at path: %s/%s, error: %s\n",
+                    dir_path,
+                    dirent->d_name,
                     strerror(errno));
 
             break;
@@ -1201,13 +1222,24 @@ int main(const int argc, const char *const argv[]) {
                 .print_paths = true
             };
 
-            const enum dir_recurse_result recurse_dir_result =
-                dir_recurse(tbd->parse_path,
-                            tbd->parse_path_length,
-                            options & F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES,
-                            &recurse_info,
-                            recurse_directory_callback,
-                            recurse_directory_fail_callback);
+            enum dir_recurse_result recurse_dir_result = E_DIR_RECURSE_OK;
+            if (options & F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES) {
+                recurse_dir_result =
+                    dir_recurse_with_subdirs(tbd->parse_path,
+                                             tbd->parse_path_length,
+                                             O_RDONLY,
+                                             &recurse_info,
+                                             recurse_directory_callback,
+                                             recurse_directory_fail_callback);
+            } else {
+                recurse_dir_result =
+                    dir_recurse(tbd->parse_path,
+                                tbd->parse_path_length,
+                                O_RDONLY,
+                                &recurse_info,
+                                recurse_directory_callback,
+                                recurse_directory_fail_callback);
+            }
 
             if (recurse_dir_result != E_DIR_RECURSE_OK) {
                 if (should_print_paths) {
@@ -1260,19 +1292,27 @@ int main(const int argc, const char *const argv[]) {
             uint64_t magic_size = 0;
 
             switch (tbd->filetype) {
-                case TBD_FOR_MAIN_FILETYPE_MACHO:
-                    parse_macho_file(&magic,
-                                     &magic_size,
-                                     &retained_info,
-                                     &global,
-                                     tbd,
-                                     parse_path,
-                                     tbd->parse_path_length,
-                                     fd,
-                                     false,
-                                     should_print_paths);
+                case TBD_FOR_MAIN_FILETYPE_MACHO: {
+                    const struct parse_macho_for_main_args args = {
+                        .fd = fd,
+                        .magic_in = &magic,
 
+                        .magic_in_size_in = &magic_size,
+                        .retained_info_in = &retained_info,
+
+                        .global = &global,
+                        .tbd = tbd,
+
+                        .dir_path = parse_path,
+                        .dir_path_length = tbd->parse_path_length,
+
+                        .ignore_non_macho_error = false,
+                        .print_paths = should_print_paths
+                    };
+
+                    parse_macho_file_for_main(args);
                     break;
+                }
 
                 case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE: {
                     /*
@@ -1281,18 +1321,25 @@ int main(const int argc, const char *const argv[]) {
                      */
 
                     verify_dsc_write_path(tbd);
-                    parse_shared_cache(&magic,
-                                       &magic_size,
-                                       &retained_info,
-                                       &global,
-                                       tbd,
-                                       parse_path,
-                                       tbd->parse_path_length,
-                                       fd,
-                                       false,
-                                       false,
-                                       should_print_paths);
 
+                    const struct parse_dsc_for_main_args args = {
+                        .fd = fd,
+                        .magic_in = &magic,
+
+                        .magic_in_size_in = &magic_size,
+                        .retained_info_in = &retained_info,
+
+                        .global = &global,
+                        .tbd = tbd,
+
+                        .dsc_dir_path = parse_path,
+                        .dsc_dir_path_length = tbd->parse_path_length,
+
+                        .ignore_non_cache_error = false,
+                        .print_paths = should_print_paths
+                    };
+
+                    parse_dsc_for_main(args);
                     break;
                 }
             }

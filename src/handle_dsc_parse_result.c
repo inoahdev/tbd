@@ -132,8 +132,8 @@ handle_dsc_file_parse_result(
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_RANGES: {
             if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has overlapping "
-                        "ranges\n",
+                        "dyld_shared_cache file (at path %s) has "
+                        "overlapping ranges\n",
                         path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -147,8 +147,8 @@ handle_dsc_file_parse_result(
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_IMAGES: {
             if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has overlapping "
-                        "images\n",
+                        "dyld_shared_cache file (at path %s) has "
+                        "overlapping images\n",
                         path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -162,8 +162,8 @@ handle_dsc_file_parse_result(
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS: {
             if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has overlapping "
-                        "mappings\n",
+                        "dyld_shared_cache file (at path %s) has "
+                        "overlapping mappings\n",
                         path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -176,42 +176,214 @@ handle_dsc_file_parse_result(
     }
 }
 
-bool
-handle_dsc_image_parse_result(uint64_t *const info_in,
-                              struct tbd_for_main *const global,
-                              struct tbd_for_main *const tbd,
-                              const char *const dsc_path,
-                              const char *const image_path,
-                              const enum dsc_image_parse_result parse_result,
-                              const bool print_paths)
+void
+handle_dsc_file_parse_result_while_recursing(
+    const char *const dir_path,
+    const char *const name,
+    const enum dyld_shared_cache_parse_result parse_result,
+    const bool print_paths)
 {
     switch (parse_result) {
+        case E_DYLD_SHARED_CACHE_PARSE_OK:
+            break;
+
+        case E_DYLD_SHARED_CACHE_PARSE_ALLOC_FAIL: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to allocate data while parsing "
+                        "dyld_shared_cache file (at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("Failed to allocate data while parsing the provided "
+                      "dyld_shared_cache file\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_READ_FAIL: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to read data while parsing dyld_shared_cache "
+                        "file (at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("Failed to read data while parsing the provided "
+                      "dyld_shared_cache file\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to get information on dyld_shared_cache file "
+                        "(at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("Failed to get information on provided dyld_shared_cache "
+                      "file\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to map dyld_shared_cache file (at path %s) to "
+                        "memory, error: %s/%s\n",
+                        dir_path,
+                        name,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to map the provided dyld_shared_cache file to "
+                        "memory, error: %s\n",
+                        strerror(errno));
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "File (at path %s/%s) is not a valid dyld_shared_cache "
+                        "file\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("File at the provided path is not a valid "
+                      "dyld_shared_cache file\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has invalid "
+                        "images\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("dyld_shared_cache file at the provided path has invalid "
+                      "images\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has invalid "
+                        "mappigns\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("dyld_shared_cache file at the provided path has invalid "
+                      "mappings\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_RANGES: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping ranges\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("dyld_shared_cache file at the provided path has "
+                      "overlapping ranges\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_IMAGES: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping images\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("dyld_shared_cache file at the provided path has "
+                      "overlapping images\n",
+                      stderr);
+            }
+
+            break;
+        }
+
+        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS: {
+            if (print_paths) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping mappings\n",
+                        dir_path,
+                        name);
+            } else {
+                fputs("dyld_shared_cache file at the provided path has "
+                      "overlapping mappings\n",
+                      stderr);
+            }
+
+            break;
+        }
+    }
+}
+
+bool
+handle_dsc_image_parse_result(
+    const struct handle_dsc_image_parse_result_args args)
+{
+    switch (args.parse_result) {
         case E_DSC_IMAGE_PARSE_OK:
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME: {
             bool request_result = false;
-            if (print_paths) {
+            if (args.print_paths) {
                 request_result =
-                    request_install_name(global,
-                                         tbd,
-                                         info_in,
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
                                          stderr,
-                                         "dyld_shared_cache file (at path %s) "
-                                         "has an image (with path %s) that has "
-                                         "an invalid install-name\n",
-                                         dsc_path,
-                                         image_path);
+                                         "dyld_shared_cache file "
+                                         "(at path %s/%s) has an image "
+                                         "(with path %s) that has an invalid "
+                                         "install-name\n",
+                                         args.dsc_dir_path,
+                                         args.dsc_name,
+                                         args.image_path);
             } else {
                 request_result =
-                    request_install_name(global,
-                                         tbd,
-                                         info_in,
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
                                          stderr,
                                          "The provided dyld_shared_cache file "
                                          "has an image (with path %s) that has "
                                          "an invalid install-name\n",
-                                         image_path);
+                                         args.image_path);
             }
 
             if (!request_result) {
@@ -223,27 +395,29 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 
         case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
             bool request_result = false;
-            if (print_paths) {
+            if (args.print_paths) {
                 request_result =
-                    request_install_name(global,
-                                         tbd,
-                                         info_in,
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
                                          stderr,
-                                         "dyld_shared_cache file (at path %s) "
-                                         "has an image (with path %s) that has "
-                                         "an invalid platform\n",
-                                         dsc_path,
-                                         image_path);
+                                         "dyld_shared_cache file "
+                                         "(at path %s/%s) has an image "
+                                         "(with path %s) that has an invalid "
+                                         "platform\n",
+                                         args.dsc_dir_path,
+                                         args.dsc_name,
+                                         args.image_path);
             } else {
                 request_result =
-                    request_install_name(global,
-                                         tbd,
-                                         info_in,
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
                                          stderr,
                                          "The provided dyld_shared_cache file "
                                          "has an image (with path %s) that has "
                                          "an invalid platform\n",
-                                         image_path);
+                                         args.image_path);
             }
 
             if (!request_result) {
@@ -255,29 +429,30 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 
         case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA: {
             bool request_result = false;
-            if (print_paths) {
+            if (args.print_paths) {
                 request_result =
-                    request_parent_umbrella(global,
-                                            tbd,
-                                            info_in,
+                    request_parent_umbrella(args.global,
+                                            args.tbd,
+                                            args.retained_info_in,
                                             stderr,
                                             "dyld_shared_cache file (at "
-                                            "path %s) has an image (with "
+                                            "path %s/%s) has an image (with "
                                             "path %s) that has an invalid "
                                             "parent-umbrella\n",
-                                            dsc_path,
-                                            image_path);
+                                            args.dsc_dir_path,
+                                            args.dsc_name,
+                                            args.image_path);
             } else {
                 request_result =
-                    request_parent_umbrella(global,
-                                            tbd,
-                                            info_in,
+                    request_parent_umbrella(args.global,
+                                            args.tbd,
+                                            args.retained_info_in,
                                             stderr,
                                             "The provided dyld_shared_cache "
                                             "file has an image (with path %s) "
                                             "that has an invalid "
                                             "parent-umbrella\n",
-                                            image_path);
+                                            args.image_path);
             }
 
             if (!request_result) {
@@ -289,27 +464,28 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
 
         case E_DSC_IMAGE_PARSE_NO_PLATFORM: {
             bool request_result = false;
-            if (print_paths) {
+            if (args.print_paths) {
                 request_result =
-                    request_platform(global,
-                                     tbd,
-                                     info_in,
+                    request_platform(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
                                      stderr,
-                                     "dyld_shared_cache file (at path %s) has "
-                                     "an image (with path %s) that doesn't "
+                                     "dyld_shared_cache file (at path %s/%s) "
+                                     "has an image (with path %s) that doesn't "
                                      "have a platform\n",
-                                     dsc_path,
-                                     image_path);
+                                     args.dsc_dir_path,
+                                     args.dsc_name,
+                                     args.image_path);
             } else {
                 request_result =
-                    request_platform(global,
-                                     tbd,
-                                     info_in,
+                    request_platform(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
                                      stderr,
                                      "The provided dyld_shared_cache file has "
                                      "an image (with path %s) that doesn't "
                                      "have a platform\n",
-                                     image_path);
+                                     args.image_path);
             }
 
             if (!request_result) {
@@ -327,21 +503,21 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
      * Handle the remove/replace fields.
      */
 
-    const uint64_t archs_re = tbd->archs_re;
+    const uint64_t archs_re = args.tbd->archs_re;
     if (archs_re != 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            tbd->info.archs &= ~archs_re;
+        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+            args.tbd->info.archs &= ~archs_re;
         } else {
-            tbd->info.archs = archs_re;
+            args.tbd->info.archs = archs_re;
         }
     }
 
-    const uint32_t flags_re = tbd->flags_re;
+    const uint32_t flags_re = args.tbd->flags_re;
     if (flags_re != 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            tbd->info.flags_field &= ~flags_re;
+        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+            args.tbd->info.flags_field &= ~flags_re;
          } else {
-            tbd->info.flags_field = flags_re;
+            args.tbd->info.flags_field = flags_re;
         }
     }
 
@@ -354,29 +530,30 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
      * mandatory fields and therefore aren't always provided.
      */
 
-    if (tbd->info.install_name == NULL) {
+    if (args.tbd->info.install_name == NULL) {
         bool request_result = false;
-        if (print_paths) {
+        if (args.print_paths) {
             request_result =
-                request_install_name(global,
-                                     tbd,
-                                     info_in,
+                request_install_name(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
                                      stderr,
-                                     "dyld_shared_cache file (at path %s) has "
-                                     "an image (with path %s) that doesn't "
+                                     "dyld_shared_cache file (at path %s/%s) "
+                                     "has an image (with path %s) that doesn't "
                                      "have an install-name\n",
-                                     dsc_path,
-                                     image_path);
+                                     args.dsc_dir_path,
+                                     args.dsc_name,
+                                     args.image_path);
         } else {
             request_result =
-                request_install_name(global,
-                                     tbd,
-                                     info_in,
+                request_install_name(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
                                      stderr,
                                      "The provided dyld_shared_cache file has "
                                      "an image (with path %s) that doesn't "
                                      "have an install-name\n",
-                                     image_path);
+                                     args.image_path);
         }
 
         if (!request_result) {
@@ -384,29 +561,268 @@ handle_dsc_image_parse_result(uint64_t *const info_in,
         }
     }
 
-    if (tbd->info.platform == 0) {
+    if (args.tbd->info.platform == 0) {
         bool request_result = false;
-        if (print_paths) {
+        if (args.print_paths) {
             request_result =
-                request_platform(global,
-                                 tbd,
-                                 info_in,
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
                                  stderr,
-                                 "dyld_shared_cache file (at path %s) has an "
-                                 "image (with path %s) that doesn't have a "
+                                 "dyld_shared_cache file (at path %s/%s) has "
+                                 "an image (with path %s) that doesn't have a "
                                  "platform\n",
-                                 dsc_path,
-                                 image_path);
+                                 args.dsc_dir_path,
+                                 args.dsc_name,
+                                 args.image_path);
         } else {
             request_result =
-                request_platform(global,
-                                 tbd,
-                                 info_in,
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
                                  stderr,
                                  "The provided dyld_shared_cache file has an "
                                  "image (with path %s) that doesn't have a "
                                  "platform\n",
-                                 image_path);
+                                 args.image_path);
+        }
+
+        if (!request_result) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+handle_dsc_image_parse_result_full_path(
+    const struct handle_dsc_image_parse_result_args args)
+{
+    switch (args.parse_result) {
+        case E_DSC_IMAGE_PARSE_OK:
+            break;
+
+        case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME: {
+            bool request_result = false;
+            if (args.print_paths) {
+                request_result =
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
+                                         stderr,
+                                         "dyld_shared_cache file "
+                                         "(at path %s) has an image "
+                                         "(with path %s) that has an invalid "
+                                         "install-name\n",
+                                         args.dsc_dir_path,
+                                         args.image_path);
+            } else {
+                request_result =
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
+                                         stderr,
+                                         "The provided dyld_shared_cache file "
+                                         "has an image (with path %s) that has "
+                                         "an invalid install-name\n",
+                                         args.image_path);
+            }
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
+            bool request_result = false;
+            if (args.print_paths) {
+                request_result =
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
+                                         stderr,
+                                         "dyld_shared_cache file "
+                                         "(at path %s) has an image "
+                                         "(with path %s) that has an invalid "
+                                         "platform\n",
+                                         args.dsc_dir_path,
+                                         args.image_path);
+            } else {
+                request_result =
+                    request_install_name(args.global,
+                                         args.tbd,
+                                         args.retained_info_in,
+                                         stderr,
+                                         "The provided dyld_shared_cache file "
+                                         "has an image (with path %s) that has "
+                                         "an invalid platform\n",
+                                         args.image_path);
+            }
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA: {
+            bool request_result = false;
+            if (args.print_paths) {
+                request_result =
+                    request_parent_umbrella(args.global,
+                                            args.tbd,
+                                            args.retained_info_in,
+                                            stderr,
+                                            "dyld_shared_cache file (at "
+                                            "path %s) has an image (with "
+                                            "path %s) that has an invalid "
+                                            "parent-umbrella\n",
+                                            args.dsc_dir_path,
+                                            args.image_path);
+            } else {
+                request_result =
+                    request_parent_umbrella(args.global,
+                                            args.tbd,
+                                            args.retained_info_in,
+                                            stderr,
+                                            "The provided dyld_shared_cache "
+                                            "file has an image (with path %s) "
+                                            "that has an invalid "
+                                            "parent-umbrella\n",
+                                            args.image_path);
+            }
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_NO_PLATFORM: {
+            bool request_result = false;
+            if (args.print_paths) {
+                request_result =
+                    request_platform(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
+                                     stderr,
+                                     "dyld_shared_cache file (at path %s) "
+                                     "has an image (with path %s) that doesn't "
+                                     "have a platform\n",
+                                     args.dsc_dir_path,
+                                     args.image_path);
+            } else {
+                request_result =
+                    request_platform(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
+                                     stderr,
+                                     "The provided dyld_shared_cache file has "
+                                     "an image (with path %s) that doesn't "
+                                     "have a platform\n",
+                                     args.image_path);
+            }
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        default:
+            return false;
+    }
+
+    /*
+     * Handle the remove/replace fields.
+     */
+
+    const uint64_t archs_re = args.tbd->archs_re;
+    if (archs_re != 0) {
+        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
+            args.tbd->info.archs &= ~archs_re;
+        } else {
+            args.tbd->info.archs = archs_re;
+        }
+    }
+
+    const uint32_t flags_re = args.tbd->flags_re;
+    if (flags_re != 0) {
+        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+            args.tbd->info.flags_field &= ~flags_re;
+         } else {
+            args.tbd->info.flags_field = flags_re;
+        }
+    }
+
+    /*
+     * If some of the fields are empty, but their respective error-codes weren't
+     * returned (for when O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided),
+     * We instead check here and request info from the user.
+     *
+     * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
+     * mandatory fields and therefore aren't always provided.
+     */
+
+    if (args.tbd->info.install_name == NULL) {
+        bool request_result = false;
+        if (args.print_paths) {
+            request_result =
+                request_install_name(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
+                                     stderr,
+                                     "dyld_shared_cache file (at path %s) "
+                                     "has an image (with path %s) that doesn't "
+                                     "have an install-name\n",
+                                     args.dsc_dir_path,
+                                     args.image_path);
+        } else {
+            request_result =
+                request_install_name(args.global,
+                                     args.tbd,
+                                     args.retained_info_in,
+                                     stderr,
+                                     "The provided dyld_shared_cache file has "
+                                     "an image (with path %s) that doesn't "
+                                     "have an install-name\n",
+                                     args.image_path);
+        }
+
+        if (!request_result) {
+            return false;
+        }
+    }
+
+    if (args.tbd->info.platform == 0) {
+        bool request_result = false;
+        if (args.print_paths) {
+            request_result =
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
+                                 stderr,
+                                 "dyld_shared_cache file (at path %s) has "
+                                 "an image (with path %s) that doesn't have a "
+                                 "platform\n",
+                                 args.dsc_dir_path,
+                                 args.image_path);
+        } else {
+            request_result =
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
+                                 stderr,
+                                 "The provided dyld_shared_cache file has an "
+                                 "image (with path %s) that doesn't have a "
+                                 "platform\n",
+                                 args.image_path);
         }
 
         if (!request_result) {

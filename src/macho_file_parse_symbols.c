@@ -126,7 +126,6 @@ is_objc_class_symbol(const char *const symbol,
             *symbol_out = real_symbol;
             *length_out = (uint32_t)strnlen(real_symbol, max_length - 16);
 
-
             break;
         }
 
@@ -256,6 +255,7 @@ handle_symbol(struct tbd_create_info *const info_in,
 
         if (max_len > 12) {
             const enum tbd_version version = info_in->version;
+
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
 

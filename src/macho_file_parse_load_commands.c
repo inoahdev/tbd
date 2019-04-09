@@ -1661,11 +1661,10 @@ macho_file_parse_load_commands_from_map(
      */
 
     const bool is_64 = parse_info->is_64;
-    uint32_t header_size = sizeof(struct mach_header);
-
-    if (is_64) {
-        header_size += sizeof(uint32_t);
-    }
+    const uint32_t header_size =
+        (is_64) ?
+            sizeof(struct mach_header_64) :
+            sizeof(struct mach_header);
 
     const uint64_t macho_size = parse_info->macho_size;
     const uint32_t max_sizeofcmds = (uint32_t)(macho_size - header_size);

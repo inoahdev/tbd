@@ -6,8 +6,8 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
-#ifndef HANDLE_DSC_PARSE_RESULT
-#define HANDLE_DSC_PARSE_RESULT
+#ifndef HANDLE_DSC_PARSE_RESULT_H
+#define HANDLE_DSC_PARSE_RESULT_H
 
 #include "dsc_image.h"
 #include "dyld_shared_cache.h"
@@ -17,20 +17,39 @@ void
 handle_dsc_file_parse_result(const char *path,
                              enum dyld_shared_cache_parse_result parse_result,
                              bool print_paths);
+void
+handle_dsc_file_parse_result_while_recursing(
+	const char *dir_path,
+	const char *name,
+    enum dyld_shared_cache_parse_result parse_result,
+    bool print_paths);
+
+struct handle_dsc_image_parse_result_args {
+    uint64_t *retained_info_in;
+    struct tbd_for_main *global;
+    struct tbd_for_main *tbd;
+    const char *dsc_dir_path;
+    const char *dsc_name;
+    const char *image_path;
+    enum dsc_image_parse_result parse_result;
+    bool print_paths;
+};
 
 bool
-handle_dsc_image_parse_result(uint64_t *retained_info_in,
-                              struct tbd_for_main *global,
-                              struct tbd_for_main *tbd,
-                              const char *dsc_path,
-                              const char *image_path,
-                              enum dsc_image_parse_result parse_result,
-                              bool print_paths);
+handle_dsc_image_parse_result(struct handle_dsc_image_parse_result_args args);
+
+/*
+ * full_path should be stored in args.dsc_dir_path.
+ */
+
+bool
+handle_dsc_image_parse_result_while_recursing(
+	struct handle_dsc_image_parse_result_args args);
 
 void
 print_dsc_image_parse_error(const struct tbd_for_main *tbd,
                             const char *image_path,
                             enum dsc_image_parse_result parse_error);
 
-#endif /* HANDLE_DSC_PARSE_RESULT */
+#endif /* HANDLE_DSC_PARSE_RESULT_H */
 

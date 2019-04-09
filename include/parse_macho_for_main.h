@@ -15,22 +15,37 @@
  * magic_in should be atleast 4 bytes large.
  */
 
-enum parse_macho_file_result {
-    E_PARSE_MACHO_FILE_OK,
-    E_PARSE_MACHO_FILE_NOT_A_MACHO,
-    E_PARSE_MACHO_FILE_OTHER_ERROR
+enum parse_macho_for_main_result {
+    E_PARSE_MACHO_FOR_MAIN_OK,
+    E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO,
+    E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR
 };
 
-enum parse_macho_file_result
-parse_macho_file(void *magic_in,
-                 uint64_t *magic_in_size_in,
-                 uint64_t *retained_info_in,
-                 struct tbd_for_main *global,
-                 struct tbd_for_main *tbd,
-                 const char *path,
-                 uint64_t path_length,
-                 int fd,
-                 bool ignore_non_macho_error,
-                 bool print_paths);
+struct parse_macho_for_main_args {
+    int fd;
+    void *magic_in;
+
+    uint64_t *magic_in_size_in;
+    uint64_t *retained_info_in;
+
+    struct tbd_for_main *global;
+    struct tbd_for_main *tbd;
+
+    const char *dir_path;
+    uint64_t dir_path_length;
+
+    const char *name;
+    const uint64_t name_length;
+
+    bool ignore_non_macho_error;
+    bool print_paths;
+};
+
+enum parse_macho_for_main_result
+parse_macho_file_for_main(struct parse_macho_for_main_args args);
+
+enum parse_macho_for_main_result
+parse_macho_file_for_main_while_recursing(
+	struct parse_macho_for_main_args args);
 
 #endif /* PARSE_MACHO_FOR_MAIN_H */

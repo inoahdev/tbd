@@ -38,6 +38,18 @@ path_append_component_and_extension_with_len(const char *path,
                                              uint64_t extension_length,
                                              uint64_t *length_out);
 
+char *
+path_append_two_components_and_extension_with_len(
+    const char *path,
+    uint64_t path_length,
+    const char *first_component,
+    uint64_t first_component_length,
+    const char *second_component,
+    uint64_t second_component_length,
+    const char *extension,
+    uint64_t extension_length,
+    uint64_t *length_out);
+
 const char *
 path_get_front_of_row_of_slashes(const char *path, const char *iter);
 

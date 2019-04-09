@@ -242,6 +242,26 @@ path_append_component_with_len(const char *const path,
 
         const uint64_t drift = (uint64_t)(component_iter - component);
         component_copy_length -= drift;
+
+        /*
+         * Remove any back-slashes if we have any.
+         */
+
+        const char *const ending_slashes =
+            path_find_ending_row_of_slashes(component_iter,
+                                            component_copy_length);
+
+        if (ending_slashes != NULL) {
+            /*
+             * Get the "drift" from our old-end, and the new-end, which is
+             * the last row of slashes.
+             */
+
+            const char *const old_end = component_iter + component_copy_length;
+            const uint64_t slashes_drift = (uint64_t)(old_end - ending_slashes);
+
+            component_copy_length -= slashes_drift;
+        }
     }
 
     if (path_copy_length == 0) {
@@ -341,6 +361,26 @@ path_append_component_and_extension_with_len(const char *const path,
 
         const uint64_t drift = (uint64_t)(component_iter - component);
         component_copy_length -= drift;
+
+        /*
+         * Remove any back-slashes if we have any.
+         */
+
+        const char *const ending_slashes =
+            path_find_ending_row_of_slashes(component_iter,
+                                           component_copy_length);
+
+        if (ending_slashes != NULL) {
+            /*
+             * Get the "drift" from our old-end, and the new-end, which is
+             * the last row of slashes.
+             */
+
+            const char *const old_end = component_iter + component_copy_length;
+            const uint64_t slashes_drift = (uint64_t)(old_end - ending_slashes);
+
+            component_copy_length -= slashes_drift;
+        }
     }
 
     if (path_copy_length == 0) {
@@ -401,6 +441,260 @@ path_append_component_and_extension_with_len(const char *const path,
     if (extension_copy_length != 0) {
         char *const combined_extension_iter =
             combined_component_iter + component_copy_length;
+
+        /*
+         * Add one for the extension-dot.
+         */
+
+        memcpy(combined_extension_iter + 1,
+               extension_copy_iter,
+               extension_copy_length);
+
+        *combined_extension_iter = '.';
+    }
+
+    if (length_out != NULL) {
+        *length_out = combined_length;
+    }
+
+    combined[combined_length] = '\0';
+    return combined;
+}
+
+char *
+path_append_two_components_and_extension_with_len(
+    const char *const path,
+    const uint64_t path_length,
+    const char *const first_component,
+    const uint64_t first_component_length,
+    const char *const second_component,
+    const uint64_t second_component_length,
+    const char *const extension,
+    const uint64_t extension_length,
+    uint64_t *const length_out)
+{
+    /*
+     * We prefer adding a back-slash ourselves.
+     */
+
+    const uint64_t path_copy_length =
+        get_length_by_trimming_back_slashes(path, path_length);
+
+    /*
+     * We prefer either writing the back-slash ourselves, or having the end of
+     * the original path be a slash, so we should remove any slash in the front
+     * of component.
+     */
+
+    const char *first_component_iter = first_component;
+    const char first_component_front = first_component[0];
+
+    uint64_t first_component_copy_length = first_component_length;
+    if (ch_is_path_slash(first_component_front)) {
+        /*
+         * We prefer the componet to not have a front-slash, with instead the
+         * path having a back-slash, or we providing the slash ourselves.
+         */
+
+        first_component_iter =
+            path_get_end_of_row_of_slashes(first_component_iter);
+
+        if (first_component_iter != NULL) {
+            const uint64_t drift =
+                (uint64_t)(first_component_iter - first_component);
+
+            first_component_copy_length -= drift;
+
+            /*
+             * Remove any slashes at the back of the component
+             */
+
+            const char *const ending_slashes =
+                path_find_ending_row_of_slashes(first_component_iter,
+                                                first_component_copy_length);
+
+            if (ending_slashes != NULL) {
+                /*
+                 * Get the "drift" from our old-end, and the new-end, which is
+                 * the last row of slashes.
+                 */
+
+                const char *const old_end =
+                    first_component_iter + first_component_copy_length;
+
+                const uint64_t slashes_drift =
+                    (uint64_t)(old_end - ending_slashes);
+
+                first_component_copy_length -= slashes_drift;
+            }
+        } else {
+            first_component_copy_length = 0;
+        }
+    }
+
+    const char *second_component_iter = second_component;
+    const char second_component_front = second_component[0];
+
+    uint64_t second_component_copy_length = second_component_length;
+    if (ch_is_path_slash(second_component_front)) {
+        /*
+         * We prefer the componet to not have a front-slash, with instead the
+         * path having a back-slash, or we providing the slash ourselves.
+         */
+
+        second_component_iter =
+            path_get_end_of_row_of_slashes(second_component_iter);
+
+        if (second_component_iter != NULL) {
+            const uint64_t drift =
+                (uint64_t)(second_component_iter - second_component);
+
+            second_component_copy_length -= drift;
+
+            /*
+             * Remove any slashes at the back of the component
+             */
+
+            const char *const ending_slashes =
+                path_find_ending_row_of_slashes(second_component_iter,
+                                                second_component_copy_length);
+
+            if (ending_slashes != NULL) {
+                /*
+                 * Get the "drift" from our old-end, and the new-end, which is
+                 * the last row of slashes.
+                 */
+
+                const char *const old_end =
+                    second_component_iter + second_component_copy_length;
+
+                const uint64_t slashes_drift =
+                    (uint64_t)(old_end - ending_slashes);
+
+                second_component_copy_length -= slashes_drift;
+            }
+        } else {
+            second_component_copy_length = 0;
+        }
+    }
+
+    if (path_copy_length == 0) {
+        char *result = NULL;
+        if (first_component_copy_length == 0) {
+            if (second_component_copy_length == 0) {
+                return NULL;
+            }
+
+            *length_out = second_component_copy_length;
+            result =
+                alloc_and_copy(second_component_iter,
+                               second_component_copy_length);
+        } else if (second_component_copy_length == 0) {
+            *length_out = first_component_copy_length;
+            result =
+                alloc_and_copy(first_component_iter,
+                               first_component_copy_length);
+        }
+
+        return result;
+    }
+
+    if (first_component_copy_length == 0) {
+        if (second_component_copy_length == 0) {
+            return alloc_and_copy(path, path_copy_length);
+        }
+
+        char *const result =
+            path_append_component_with_len(path,
+                                           path_copy_length,
+                                           second_component_iter,
+                                           second_component_copy_length,
+                                           length_out);
+
+        return result;
+    }
+
+    if (second_component_copy_length == 0) {
+        char *const result =
+            path_append_component_with_len(path,
+                                           path_copy_length,
+                                           first_component_iter,
+                                           first_component_copy_length,
+                                           length_out);
+
+        return result;
+    }
+
+    /*
+     * An extension may be provided without having a row of dots in front, which
+     * needs to be accounted for.
+     */
+
+    const char *extension_copy_iter = extension;
+    uint64_t extension_copy_length = 0;
+
+    if (extension != NULL) {
+        extension_copy_iter = go_to_end_of_dots(extension);
+        if (extension_copy_iter != NULL) {
+            const uint64_t drift = (uint64_t)(extension_copy_iter - extension);
+            extension_copy_length = extension_length - drift;
+        }
+    }
+
+    /*
+     * Add two for the back-slash on the path and the back-slash on the
+     * first-component.
+     */
+
+    uint64_t combined_length =
+        path_copy_length +
+        first_component_copy_length +
+        second_component_copy_length +
+        2;
+
+    /*
+     * Add one for the path-extension dot, which we prefer to add ourselves.
+     */
+
+    if (extension_copy_length != 0) {
+        combined_length += extension_copy_length + 1;
+    }
+
+    /*
+     * Add one to the length for the null-terminator.
+     */
+
+    char *const combined = malloc(combined_length + 1);
+    if (combined == NULL) {
+        return NULL;
+    }
+
+    char *first_combined_component_iter = combined + path_copy_length;
+    char *second_combined_component_iter =
+        first_combined_component_iter + first_component_copy_length + 1;
+
+    /*
+     * Write the slash-separator between the path and the component.
+     */
+
+    *first_combined_component_iter = '/';
+    first_combined_component_iter += 1;
+
+    *second_combined_component_iter = '/';
+    second_combined_component_iter += 1;
+
+    memcpy(combined, path, path_copy_length);
+    memcpy(first_combined_component_iter,
+           first_component_iter,
+           first_component_copy_length);
+
+    memcpy(second_combined_component_iter,
+           second_component_iter,
+           second_component_copy_length);
+
+    if (extension_copy_length != 0) {
+        char *const combined_extension_iter =
+            second_combined_component_iter + second_component_copy_length;
 
         /*
          * Add one for the extension-dot.
