@@ -31,7 +31,7 @@ void *array_get_front(const struct array *const array) {
 }
 
 void *array_get_back(const struct array *const array, const size_t item_size) {
-    void *const data_end = array->data_end;
+    void *const data_end = (void *)array->data_end;
     if (array->data == data_end) {
         return NULL;
     }
@@ -96,7 +96,7 @@ array_add_item_to_byte_index(struct array *const array,
     }
 
     void *const position = array->data + byte_index;
-    void *const data_end = array->data_end;
+    const void *const data_end = array->data_end;
 
     if (position != data_end) {
         void *const next_position = position + item_size;
@@ -128,16 +128,21 @@ array_add_item(struct array *const array,
                const void *const item,
                void **const item_out)
 {
-    const uint64_t byte_index = (uint64_t)(array->data_end - array->data);
-    const enum array_result add_item_result =
-        array_add_item_to_byte_index(array,
-                                     item_size,
-                                     item,
-                                     byte_index,
-                                     item_out);
+    const enum array_result expand_result =
+        array_expand_if_necessary(array, item_size);
 
-    if (add_item_result != E_ARRAY_OK) {
-        return add_item_result;
+    if (expand_result != E_ARRAY_OK) {
+        return expand_result;
+    }
+
+    void *const position = (void *)array->data_end;
+    memcpy(position, item, item_size);
+
+    array->data_end = position + item_size;
+    array->item_count += 1;
+
+    if (item_out != NULL) {
+        *item_out = position;
     }
 
     return E_ARRAY_OK;
@@ -155,7 +160,7 @@ array_add_items_from_array(struct array *const array,
         return expand_result;
     }
 
-    void *const data_end = array->data_end;
+    void *const data_end = (void *)array->data_end;
     memcpy(data_end, src->data, src_used_size);
 
     array->data_end = data_end + src_used_size;
@@ -321,7 +326,7 @@ array_slice_get_sorted_array_item_for_item(
             /*
              * Since middle-index for a two-element slice is always
              * slice->front, we cannot go anywhere if slice->front is already
-             * "greater than" the item provided
+             * "greater than" the item provided.
              */
 
             if (array_slice_holds_two_elements(slice)) {

@@ -22,8 +22,9 @@
 
 struct array {
     void *data;
-    void *data_end;
-    void *alloc_end;
+
+    const void *data_end;
+    const void *alloc_end;
 
     /*
      * To improve performance while using the sort APIs, store the item-count of
