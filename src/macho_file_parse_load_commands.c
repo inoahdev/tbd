@@ -1275,20 +1275,6 @@ macho_file_parse_load_commands_from_file(
                     }
                 }
 
-                if (info_in->swift_version != 0) {
-                    const bool ignore_conflicting_fields =
-                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                    if (!ignore_conflicting_fields) {
-                        if (info_in->swift_version != swift_version) {
-                            free(load_cmd_buffer);
-                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
-                        }
-                    }
-                } else {
-                    info_in->swift_version = swift_version;
-                }
-
                 break;
             }
 
@@ -1389,20 +1375,6 @@ macho_file_parse_load_commands_from_file(
                         free(load_cmd_buffer);
                         return parse_section_result;
                     }
-                }
-
-                if (info_in->swift_version != 0) {
-                    const bool ignore_conflicting_fields =
-                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                    if (!ignore_conflicting_fields) {
-                        if (info_in->swift_version != swift_version) {
-                            free(load_cmd_buffer);
-                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
-                        }
-                    }
-                } else {
-                    info_in->swift_version = swift_version;
                 }
 
                 break;
@@ -1843,19 +1815,6 @@ macho_file_parse_load_commands_from_map(
                     }
                 }
 
-                if (info_in->swift_version != 0) {
-                    const bool ignore_conflicting_fields =
-                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                    if (!ignore_conflicting_fields) {
-                        if (info_in->swift_version != swift_version) {
-                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
-                        }
-                    }
-                } else {
-                    info_in->swift_version = swift_version;
-                }
-
                 break;
             }
 
@@ -1953,19 +1912,6 @@ macho_file_parse_load_commands_from_map(
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
                         return parse_section_result;
                     }
-                }
-
-                if (info_in->swift_version != 0) {
-                    const bool ignore_conflicting_fields =
-                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                    if (!ignore_conflicting_fields) {
-                        if (info_in->swift_version != swift_version) {
-                            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
-                        }
-                    }
-                } else {
-                    info_in->swift_version = swift_version;
                 }
 
                 break;
