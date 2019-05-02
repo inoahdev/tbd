@@ -245,7 +245,6 @@ recurse_dir_fd(const int dir_fd,
         }
     } while (true);
 
-    closedir(dir);
     return E_DIR_RECURSE_OK;
 }
 
