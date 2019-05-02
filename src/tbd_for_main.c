@@ -476,15 +476,17 @@ tbd_for_main_create_write_path_while_recursing(
          */
 
         const uint64_t parse_path_length = tbd->parse_path_length;
-        const char *subdirs_iter = folder_path + parse_path_length;
+        const uint64_t subdirs_length = folder_path_length - parse_path_length;
 
-        uint64_t subdirs_length = folder_path_length - parse_path_length;
+        const char *subdirs_iter = folder_path + parse_path_length;
+        uint64_t new_file_name_length = file_name_length;
+
         if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
             const char *const path_extension =
-                path_find_extension(subdirs_iter, subdirs_length);
+                path_find_extension(file_name, file_name_length);
 
             if (path_extension != NULL) {
-                subdirs_length = (uint64_t)(path_extension - subdirs_iter);
+                new_file_name_length = (uint64_t)(path_extension - file_name);
             }
         }
 
@@ -495,7 +497,7 @@ tbd_for_main_create_write_path_while_recursing(
                 subdirs_iter,
                 subdirs_length,
                 file_name,
-                file_name_length,
+                new_file_name_length,
                 extension,
                 extension_length,
                 length_out);
@@ -533,25 +535,24 @@ tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *const tbd,
                                          const uint64_t extension_length,
                                          uint64_t *const length_out)
 {
-    uint64_t image_path_copy_length = image_path_length;
+    uint64_t new_image_path_length = image_path_length;
     if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
         const char *const path_extension =
             path_find_extension(image_path, image_path_length);
 
         if (path_extension != NULL) {
-            image_path_copy_length = (uint64_t)(path_extension - image_path);
+            new_image_path_length = (uint64_t)(path_extension - image_path);
         }
     }
 
     char *const image_write_path =
-        path_append_component_and_extension_with_len(
-            write_path,
-            write_path_length,
-            image_path,
-            image_path_copy_length,
-            extension,
-            extension_length,
-            length_out);
+        path_append_component_and_extension_with_len(write_path,
+                                                     write_path_length,
+                                                     image_path,
+                                                     new_image_path_length,
+                                                     extension,
+                                                     extension_length,
+                                                     length_out);
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
