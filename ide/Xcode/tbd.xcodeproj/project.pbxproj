@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C318AD89227AB70B0049C25E /* copy.c in Sources */ = {isa = PBXBuildFile; fileRef = C318AD88227AB70B0049C25E /* copy.c */; };
 		C361A4EE22489453001BD07A /* dir_recurse.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4D522489452001BD07A /* dir_recurse.c */; };
 		C361A4EF22489453001BD07A /* request_user_input.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4D622489452001BD07A /* request_user_input.c */; };
 		C361A4F022489453001BD07A /* tbd_write.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4D722489452001BD07A /* tbd_write.c */; };
@@ -46,6 +47,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C318AD88227AB70B0049C25E /* copy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = copy.c; path = ../../src/copy.c; sourceTree = "<group>"; };
 		C361A4D522489452001BD07A /* dir_recurse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dir_recurse.c; path = ../../src/dir_recurse.c; sourceTree = "<group>"; };
 		C361A4D622489452001BD07A /* request_user_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = request_user_input.c; path = ../../src/request_user_input.c; sourceTree = "<group>"; };
 		C361A4D722489452001BD07A /* tbd_write.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tbd_write.c; path = ../../src/tbd_write.c; sourceTree = "<group>"; };
@@ -199,6 +201,7 @@
 			children = (
 				C361A4DC22489452001BD07A /* arch_info.c */,
 				C361A4D922489452001BD07A /* array.c */,
+				C318AD88227AB70B0049C25E /* copy.c */,
 				C361A4D522489452001BD07A /* dir_recurse.c */,
 				C361A4DF22489452001BD07A /* dsc_image.c */,
 				C361A4E522489453001BD07A /* dyld_shared_cache.c */,
@@ -282,6 +285,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C318AD89227AB70B0049C25E /* copy.c in Sources */,
 				C361A4FA22489453001BD07A /* main.c in Sources */,
 				C361A4EE22489453001BD07A /* dir_recurse.c in Sources */,
 				C361A4FC22489453001BD07A /* macho_file_parse_symbols.c in Sources */,
@@ -427,6 +431,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				OTHER_CFLAGS = "-I${PROJECT_DIR}/../../include/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -436,6 +441,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				OTHER_CFLAGS = "-I${PROJECT_DIR}/../../include/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
