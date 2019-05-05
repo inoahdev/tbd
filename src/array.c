@@ -31,12 +31,12 @@ void *array_get_front(const struct array *const array) {
 }
 
 void *array_get_back(const struct array *const array, const size_t item_size) {
-    void *const data_end = (void *)array->data_end;
+    const void *const data_end = array->data_end;
     if (array->data == data_end) {
         return NULL;
     }
 
-    return data_end - item_size;
+    return (void *)(data_end - item_size);
 }
 
 bool array_is_empty(const struct array *const array) {
@@ -209,10 +209,10 @@ array_find_item(const struct array *const array,
                 const array_item_comparator comparator,
                 uint64_t *const index_out)
 {
+    uint64_t index = 0;
+
     void *data_iter = array->data;
     const void *const data_end = array->data_end;
-
-    uint64_t index = 0;
 
     for (; data_iter != data_end; data_iter += item_size, index++) {
         if (comparator(data_iter, item) != 0) {

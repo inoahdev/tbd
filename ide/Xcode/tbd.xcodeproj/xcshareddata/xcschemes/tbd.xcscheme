@@ -61,12 +61,6 @@
             ReferencedContainer = "container:tbd.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "-p -r all &quot;/Users/administrator/Library/Developer/Xcode/iOS DeviceSupport/12.1 (16B92)/Symbols/System&quot; -v v1 -o --no-overwrite --preserve-subdirs --replace-path-extension ~/Desktop/sdks --replace-archs armv7 armv7s arm64 --allow-private-objc-symbols --ignore-missing-exports --ignore-warnings"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>

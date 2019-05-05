@@ -87,7 +87,7 @@ parse_architectures_list(int *const index_in,
         *count_out = count;
     }
 
-    *index_in = index;
+    *index_in = index - 1;
     return archs;
 }
 

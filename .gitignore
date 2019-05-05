@@ -1,4 +1,6 @@
 **/.DS_Store
+
+**/xcshareddata/
 **/xcuserdata/
 
 .ccls-cache
