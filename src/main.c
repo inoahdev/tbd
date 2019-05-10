@@ -71,11 +71,48 @@ recurse_directory_callback(const char *const dir_path,
      */
 
     const char *const name = dirent->d_name;
-
-    const uint64_t flags = tbd->flags;
     const uint64_t name_length = strnlen(name, sizeof(dirent->d_name));
 
-    if (tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
+    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+        const struct parse_dsc_for_main_args args = {
+            .fd = fd,
+            .magic_in = &magic,
+
+            .magic_in_size_in = &magic_size,
+            .retained_info_in = retained,
+
+            .global = global,
+            .tbd = tbd,
+
+            .dsc_dir_path = dir_path,
+            .dsc_dir_path_length = dir_path_length,
+
+            .dsc_name = dirent->d_name,
+            .dsc_name_length = name_length,
+
+            .ignore_non_cache_error = true,
+            .print_paths = true
+        };
+
+        const enum parse_dsc_for_main_result parse_as_dsc_result =
+            parse_dsc_for_main_while_recursing(args);
+
+        close(fd);
+
+        switch (parse_as_dsc_result) {
+            case E_PARSE_DSC_FOR_MAIN_OK:
+                recurse_info->files_parsed += 1;
+                return true;
+
+            case E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE:
+                break;
+
+            case E_PARSE_DSC_FOR_MAIN_OTHER_ERROR:
+                return true;
+        }
+    }
+
+    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
         const struct parse_macho_for_main_args args = {
             .fd = fd,
             .magic_in = &magic,
@@ -114,51 +151,6 @@ recurse_directory_callback(const char *const dir_path,
                 close(fd);
                 return true;
         }
-
-        if (!(flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
-            close(fd);
-            return true;
-        }
-    } else if (!(flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC)) {
-        close(fd);
-        return true;
-    }
-
-    const struct parse_dsc_for_main_args args = {
-        .fd = fd,
-        .magic_in = &magic,
-
-        .magic_in_size_in = &magic_size,
-        .retained_info_in = retained,
-
-        .global = global,
-        .tbd = tbd,
-
-        .dsc_dir_path = dir_path,
-        .dsc_dir_path_length = dir_path_length,
-
-        .dsc_name = dirent->d_name,
-        .dsc_name_length = name_length,
-
-        .ignore_non_cache_error = true,
-        .print_paths = true
-    };
-
-    const enum parse_dsc_for_main_result parse_as_dsc_result =
-        parse_dsc_for_main_while_recursing(args);
-
-    close(fd);
-
-    switch (parse_as_dsc_result) {
-        case E_PARSE_DSC_FOR_MAIN_OK:
-            recurse_info->files_parsed += 1;
-            return true;
-
-        case E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE:
-            break;
-
-        case E_PARSE_DSC_FOR_MAIN_OTHER_ERROR:
-            return true;
     }
 
     return true;
@@ -207,104 +199,21 @@ recurse_directory_fail_callback(const char *const dir_path,
     return true;
 }
 
-static void verify_dsc_write_path(struct tbd_for_main *const tbd) {
-    const char *const write_path = tbd->write_path;
-    if (write_path == NULL) {
-        /*
-         * If we have exactly zero filters and zero numbers, and exactly one
-         * path, we can write to stdout (which is what NULL write_path
-         * represents).
-         *
-         * Or if we have exactly zero filtera and zero paths, and exactly one
-         * number, we can write to stdout.
-         *
-         * The reason why no filters, no numbers, and no paths is not allowed to
-         * write to stdout is because no filters, no numbers, and no paths means
-         * all images are parsed.
-         */
+static int validate_tbd_filetype(struct tbd_for_main *const tbd) {
+    const struct array *const filters = &tbd->dsc_image_filters;
+    const struct array *const paths = &tbd->dsc_image_paths;
 
-        const struct array *const filters = &tbd->dsc_image_filters;
-        const struct array *const numbers = &tbd->dsc_image_numbers;
-        const struct array *const paths = &tbd->dsc_image_paths;
-
-        if (array_is_empty(filters)) {
-            if (array_is_empty(numbers)) {
-                if (paths->item_count == 1) {
-                    return;
-                }
-            }
-
-            if (array_is_empty(paths)) {
-                if (numbers->item_count == 1) {
-                    return;
-                }
-            }
-        }
-
-        fprintf(stderr,
-                "Please provide a directory to write .tbd files created from "
-                "images of the dyld_shared_cache file at the provided "
-                "path: %s\n",
-                tbd->parse_path);
-
-        exit(1);
-    }
-
-    struct stat sbuf = {};
-    if (stat(write_path, &sbuf) < 0) {
-        /*
-         * Ignore any errors if the object doesn't even exist.
-         */
-
-        if (errno != ENOENT) {
-            fprintf(stderr,
-                    "Failed to get information on object at the provided "
-                    "write-path (%s), error: %s\n",
-                    write_path,
-                    strerror(errno));
+    if (!array_is_empty(filters) || !array_is_empty(paths)) {
+        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+            fputs("dsc image-filters and/or dsc image-paths have been provided "
+                  "for a file that is not a dyld_shared_cache\n",
+                  stderr);
 
             exit(1);
         }
-
-        return;
     }
 
-    if (S_ISREG(sbuf.st_mode)) {
-        /*
-         * We allow writing to regular files only with the following conditions:
-         *     (1) No filters have been provided. This is because we can't tell
-         *         before iterating how many images will pass the filter.
-         *
-         *     (2) Either only one image-number, or only one image-path has been
-         *         provided.
-         */
-
-        const struct array *const filters = &tbd->dsc_image_filters;
-        if (array_is_empty(filters)) {
-            const struct array *const numbers = &tbd->dsc_image_numbers;
-            const struct array *const paths = &tbd->dsc_image_paths;
-
-            const uint64_t numbers_count = numbers->item_count;
-            const uint64_t paths_count = paths->item_count;
-
-            if (numbers_count == 1 && paths_count == 0) {
-                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
-                return;
-            }
-
-            if (numbers_count == 0 && paths_count == 1) {
-                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
-                return;
-            }
-        }
-
-        fputs("Writing to a regular file while parsing multiple images from a "
-              "dyld_shared_cache file is not supported, Please provide a "
-              "directory to write all tbds to\n",
-              stderr);
-
-        exit(1);
-    }
+    return 0;
 }
 
 static void destroy_tbds_array(struct array *const tbds) {
@@ -515,12 +424,12 @@ int main(const int argc, const char *const argv[]) {
 
                 const uint64_t options = tbd->flags;
                 if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                    tbd->filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE)
+                    !tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC))
                 {
                     if (options & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
                         fputs("Option --preserve-subdirs can only be provided "
                               "for either recursing directoriess, or parsing "
-                              "parsing dyld_shared_cache files\n",
+                              "dyld_shared_cache files\n",
                               stderr);
 
                         tbd_for_main_destroy(&global);
@@ -589,17 +498,13 @@ int main(const int argc, const char *const argv[]) {
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
-                        /*
-                         * dyld_shared_cache files are always written to a
-                         * directory.
-                         */
-
-                        const bool is_dsc =
-                            tbd->filetype ==
-                            TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
+                        const bool has_dsc =
+                            tbd_for_main_has_filetype(
+                                tbd,
+                                TBD_FOR_MAIN_FILETYPE_DSC);
 
                         if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                            !is_dsc)
+                            !has_dsc)
                         {
                             fputs("Writing to a directory while parsing a "
                                   "single mach-o file is not supported, Please "
@@ -638,8 +543,8 @@ int main(const int argc, const char *const argv[]) {
 
                 tbd->write_path = full_path;
                 tbd->write_path_length = full_path_length;
-
                 found_path = true;
+
                 break;
             }
 
@@ -658,8 +563,9 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "p") == 0 || strcmp(option, "path") == 0) {
             index += 1;
             if (index == argc) {
-                fputs("Please provide either a path to a mach-o file or "
-                      "\"stdin\" to parse from terminal input\n",
+                fputs("Please provide either a path to a mach-o file or a "
+                      "dyld_shared_cache file or \"stdin\" to parse from "
+                      "terminal input\n",
                       stderr);
 
                 tbd_for_main_destroy(&global);
@@ -707,10 +613,10 @@ int main(const int argc, const char *const argv[]) {
                                 index += 1;
                             }
                         }
+                    } else if (strcmp(inner_opt, "macho") == 0) {
+                        tbd.filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
                     } else if (strcmp(inner_opt, "dsc") == 0) {
-                        tbd.filetype = TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE;
-                    } else if (strcmp(inner_opt, "include-dsc") == 0) {
-                        tbd.flags |= F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC;
+                        tbd.filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,
@@ -801,30 +707,8 @@ int main(const int argc, const char *const argv[]) {
 
                             return 1;
                         }
-
-                        if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC) {
-                            fputs("Option (--include-dsc) is used to indicate "
-                                  "that dyld_shared_cache files should also be "
-                                  "parsed while recursing, in addition to "
-                                  "mach-o files. Please use option --dsc "
-                                  "instead to indicate you want to parse a "
-                                  "dyld_shared_cache file\n",
-                                  stderr);
-
-                            if (full_path != path) {
-                                free(full_path);
-                            }
-
-                            tbd_for_main_destroy(&global);
-                            destroy_tbds_array(&tbds);
-
-                            return 1;
-                        }
                     } else if (S_ISDIR(info.st_mode)) {
-                        const uint64_t recurse_directories =
-                            tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
-
-                        if (!recurse_directories) {
+                        if (!(tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
                             fputs("Unable to open a directory as a mach-o file"
                                   ", Please provide option '-r' to indicate "
                                   "recursing\n",
@@ -941,39 +825,9 @@ int main(const int argc, const char *const argv[]) {
                     }
                 }
 
-                if (tbd.filetype != TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
-                    const struct array *const filters = &tbd.dsc_image_filters;
-                    if (!array_is_empty(filters)) {
-                        fprintf(stderr,
-                                "Option --image-filter-name, provided for path "
-                                "(%s), is only for parsing dyld_shared_cache "
-                                "files\n",
-                                path);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        free(tbd.parse_path);
-                        return 1;
-                    }
-
-                    const struct array *const numbers = &tbd.dsc_image_numbers;
-                    if (!array_is_empty(numbers)) {
-                        fprintf(stderr,
-                                "Option --image-filter-number, provided for "
-                                "path (%s), is only for parsing "
-                                "dyld_shared_cache files\n",
-                                path);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        free(tbd.parse_path);
-                        return 1;
-                    }
-                }
-
+                validate_tbd_filetype(&tbd);
                 found_path = true;
+
                 break;
             }
 
@@ -995,11 +849,10 @@ int main(const int argc, const char *const argv[]) {
                 fputs("Internal failure: Failed to add info to array\n",
                       stderr);
 
-                free(tbd.parse_path);
-
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
+                free(tbd.parse_path);
                 return 1;
             }
         } else if (strcmp(option, "list-architectures") == 0) {
@@ -1146,7 +999,9 @@ int main(const int argc, const char *const argv[]) {
             global.flags |= F_TBD_FOR_MAIN_NO_OVERWRITE;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (index != 1 || argc != 2) {
-                fputs("--usage needs to be run by itself\n", stderr);
+                fprintf(stderr,
+                        "Option %s needs to be run by itself\n",
+                        argument);
 
                 tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
@@ -1289,62 +1144,88 @@ int main(const int argc, const char *const argv[]) {
              */
 
             char magic[16] = {};
+
             uint64_t magic_size = 0;
+            bool matched_filetype = false;
 
-            switch (tbd->filetype) {
-                case TBD_FOR_MAIN_FILETYPE_MACHO: {
-                    const struct parse_macho_for_main_args args = {
-                        .fd = fd,
-                        .magic_in = &magic,
+            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+                const struct parse_dsc_for_main_args args = {
+                    .fd = fd,
+                    .magic_in = &magic,
 
-                        .magic_in_size_in = &magic_size,
-                        .retained_info_in = &retained_info,
+                    .magic_in_size_in = &magic_size,
+                    .retained_info_in = &retained_info,
 
-                        .global = &global,
-                        .tbd = tbd,
+                    .global = &global,
+                    .tbd = tbd,
 
-                        .dir_path = parse_path,
-                        .dir_path_length = tbd->parse_path_length,
+                    .dsc_dir_path = parse_path,
+                    .dsc_dir_path_length = tbd->parse_path_length,
 
-                        .ignore_non_macho_error = false,
-                        .print_paths = should_print_paths
-                    };
+                    .ignore_non_cache_error = false,
+                    .print_paths = should_print_paths,
 
-                    parse_macho_file_for_main(args);
-                    break;
-                }
-
-                case TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE: {
                     /*
                      * Verify the write-path only at the last moment, as global
                      * configuration is now accounted for.
                      */
 
-                    verify_dsc_write_path(tbd);
+                    .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
+                };
 
-                    const struct parse_dsc_for_main_args args = {
-                        .fd = fd,
-                        .magic_in = &magic,
-
-                        .magic_in_size_in = &magic_size,
-                        .retained_info_in = &retained_info,
-
-                        .global = &global,
-                        .tbd = tbd,
-
-                        .dsc_dir_path = parse_path,
-                        .dsc_dir_path_length = tbd->parse_path_length,
-
-                        .ignore_non_cache_error = false,
-                        .print_paths = should_print_paths
-                    };
-
+                const enum parse_dsc_for_main_result parse_result =
                     parse_dsc_for_main(args);
-                    break;
+
+                if (parse_result != E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE) {
+                    matched_filetype = true;
                 }
+
+                break;
+            }
+
+            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
+                const struct parse_macho_for_main_args args = {
+                    .fd = fd,
+                    .magic_in = &magic,
+
+                    .magic_in_size_in = &magic_size,
+                    .retained_info_in = &retained_info,
+
+                    .global = &global,
+                    .tbd = tbd,
+
+                    .dir_path = parse_path,
+                    .dir_path_length = tbd->parse_path_length,
+
+                    .ignore_non_macho_error = false,
+                    .print_paths = should_print_paths,
+
+                    .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
+                };
+
+                const enum parse_macho_for_main_result parse_result =
+                    parse_macho_file_for_main(args);
+
+                if (parse_result != E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO) {
+                    matched_filetype = true;
+                }
+
+                break;
             }
 
             close(fd);
+
+            if (!matched_filetype) {
+                if (should_print_paths) {
+                    fputs("File at provided path (%s) was not among any of the "
+                          "provided filetypes\n",
+                          stderr);
+                } else {
+                    fputs("File at the provided path was not among any of the "
+                          "provided filetypes\n",
+                          stderr);
+                }
+            }
         }
     }
 

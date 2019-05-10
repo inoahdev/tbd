@@ -21,6 +21,10 @@ enum parse_dsc_for_main_result {
     E_PARSE_DSC_FOR_MAIN_OTHER_ERROR
 };
 
+enum parse_dsc_for_main_options {
+    O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH = 1 << 0
+};
+
 struct parse_dsc_for_main_args {
     int fd;
     void *magic_in;
@@ -35,10 +39,12 @@ struct parse_dsc_for_main_args {
     uint64_t dsc_dir_path_length;
 
     const char *dsc_name;
-    const uint64_t dsc_name_length;
+    uint64_t dsc_name_length;
 
     bool ignore_non_cache_error;
     bool print_paths;
+
+    uint64_t options;
 };
 
 enum parse_dsc_for_main_result

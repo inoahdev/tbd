@@ -428,6 +428,18 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     return true;
 }
 
+bool
+tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
+                          const enum tbd_for_main_filetype filetype)
+{
+    const uint64_t filetypes = tbd->filetypes;
+    if (filetypes == 0) {
+        return true;
+    }
+
+    return (filetypes & filetype);
+}
+
 char *
 tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                const char *const file_name,
@@ -939,7 +951,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
         dst->info.version = src->info.version;
     }
 
-    if (dst->filetype == TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE) {
+    if (tbd_for_main_has_filetype(dst, TBD_FOR_MAIN_FILETYPE_DSC)) {
         const struct array *const src_filters = &src->dsc_image_filters;
         if (!array_is_empty(src_filters)) {
             const enum array_result add_filters_result =
@@ -1024,6 +1036,6 @@ void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
     tbd->write_options = 0;
     tbd->parse_options = 0;
 
-    tbd->filetype = 0;
+    tbd->filetypes = 0;
     tbd->flags = 0;
 }

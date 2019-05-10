@@ -64,13 +64,12 @@ enum tbd_for_main_flags {
      * directory. (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_RECURSE_INCLUDE_DSC    = 1 << 11,
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 12
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 11
 };
 
 enum tbd_for_main_filetype {
-    TBD_FOR_MAIN_FILETYPE_MACHO,
-    TBD_FOR_MAIN_FILETYPE_DYLD_SHARED_CACHE
+    TBD_FOR_MAIN_FILETYPE_MACHO = 1 << 0,
+    TBD_FOR_MAIN_FILETYPE_DSC   = 1 << 1
 };
 
 struct tbd_for_main {
@@ -87,7 +86,7 @@ struct tbd_for_main {
     uint64_t parse_path_length;
     uint64_t write_path_length;
 
-    enum tbd_for_main_filetype filetype;
+    uint64_t filetypes;
 
     /*
      * We store both option-sets for the filetypes as we need both when
@@ -114,6 +113,10 @@ struct tbd_for_main {
     struct array dsc_image_numbers;
     struct array dsc_image_paths;
 };
+
+bool
+tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
+                          const enum tbd_for_main_filetype filetype);
 
 bool
 tbd_for_main_parse_option(struct tbd_for_main *tbd,

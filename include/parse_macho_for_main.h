@@ -15,10 +15,8 @@
  * magic_in should be atleast 4 bytes large.
  */
 
-enum parse_macho_for_main_result {
-    E_PARSE_MACHO_FOR_MAIN_OK,
-    E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO,
-    E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR
+enum parse_macho_for_main_options {
+    O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH = 1 << 0
 };
 
 struct parse_macho_for_main_args {
@@ -35,10 +33,18 @@ struct parse_macho_for_main_args {
     uint64_t dir_path_length;
 
     const char *name;
-    const uint64_t name_length;
+    uint64_t name_length;
 
     bool ignore_non_macho_error;
     bool print_paths;
+
+    uint64_t options;
+};
+
+enum parse_macho_for_main_result {
+    E_PARSE_MACHO_FOR_MAIN_OK,
+    E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO,
+    E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR
 };
 
 enum parse_macho_for_main_result

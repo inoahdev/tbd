@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <inttypes.h>
@@ -762,6 +763,108 @@ read_magic(void *const magic_in,
     return E_READ_MAGIC_OK;
 }
 
+static void verify_write_path(struct tbd_for_main *const tbd) {
+    const char *const write_path = tbd->write_path;
+    if (write_path == NULL) {
+        /*
+         * If we have exactly zero filters and zero numbers, and exactly one
+         * path, we can write to stdout (which is what NULL write_path
+         * represents).
+         *
+         * Or if we have exactly zero filtera and zero paths, and exactly one
+         * number, we can write to stdout.
+         *
+         * The reason why no filters, no numbers, and no paths is not allowed to
+         * write to stdout is because no filters, no numbers, and no paths means
+         * all images are parsed.
+         */
+
+        const struct array *const filters = &tbd->dsc_image_filters;
+        const struct array *const numbers = &tbd->dsc_image_numbers;
+        const struct array *const paths = &tbd->dsc_image_paths;
+
+        if (array_is_empty(filters)) {
+            if (array_is_empty(numbers)) {
+                if (paths->item_count == 1) {
+                    return;
+                }
+            }
+
+            if (array_is_empty(paths)) {
+                if (numbers->item_count == 1) {
+                    return;
+                }
+            }
+        }
+
+        fprintf(stderr,
+                "Please provide a directory to write .tbd files created from "
+                "images of the dyld_shared_cache file at the provided "
+                "path: %s\n",
+                tbd->parse_path);
+
+        exit(1);
+    }
+
+    struct stat sbuf = {};
+    if (stat(write_path, &sbuf) < 0) {
+        /*
+         * Ignore any errors if the object doesn't even exist.
+         */
+
+        if (errno != ENOENT) {
+            fprintf(stderr,
+                    "Failed to get information on object at the provided "
+                    "write-path (%s), error: %s\n",
+                    write_path,
+                    strerror(errno));
+
+            exit(1);
+        }
+
+        return;
+    }
+
+    if (S_ISREG(sbuf.st_mode)) {
+        /*
+         * We allow writing to regular files only with the following conditions:
+         *     (1) No filters have been provided. This is because we can't tell
+         *         before iterating how many images will pass the filter.
+         *
+         *     (2) Either only one image-number, or only one image-path has been
+         *         provided.
+         */
+
+        const struct array *const filters = &tbd->dsc_image_filters;
+        if (array_is_empty(filters)) {
+            const struct array *const numbers = &tbd->dsc_image_numbers;
+            const struct array *const paths = &tbd->dsc_image_paths;
+
+            const uint64_t numbers_count = numbers->item_count;
+            const uint64_t paths_count = paths->item_count;
+
+            if (numbers_count == 1 && paths_count == 0) {
+                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                return;
+            }
+
+            if (numbers_count == 0 && paths_count == 1) {
+                tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+                return;
+            }
+        }
+
+        fputs("Writing to a regular file while parsing multiple images from a "
+              "dyld_shared_cache file is not supported, Please provide a "
+              "directory to write all tbds to\n",
+              stderr);
+
+        exit(1);
+    }
+
+    return;
+}
+
 enum parse_dsc_for_main_result
 parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     const uint64_t magic_in_size = *args.magic_in_size_in;
@@ -815,6 +918,10 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
                                      args.print_paths);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
+    }
+
+    if (args.options & O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH) {
+        verify_write_path(args.tbd);
     }
 
     struct dsc_iterate_images_callback_info callback_info = {

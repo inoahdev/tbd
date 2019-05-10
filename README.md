@@ -8,22 +8,26 @@ Main options:
     -o, --output, Path(s) to output file(s) to write converted tbd files.
                   If provided file(s) already exists, contents will be overridden.
                   Can also provide "stdout" to print to stdout
-    -p, --path,   Path(s) to mach-o file(s) to convert to a tbd file.
+    -p, --path,   Path(s) to a mach-o or dyld_shared_cache file to convert to a tbd file.
                   Can also provide "stdin" to use stdin.
-                  With the --dsc option listed below, a dyld_shared_cache file can
                   also be provided
     -u, --usage,  Print this message
 
 Path options:
 Usage: tbd [-p] [options] path
-    -r, --recurse,     Specify directory to recurse and find mach-o library files in
-        --dsc,         Specify that the file provided is a dyld_shared_cache file.
-                       dyld_shared_cache files are parsed by extracting their
-                       images into tbds written in a provided folder.
-                       This option can also be used to indicate that only
-                       dyld_shared_cache files should be parsed while recursing
-        --include-dsc, Specify that while recursing, dyld_shared_cache files should be parsed
-                       in addition to mach-o files
+    -r, --recurse, Specify directory to recurse and find all mach-o library and dyld_shared_cache images
+                   Two modes exist for recursing:
+                       once, Recurse only the top-level directory. This is the default case for recursing
+                       all,  Recurse both the top-level directory and sub-directories
+
+        --macho,   Specify that the file provided should only be parsed if it is a mach-o file.
+                   This option can be used to limit the filetypes parsed while recursing
+        --dsc,     Specify that the file provided should only be parsed if it is a dyld-shared-cache file.
+                   This option can be used to limit the filetypes parsed while recursing
+                   Both --macho and --dsc may be provided to indicate that both filetypes should be parsed while recursing
+                   This is however the default behavior, and therefore redundant.
+                   Providing both --macho and --dsc when not recursing is supported for indicating the
+                   filetype of the provided file
 
 Outputting options:
 Usage: tbd -o [options] path
@@ -34,12 +38,12 @@ Usage: tbd -o [options] path
                                   writing out (Instead of simply appending .tbd)
 
 Both local and global options:
-            --filter-image-directory, Specify a directory to filter images from
-            --filter-image-filename,  Specify a filename to filter images from
-            --filter-image-number,    Specify the number of an image to parse out.
-                                      To get the numbers of all available images, use the option --list-images
+            --filter-image-directory, Specify a directory to filter dyld_shared_cache images from
+            --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from
+            --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.
+                                      To get the numbers of all available images, use the option --list-dsc-images
             --image-path,             Specify the path of an image to parse out.
-                                      To get the paths of all available images, use the option --list-images
+                                      To get the paths of all available images, use the option --list-dsc-images
         -v, --version,                Specify version of .tbd files to convert to (default is v2).
                                       This applies to all files where tbd-version was not explicitly set.
                                       To get a list of all available versions, use the option --list-tbd-versions

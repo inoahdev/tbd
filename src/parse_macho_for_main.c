@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <stdlib.h>
@@ -132,6 +133,41 @@ handle_write_result_while_recursing(
     }
 }
 
+static void verify_write_path(const struct tbd_for_main *const tbd) {
+    const char *const write_path = tbd->write_path;
+    if (write_path == NULL) {
+        return;
+    }
+
+    struct stat sbuf = {};
+    if (stat(write_path, &sbuf) < 0) {
+        /*
+         * Ignore any errors if the object doesn't even exist.
+         */
+
+        if (errno != ENOENT) {
+            fprintf(stderr,
+                    "Failed to get information on object at the provided "
+                    "write-path (%s), error: %s\n",
+                    write_path,
+                    strerror(errno));
+
+            exit(1);
+        }
+
+        return;
+    }
+
+    if (!S_ISREG(sbuf.st_mode)) {
+        fprintf(stderr,
+                "Writing to a regular file while parsing mach-o file (at path "
+                "%s) is not supported",
+                tbd->parse_path);
+
+        exit(1);
+    }
+}
+
 enum parse_macho_for_main_result
 parse_macho_file_for_main(const struct parse_macho_for_main_args args)
 {
@@ -194,6 +230,10 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args)
         }
 
         return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
+    }
+
+    if (args.options & O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH) {
+        verify_write_path(args.tbd);
     }
 
     const struct handle_macho_file_parse_result_args handle_args = {
