@@ -951,22 +951,6 @@ int main(const int argc, const char *const argv[]) {
 
             print_platform_list();
             return 0;
-        } else if (strcmp(option, "list-recurse") == 0) {
-            if (index != 1 || argc != 2) {
-                fputs("--list-recurse need to be run alone\n", stderr);
-
-                tbd_for_main_destroy(&global);
-                destroy_tbds_array(&tbds);
-
-                return 1;
-            }
-
-            fputs("once, Recurse through all of a directory's files (default)\n"
-                  "all,  Recurse through all of a directory's files and "
-                  "sub-directories\n",
-                  stdout);
-
-            return 0;
         } else if (strcmp(option, "list-tbd-flags") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);

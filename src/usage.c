@@ -38,19 +38,22 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
-    fputs("        --macho,                           Specify that the file() provided should only be parsed if it is a mach-o file.\n", stdout);
-    fputs("                                           This option can be used to limit the filetypes parsed while recursing\n", stdout);
-    fputs("        --dsc,                             Specify that the file(s) provided should only be parsed if it is a dyld-shared-cache file.\n", stdout);
-    fputs("                                           Providing --macho or --dsc limits filetypes parsed when recursing\n", stdout);
-    fputs("                 --filter-image-directory, Specify a directory to filter dyld_shared_cache images from\n", stdout);
-    fputs("                 --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from\n", stdout);
-    fputs("                 --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.\n", stdout);
-    fputs("                                           To get the numbers of all available images, use the option --list-dsc-images\n", stdout);
-    fputs("                 --image-path,             Specify the path of an image to parse out.\n", stdout);
-    fputs("                                           To get the paths of all available images, use the option --list-dsc-images\n", stdout);
-    fputs("        -v, --version,                     Specify version of .tbd files to convert to (default is v2).\n", stdout);
-    fputs("                                           This applies to all files where tbd-version was not explicitly set.\n", stdout);
-    fputs("                                           To get a list of all available versions, use the option --list-tbd-versions\n", stdout);
+    fputs("        --macho,                                 Specify that the file(s) provided should only be parsed\n", stdout);
+    fputs("                                                 if it is a mach-o file\n", stdout);
+    fputs("                                                 This option can be used to limit the filetypes parsed\n", stdout);
+    fputs("                                                 while recursing\n", stdout);
+    fputs("        --dsc,                                   Specify that the file(s) provided should only be parsed\n", stdout);
+    fputs("                                                 if it is a dyld-shared-cache file.\n", stdout);
+    fputs("                                                 Providing --macho or --dsc limits filetypes parsed when recursing\n", stdout);
+    fputs("                       --filter-image-directory, Specify a directory to filter dyld_shared_cache images from\n", stdout);
+    fputs("                       --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from\n", stdout);
+    fputs("                       --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.\n", stdout);
+    fputs("                                                 To get the numbers of all available images, use the option --list-dsc-images\n", stdout);
+    fputs("                       --image-path,             Specify the path of an image to parse out.\n", stdout);
+    fputs("                                                 To get the paths of all available images, use the option --list-dsc-images\n", stdout);
+    fputs("        -v, --version,                           Specify version of .tbd files to convert to (default is v2).\n", stdout);
+    fputs("                                                 This applies to all files where tbd-version was not explicitly set.\n", stdout);
+    fputs("                                                 To get a list of all available versions, use the option --list-tbd-versions\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);
@@ -81,12 +84,21 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Field options: (Both path and global options)\n", stdout);
-    fputs("        --add-archs,     Provide architecture(s) to add onto architectures found for .tbd files\n", stdout);
-    fputs("        --remove-archs,  Provide architecture(s) to remove from architectures found for .tbd files\n", stdout);
-    fputs("        --replace-archs, Provide architecture(s) to replace architectures found for .tbd files\n", stdout);
-    fputs("        --add-flags,     Provide flag(s) to add onto flags found for .tbd files\n", stdout);
-    fputs("        --remove-flags,  Provide flag(s) to remove from flags found for .tbd files\n", stdout);
-    fputs("        --replace-flags, Provide flag(s) to replace flags found for .tbd files\n", stdout);
+    fputs("        --add-archs,               Provide architecture(s) to add onto architectures found for .tbd files\n", stdout);
+    fputs("                                   A list of architectures can be found by using option --list-architectures\n", stdout);
+    fputs("        --remove-archs,            Provide architecture(s) to remove from architectures found for .tbd files\n", stdout);
+    fputs("                                   A list of architectures can be found by using option --list-architectures\n", stdout);
+    fputs("        --replace-archs,           Provide architecture(s) to replace architectures found for .tbd files\n", stdout);
+    fputs("                                   A list of architectures can be found by using option --list-architectures\n", stdout);
+    fputs("        --add-flags,               Provide flag(s) to add onto flags found for .tbd files\n", stdout);
+    fputs("                                   A list of flags can be found by using option --list-tbd-flags\n", stdout);
+    fputs("        --remove-flags,            Provide flag(s) to remove from flags found for .tbd files\n", stdout);
+    fputs("                                   A list of flags can be found by using option --list-tbd-flags\n", stdout);
+    fputs("        --replace-flags,           Provide flag(s) to replace flags found for .tbd files\n", stdout);
+    fputs("                                   A list of flags can be found by using option --list-tbd-flags\n", stdout);
+    fputs("        --replace-objc-constraint, Provide an objc-constraint to replace the one found for .tbd files\n", stdout);
+    fputs("        --replace-platform,        Provide a platform to replace the one found for .tbd files\n", stdout);
+    fputs("        --replace-swift-version,   Provide a swift-version to replace the one found for .tbd files\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore field warning options: (Both path and global options)\n", stdout);
@@ -102,7 +114,6 @@ void print_usage(void) {
     fputs("        --list-dsc-images,       List all images of a dyld_shared_cache from a provided path\n", stdout);
     fputs("        --list-objc-constraints, List all valid objc-constraint options for .tbd files\n", stdout);
     fputs("        --list-platform,         List all valid platforms\n", stdout);
-    fputs("        --list-recurse,          List all valid recurse options for parsing directories\n", stdout);
     fputs("        --list-tbd-flags,        List all valid flags for .tbd files\n", stdout);
     fputs("        --list-tbd-versions,     List all valid versions for .tbd files\n", stdout);
 }

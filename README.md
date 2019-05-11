@@ -28,19 +28,22 @@ Usage: tbd -o [options] path
                                   writing out (Instead of simply appending .tbd)
 
 Both local and global options:
-        --macho,                           Specify that the file() provided should only be parsed if it is a mach-o file.
-                                           This option can be used to limit the filetypes parsed while recursing
-        --dsc,                             Specify that the file(s) provided should only be parsed if it is a dyld-shared-cache file.
-                                           Providing --macho or --dsc limits filetypes parsed when recursing
-                 --filter-image-directory, Specify a directory to filter dyld_shared_cache images from
-                 --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from
-                 --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.
-                                           To get the numbers of all available images, use the option --list-dsc-images
-                 --image-path,             Specify the path of an image to parse out.
-                                           To get the paths of all available images, use the option --list-dsc-images
-        -v, --version,                     Specify version of .tbd files to convert to (default is v2).
-                                           This applies to all files where tbd-version was not explicitly set.
-                                           To get a list of all available versions, use the option --list-tbd-versions
+        --macho,                                 Specify that the file(s) provided should only be parsed
+                                                 if it is a mach-o file
+                                                 This option can be used to limit the filetypes parsed
+                                                 while recursing
+        --dsc,                                   Specify that the file(s) provided should only be parsed
+                                                 if it is a dyld-shared-cache file.
+                                                 Providing --macho or --dsc limits filetypes parsed when recursing
+                       --filter-image-directory, Specify a directory to filter dyld_shared_cache images from
+                       --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from
+                       --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.
+                                                 To get the numbers of all available images, use the option --list-dsc-images
+                       --image-path,             Specify the path of an image to parse out.
+                                                 To get the paths of all available images, use the option --list-dsc-images
+        -v, --version,                           Specify version of .tbd files to convert to (default is v2).
+                                                 This applies to all files where tbd-version was not explicitly set.
+                                                 To get a list of all available versions, use the option --list-tbd-versions
 
 Ignore options:
         --ignore-clients,               Ignore clients field
@@ -67,12 +70,21 @@ Symbol options: (Both path and global options)
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
 
 Field options: (Both path and global options)
-        --add-archs,     Provide architecture(s) to add onto architectures found for .tbd files
-        --remove-archs,  Provide architecture(s) to remove from architectures found for .tbd files
-        --replace-archs, Provide architecture(s) to replace architectures found for .tbd files
-        --add-flags,     Provide flag(s) to add onto flags found for .tbd files
-        --remove-flags,  Provide flag(s) to remove from flags found for .tbd files
-        --replace-flags, Provide flag(s) to replace flags found for .tbd files
+        --add-archs,               Provide architecture(s) to add onto architectures found for .tbd files
+                                   A list of architectures can be found by using option --list-architectures
+        --remove-archs,            Provide architecture(s) to remove from architectures found for .tbd files
+                                   A list of architectures can be found by using option --list-architectures
+        --replace-archs,           Provide architecture(s) to replace architectures found for .tbd files
+                                   A list of architectures can be found by using option --list-architectures
+        --add-flags,               Provide flag(s) to add onto flags found for .tbd files
+                                   A list of flags can be found by using option --list-tbd-flags
+        --remove-flags,            Provide flag(s) to remove from flags found for .tbd files
+                                   A list of flags can be found by using option --list-tbd-flags
+        --replace-flags,           Provide flag(s) to replace flags found for .tbd files
+                                   A list of flags can be found by using option --list-tbd-flags
+        --replace-objc-constraint, Provide an objc-constraint to replace the one found for .tbd files
+        --replace-platform,        Provide a platform to replace the one found for .tbd files
+        --replace-swift-version,   Provide a swift-version to replace the one found for .tbd files
 
 Ignore field warning options: (Both path and global options)
         --ignore-missing-exports,  Ignore error for when no symbols or reexpors to write out
@@ -86,7 +98,6 @@ List options:
         --list-dsc-images,       List all images of a dyld_shared_cache from a provided path
         --list-objc-constraints, List all valid objc-constraint options for .tbd files
         --list-platform,         List all valid platforms
-        --list-recurse,          List all valid recurse options for parsing directories
         --list-tbd-flags,        List all valid flags for .tbd files
         --list-tbd-versions,     List all valid versions for .tbd files
 ```
