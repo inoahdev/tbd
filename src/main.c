@@ -613,10 +613,6 @@ int main(const int argc, const char *const argv[]) {
                                 index += 1;
                             }
                         }
-                    } else if (strcmp(inner_opt, "macho") == 0) {
-                        tbd.filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
-                    } else if (strcmp(inner_opt, "dsc") == 0) {
-                        tbd.filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
                     } else {
                         const bool ret =
                             tbd_for_main_parse_option(&tbd,

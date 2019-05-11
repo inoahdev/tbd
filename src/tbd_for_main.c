@@ -257,6 +257,10 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         add_image_number(&index, tbd, argc, argv);
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(tbd, argc, argv, &index);
+    } else if (strcmp(option, "dsc") == 0) {
+        tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
+    } else if (strcmp(option, "macho") == 0) {
+        tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
     } else if (strcmp(option, "remove-archs") == 0) {
         index += 1;
         if (index == argc) {
@@ -1004,7 +1008,6 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
                 exit(1);
             }
         }
-
     }
 
     dst->macho_options |= src->macho_options;
@@ -1014,6 +1017,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     dst->write_options |= src->write_options;
 
     dst->flags |= src->flags;
+    dst->filetypes |= src->filetypes;
     dst->info.flags |= src->info.flags;
 }
 

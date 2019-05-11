@@ -5,12 +5,11 @@ Convert Mach-O Libraries &amp; Frameworks to .tbd
 Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [output-paths]
 Main options:
     -h, --help,   Print this message
-    -o, --output, Path(s) to output file(s) to write converted tbd files.
+    -o, --output, Path to an output file (or directory for recursing/dyld_shared_cache files) to write converted tbd files.
                   If provided file(s) already exists, contents will be overridden.
                   Can also provide "stdout" to print to stdout
-    -p, --path,   Path(s) to a mach-o or dyld_shared_cache file to convert to a tbd file.
+    -p, --path,   Path to a mach-o or dyld_shared_cache file to convert to a tbd file.
                   Can also provide "stdin" to use stdin.
-                  also be provided
     -u, --usage,  Print this message
 
 Path options:
@@ -19,15 +18,6 @@ Usage: tbd [-p] [options] path
                    Two modes exist for recursing:
                        once, Recurse only the top-level directory. This is the default case for recursing
                        all,  Recurse both the top-level directory and sub-directories
-
-        --macho,   Specify that the file provided should only be parsed if it is a mach-o file.
-                   This option can be used to limit the filetypes parsed while recursing
-        --dsc,     Specify that the file provided should only be parsed if it is a dyld-shared-cache file.
-                   This option can be used to limit the filetypes parsed while recursing
-                   Both --macho and --dsc may be provided to indicate that both filetypes should be parsed while recursing
-                   This is however the default behavior, and therefore redundant.
-                   Providing both --macho and --dsc when not recursing is supported for indicating the
-                   filetype of the provided file
 
 Outputting options:
 Usage: tbd -o [options] path
@@ -38,15 +28,19 @@ Usage: tbd -o [options] path
                                   writing out (Instead of simply appending .tbd)
 
 Both local and global options:
-            --filter-image-directory, Specify a directory to filter dyld_shared_cache images from
-            --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from
-            --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.
-                                      To get the numbers of all available images, use the option --list-dsc-images
-            --image-path,             Specify the path of an image to parse out.
-                                      To get the paths of all available images, use the option --list-dsc-images
-        -v, --version,                Specify version of .tbd files to convert to (default is v2).
-                                      This applies to all files where tbd-version was not explicitly set.
-                                      To get a list of all available versions, use the option --list-tbd-versions
+        --macho,                           Specify that the file() provided should only be parsed if it is a mach-o file.
+                                           This option can be used to limit the filetypes parsed while recursing
+        --dsc,                             Specify that the file(s) provided should only be parsed if it is a dyld-shared-cache file.
+                                           Providing --macho or --dsc limits filetypes parsed when recursing
+                 --filter-image-directory, Specify a directory to filter dyld_shared_cache images from
+                 --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from
+                 --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.
+                                           To get the numbers of all available images, use the option --list-dsc-images
+                 --image-path,             Specify the path of an image to parse out.
+                                           To get the paths of all available images, use the option --list-dsc-images
+        -v, --version,                     Specify version of .tbd files to convert to (default is v2).
+                                           This applies to all files where tbd-version was not explicitly set.
+                                           To get a list of all available versions, use the option --list-tbd-versions
 
 Ignore options:
         --ignore-clients,               Ignore clients field

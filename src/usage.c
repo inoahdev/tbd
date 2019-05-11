@@ -12,12 +12,11 @@ void print_usage(void) {
     fputs("Usage: tbd [-p/--path] [path-options] [file-paths] [-o/--output] [output-options] [output-paths]\n", stdout);
     fputs("Main options:\n", stdout);
     fputs("    -h, --help,   Print this message\n", stdout);
-    fputs("    -o, --output, Path(s) to output file(s) to write converted tbd files.\n", stdout);
+    fputs("    -o, --output, Path to an output file (or directory for recursing/dyld_shared_cache files) to write converted tbd files.\n", stdout);
     fputs("                  If provided file(s) already exists, contents will be overridden.\n", stdout);
     fputs("                  Can also provide \"stdout\" to print to stdout\n", stdout);
-    fputs("    -p, --path,   Path(s) to a mach-o or dyld_shared_cache file to convert to a tbd file.\n", stdout);
+    fputs("    -p, --path,   Path to a mach-o or dyld_shared_cache file to convert to a tbd file.\n", stdout);
     fputs("                  Can also provide \"stdin\" to use stdin.\n", stdout);
-    fputs("                  also be provided\n", stdout);
     fputs("    -u, --usage,  Print this message\n", stdout);
 
     fputc('\n', stdout);
@@ -27,16 +26,6 @@ void print_usage(void) {
     fputs("                   Two modes exist for recursing:\n", stdout);
     fputs("                       once, Recurse only the top-level directory. This is the default case for recursing\n", stdout);
     fputs("                       all,  Recurse both the top-level directory and sub-directories\n", stdout);
-
-    fputc('\n', stdout);
-    fputs("        --macho,   Specify that the file provided should only be parsed if it is a mach-o file.\n", stdout);
-    fputs("                   This option can be used to limit the filetypes parsed while recursing\n", stdout);
-    fputs("        --dsc,     Specify that the file provided should only be parsed if it is a dyld-shared-cache file.\n", stdout);
-    fputs("                   This option can be used to limit the filetypes parsed while recursing\n", stdout);
-    fputs("                   Both --macho and --dsc may be provided to indicate that both filetypes should be parsed while recursing\n", stdout);
-    fputs("                   This is however the default behavior, and therefore redundant.\n", stdout);
-    fputs("                   Providing both --macho and --dsc when not recursing is supported for indicating the\n", stdout);
-    fputs("                   filetype of the provided file\n", stdout);
 
     fputc('\n', stdout);
     fputs("Outputting options:\n", stdout);
@@ -49,15 +38,19 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
-    fputs("            --filter-image-directory, Specify a directory to filter dyld_shared_cache images from\n", stdout);
-    fputs("            --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from\n", stdout);
-    fputs("            --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.\n", stdout);
-    fputs("                                      To get the numbers of all available images, use the option --list-dsc-images\n", stdout);
-    fputs("            --image-path,             Specify the path of an image to parse out.\n", stdout);
-    fputs("                                      To get the paths of all available images, use the option --list-dsc-images\n", stdout);
-    fputs("        -v, --version,                Specify version of .tbd files to convert to (default is v2).\n", stdout);
-    fputs("                                      This applies to all files where tbd-version was not explicitly set.\n", stdout);
-    fputs("                                      To get a list of all available versions, use the option --list-tbd-versions\n", stdout);
+    fputs("        --macho,                           Specify that the file() provided should only be parsed if it is a mach-o file.\n", stdout);
+    fputs("                                           This option can be used to limit the filetypes parsed while recursing\n", stdout);
+    fputs("        --dsc,                             Specify that the file(s) provided should only be parsed if it is a dyld-shared-cache file.\n", stdout);
+    fputs("                                           Providing --macho or --dsc limits filetypes parsed when recursing\n", stdout);
+    fputs("                 --filter-image-directory, Specify a directory to filter dyld_shared_cache images from\n", stdout);
+    fputs("                 --filter-image-filename,  Specify a filename to filter dyld_shared_cache images from\n", stdout);
+    fputs("                 --filter-image-number,    Specify the number of an dyld_shared_cache image to parse out.\n", stdout);
+    fputs("                                           To get the numbers of all available images, use the option --list-dsc-images\n", stdout);
+    fputs("                 --image-path,             Specify the path of an image to parse out.\n", stdout);
+    fputs("                                           To get the paths of all available images, use the option --list-dsc-images\n", stdout);
+    fputs("        -v, --version,                     Specify version of .tbd files to convert to (default is v2).\n", stdout);
+    fputs("                                           This applies to all files where tbd-version was not explicitly set.\n", stdout);
+    fputs("                                           To get a list of all available versions, use the option --list-tbd-versions\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);
