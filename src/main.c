@@ -73,45 +73,6 @@ recurse_directory_callback(const char *const dir_path,
     const char *const name = dirent->d_name;
     const uint64_t name_length = strnlen(name, sizeof(dirent->d_name));
 
-    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
-        const struct parse_dsc_for_main_args args = {
-            .fd = fd,
-            .magic_in = &magic,
-
-            .magic_in_size_in = &magic_size,
-            .retained_info_in = retained,
-
-            .global = global,
-            .tbd = tbd,
-
-            .dsc_dir_path = dir_path,
-            .dsc_dir_path_length = dir_path_length,
-
-            .dsc_name = dirent->d_name,
-            .dsc_name_length = name_length,
-
-            .ignore_non_cache_error = true,
-            .print_paths = true
-        };
-
-        const enum parse_dsc_for_main_result parse_as_dsc_result =
-            parse_dsc_for_main_while_recursing(args);
-
-        close(fd);
-
-        switch (parse_as_dsc_result) {
-            case E_PARSE_DSC_FOR_MAIN_OK:
-                recurse_info->files_parsed += 1;
-                return true;
-
-            case E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE:
-                break;
-
-            case E_PARSE_DSC_FOR_MAIN_OTHER_ERROR:
-                return true;
-        }
-    }
-
     if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
         const struct parse_macho_for_main_args args = {
             .fd = fd,
@@ -148,6 +109,46 @@ recurse_directory_callback(const char *const dir_path,
                 break;
 
             case E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR:
+                close(fd);
+                return true;
+        }
+    }
+
+    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+        const struct parse_dsc_for_main_args args = {
+            .fd = fd,
+            .magic_in = &magic,
+
+            .magic_in_size_in = &magic_size,
+            .retained_info_in = retained,
+
+            .global = global,
+            .tbd = tbd,
+
+            .dsc_dir_path = dir_path,
+            .dsc_dir_path_length = dir_path_length,
+
+            .dsc_name = dirent->d_name,
+            .dsc_name_length = name_length,
+
+            .ignore_non_cache_error = true,
+            .print_paths = true
+        };
+
+        const enum parse_dsc_for_main_result parse_as_dsc_result =
+            parse_dsc_for_main_while_recursing(args);
+
+        switch (parse_as_dsc_result) {
+            case E_PARSE_DSC_FOR_MAIN_OK:
+                recurse_info->files_parsed += 1;
+                close(fd);
+
+                return true;
+
+            case E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE:
+                break;
+
+            case E_PARSE_DSC_FOR_MAIN_OTHER_ERROR:
                 close(fd);
                 return true;
         }
@@ -1124,12 +1125,48 @@ int main(const int argc, const char *const argv[]) {
              */
 
             char magic[16] = {};
-
             uint64_t magic_size = 0;
             bool matched_filetype = false;
 
+            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
+                struct parse_macho_for_main_args args = {
+                    .fd = fd,
+                    .magic_in = &magic,
+
+                    .magic_in_size_in = &magic_size,
+                    .retained_info_in = &retained_info,
+
+                    .global = &global,
+                    .tbd = tbd,
+
+                    .dir_path = parse_path,
+                    .dir_path_length = tbd->parse_path_length,
+
+                    .ignore_non_macho_error = false,
+                    .print_paths = should_print_paths,
+
+                    .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
+                };
+
+                /*
+                 * See if any other filetypes are enabled, in which case we
+                 * don't print out the non-filetype error.
+                 */
+
+                if (tbd->filetypes_count != 1) {
+                    args.ignore_non_macho_error = true;
+                }
+
+                const enum parse_macho_for_main_result parse_result =
+                    parse_macho_file_for_main(args);
+
+                if (parse_result != E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO) {
+                    matched_filetype = true;
+                }
+            }
+
             if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
-                const struct parse_dsc_for_main_args args = {
+                struct parse_dsc_for_main_args args = {
                     .fd = fd,
                     .magic_in = &magic,
 
@@ -1153,57 +1190,44 @@ int main(const int argc, const char *const argv[]) {
                     .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
+                /*
+                 * See if any other filetypes are enabled, in which case we
+                 * don't print out the non-filetype error.
+                 */
+
+                if (tbd->filetypes_count != 1) {
+                    args.ignore_non_cache_error = true;
+                }
+
                 const enum parse_dsc_for_main_result parse_result =
                     parse_dsc_for_main(args);
 
                 if (parse_result != E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE) {
                     matched_filetype = true;
                 }
-
-                break;
             }
-
-            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
-                const struct parse_macho_for_main_args args = {
-                    .fd = fd,
-                    .magic_in = &magic,
-
-                    .magic_in_size_in = &magic_size,
-                    .retained_info_in = &retained_info,
-
-                    .global = &global,
-                    .tbd = tbd,
-
-                    .dir_path = parse_path,
-                    .dir_path_length = tbd->parse_path_length,
-
-                    .ignore_non_macho_error = false,
-                    .print_paths = should_print_paths,
-
-                    .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
-                };
-
-                const enum parse_macho_for_main_result parse_result =
-                    parse_macho_file_for_main(args);
-
-                if (parse_result != E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO) {
-                    matched_filetype = true;
-                }
-
-                break;
-            }
-
-            close(fd);
 
             if (!matched_filetype) {
-                if (should_print_paths) {
-                    fputs("File at provided path (%s) was not among any of the "
-                          "provided filetypes\n",
-                          stderr);
-                } else {
-                    fputs("File at the provided path was not among any of the "
-                          "provided filetypes\n",
-                          stderr);
+                if (tbd->filetypes == 0) {
+                    if (should_print_paths) {
+                        fputs("File at provided path (%s) was not among any of "
+                              "the supported filetypes\n",
+                              stderr);
+                    } else {
+                        fputs("File at the provided path was not among any of "
+                              "the supported filetypes\n",
+                              stderr);
+                    }
+                } else if (tbd->filetypes_count != 1) {
+                    if (should_print_paths) {
+                        fputs("File at provided path (%s) was not among any of "
+                              "the provided filetypes\n",
+                              stderr);
+                    } else {
+                        fputs("File at the provided path was not among any of "
+                              "the provided filetypes\n",
+                              stderr);
+                    }
                 }
             }
         }

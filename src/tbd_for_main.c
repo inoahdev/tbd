@@ -259,8 +259,10 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         add_image_path(tbd, argc, argv, &index);
     } else if (strcmp(option, "dsc") == 0) {
         tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
+        tbd->filetypes_count++;
     } else if (strcmp(option, "macho") == 0) {
         tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
+        tbd->filetypes_count++;
     } else if (strcmp(option, "remove-archs") == 0) {
         index += 1;
         if (index == argc) {

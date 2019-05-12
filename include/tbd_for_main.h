@@ -87,6 +87,7 @@ struct tbd_for_main {
     uint64_t write_path_length;
 
     uint64_t filetypes;
+    uint64_t filetypes_count;
 
     /*
      * We store both option-sets for the filetypes as we need both when
@@ -115,8 +116,8 @@ struct tbd_for_main {
 };
 
 bool
-tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
-                          const enum tbd_for_main_filetype filetype);
+tbd_for_main_has_filetype(const struct tbd_for_main *tbd,
+                          enum tbd_for_main_filetype filetype);
 
 bool
 tbd_for_main_parse_option(struct tbd_for_main *tbd,

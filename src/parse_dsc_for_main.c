@@ -744,15 +744,16 @@ enum read_magic_result {
 
 static enum read_magic_result
 read_magic(void *const magic_in,
-           const uint64_t magic_size,
+           uint64_t *const magic_in_size_in,
            const int fd)
 {
-    if (magic_size >= 16) {
+    const uint64_t magic_in_size = *magic_in_size_in;
+    if (magic_in_size >= 16) {
         return E_READ_MAGIC_OK;
     }
 
-    const uint64_t read_size = 16 - magic_size;
-    if (read(fd, magic_in + magic_size, read_size) < 0) {
+    const uint64_t read_size = 16 - magic_in_size;
+    if (read(fd, magic_in + magic_in_size, read_size) < 0) {
         if (errno == EOVERFLOW) {
             return E_READ_MAGIC_NOT_LARGE_ENOUGH;
         }
@@ -760,6 +761,7 @@ read_magic(void *const magic_in,
         return E_READ_MAGIC_READ_FAILED;
     }
 
+    *magic_in_size_in = 16;
     return E_READ_MAGIC_OK;
 }
 
@@ -867,9 +869,8 @@ static void verify_write_path(struct tbd_for_main *const tbd) {
 
 enum parse_dsc_for_main_result
 parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
-    const uint64_t magic_in_size = *args.magic_in_size_in;
     const enum read_magic_result read_magic_result =
-        read_magic(args.magic_in, magic_in_size, args.fd);
+        read_magic(args.magic_in, args.magic_in_size_in, args.fd);
 
     switch (read_magic_result) {
         case E_READ_MAGIC_OK:
@@ -1040,11 +1041,8 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
 enum parse_dsc_for_main_result
 parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
-    const uint64_t magic_in_size = *args.magic_in_size_in;
     const enum read_magic_result read_magic_result =
-        read_magic(args.magic_in,
-                   magic_in_size,
-                   args.fd);
+        read_magic(args.magic_in, args.magic_in_size_in, args.fd);
 
     switch (read_magic_result) {
         case E_READ_MAGIC_OK:
