@@ -780,35 +780,6 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
 }
 
 void
-tbd_for_main_write_to_stdout_while_recursing(
-    const struct tbd_for_main *const tbd,
-    const char *const input_dir_path,
-    const char *const input_name,
-    const bool print_paths)
-{
-    const struct tbd_create_info *const create_info = &tbd->info;
-    const enum tbd_create_result create_tbd_result =
-        tbd_create_with_info(create_info, stdout, tbd->write_options);
-
-    if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to write to stdout (the terminal) (for "
-                        "input-file at path: %s/%s) error: %s\n",
-                        input_dir_path,
-                        input_name,
-                        strerror(errno));
-            } else {
-                fputs("Failed to write to stdout (the terminal) for "
-                      "the provided input-file, error: %s\n",
-                      stderr);
-            }
-        }
-    }
-}
-
-void
 tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *const tbd,
                                            const char *const dsc_path,
                                            const char *const image_path,

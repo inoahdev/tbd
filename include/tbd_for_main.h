@@ -90,8 +90,8 @@ struct tbd_for_main {
     uint64_t filetypes_count;
 
     /*
-     * We store both option-sets for the filetypes as we need both when
-     * recursing.
+     * We store an option-set for each of the filetypes, as we need differing
+     * sets for different options.
      */
 
     uint64_t macho_options;
@@ -125,11 +125,6 @@ tbd_for_main_parse_option(struct tbd_for_main *tbd,
                           const char *const *argv,
                           const char *option,
                           int *index);
-
-/*
- * file_path_is_in_tbd asks whether file_path is in the directory of, or in a
- * sub-directory of tbd->parse_path.
- */
 
 char *
 tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
@@ -190,12 +185,6 @@ void
 tbd_for_main_write_to_stdout(const struct tbd_for_main *tbd,
                              const char *input_path,
                              bool print_paths);
-
-void
-tbd_for_main_write_to_stdout_while_recursing(const struct tbd_for_main *tbd,
-                                             const char *input_dir_path,
-                                             const char *const input_name,
-                                             bool print_paths);
 
 void
 tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *tbd,
