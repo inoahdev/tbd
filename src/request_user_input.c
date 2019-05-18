@@ -18,28 +18,19 @@
 #include "parse_or_list_fields.h"
 #include "request_user_input.h"
 
-static void
-request_input(const char *const prompt,
-              const char *const inputs[const],
-              char **const result_out)
-{
+static uint64_t
+request_choice(const char *const prompt, const char *const inputs[const]) {
     do {
-        fputs(prompt, stdout);
+        fprintf(stdout, "%s (%s", prompt, inputs[0]);
 
-        if (inputs != NULL) {
-            fprintf(stdout, " (%s", inputs[0]);
+        const char *const *iter = inputs + 1;
+        const char *acceptable_input = *iter;
 
-            const char *const *iter = &inputs[1];
-            const char *acceptable_input = *iter;
-
-            for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-                fprintf(stdout, ", %s", acceptable_input);
-            }
-
-            fputc(')', stdout);
+        for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
+            fprintf(stdout, ", %s", acceptable_input);
         }
 
-        fputs(": ", stdout);
+        fputs("): ", stdout);
         fflush(stdout);
 
         char *input = NULL;
@@ -62,26 +53,68 @@ request_input(const char *const prompt,
          * remove.
          */
 
-        input[input_length - 1] = '\0';
+        uint64_t index = 0;
+        const uint64_t check_length = (uint64_t)(input_length - 1);
 
-        if (inputs != NULL) {
-            const char *const *iter = inputs;
-            const char *acceptable_input = *iter;
+        iter = inputs;
+        acceptable_input = *iter;
 
-            for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-                if (strcmp(acceptable_input, input) != 0) {
-                    continue;
-                }
-
-                *result_out = input;
-                return;
+        for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
+            if (strncmp(acceptable_input, input, check_length) != 0) {
+                index++;
+                continue;
             }
-        } else {
-            *result_out = input;
-            return;
+
+            if (acceptable_input[check_length] != '\0') {
+                index++;
+                continue;
+            }
+
+            free(input);
+            return index;
         }
+
+        free(input);
     } while (true);
 }
+
+static char *request_input(const char *const prompt) {
+    fprintf(stdout, "%s: ", prompt);
+    fflush(stdout);
+
+    char *input = NULL;
+
+    size_t input_size = 0;
+    ssize_t input_length = getline(&input, &input_size, stdin);
+
+    if (input_length < 0) {
+        free(input);
+        fprintf(stderr,
+                "\nInternal error: getline() failed while trying to "
+                "receive user input, error: %s\n",
+                strerror(errno));
+
+        exit(1);
+    }
+
+    /*
+     * getline() returns the delimiter in the string itself, which we should
+     * remove.
+     */
+
+    input[input_length - 1] = '\0';
+    return input;
+}
+
+static const char *const default_choices[] =
+    { "for all", "yes", "no", "never", NULL };
+
+enum default_choice_index {
+    DEFAULT_CHOICE_INDEX_FOR_ALL,
+    DEFAULT_CHOICE_INDEX_YES,
+    DEFAULT_CHOICE_INDEX_NO,
+    DEFAULT_CHOICE_INDEX_NEVER
+};
 
 bool
 request_install_name(struct tbd_for_main *const global,
@@ -119,34 +152,26 @@ request_install_name(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Replace install-name?", default_choices);
 
-    request_input("Replace install-name?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
-    request_input("Replacement install-name?",
-                  NULL,
-                  (char **)&tbd->info.install_name);
+    tbd->info.install_name = request_input("Replacement install-name?");
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.install_name = tbd->info.install_name;
         global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -187,27 +212,21 @@ request_objc_constraint(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Replace objc-constraint?", default_choices);
 
-    request_input("Replace objc-constraint?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
     do {
-        char *input = NULL;
-        request_input("Replacement objc-constraint? (Enter "
-                      "--list-objc-constraint to list all objc-constraints",
-                      NULL,
-                      &input);
+        char *const input =
+            request_input("Replacement objc-constraint? (Enter "
+                          "--list-objc-constraint to list all "
+                          "objc-constraints");
 
         if (strcmp(input, "--list-objc_constraint") == 0) {
             fputs("none\n"
@@ -217,6 +236,7 @@ request_objc_constraint(struct tbd_for_main *const global,
                   "gc\n",
                   stdout);
 
+            free(input);
             continue;
         }
 
@@ -237,12 +257,11 @@ request_objc_constraint(struct tbd_for_main *const global,
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.objc_constraint = tbd->info.objc_constraint;
         global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -285,34 +304,26 @@ request_parent_umbrella(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Replace parent-umbrella?", default_choices);
 
-    request_input("Replace parent-umbrella?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
-    request_input("Replacement parent-umbrella?",
-                  NULL,
-                  (char **)&tbd->info.parent_umbrella);
+    tbd->info.parent_umbrella = request_input("Replacement parent-umbrella?");
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -350,27 +361,20 @@ request_platform(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Replace platform?", default_choices);
 
-    request_input("Replace platform?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
     do {
-        char *input = NULL;
-        request_input("Replacement platform? "
-                      "(Enter --list-platform to list all platforms)",
-                      NULL,
-                      &input);
+        char *const input =
+            request_input("Replacement platform? "
+                          "(Enter --list-platform to list all platforms)");
 
         if (strcmp(input, "--list-platform") == 0) {
             fputs("macosx\n"
@@ -398,12 +402,11 @@ request_platform(struct tbd_for_main *const global,
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.platform = tbd->info.platform;
         global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -454,25 +457,18 @@ request_swift_version(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Replace swift-version?", default_choices);
 
-    request_input("Replace swift-version?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
     do {
-        char *input = NULL;
-        request_input("Replacement swift-version?", NULL, &input);
-
+        char *const input = request_input("Replacement swift-version?");
         if (strcmp(input, "1.2") == 0) {
             tbd->info.swift_version = 2;
         } else {
@@ -480,7 +476,7 @@ request_swift_version(struct tbd_for_main *const global,
                 fprintf(stderr, "%s is not a valid swift-version\n", input);
                 free(input);
 
-                continue;
+                break;
             }
 
             const uint64_t input_number = strtoul(input, NULL, 10);
@@ -507,12 +503,11 @@ request_swift_version(struct tbd_for_main *const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.swift_version = tbd->info.swift_version;
         global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -545,27 +540,21 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index = request_choice("Ignore flags?",
+        default_choices);
 
-    request_input("Ignore flags?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     }
 
-    free(should_replace);
     return true;
 }
 
@@ -599,26 +588,20 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    char *should_replace = NULL;
-    const char *const inputs[] = { "for all", "yes", "no", "never", NULL };
+    const uint64_t choice_index =
+        request_choice("Ignore non-unique uuids?", default_choices);
 
-    request_input("Ignore non-unique uuids?", inputs, &should_replace);
-
-    if (strcmp(should_replace, "never") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS;
-
-        free(should_replace);
         return false;
-    } else if (strcmp(should_replace, "no") == 0) {
-        free(should_replace);
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
     }
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
-    if (strcmp(should_replace, "for all") == 0) {
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     }
 
-    free(should_replace);
     return true;
 }
