@@ -65,12 +65,12 @@ handle_write_result(const struct tbd_for_main *const tbd,
             if (print_paths) {
                 fprintf(stderr,
                         "Skipping over file (at path %s) as a file at its "
-                        "output-path (%s) already exists\n",
+                        "write-path (%s) already exists\n",
                         path,
                         write_path);
             } else {
                 fputs("Skipping over file at provided-path as a file at its "
-                      "provided output-path already exists\n", stderr);
+                      "provided write-path already exists\n", stderr);
             }
 
             break;
@@ -109,13 +109,13 @@ handle_write_result_while_recursing(
             if (print_paths) {
                 fprintf(stderr,
                         "Skipping over file (at path %s/%s) as a file at its "
-                        "output-path (%s) already exists\n",
+                        "write-path (%s) already exists\n",
                         dir_path,
                         name,
                         write_path);
             } else {
                 fputs("Skipping over file at provided-path as a file at its "
-                      "provided output-path already exists\n", stderr);
+                      "provided write-path already exists\n", stderr);
             }
 
             break;
@@ -169,8 +169,7 @@ static void verify_write_path(const struct tbd_for_main *const tbd) {
 }
 
 enum parse_macho_for_main_result
-parse_macho_file_for_main(const struct parse_macho_for_main_args args)
-{
+parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     if (read_magic(args.magic_in, args.magic_in_size_in, args.fd)) {
         if (errno == EOVERFLOW) {
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;

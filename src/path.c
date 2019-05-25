@@ -145,20 +145,6 @@ path_find_last_row_of_slashes_before_end(const char *const path,
 }
 
 const char *
-path_find_back_of_last_row_of_slashes_before_end(const char *const path,
-                                                 const char *const end)
-{
-    const char *iter = end;
-    for (char ch = *(--iter); iter >= path; ch = *(--iter)) {
-        if (ch_is_path_slash(ch)) {
-            return iter;
-        }
-    }
-
-    return NULL;
-}
-
-const char *
 path_find_ending_row_of_slashes(const char *const path, const uint64_t length) {
     const char *const back = path + (length - 1);
     const char ch = *back;
@@ -368,7 +354,7 @@ path_append_component_and_extension_with_len(const char *const path,
 
         const char *const ending_slashes =
             path_find_ending_row_of_slashes(component_iter,
-                                           component_copy_length);
+                                            component_copy_length);
 
         if (ending_slashes != NULL) {
             /*
@@ -713,59 +699,6 @@ path_append_two_components_and_extension_with_len(
 
     combined[combined_length] = '\0';
     return combined;
-}
-
-const char *
-path_get_last_path_component(const char *const path,
-                             const uint64_t path_length,
-                             uint64_t *const length_out)
-{
-    const char path_front_ch = *path;
-    if (!ch_is_path_slash(path_front_ch)) {
-        *length_out = path_length;
-        return path;
-    }
-
-    const char *component_end = &path[path_length];
-    const char back_ch = path[path_length - 1];
-
-    if (ch_is_path_slash(back_ch)) {
-        const char *const back = component_end - 1;
-        component_end = path_get_front_of_row_of_slashes(path, back);
-
-        /*
-         * If we get a pointer back to path, the path-string is just slashes.
-         */
-
-        if (component_end == path) {
-            return NULL;
-        }
-    }
-
-    /*
-     * To get the beginning of the last-path-component, find the last row of
-     * slashes, before any row of slashes that end the string (if present).
-     */
-
-    const char *component_begin =
-        path_find_last_row_of_slashes_before_end(path, component_end);
-
-    component_begin = path_get_end_of_row_of_slashes(component_begin);
-    *length_out = (uint64_t)(component_end - component_begin);
-
-    return component_begin;
-}
-
-const char *
-path_get_next_component(const char *const component,
-                        const uint64_t component_length)
-{
-    const char *const next_component = component + component_length;
-    if (ch_is_path_slash(*next_component)) {
-        return path_get_end_of_row_of_slashes(next_component);
-    }
-
-    return next_component;
 }
 
 static const char *get_next_slash(const char *const path) {

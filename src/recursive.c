@@ -42,13 +42,15 @@ static char *find_next_slash_skipping_first_row(char *const path) {
     return iter;
 }
 
-static inline
-char *find_next_slash_reverse(char *const path, char *const last_slash) {
-    char *const iter =
-        (char *)path_find_back_of_last_row_of_slashes_before_end(path,
-                                                                 last_slash);
+static char *find_next_slash_reverse(char *const path, char *const last_slash) {
+    char *iter = last_slash;
+    for (char ch = *(--iter); iter >= path; ch = *(--iter)) {
+        if (ch == '/') {
+            return iter;
+        }
+    }
 
-    return iter;
+    return NULL;
 }
 
 static inline void terminate_c_str(char *const iter) {
@@ -69,9 +71,9 @@ reverse_mkdir_ignoring_last(char *const path,
         (char *)path_find_back_of_last_row_of_slashes(path, path_length);
 
     /*
-     * We may have a slash at the back of the string, which we should ignore
-     * as terminating at that point does not lead us to the path of the
-     * immediate directory in the full-path's hierarchy.
+     * We may have a slash at the back of the string, which we should ignore as
+     * terminating at that point does not lead us to the path of the immediate
+     * directory in the full-path's hierarchy.
      */
 
     const char possible_end = last_slash[1];
@@ -99,8 +101,7 @@ reverse_mkdir_ignoring_last(char *const path,
         }
 
         /*
-         * errno is set to ENONENT when a previous path-component doesn't
-         * exist.
+         * errno is set to ENONENT when a previous path-component doesn't exist.
          *
          * So if we get any other error, its due to another reason, and we
          * should just return immedietly.

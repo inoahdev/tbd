@@ -31,8 +31,8 @@ add_image_filter(int *const index_in,
 {
     const int index = *index_in;
     if (index == argc) {
-        fputs("Please provide a name of an image (a simple "
-              "path-component) to filter out images to be parsed\n",
+        fputs("Please provide a name of an image (a simple path-component) to "
+              "filter out images to be parsed\n",
               stderr);
 
         exit(1);

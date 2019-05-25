@@ -9,6 +9,7 @@
 #ifndef PATH_H
 #define PATH_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /*
@@ -71,14 +72,6 @@ path_find_back_of_last_row_of_slashes(const char *const path,
 
 const char *
 path_find_ending_row_of_slashes(const char *path, uint64_t path_length);
-
-const char *
-path_get_next_component(const char *component, uint64_t component_length);
-
-const char *
-path_get_last_path_component(const char *path,
-                             uint64_t path_length,
-                             uint64_t *length_out);
 
 bool
 path_has_filename(const char *path,
