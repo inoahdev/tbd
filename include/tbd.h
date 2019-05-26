@@ -98,6 +98,10 @@ struct tbd_export_info {
     uint64_t flags;
 };
 
+int
+tbd_export_info_compare(const struct tbd_export_info *const array_item,
+                        const struct tbd_export_info *const item);
+
 int tbd_export_info_comparator(const void *array_item, const void *item);
 int
 tbd_export_info_no_archs_comparator(const void *array_item, const void *item);

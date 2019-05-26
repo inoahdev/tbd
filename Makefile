@@ -1,10 +1,10 @@
 SHELL = /bin/sh
 C := clang
 
-WARNINGFLAGS := -Wall -W -Wconversion -Wshadow -Wsign-compare
+WARNINGFLAGS := -Wshadow
 WARNINGFLAGS := $(WARNINGFLAGS) -Wwrite-strings -Wunused-parameter
 
-DEFAULTFLAGS := -std=gnu11 -Iinclude/ $(WARNINGFLAGS)
+DEFAULTFLAGS := -std=gnu11 -I. -Iinclude/ $(WARNINGFLAGS)
 CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
 
 SRCS := $(shell find src -name "*.c")

@@ -26,6 +26,12 @@
 
 #include "swap.h"
 
+#define SORT_NAME tbd_export_info
+#define SORT_TYPE struct tbd_export_info
+#define SORT_CMP(x,y) tbd_export_info_compare(&x, &y)
+
+#include "deps/sort/sort.h"
+
 static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *const info_in,
                 const int fd,
@@ -968,14 +974,8 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
              * Finally sort the exports array.
              */
 
-            const enum array_result sort_exports_result =
-                array_sort_items_with_comparator(&info_in->exports,
-                                                 sizeof(struct tbd_export_info),
-                                                 tbd_export_info_comparator);
-
-            if (sort_exports_result != E_ARRAY_OK) {
-                return E_MACHO_FILE_PARSE_ARRAY_FAIL;
-            }
+            tbd_export_info_quick_sort(info_in->exports.data,
+                                       info_in->exports.item_count);
         } else {
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }

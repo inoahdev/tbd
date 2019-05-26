@@ -1,0 +1,3 @@
+[submodule "deps/sort"]
+	path = deps/sort
+	url = https://github.com/swenson/sort

@@ -77,14 +77,9 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
 }
 
 int
-tbd_export_info_comparator(const void *const array_item, const void *const item)
+tbd_export_info_compare(const struct tbd_export_info *const array_info,
+                        const struct tbd_export_info *const info)
 {
-    const struct tbd_export_info *const array_info =
-        (const struct tbd_export_info *)array_item;
-
-    const struct tbd_export_info *const info =
-        (const struct tbd_export_info *)item;
-
     const uint64_t array_archs_count = array_info->archs_count;
     const uint64_t archs_count = info->archs_count;
 
@@ -139,6 +134,18 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     }
 
     return memcmp(array_string, string, length);
+}
+
+int
+tbd_export_info_comparator(const void *const array_item, const void *const item)
+{
+    const struct tbd_export_info *const array_info =
+        (const struct tbd_export_info *)array_item;
+
+    const struct tbd_export_info *const info =
+        (const struct tbd_export_info *)item;
+
+    return tbd_export_info_compare(array_info, info);
 }
 
 int
