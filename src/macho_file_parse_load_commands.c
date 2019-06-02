@@ -314,21 +314,35 @@ add_export_to_info(struct tbd_create_info *const info_in,
     return E_MACHO_FILE_PARSE_OK;
 }
 
+struct parse_load_command_info {
+    struct tbd_create_info *info_in;
+    struct tbd_uuid_info *uuid_info_in;
+
+    struct load_command load_cmd;
+    const uint8_t *load_cmd_iter;
+
+    bool copy_strings;
+    bool is_big_endian;
+
+    uint64_t arch_bit;
+    uint64_t tbd_options;
+    uint64_t options;
+
+    bool *found_uuid_in;
+    bool *found_identification_out;
+
+    struct symtab_command *symtab_out;
+};
+
 static inline
 enum macho_file_parse_result
-parse_load_command(struct tbd_create_info *const info_in,
-                   struct tbd_uuid_info *const uuid_info_in,
-                   bool *const found_uuid_in,
-                   const uint64_t arch_bit,
-                   struct load_command load_cmd,
-                   const uint8_t *const load_cmd_iter,
-                   const bool is_big_endian,
-                   const uint64_t tbd_options,
-                   const uint64_t options,
-                   const bool copy_strings,
-                   bool *const found_identification_out,
-                   struct symtab_command *const symtab_out)
-{
+parse_load_command(const struct parse_load_command_info parse_info) {
+    struct tbd_create_info *const info_in = parse_info.info_in;
+    const struct load_command load_cmd = parse_info.load_cmd;
+
+    const uint64_t options = parse_info.options;
+    const uint64_t tbd_options = parse_info.tbd_options;
+
     switch (load_cmd.cmd) {
         case LC_BUILD_VERSION: {
             /*
@@ -356,10 +370,10 @@ parse_load_command(struct tbd_create_info *const info_in,
              */
 
             const struct build_version_command *const build_version =
-                (const struct build_version_command *)load_cmd_iter;
+                (const struct build_version_command *)parse_info.load_cmd_iter;
 
             uint32_t build_version_platform = build_version->platform;
-            if (is_big_endian) {
+            if (parse_info.is_big_endian) {
                 build_version_platform = swap_uint32(build_version_platform);
             }
 
@@ -398,10 +412,17 @@ parse_load_command(struct tbd_create_info *const info_in,
              */
 
             if (info_in->platform != 0) {
-                const bool ignore_conflicting_fields =
-                    options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+                /*
+                 * Temporary hack to fix macOS dyld_shared_cache files.
+                 */
 
-                if (!ignore_conflicting_fields) {
+                if (info_in->platform == TBD_PLATFORM_MACOS) {
+                    if (build_version_platform == TBD_PLATFORM_IOSMAC) {
+                        break;
+                    }
+                }
+
+                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
                     if (info_in->platform != build_version_platform) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                     }
@@ -427,7 +448,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 tbd_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION &&
                 tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)
             {
-                *found_identification_out = true;
+                *parse_info.found_identification_out = true;
                 break;
             }
 
@@ -444,10 +465,10 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             const struct dylib_command *const dylib_command =
-                (const struct dylib_command *)load_cmd_iter;
+                (const struct dylib_command *)parse_info.load_cmd_iter;
 
             uint32_t name_offset = dylib_command->dylib.name.offset;
-            if (is_big_endian) {
+            if (parse_info.is_big_endian) {
                 name_offset = swap_uint32(name_offset);
             }
 
@@ -458,7 +479,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             if (name_offset < sizeof(struct dylib_command)) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *found_identification_out = true;
+                    *parse_info.found_identification_out = true;
                     break;
                 }
 
@@ -467,7 +488,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             if (name_offset >= load_cmd.cmdsize) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *found_identification_out = true;
+                    *parse_info.found_identification_out = true;
                     break;
                 }
 
@@ -487,7 +508,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *found_identification_out = true;
+                    *parse_info.found_identification_out = true;
                     break;
                 }
 
@@ -518,7 +539,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                     options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
 
                 if (ignore_conflicting_fields) {
-                    *found_identification_out = true;
+                    *parse_info.found_identification_out = true;
                     break;
                 }
 
@@ -554,7 +575,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
 
                 if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
-                    if (copy_strings) {
+                    if (parse_info.copy_strings) {
                         char *const install_name =
                             alloc_and_copy(name_ptr, length);
 
@@ -571,7 +592,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
             }
 
-            *found_identification_out = true;
+            *parse_info.found_identification_out = true;
             break;
         }
 
@@ -593,10 +614,10 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             const struct dylib_command *const reexport_dylib =
-                (const struct dylib_command *)load_cmd_iter;
+                (const struct dylib_command *)parse_info.load_cmd_iter;
 
             uint32_t reexport_offset = reexport_dylib->dylib.name.offset;
-            if (is_big_endian) {
+            if (parse_info.is_big_endian) {
                 reexport_offset = swap_uint32(reexport_offset);
             }
 
@@ -630,7 +651,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             const enum macho_file_parse_result add_reexport_result =
                 add_export_to_info(info_in,
-                                   arch_bit,
+                                   parse_info.arch_bit,
                                    TBD_EXPORT_TYPE_REEXPORT,
                                    reexport_string,
                                    length,
@@ -671,10 +692,10 @@ parse_load_command(struct tbd_create_info *const info_in,
              */
 
             const struct sub_client_command *const client_command =
-                (const struct sub_client_command *)load_cmd_iter;
+                (const struct sub_client_command *)parse_info.load_cmd_iter;
 
             uint32_t client_offset = client_command->client.offset;
-            if (is_big_endian) {
+            if (parse_info.is_big_endian) {
                 client_offset = swap_uint32(client_offset);
             }
 
@@ -707,7 +728,7 @@ parse_load_command(struct tbd_create_info *const info_in,
 
             const enum macho_file_parse_result add_client_result =
                 add_export_to_info(info_in,
-                                   arch_bit,
+                                   parse_info.arch_bit,
                                    TBD_EXPORT_TYPE_CLIENT,
                                    string,
                                    length,
@@ -742,10 +763,10 @@ parse_load_command(struct tbd_create_info *const info_in,
             }
 
             const struct sub_framework_command *const framework_command =
-                (const struct sub_framework_command *)load_cmd_iter;
+                (const struct sub_framework_command *)parse_info.load_cmd_iter;
 
             uint32_t umbrella_offset = framework_command->umbrella.offset;
-            if (is_big_endian) {
+            if (parse_info.is_big_endian) {
                 umbrella_offset = swap_uint32(umbrella_offset);
             }
 
@@ -776,7 +797,7 @@ parse_load_command(struct tbd_create_info *const info_in,
              */
 
             const char *const umbrella =
-                (const char *)load_cmd_iter + umbrella_offset;
+                (const char *)parse_info.load_cmd_iter + umbrella_offset;
 
             const uint32_t max_length = load_cmd.cmdsize - umbrella_offset;
             const uint32_t length = (uint32_t)strnlen(umbrella, max_length);
@@ -812,12 +833,14 @@ parse_load_command(struct tbd_create_info *const info_in,
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
 
-                const char *const parent_umbrella = info_in->parent_umbrella;
+                const char *const parent_umbrella =
+                    info_in->parent_umbrella;
+
                 if (memcmp(parent_umbrella, umbrella, length) != 0) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
             } else {
-                if (copy_strings) {
+                if (parse_info.copy_strings) {
                     char *const umbrella_string =
                         alloc_and_copy(umbrella, length);
 
@@ -858,7 +881,9 @@ parse_load_command(struct tbd_create_info *const info_in,
              * fill in the symtab's info fields.
              */
 
-            *symtab_out = *(const struct symtab_command *)load_cmd_iter;
+            *parse_info.symtab_out =
+                *(const struct symtab_command *)parse_info.load_cmd_iter;
+
             break;
         }
 
@@ -875,13 +900,14 @@ parse_load_command(struct tbd_create_info *const info_in,
                 return E_MACHO_FILE_PARSE_INVALID_UUID;
             }
 
-            const bool found_uuid = *found_uuid_in;
+            const bool found_uuid = *parse_info.found_uuid_in;
             const struct uuid_command *const uuid_cmd =
-                (const struct uuid_command *)load_cmd_iter;
+                (const struct uuid_command *)parse_info.load_cmd_iter;
 
             if (found_uuid) {
-                const char *const uuid_str = (const char *)uuid_info_in->uuid;
                 const char *const uuid_cmd_uuid = (const char *)uuid_cmd->uuid;
+                const char *const uuid_str =
+                    (const char *)parse_info.uuid_info_in->uuid;
 
                 const bool ignore_conflicting_fields =
                     options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
@@ -892,8 +918,8 @@ parse_load_command(struct tbd_create_info *const info_in,
                     }
                 }
             } else {
-                memcpy(uuid_info_in->uuid, uuid_cmd->uuid, 16);
-                *found_uuid_in = true;
+                memcpy(parse_info.uuid_info_in->uuid, uuid_cmd->uuid, 16);
+                *parse_info.found_uuid_in = true;
             }
 
             break;
@@ -1026,45 +1052,6 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_TVOS;
-            }
-
-            break;
-        }
-
-        /*
-         * Because Apple's mach-o/loader.h doesn't yet have the simulator
-         * platforms, we are forced to rely upon tbd_platform's enum, which
-         * corresponds exactly to the ordering of Apple's platform enum.
-         */
-
-        case TBD_PLATFORM_BRIDGEOS: {
-            /*
-             * If the platform isn't needed, skip the unnecessary parsing.
-             */
-
-            if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
-                break;
-            }
-
-            /*
-             * All version_min load-commands should be the of the same cmdsize.
-             */
-
-            if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
-                return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
-            }
-
-            if (info_in->platform != 0) {
-                const bool ignore_conflicting_fields =
-                    options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                if (!ignore_conflicting_fields) {
-                    if (info_in->platform != TBD_PLATFORM_BRIDGEOS) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
-                }
-            } else {
-                info_in->platform = TBD_PLATFORM_BRIDGEOS;
             }
 
             break;
@@ -1420,19 +1407,28 @@ macho_file_parse_load_commands_from_file(
             }
 
             default: {
+                const struct parse_load_command_info parse_lc_info = {
+                    .info_in = info_in,
+
+                    .found_uuid_in = &found_uuid,
+                    .uuid_info_in = &uuid_info,
+
+                    .arch_bit = arch_bit,
+                    .copy_strings = true,
+
+                    .load_cmd = load_cmd,
+                    .load_cmd_iter = load_cmd_iter,
+
+                    .is_big_endian = is_big_endian,
+                    .tbd_options = tbd_options,
+                    .options = options,
+
+                    .found_identification_out = &found_identification,
+                    .symtab_out = &symtab
+                };
+
                 const enum macho_file_parse_result parse_load_command_result =
-                    parse_load_command(info_in,
-                                       &uuid_info,
-                                       &found_uuid,
-                                       arch_bit,
-                                       load_cmd,
-                                       load_cmd_iter,
-                                       is_big_endian,
-                                       tbd_options,
-                                       options,
-                                       true,
-                                       &found_identification,
-                                       &symtab);
+                    parse_load_command(parse_lc_info);
 
                 if (parse_load_command_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -1473,7 +1469,10 @@ macho_file_parse_load_commands_from_file(
         }
 
         const enum array_result add_uuid_info_result =
-            array_add_item(&info_in->uuids, sizeof(uuid_info), &uuid_info, NULL);
+            array_add_item(&info_in->uuids,
+                           sizeof(uuid_info),
+                           &uuid_info,
+                           NULL);
 
         if (add_uuid_info_result != E_ARRAY_OK) {
             return E_MACHO_FILE_PARSE_ARRAY_FAIL;
@@ -1957,22 +1956,29 @@ macho_file_parse_load_commands_from_map(
             }
 
             default: {
-                const bool copy_strings =
-                    options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP;
+                const struct parse_load_command_info parse_lc_info = {
+                    .info_in = info_in,
+                    .arch_bit = arch_bit,
+
+                    .found_uuid_in = &found_uuid,
+                    .uuid_info_in = &uuid_info,
+
+                    .load_cmd = load_cmd,
+                    .load_cmd_iter = load_cmd_iter,
+
+                    .is_big_endian = is_big_endian,
+                    .tbd_options = tbd_options,
+                    .options = options,
+
+                    .copy_strings =
+                        options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP,
+
+                    .found_identification_out = &found_identification,
+                    .symtab_out = &symtab
+                };
 
                 const enum macho_file_parse_result parse_load_command_result =
-                    parse_load_command(info_in,
-                                       &uuid_info,
-                                       &found_uuid,
-                                       arch_bit,
-                                       load_cmd,
-                                       load_cmd_iter,
-                                       is_big_endian,
-                                       tbd_options,
-                                       options,
-                                       copy_strings,
-                                       &found_identification,
-                                       &symtab);
+                    parse_load_command(parse_lc_info);
 
                 if (parse_load_command_result != E_MACHO_FILE_PARSE_OK) {
                     return parse_load_command_result;

@@ -48,6 +48,7 @@
 
 /* Begin PBXFileReference section */
 		C318AD88227AB70B0049C25E /* copy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = copy.c; path = ../../src/copy.c; sourceTree = "<group>"; };
+		C33E8CB322A38EE1007039E5 /* sort */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sort; path = ../../deps/sort; sourceTree = "<group>"; };
 		C361A4D522489452001BD07A /* dir_recurse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dir_recurse.c; path = ../../src/dir_recurse.c; sourceTree = "<group>"; };
 		C361A4D622489452001BD07A /* request_user_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = request_user_input.c; path = ../../src/request_user_input.c; sourceTree = "<group>"; };
 		C361A4D722489452001BD07A /* tbd_write.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tbd_write.c; path = ../../src/tbd_write.c; sourceTree = "<group>"; };
@@ -121,9 +122,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C33E8CB222A38ECD007039E5 /* deps */ = {
+			isa = PBXGroup;
+			children = (
+				C33E8CB322A38EE1007039E5 /* sort */,
+			);
+			name = deps;
+			sourceTree = "<group>";
+		};
 		C392B6062233686600419D2D = {
 			isa = PBXGroup;
 			children = (
+				C33E8CB222A38ECD007039E5 /* deps */,
 				C3D20F58223368840063F3F2 /* include */,
 				C3D20F7B223368B70063F3F2 /* src */,
 				C361A527224894C0001BD07A /* LICENSE.md */,
@@ -432,7 +442,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				OTHER_CFLAGS = "-I${PROJECT_DIR}/../../include/";
+				OTHER_CFLAGS = (
+					"-I${PROJECT_DIR}/../../include/",
+					"-I${PROJECT_DIR}/../../",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -442,7 +455,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				OTHER_CFLAGS = "-I${PROJECT_DIR}/../../include/";
+				GCC_OPTIMIZATION_LEVEL = fast;
+				OTHER_CFLAGS = (
+					"-I${PROJECT_DIR}/../../include/",
+					"-I${PROJECT_DIR}/../../",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
