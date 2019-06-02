@@ -376,7 +376,7 @@ parse_load_command(struct tbd_create_info *const info_in,
                 return E_MACHO_FILE_PARSE_INVALID_PLATFORM;
             }
 
-            if (build_version_platform > TBD_PLATFORM_WATCHOS) {
+            if (build_version_platform > TBD_PLATFORM_WATCHOS_SIMULATOR) {
                 /*
                  * If we're ignoring invalid fields, simply goto the next
                  * load-command.
@@ -1026,6 +1026,45 @@ parse_load_command(struct tbd_create_info *const info_in,
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_TVOS;
+            }
+
+            break;
+        }
+
+        /*
+         * Because Apple's mach-o/loader.h doesn't yet have the simulator
+         * platforms, we are forced to rely upon tbd_platform's enum, which
+         * corresponds exactly to the ordering of Apple's platform enum.
+         */
+
+        case TBD_PLATFORM_BRIDGEOS: {
+            /*
+             * If the platform isn't needed, skip the unnecessary parsing.
+             */
+
+            if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                break;
+            }
+
+            /*
+             * All version_min load-commands should be the of the same cmdsize.
+             */
+
+            if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
+                return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
+            }
+
+            if (info_in->platform != 0) {
+                const bool ignore_conflicting_fields =
+                    options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                if (!ignore_conflicting_fields) {
+                    if (info_in->platform != TBD_PLATFORM_BRIDGEOS) {
+                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    }
+                }
+            } else {
+                info_in->platform = TBD_PLATFORM_BRIDGEOS;
             }
 
             break;

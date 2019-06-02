@@ -462,21 +462,45 @@ int tbd_write_platform(FILE *const file, const enum tbd_platform platform) {
             break;
 
         case TBD_PLATFORM_IOS:
+        case TBD_PLATFORM_IOS_SIMULATOR:
             if (fprintf(file, "platform:%-14sios\n", "") < 0) {
                 return 1;
             }
 
             break;
 
+        case TBD_PLATFORM_TVOS:
+        case TBD_PLATFORM_TVOS_SIMULATOR:
+            if (fprintf(file, "platform:%-14stvos\n", "") < 0) {
+                return 1;
+            }
+
+            break;
+
         case TBD_PLATFORM_WATCHOS:
+        case TBD_PLATFORM_WATCHOS_SIMULATOR:
             if (fprintf(file, "platform:%-14swatchos\n", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_PLATFORM_TVOS:
-            if (fprintf(file, "platform:%-14stvos\n", "") < 0) {
+        case TBD_PLATFORM_BRIDGEOS:
+            if (fprintf(file, "platform:%-14sbridgeos\n", "") < 0) {
+                return 1;
+            }
+
+            break;
+
+        case TBD_PLATFORM_IOSMAC:
+            if (fprintf(file, "platform:%-14siosmac\n", "") < 0) {
+                return 1;
+            }
+
+            break;
+
+        case TBD_PLATFORM_ZIPPERED:
+            if (fprintf(file, "platform:%-14szippered\n", "") < 0) {
                 return 1;
             }
 
@@ -977,8 +1001,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
         return 1;
     }
 
-    const uint64_t archs = tbd->archs;
-    if (write_archs_for_exports(file, archs)) {
+    if (write_archs_for_exports(file, info->archs)) {
         return 1;
     }
 

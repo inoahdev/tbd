@@ -71,6 +71,31 @@ enum tbd_platform {
     TBD_PLATFORM_IOS,
     TBD_PLATFORM_TVOS,
     TBD_PLATFORM_WATCHOS,
+
+    /*
+     * Apple's mach-o/loader.h doesn't yet contain this platform, even though
+     * this platform exists in mach-o files, and so must be manually supported.
+     */
+
+    TBD_PLATFORM_BRIDGEOS,
+
+    /*
+     * Apple's mach-o/loader.h doesn't yet contain the simulator platforms, but
+     * they are supported in mach-o files, and so are provided here.
+     */
+
+    TBD_PLATFORM_IOS_SIMULATOR = 7,
+    TBD_PLATFORM_TVOS_SIMULATOR,
+    TBD_PLATFORM_WATCHOS_SIMULATOR,
+
+    /*
+     * The platforms below aren't yet supported in a mach-o file, however,
+     * Apple's official libtapi supports these platforms, so they are included
+     * here.
+     */
+
+    TBD_PLATFORM_IOSMAC = 6,
+    TBD_PLATFORM_ZIPPERED = 10
 };
 
 enum tbd_export_type {

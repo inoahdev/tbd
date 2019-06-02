@@ -20,6 +20,10 @@
  */
 
 static struct arch_info arch_info_list[] = {
+    /*
+     * Index starts at 0 and ends at 2.
+     */
+
     { CPU_TYPE_ANY, CPU_SUBTYPE_MULTIPLE,      "any"    },
     { CPU_TYPE_ANY, CPU_SUBTYPE_LITTLE_ENDIAN, "little" },
     { CPU_TYPE_ANY, CPU_SUBTYPE_BIG_ENDIAN,    "big"    },
