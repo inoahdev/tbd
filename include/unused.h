@@ -9,6 +9,8 @@
 #ifndef UNUSED_H
 #define UNUSED_H
 
+#ifndef __unused
 #define __unused __attribute__((unused))
+#endif
 
 #endif /* UNUSED_H */
