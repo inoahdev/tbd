@@ -54,5 +54,6 @@ enum parse_dsc_for_main_result
 parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args);
 
 void print_list_of_dsc_images(int fd);
+void print_list_of_dsc_images_ordered(int fd);
 
 #endif /* PARSE_DSC_FOR_MAIN_H */

@@ -96,6 +96,9 @@ List options:
         --list-architectures,    List all valid architectures for .tbd files.
                                  Also able to list architectures of the mach-o file from a provided path
         --list-dsc-images,       List all images of a dyld_shared_cache from a provided path
+                                 One option exists for listing dsc-images:
+                                     --ordered, Order image-paths alphabetically before printing them. An image-path's listed
+                                                number should not be provided for option --filter-image-number
         --list-objc-constraints, List all valid objc-constraint options for .tbd files
         --list-platform,         List all valid platforms
         --list-tbd-flags,        List all valid flags for .tbd files

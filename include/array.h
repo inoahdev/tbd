@@ -42,6 +42,11 @@ enum array_result {
     E_ARRAY_TOO_MANY_ITEMS
 };
 
+enum array_result
+array_ensure_item_capacity(struct array *array,
+                           size_t item_size,
+                           uint64_t item_count);
+
 bool array_is_empty(const struct array *array);
 uint64_t array_get_used_size(const struct array *array);
 
@@ -52,6 +57,11 @@ void *
 array_get_item_at_index(const struct array *array,
                         size_t item_size,
                         uint64_t index);
+
+void *
+array_get_item_at_index_unsafe(const struct array *array,
+                               size_t item_size,
+                               uint64_t index);
 
 enum array_result
 array_add_item(struct array *array,
@@ -117,11 +127,6 @@ array_add_item_with_cached_index_info(struct array *array,
                                       const void *item,
                                       struct array_cached_index_info *info,
                                       void **item_out);
-
-enum array_result
-array_sort_items_with_comparator(struct array *array,
-                                 size_t item_size,
-                                 array_item_comparator comparator);
 
 enum array_result array_copy(struct array *array, struct array *array_out);
 

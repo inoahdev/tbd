@@ -19,8 +19,8 @@ handle_dsc_file_parse_result(const char *path,
                              bool print_paths);
 void
 handle_dsc_file_parse_result_while_recursing(
-	const char *dir_path,
-	const char *name,
+    const char *dir_path,
+    const char *name,
     enum dyld_shared_cache_parse_result parse_result,
     bool print_paths);
 

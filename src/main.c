@@ -318,9 +318,9 @@ int main(const int argc, const char *const argv[]) {
             }
 
             struct tbd_for_main *const tbd =
-                array_get_item_at_index(&tbds,
-                                        sizeof(struct tbd_for_main),
-                                        current_tbd_index);
+                array_get_item_at_index_unsafe(&tbds,
+                                               sizeof(struct tbd_for_main),
+                                               current_tbd_index);
 
             if (tbd == NULL) {
                 /*
@@ -899,9 +899,11 @@ int main(const int argc, const char *const argv[]) {
 
             return 0;
         } else if (strcmp(option, "list-dsc-images") == 0) {
-            if (index != 1 || argc != 3) {
+            if (index != 1 || argc > 4) {
                 fputs("--list-dsc-images needs to be run with a single path to "
-                      "a dyld_shared_cache file whose images will be printed\n",
+                      "a dyld_shared_cache file whose images will be printed."
+                      "An additional option (--ordered) can be provided to "
+                      "sort the image-paths before printing them\n",
                       stderr);
 
                 destroy_tbds_array(&tbds);
@@ -926,7 +928,18 @@ int main(const int argc, const char *const argv[]) {
                 return 1;
             }
 
-            print_list_of_dsc_images(fd);
+            if (argc > 3) {
+                const char *const arg = argv[3];
+                if (strcmp(arg, "--ordered") != 0) {
+                    fprintf(stderr, "Unrecognized argument: %s\n", arg);
+                    return 1;
+                }
+
+                print_list_of_dsc_images_ordered(fd);
+            } else {
+                print_list_of_dsc_images(fd);
+            }
+
             return 0;
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {

@@ -77,23 +77,6 @@ dyld_shared_cache_parse_from_range(struct dyld_shared_cache_info *info_in,
                                    uint64_t end,
                                    uint64_t options);
 
-/*
- * dyld_shared_cache_iterate_images_with_callback callback.
- * Return true to continue iterating, false to stop.
- */
-
-typedef bool
-(*dyld_shared_cache_iterate_images_callback)(
-    struct dyld_cache_image_info *image,
-    const char *path,
-    void *item);
-
-void
-dyld_shared_cache_iterate_images_with_callback(
-    const struct dyld_shared_cache_info *info_in,
-    void *item,
-    dyld_shared_cache_iterate_images_callback callback);
-
 void
 dyld_shared_cache_print_list_of_images(int fd,
                                        uint64_t start,

@@ -509,29 +509,6 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
 
-void
-dyld_shared_cache_iterate_images_with_callback(
-    const struct dyld_shared_cache_info *const info_in,
-    void *const item,
-    const dyld_shared_cache_iterate_images_callback callback)
-{
-    const uint8_t *const map = info_in->map;
-    const uint32_t images_count = info_in->images_count;
-
-    for (uint32_t i = 0; i < images_count; i++) {
-        struct dyld_cache_image_info *const image = info_in->images + i;
-
-        const uint32_t path_file_offset = image->pathFileOffset;
-        const char *const path = (const char *)(map + path_file_offset);
-
-        if (callback(image, path, item)) {
-            continue;
-        }
-
-        break;
-    }
-}
-
 void dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *const info) {
     if (info->flags & F_DYLD_SHARED_CACHE_UNMAP_MAP) {
         munmap(info->map, info->size);

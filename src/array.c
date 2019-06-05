@@ -25,6 +25,17 @@ array_get_item_at_index(const struct array *const array,
     return iter;
 }
 
+void *
+array_get_item_at_index_unsafe(const struct array *const array,
+                               const size_t item_size,
+                               const uint64_t index)
+{
+    const uint64_t byte_index = item_size * index;
+    void *const iter = array->data + byte_index;
+
+    return iter;
+}
+
 void *array_get_front(const struct array *const array) {
     return array->data;
 }
@@ -43,20 +54,12 @@ bool array_is_empty(const struct array *const array) {
 }
 
 static enum array_result
-array_expand_if_necessary(struct array *const array,
-                          const uint64_t add_byte_size)
+array_grow_to_capacity(struct array *const array,
+                       const uint64_t used_size,
+                       const uint64_t current_capacity,
+                       const uint64_t wanted_capacity)
 {
-    void *const old_data = array->data;
-
-    const uint64_t used_size = array_get_used_size(array);
-    const uint64_t old_capacity = (uint64_t)(array->alloc_end - old_data);
-    const uint64_t wanted_capacity = used_size + add_byte_size;
-
-    if (wanted_capacity <= old_capacity) {
-        return E_ARRAY_OK;
-    }
-
-    uint64_t new_capacity = old_capacity * 2;
+    uint64_t new_capacity = current_capacity * 2;
     if (new_capacity != 0) {
         while (new_capacity < wanted_capacity) {
             new_capacity *= 2;
@@ -70,12 +73,61 @@ array_expand_if_necessary(struct array *const array,
         return E_ARRAY_ALLOC_FAIL;
     }
 
+    void *const old_data = array->data;
+
     memcpy(new_data, old_data, used_size);
     free(old_data);
 
     array->data = new_data;
     array->data_end = new_data + used_size;
     array->alloc_end = new_data + new_capacity;
+
+    return E_ARRAY_OK;
+}
+
+static enum array_result
+array_expand_if_necessary(struct array *const array,
+                          const uint64_t add_byte_size)
+{
+    void *const old_data = array->data;
+
+    const uint64_t used_size = array_get_used_size(array);
+    const uint64_t old_capacity = (uint64_t)(array->alloc_end - old_data);
+    const uint64_t wanted_capacity = used_size + add_byte_size;
+
+    if (wanted_capacity <= old_capacity) {
+        return E_ARRAY_OK;
+    }
+
+    const enum array_result array_grow_result =
+        array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
+
+    if (array_grow_result != E_ARRAY_OK) {
+        return array_grow_result;
+    }
+
+    return E_ARRAY_OK;
+}
+
+enum array_result
+array_ensure_item_capacity(struct array *const array,
+                           const size_t item_size,
+                           const uint64_t item_count)
+{
+    const uint64_t old_capacity = (uint64_t)(array->alloc_end - array->data);
+    const uint64_t wanted_capacity = item_count * item_size;
+
+    if (old_capacity > wanted_capacity) {
+        return E_ARRAY_OK;
+    }
+
+    const uint64_t used_size = array_get_used_size(array);
+    const enum array_result array_grow_result =
+        array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
+
+    if (array_grow_result != E_ARRAY_OK) {
+        return array_grow_result;
+    }
 
     return E_ARRAY_OK;
 }
@@ -504,15 +556,6 @@ array_add_item_with_cached_index_info(
      */
 
     return array_add_item_to_index(array, item_size, item, index + 1, item_out);
-}
-
-enum array_result
-array_sort_items_with_comparator(struct array *const array,
-                                 const size_t item_size,
-                                 const array_item_comparator comparator)
-{
-    qsort(array->data, array->item_count, item_size, comparator);
-    return E_ARRAY_OK;
 }
 
 enum array_result

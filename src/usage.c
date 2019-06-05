@@ -112,6 +112,9 @@ void print_usage(void) {
     fputs("        --list-architectures,    List all valid architectures for .tbd files.\n", stdout);
     fputs("                                 Also able to list architectures of the mach-o file from a provided path\n", stdout);
     fputs("        --list-dsc-images,       List all images of a dyld_shared_cache from a provided path\n", stdout);
+    fputs("                                 One option exists for listing dsc-images:\n", stdout);
+    fputs("                                     --ordered, Order image-paths alphabetically before printing them. An image-path's listed\n", stdout);
+    fputs("                                                number should not be provided for option --filter-image-number\n", stdout);
     fputs("        --list-objc-constraints, List all valid objc-constraint options for .tbd files\n", stdout);
     fputs("        --list-platform,         List all valid platforms\n", stdout);
     fputs("        --list-tbd-flags,        List all valid flags for .tbd files\n", stdout);
