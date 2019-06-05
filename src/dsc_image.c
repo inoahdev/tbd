@@ -239,8 +239,10 @@ dsc_image_parse(struct tbd_create_info *const info_in,
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
         }
 
-        if (!is_big_endian && magic != MH_MAGIC) {
-            return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
+        if (!is_big_endian) {
+            if (magic != MH_MAGIC) {
+                return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
+            }
         }
     }
 

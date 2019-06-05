@@ -60,8 +60,10 @@ parse_thin_file(struct tbd_create_info *const info_in,
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
-        if (!is_big_endian && header.magic != MH_MAGIC) {
-            return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+        if (!is_big_endian) {
+            if (header.magic != MH_MAGIC) {
+                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
+            }
         }
     }
 

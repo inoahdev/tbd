@@ -372,19 +372,22 @@ handle_symbol(struct tbd_create_info *const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (!(options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
-            const uint64_t archs = existing_info->archs;
-
-            /*
-             * Ensure multiple symbols for the same arch are ignored (For the
-             * sake of leniency).
-             */
-
-            if (!(archs & arch_bit)) {
-                existing_info->archs = archs | arch_bit;
-                existing_info->archs_count += 1;
-            }
+        if (options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+            return E_MACHO_FILE_PARSE_OK;
         }
+
+        /*
+         * Ensure multiple symbols for the same arch are ignored (For the
+         * sake of leniency).
+         */
+
+        const uint64_t archs = existing_info->archs;
+        if (archs & arch_bit) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        existing_info->archs = archs | arch_bit;
+        existing_info->archs_count += 1;
 
         return E_MACHO_FILE_PARSE_OK;
     }
@@ -546,8 +549,10 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -590,8 +595,10 @@ macho_file_parse_symbols_from_file(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -756,8 +763,10 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -800,8 +809,10 @@ macho_file_parse_symbols_64_from_file(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -909,8 +920,10 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -950,8 +963,10 @@ macho_file_parse_symbols_from_map(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -1058,8 +1073,10 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*
@@ -1099,8 +1116,10 @@ macho_file_parse_symbols_64_from_map(struct tbd_create_info *const info_in,
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT && type != N_INDR) {
-                continue;
+            if (type != N_SECT) {
+                if (type != N_INDR) {
+                    continue;
+                }
             }
 
             /*

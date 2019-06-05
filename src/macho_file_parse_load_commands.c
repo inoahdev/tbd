@@ -159,8 +159,8 @@ parse_section_from_file(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Keep an offset of our original position, which we'll seek back to alter,
-     * so we can return safetly back to the for loop.
+     * Keep an offset of our original position, which we'll seek back to after
+     * we're done here.
      */
 
     const off_t original_pos = lseek(fd, 0, SEEK_CUR);
@@ -1765,10 +1765,10 @@ macho_file_parse_load_commands_from_map(
                  * unnecessary parsing.
                  */
 
-                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
-                {
-                    break;
+                if (tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+                    if (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
+                        break;
+                    }
                 }
 
                 /*
@@ -1862,10 +1862,10 @@ macho_file_parse_load_commands_from_map(
                  * unnecessary parsing.
                  */
 
-                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
-                {
-                    break;
+                if (tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+                    if (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
+                        break;
+                    }
                 }
 
                 /*

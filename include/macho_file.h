@@ -27,8 +27,7 @@ enum macho_file_options {
     O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE = 1 << 3,
 
     /*
-     * If the mach-o file is mapped, the strings are by default not copied
-     * (not allocated).
+     * When a mach-o file is mapped, strings are, by default, not copied.
      */
 
     O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP = 1 << 4,
