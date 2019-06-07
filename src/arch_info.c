@@ -24,133 +24,133 @@ static struct arch_info arch_info_list[] = {
      * Index starts at 0 and ends at 2.
      */
 
-    { CPU_TYPE_ANY, CPU_SUBTYPE_MULTIPLE,      "any"    },
-    { CPU_TYPE_ANY, CPU_SUBTYPE_LITTLE_ENDIAN, "little" },
-    { CPU_TYPE_ANY, CPU_SUBTYPE_BIG_ENDIAN,    "big"    },
+    { CPU_TYPE_ANY, CPU_SUBTYPE_MULTIPLE,      "any",    3 },
+    { CPU_TYPE_ANY, CPU_SUBTYPE_LITTLE_ENDIAN, "little", 6 },
+    { CPU_TYPE_ANY, CPU_SUBTYPE_BIG_ENDIAN,    "big",    3 },
 
     /*
      * Index starts at 3 and ends at 5.
      */
 
-    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC680x0_ALL,  "m68k"   },
-    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68040,      "m68040" },
-    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68030_ONLY, "m68030" },
+    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC680x0_ALL,  "m68k",   4 },
+    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68040,      "m68040", 6 },
+    { CPU_TYPE_MC680x0, CPU_SUBTYPE_MC68030_ONLY, "m68030", 6 },
 
     /*
      * Index starts at 6 and ends at 14.
      */
 
-    { CPU_TYPE_X86, CPU_SUBTYPE_I386_ALL,  "i386"     },
-    { CPU_TYPE_X86, CPU_SUBTYPE_486,       "i486"     },
-    { CPU_TYPE_X86, CPU_SUBTYPE_486SX,     "i486SX"   },
-    { CPU_TYPE_X86, CPU_SUBTYPE_PENT,      "pentium"  },
-    { CPU_TYPE_X86, CPU_SUBTYPE_PENTPRO,   "pentpro"  },
-    { CPU_TYPE_X86, CPU_SUBTYPE_PENTII_M3, "pentIIm3" },
-    { CPU_TYPE_X86, CPU_SUBTYPE_PENTII_M5, "pentIIm5" },
-    { CPU_TYPE_X86, CPU_SUBTYPE_PENTIUM_4, "pentium4" },
-    { CPU_TYPE_X86, CPU_SUBTYPE_X86_64_H,  "x86_64h"  },
+    { CPU_TYPE_X86, CPU_SUBTYPE_I386_ALL,  "i386",     4 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_486,       "i486",     4 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_486SX,     "i486SX",   6 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_PENT,      "pentium",  7 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_PENTPRO,   "pentpro",  7 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_PENTII_M3, "pentIIm3", 8 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_PENTII_M5, "pentIIm5", 8 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_PENTIUM_4, "pentium4", 8 },
+    { CPU_TYPE_X86, CPU_SUBTYPE_X86_64_H,  "x86_64h",  7 },
 
     /*
      * Index starts at 15 and ends at 16.
      */
 
-    { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_ALL,  "hppa"       },
-    { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_7100, "hppa7100LC" },
+    { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_ALL,  "hppa",       4  },
+    { CPU_TYPE_HPPA, CPU_SUBTYPE_HPPA_7100, "hppa7100LC", 10 },
 
     /*
      * Index starts at 17 and ends at 29.
      */
 
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_ALL,    "arm"     },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V4T,    "armv4t"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6,     "armv6"   },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V5TEJ,  "armv5"   },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_XSCALE, "xscale"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7,     "armv7"   },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7F,    "armv7f"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7S,    "armv7s"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7K,    "armv7k"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6M,    "armv6"   },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7M,    "armv7m"  },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7EM,   "armv7em" },
-    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V8,     "armv8"   },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_ALL,    "arm",     3 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V4T,    "armv4t",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6,     "armv6",   5 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V5TEJ,  "armv5",   5 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_XSCALE, "xscale",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7,     "armv7",   5 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7F,    "armv7f",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7S,    "armv7s",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7K,    "armv7k",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V6M,    "armv6",   5 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7M,    "armv7m",  6 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V7EM,   "armv7em", 7 },
+    { CPU_TYPE_ARM, CPU_SUBTYPE_ARM_V8,     "armv8",   5 },
 
     /*
      * Following's index is 30.
      */
 
-    { CPU_TYPE_MC88000, CPU_SUBTYPE_MC88000_ALL, "m88k" },
+    { CPU_TYPE_MC88000, CPU_SUBTYPE_MC88000_ALL, "m88k", 4 },
 
     /*
      * Following's index is 31.
      */
 
-    { CPU_TYPE_SPARC, CPU_SUBTYPE_SPARC_ALL, "sparc" },
+    { CPU_TYPE_SPARC, CPU_SUBTYPE_SPARC_ALL, "sparc", 5 },
 
     /*
      * Following's index is 32.
      */
 
-    { CPU_TYPE_I860, CPU_SUBTYPE_I860_ALL, "i860" },
+    { CPU_TYPE_I860, CPU_SUBTYPE_I860_ALL, "i860", 4 },
 
     /*
      * Index starts at 33 and ends at 44.
      */
 
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_ALL,   "ppc"      },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_601,   "ppc601"   },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_602,   "ppc602"   },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603,   "ppc603"   },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603e,  "ppc603e"  },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603ev, "ppc603ev" },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_604,   "ppc604"   },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_604e,  "ppc604e"  },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_750,   "ppc750"   },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_7400,  "ppc7400"  },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_7450,  "ppc7450"  },
-    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_970,   "ppc970"   },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_ALL,   "ppc",      3 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_601,   "ppc601",   6 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_602,   "ppc602",   6 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603,   "ppc603",   6 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603e,  "ppc603e",  7 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_603ev, "ppc603ev", 8 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_604,   "ppc604",   6 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_604e,  "ppc604e",  7 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_750,   "ppc750",   6 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_7400,  "ppc7400",  7 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_7450,  "ppc7450",  7 },
+    { CPU_TYPE_POWERPC, CPU_SUBTYPE_POWERPC_970,   "ppc970",   6 },
 
     /*
      * Index starts at 45 and ends at 47.
      */
 
-    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_ALL, "veo"  },
-    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_1,   "veo1" },
-    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_2,   "veo2" },
+    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_ALL, "veo",  3 },
+    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_1,   "veo1", 4 },
+    { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_2,   "veo2", 4 },
 
     /*
      * Index starts at 48 and ends at 49.
      */
 
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL, "x86_64"  },
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,   "x86_64h" },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL, "x86_64",  6 },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,   "x86_64h", 7 },
 
     /*
      * Index starts from 50 and ends at 52.
      */
 
-    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64"  },
-    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_V8,  "arm64"  },
-    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E,    "arm64e" },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64",  5 },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_V8,  "arm64",  5 },
+    { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E,    "arm64e", 6 },
 
     /*
      * Index starts at 53 and ends at 54.
      */
 
-    { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_ALL, "ppc64"     },
-    { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64" },
+    { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_ALL, "ppc64",     5 },
+    { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64", 9 },
 
     /*
      * Following's index is 55.
      */
 
-    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32" },
+    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32", 8 },
 
     /*
      * Following's index is 56.
      */
 
-    { 0, 0, NULL }
+    { 0, 0, NULL, 0 }
 };
 
 /*

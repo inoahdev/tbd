@@ -16,6 +16,7 @@ struct arch_info {
     cpu_subtype_t cpusubtype;
 
     const char *name;
+    uint64_t name_length;
 };
 
 const struct arch_info *arch_info_get_list(void);
