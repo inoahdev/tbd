@@ -195,24 +195,26 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     }
 
     /*
-     * Handle the replacement options if provided.
+     * Ignore invalid fields so a mach-o file is fully parsed regardless of
+     * errors. Instead, we prefer to check manually for any field errors
      */
 
-    const uint32_t magic = *(const uint32_t *)args.magic_in;
-    const uint64_t parse_options = args.tbd->parse_options;
+    const uint64_t macho_options =
+        O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options;
 
     struct tbd_create_info *const create_info = &args.tbd->info;
     struct tbd_create_info original_info = *create_info;
 
+    const uint32_t magic = *(const uint32_t *)args.magic_in;
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(create_info,
                                    args.fd,
                                    magic,
-                                   parse_options,
-                                   args.tbd->macho_options);
+                                   args.tbd->parse_options,
+                                   macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        if (!args.ignore_non_macho_error) {
+        if (!args.dont_handle_non_macho_error) {
             const struct handle_macho_file_parse_result_args handle_args = {
                 .retained_info_in = args.retained_info_in,
                 .global = args.global,
@@ -320,7 +322,7 @@ parse_macho_file_for_main_while_recursing(
                                    macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        if (!args.ignore_non_macho_error) {
+        if (!args.dont_handle_non_macho_error) {
             const struct handle_macho_file_parse_result_args handle_args = {
                 .retained_info_in = args.retained_info_in,
                 .global = args.global,

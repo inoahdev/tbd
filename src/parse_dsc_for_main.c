@@ -710,9 +710,8 @@ dsc_iterate_images(const struct dyld_shared_cache_info *const dsc_info,
         }
 
         /*
-         * Skip any dyld_shared_cache images if we haven't been prompted to
-         * accept them. We extract all the images in the dyld_shared_cache if
-         * none specific have been provided.
+         * If we're not parsing all images, we need to verify that our image
+         * meets either a fiter or a path.
          */
 
         uint64_t length = 0;
@@ -910,7 +909,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (!args.ignore_non_cache_error) {
+        if (!args.dont_handle_non_dsc_error) {
             handle_dsc_file_parse_result(args.dsc_dir_path,
                                          parse_dsc_file_result,
                                          args.print_paths);
@@ -1079,7 +1078,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (!args.ignore_non_cache_error) {
+        if (!args.dont_handle_non_dsc_error) {
             handle_dsc_file_parse_result_while_recursing(args.dsc_dir_path,
                                                          args.dsc_name,
                                                          parse_dsc_file_result,

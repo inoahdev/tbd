@@ -41,7 +41,7 @@ struct parse_dsc_for_main_args {
     const char *dsc_name;
     uint64_t dsc_name_length;
 
-    bool ignore_non_cache_error;
+    bool dont_handle_non_dsc_error;
     bool print_paths;
 
     uint64_t options;

@@ -35,7 +35,7 @@ struct parse_macho_for_main_args {
     const char *name;
     uint64_t name_length;
 
-    bool ignore_non_macho_error;
+    bool dont_handle_non_macho_error;
     bool print_paths;
 
     uint64_t options;

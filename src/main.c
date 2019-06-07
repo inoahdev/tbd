@@ -90,7 +90,7 @@ recurse_directory_callback(const char *const dir_path,
             .name = name,
             .name_length = name_length,
 
-            .ignore_non_macho_error = true,
+            .dont_handle_non_macho_error = true,
             .print_paths = true
         };
 
@@ -131,7 +131,7 @@ recurse_directory_callback(const char *const dir_path,
             .dsc_name = dirent->d_name,
             .dsc_name_length = name_length,
 
-            .ignore_non_cache_error = true,
+            .dont_handle_non_dsc_error = true,
             .print_paths = true
         };
 
@@ -324,8 +324,8 @@ int main(const int argc, const char *const argv[]) {
 
             if (tbd == NULL) {
                 /*
-                * Subtract one from the index to get the index of the '-o' arg.
-                */
+                 * Subtract one from the index to get the index of the '-o' arg.
+                 */
 
                 fprintf(stderr,
                         "No corresponding tbd exists for output arguments at "
@@ -476,7 +476,8 @@ int main(const int argc, const char *const argv[]) {
 
                 /*
                  * Verify that object at our output-path (if existing) is a
-                 * directory when recursing, and a regular file when parsing a
+                 * directory when recursing, or when we are to parse a
+                 * dyld_shared_cache file, and a regular file when parsing a
                  * single file.
                  */
 
@@ -1020,7 +1021,7 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
-    if (tbds.item_count == 0) {
+    if (array_is_empty(&tbds)) {
         fputs("Please provide paths to either files to parse or directories to "
               "recurse\n",
               stderr);
@@ -1053,7 +1054,7 @@ int main(const int argc, const char *const argv[]) {
              */
 
             if (tbd->write_path == NULL) {
-                fputs("Writing to stdout (terminal) while recursing a "
+                fputs("Writing to stdout (the terminal) while recursing a "
                       "directory is not supported, Please provide a directory "
                       "to write all created files to\n",
                       stderr);
@@ -1155,7 +1156,7 @@ int main(const int argc, const char *const argv[]) {
                     .dir_path = parse_path,
                     .dir_path_length = tbd->parse_path_length,
 
-                    .ignore_non_macho_error = false,
+                    .dont_handle_non_macho_error = false,
                     .print_paths = should_print_paths,
 
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
@@ -1167,7 +1168,7 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (tbd->filetypes_count != 1) {
-                    args.ignore_non_macho_error = true;
+                    args.dont_handle_non_macho_error = true;
                 }
 
                 const enum parse_macho_for_main_result parse_result =
@@ -1192,7 +1193,7 @@ int main(const int argc, const char *const argv[]) {
                     .dsc_dir_path = parse_path,
                     .dsc_dir_path_length = tbd->parse_path_length,
 
-                    .ignore_non_cache_error = false,
+                    .dont_handle_non_dsc_error = false,
                     .print_paths = should_print_paths,
 
                     /*
@@ -1209,7 +1210,7 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (tbd->filetypes_count != 1) {
-                    args.ignore_non_cache_error = true;
+                    args.dont_handle_non_dsc_error = true;
                 }
 
                 const enum parse_dsc_for_main_result parse_result =
@@ -1220,27 +1221,29 @@ int main(const int argc, const char *const argv[]) {
                 }
             }
 
-            if (!matched_filetype) {
-                if (tbd->filetypes == 0) {
-                    if (should_print_paths) {
-                        fputs("File at provided path (%s) was not among any of "
-                              "the supported filetypes\n",
-                              stderr);
-                    } else {
-                        fputs("File at the provided path was not among any of "
-                              "the supported filetypes\n",
-                              stderr);
-                    }
-                } else if (tbd->filetypes_count != 1) {
-                    if (should_print_paths) {
-                        fputs("File at provided path (%s) was not among any of "
-                              "the provided filetypes\n",
-                              stderr);
-                    } else {
-                        fputs("File at the provided path was not among any of "
-                              "the provided filetypes\n",
-                              stderr);
-                    }
+            if (matched_filetype) {
+                continue;
+            }
+
+            if (tbd->filetypes == 0) {
+                if (should_print_paths) {
+                    fputs("File at provided path (%s) was not among any of "
+                          "the supported filetypes\n",
+                          stderr);
+                } else {
+                    fputs("File at the provided path was not among any of "
+                          "the supported filetypes\n",
+                          stderr);
+                }
+            } else if (tbd->filetypes_count != 1) {
+                if (should_print_paths) {
+                    fputs("File at provided path (%s) was not among any of "
+                          "the provided filetypes\n",
+                          stderr);
+                } else {
+                    fputs("File at the provided path was not among any of "
+                          "the provided filetypes\n",
+                          stderr);
                 }
             }
         }
