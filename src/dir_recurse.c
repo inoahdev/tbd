@@ -105,7 +105,7 @@ dir_recurse(const char *const path,
 }
 
 static enum dir_recurse_result
-recurse_dir_fd(const int dir_fd,
+recurse_subdir(const int dir_fd,
                const char *const dir_path,
                const uint64_t dir_path_length,
                const int file_open_flags,
@@ -194,7 +194,7 @@ recurse_dir_fd(const int dir_fd,
                 }
 
                 const enum dir_recurse_result recurse_subdir_result =
-                    recurse_dir_fd(subdir_fd,
+                    recurse_subdir(subdir_fd,
                                    subdir_path,
                                    subdir_path_length,
                                    file_open_flags,
@@ -262,7 +262,7 @@ dir_recurse_with_subdirs(const char *const dir_path,
     }
 
     const enum dir_recurse_result recurse_dir_result =
-        recurse_dir_fd(dir_fd,
+        recurse_subdir(dir_fd,
                        dir_path,
                        dir_path_length,
                        file_open_flags,
