@@ -243,8 +243,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
                                   const uint64_t options)
 {
     /*
-     * For performance, check magic and verify header first before mapping file
-     * to memory.
+     * For performance, check magic and verify headers before mapping file to
+     * memory.
      */
 
     const struct arch_info *arch = NULL;
@@ -261,33 +261,6 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         }
 
         return E_DYLD_SHARED_CACHE_PARSE_READ_FAIL;
-    }
-
-    struct stat sbuf = {};
-    if (fstat(fd, &sbuf) < 0) {
-        return E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL;
-    }
-
-    const uint64_t dsc_size = (uint64_t)sbuf.st_size;
-    const struct range no_main_header_range = {
-        .begin = sizeof(struct dyld_cache_header),
-        .end = dsc_size
-    };
-
-    /*
-     * Perform basic validation of the image-array and mapping-infos array
-     * offsets.
-     *
-     * Note: Due to the ubiquity of shared-cache headers, and any lack of
-     * versioning, more stringent validation is not performed.
-     */
-
-    if (!range_contains_location(no_main_header_range, header.mappingOffset)) {
-        return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
-    }
-
-    if (!range_contains_location(no_main_header_range, header.imagesOffset)) {
-        return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
     /*
@@ -309,32 +282,21 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
-    /*
-     * Verify that both the mapping-infos array and the images-array are
-     * completely within the cache-file.
-     */
-
     uint64_t images_end = header.imagesOffset;
     if (guard_overflow_add(&images_end, images_size)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
-    if (!range_contains_end(no_main_header_range, mapping_end)) {
-        return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
+    struct stat sbuf = {};
+    if (fstat(fd, &sbuf) < 0) {
+        return E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL;
     }
 
-    if (!range_contains_end(no_main_header_range, images_end)) {
-        return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
-    }
-
-    /*
-     * Ensure that the total-size of the mappings and images can be quantified.
-     */
-
-    uint64_t total_infos_size = mappings_size;
-    if (guard_overflow_add(&total_infos_size, images_size)) {
-        return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
-    }
+    const uint64_t dsc_size = (uint64_t)sbuf.st_size;
+    const struct range no_main_header_range = {
+        .begin = sizeof(struct dyld_cache_header),
+        .end = dsc_size
+    };
 
     /*
      * Ensure that the mapping-infos array and images-array do not overlap.
@@ -355,8 +317,37 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     /*
+     * Perform basic validation of the image-array and mapping-infos array
+     * offsets.
+     *
+     * Note: Due to the ubiquity of shared-cache headers, and any lack of
+     * versioning, more stringent validation is not performed.
+     */
+
+    if (!range_contains_range(no_main_header_range, mappings_range)) {
+        return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
+    }
+
+    if (!range_contains_range(no_main_header_range, images_range)) {
+        return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
+    }
+
+    /*
+     * Ensure that the total-size of the mappings and images can be quantified.
+     */
+
+    uint64_t total_infos_size = mappings_size;
+    if (guard_overflow_add(&total_infos_size, images_size)) {
+        return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
+    }
+
+    /*
      * After validating all our fields, we then finally map the
      * dyld_shared_cache file to memory.
+     *
+     * We map with write protections so we can use extra fields (like a
+     * dyld_cache_image_info's pad field) for memory savings, but use
+     * MAP_PRIVATE to prevent writing back to disk.
      */
 
     uint8_t *const map =
