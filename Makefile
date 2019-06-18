@@ -6,6 +6,7 @@ WARNINGFLAGS := $(WARNINGFLAGS) -Wwrite-strings -Wunused-parameter
 
 DEFAULTFLAGS := -std=gnu11 -I. -Iinclude/ $(WARNINGFLAGS)
 CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
+VSCODEFLAGS := -I.vscode/ -Wno-sign-conversion $(CFLAGS)
 
 SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd
@@ -30,5 +31,8 @@ debug: target-dir
 install: all
 	@sudo mv $(TARGET) /usr/bin
 
+vscode:
+	@$(C) $(VSCODEFLAGS) $(SRCS) -o $(TARGET)
+
 compile_commands:
-	@bear make
+	@bear make vscode
