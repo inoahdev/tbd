@@ -48,11 +48,6 @@ request_choice(const char *const prompt, const char *const inputs[const]) {
             exit(1);
         }
 
-        /*
-         * getline() returns the delimiter in the string itself, which we should
-         * remove.
-         */
-
         uint64_t index = 0;
         const uint64_t check_length = (uint64_t)(input_length - 1);
 
@@ -98,8 +93,7 @@ static char *request_input(const char *const prompt) {
     }
 
     /*
-     * getline() returns the delimiter in the string itself, which we should
-     * remove.
+     * We remove the delimiter getline() returns back to us.
      */
 
     input[input_length - 1] = '\0';
@@ -229,14 +223,9 @@ request_objc_constraint(struct tbd_for_main *const global,
                           "objc-constraints");
 
         if (strcmp(input, "--list-objc_constraint") == 0) {
-            fputs("none\n"
-                  "retain_release\n"
-                  "retain_release_or_gc\n"
-                  "retain_release_for_simulator\n"
-                  "gc\n",
-                  stdout);
-
+            print_objc_constraint_list();
             free(input);
+
             continue;
         }
 
@@ -377,13 +366,9 @@ request_platform(struct tbd_for_main *const global,
                           "(Enter --list-platform to list all platforms)");
 
         if (strcmp(input, "--list-platform") == 0) {
-            fputs("macosx\n"
-                  "ios\n"
-                  "watchos\n"
-                  "tvos\n",
-                  stdout);
-
+            print_platform_list();
             free(input);
+
             continue;
         }
 
