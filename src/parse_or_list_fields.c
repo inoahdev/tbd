@@ -78,14 +78,14 @@ parse_architectures_list(int *const index_in,
         }
     } while (true);
 
+    if (count_out != NULL) {
+        *count_out = count;
+    }
+
     /*
      * Subtract one from index as we're supposed to end with the index pointing
      * to the last argument.
      */
-
-    if (count_out != NULL) {
-        *count_out = count;
-    }
 
     *index_in = index - 1;
     return archs;

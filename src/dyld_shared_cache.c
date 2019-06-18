@@ -342,8 +342,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     }
 
     /*
-     * After validating all our fields, we then finally map the
-     * dyld_shared_cache file to memory.
+     * After validating all our fields, we finally map the dyld_shared_cache
+     * file to memory.
      *
      * We map with write protections so we can use extra fields (like a
      * dyld_cache_image_info's pad field) for memory savings, but use
