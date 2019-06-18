@@ -137,8 +137,8 @@ print_write_to_path_result(struct tbd_for_main *const tbd,
 
         case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
             fprintf(stderr,
-                    "\tImage (with path %s) could not be parsed and written out "
-                    "due to a write fail\n",
+                    "\tImage (with path %s) could not be parsed and written "
+                    "out due to a write fail\n",
                     image_path);
 
             break;
