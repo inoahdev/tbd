@@ -27,9 +27,9 @@ static inline bool ch_is_path_slash(const char ch) {
 }
 
 char *
-path_get_absolute_path_if_necessary(const char *const path,
-                                    const uint64_t path_length,
-                                    uint64_t *const length_out)
+path_get_absolute_path(const char *const path,
+                       const uint64_t path_length,
+                       uint64_t *const length_out)
 {
     const char path_front = path[0];
     if (ch_is_path_slash(path_front)) {

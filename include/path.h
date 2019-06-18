@@ -19,9 +19,9 @@
  */
 
 char *
-path_get_absolute_path_if_necessary(const char *path,
-                                    uint64_t path_length,
-                                    uint64_t *length_out);
+path_get_absolute_path(const char *path,
+                       uint64_t path_length,
+                       uint64_t *length_out);
 
 char *
 path_append_component_with_len(const char *path,

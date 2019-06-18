@@ -461,9 +461,9 @@ int main(const int argc, const char *const argv[]) {
 
                 uint64_t full_path_length = strlen(path);
                 char *full_path =
-                    path_get_absolute_path_if_necessary(path,
-                                                        full_path_length,
-                                                        &full_path_length);
+                    path_get_absolute_path(path,
+                                           full_path_length,
+                                           &full_path_length);
 
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
@@ -647,9 +647,9 @@ int main(const int argc, const char *const argv[]) {
 
                     uint64_t full_path_length = strlen(path);
                     char *full_path =
-                        path_get_absolute_path_if_necessary(path,
-                                                            full_path_length,
-                                                            &full_path_length);
+                        path_get_absolute_path(path,
+                                               full_path_length,
+                                               &full_path_length);
 
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
@@ -875,9 +875,7 @@ int main(const int argc, const char *const argv[]) {
             if (argc == 3) {
                 const char *const path = argv[2];
                 char *const full_path =
-                    path_get_absolute_path_if_necessary(path,
-                                                        strlen(path),
-                                                        NULL);
+                    path_get_absolute_path(path, strlen(path), NULL);
 
                 const int fd = open(full_path, O_RDONLY);
                 if (fd < 0) {
@@ -913,7 +911,7 @@ int main(const int argc, const char *const argv[]) {
 
             const char *const path = argv[2];
             char *const full_path =
-                path_get_absolute_path_if_necessary(path, strlen(path), NULL);
+                path_get_absolute_path(path, strlen(path), NULL);
 
             const int fd = open(full_path, O_RDONLY);
             if (fd < 0) {
