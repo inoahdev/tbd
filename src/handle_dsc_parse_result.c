@@ -490,7 +490,7 @@ handle_dsc_image_parse_result(
                              args.retained_info_in,
                              true,
                              stderr,
-                             "\tImage (with path %s) doesn't have a platform\n"
+                             "\tImage (with path %s) doesn't have a platform\n",
                              args.image_path);
 
         if (!request_result) {
