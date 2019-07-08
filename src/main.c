@@ -154,6 +154,7 @@ recurse_directory_callback(const char *const dir_path,
         }
     }
 
+    close(fd);
     return true;
 }
 
@@ -189,9 +190,8 @@ recurse_directory_fail_callback(const char *const dir_path,
         case E_DIR_RECURSE_FAILED_TO_READ_ENTRY:
             fprintf(stderr,
                     "Failed to read directory-entry while recursing directory "
-                    "at path: %s/%s, error: %s\n",
+                    "at path: %s, error: %s\n",
                     dir_path,
-                    dirent->d_name,
                     strerror(errno));
 
             break;

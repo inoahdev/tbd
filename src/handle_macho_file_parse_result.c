@@ -342,6 +342,7 @@ handle_macho_file_parse_result(
                     request_install_name(args.global,
                                          args.tbd,
                                          args.retained_info_in,
+                                         false,
                                          stderr,
                                          "Mach-o file (at path %s), or one "
                                          "of its architectures, has an invalid "
@@ -352,6 +353,7 @@ handle_macho_file_parse_result(
                     request_install_name(args.global,
                                          args.tbd,
                                          args.retained_info_in,
+                                         false,
                                          stderr,
                                          "The provided mach-o file, or one of "
                                          "its architectures, has an "
@@ -372,6 +374,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s), or one of "
                                      "its architectures, has an invalid "
@@ -382,6 +385,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file, or one of its "
                                      "architectures, has an invalid "
@@ -416,6 +420,7 @@ handle_macho_file_parse_result(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s), or "
                                             "one of its architectures, has an "
@@ -426,6 +431,7 @@ handle_macho_file_parse_result(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file, or one "
                                             "of its architectures, has "
@@ -502,6 +508,7 @@ handle_macho_file_parse_result(
                     request_if_should_ignore_flags(args.global,
                                                    args.tbd,
                                                    args.retained_info_in,
+                                                   false,
                                                    stderr,
                                                    "Mach-o file "
                                                    "(at path %s) has "
@@ -514,6 +521,7 @@ handle_macho_file_parse_result(
                     request_if_should_ignore_flags(args.global,
                                                    args.tbd,
                                                    args.retained_info_in,
+                                                   false,
                                                    stderr,
                                                    "The provided mach-o file "
                                                    "has architectures with "
@@ -533,14 +541,14 @@ handle_macho_file_parse_result(
                 fprintf(stderr,
                         "Mach-o file (at path %s) has architectures with "
                         "conflicting information for its identification "
-                        "(install-name, current-version, and/or"
+                        "(install-name, current-version, and/or "
                         "comatibility-version)"
                         "\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file has architectures with "
                       "conflicting information for its identification "
-                      "(install-name, current-version, and/or"
+                      "(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
         }
@@ -554,6 +562,7 @@ handle_macho_file_parse_result(
                     request_objc_constraint(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
                                             "architectures with conflicting "
@@ -565,6 +574,7 @@ handle_macho_file_parse_result(
                     request_objc_constraint(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file has "
                                             "architectures with conflicting "
@@ -586,6 +596,7 @@ handle_macho_file_parse_result(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
                                             "architectures with conflicting "
@@ -597,6 +608,7 @@ handle_macho_file_parse_result(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file has "
                                             "architectures with conflicting "
@@ -618,6 +630,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s) has "
                                      "architectures with conflicting "
@@ -628,6 +641,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file has "
                                      "architectures with conflicting "
@@ -648,6 +662,7 @@ handle_macho_file_parse_result(
                     request_swift_version(args.global,
                                           args.tbd,
                                           args.retained_info_in,
+                                          false,
                                           stderr,
                                           "Mach-o file (at path %s) has "
                                           "architectures with conflicting "
@@ -658,6 +673,7 @@ handle_macho_file_parse_result(
                     request_swift_version(args.global,
                                           args.tbd,
                                           args.retained_info_in,
+                                          false,
                                           stderr,
                                           "The provided mach-o file has "
                                           "architectures with conflicting "
@@ -703,6 +719,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s), does not "
                                      "have a platform\n",
@@ -712,6 +729,7 @@ handle_macho_file_parse_result(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file does not "
                                      "have a platform\n");
@@ -808,6 +826,7 @@ handle_macho_file_parse_result(
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s), does not "
                                      "have an install-name\n",
@@ -817,6 +836,7 @@ handle_macho_file_parse_result(
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file does not have "
                                      "an install-name\n");
@@ -834,6 +854,7 @@ handle_macho_file_parse_result(
                 request_platform(args.global,
                                  args.tbd,
                                  args.retained_info_in,
+                                 false,
                                  stderr,
                                  "Mach-o file (at path %s), does not have a "
                                  "platform\n",
@@ -843,6 +864,7 @@ handle_macho_file_parse_result(
                 request_platform(args.global,
                                  args.tbd,
                                  args.retained_info_in,
+                                 false,
                                  stderr,
                                  "The provided mach-o file does not have a "
                                  "platform\n");
@@ -1208,6 +1230,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_install_name(args.global,
                                          args.tbd,
                                          args.retained_info_in,
+                                         false,
                                          stderr,
                                          "Mach-o file (at path %s/%s), or one "
                                          "of its architectures, has an invalid "
@@ -1219,6 +1242,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_install_name(args.global,
                                          args.tbd,
                                          args.retained_info_in,
+                                         false,
                                          stderr,
                                          "The provided mach-o file, or one of "
                                          "its architectures, has an "
@@ -1239,6 +1263,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), or one of "
                                      "its architectures, has an invalid "
@@ -1250,6 +1275,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file, or one of its "
                                      "architectures, has an invalid "
@@ -1285,6 +1311,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s/%s), or "
                                             "one of its architectures, has an "
@@ -1296,6 +1323,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file, or one "
                                             "of its architectures, has "
@@ -1376,6 +1404,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_if_should_ignore_flags(args.global,
                                                    args.tbd,
                                                    args.retained_info_in,
+                                                   false,
                                                    stderr,
                                                    "Mach-o file "
                                                    "(at path %s/%s) has "
@@ -1389,6 +1418,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_if_should_ignore_flags(args.global,
                                                    args.tbd,
                                                    args.retained_info_in,
+                                                   false,
                                                    stderr,
                                                    "The provided mach-o file "
                                                    "has architectures with "
@@ -1408,7 +1438,7 @@ handle_macho_file_parse_result_while_recursing(
                 fprintf(stderr,
                         "Mach-o file (at path %s/%s) has architectures with "
                         "conflicting information for its identification "
-                        "(install-name, current-version, and/or"
+                        "(install-name, current-version, and/or "
                         "comatibility-version)"
                         "\n",
                         args.dir_path,
@@ -1416,7 +1446,7 @@ handle_macho_file_parse_result_while_recursing(
             } else {
                 fputs("The provided mach-o file has architectures with "
                       "conflicting information for its identification "
-                      "(install-name, current-version, and/or"
+                      "(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
         }
@@ -1430,6 +1460,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_objc_constraint(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s/%s) has "
                                             "architectures with conflicting "
@@ -1442,6 +1473,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_objc_constraint(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file has "
                                             "architectures with conflicting "
@@ -1463,6 +1495,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "Mach-o file (at path %s/%s) has "
                                             "architectures with conflicting "
@@ -1475,6 +1508,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_parent_umbrella(args.global,
                                             args.tbd,
                                             args.retained_info_in,
+                                            false,
                                             stderr,
                                             "The provided mach-o file has "
                                             "architectures with conflicting "
@@ -1496,6 +1530,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s/%s) has "
                                      "architectures with conflicting "
@@ -1507,6 +1542,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file has "
                                      "architectures with conflicting "
@@ -1527,6 +1563,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_swift_version(args.global,
                                           args.tbd,
                                           args.retained_info_in,
+                                          false,
                                           stderr,
                                           "Mach-o file (at path %s/%s) has "
                                           "architectures with conflicting "
@@ -1538,6 +1575,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_swift_version(args.global,
                                           args.tbd,
                                           args.retained_info_in,
+                                          false,
                                           stderr,
                                           "The provided mach-o file has "
                                           "architectures with conflicting "
@@ -1584,6 +1622,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), does not "
                                      "have a platform\n",
@@ -1594,6 +1633,7 @@ handle_macho_file_parse_result_while_recursing(
                     request_platform(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file does not "
                                      "have a platform\n");
@@ -1693,6 +1733,7 @@ handle_macho_file_parse_result_while_recursing(
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), does not "
                                      "have an install-name\n",
@@ -1703,6 +1744,7 @@ handle_macho_file_parse_result_while_recursing(
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
+                                     false,
                                      stderr,
                                      "The provided mach-o file does not have "
                                      "an install-name\n");
@@ -1720,6 +1762,7 @@ handle_macho_file_parse_result_while_recursing(
                 request_platform(args.global,
                                  args.tbd,
                                  args.retained_info_in,
+                                 false,
                                  stderr,
                                  "Mach-o file (at path %s/%s), does not have a "
                                  "platform\n",
@@ -1730,6 +1773,7 @@ handle_macho_file_parse_result_while_recursing(
                 request_platform(args.global,
                                  args.tbd,
                                  args.retained_info_in,
+                                 false,
                                  stderr,
                                  "The provided mach-o file does not have a "
                                  "platform\n");

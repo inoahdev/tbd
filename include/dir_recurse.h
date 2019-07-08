@@ -39,6 +39,9 @@ typedef bool
 /*
  * dir_path and dir_path_length refer to the sub-directory when result is
  * E_DIR_RECURSE_FAILED_TO_OPEN_SUBDIR.
+ *
+ * Note:
+ *     When result is E_DIR_RECURSE_FAILED_TO_READ_ENTRY, dirent is NULL.
  */
 
 typedef bool

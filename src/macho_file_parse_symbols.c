@@ -214,13 +214,12 @@ handle_symbol(struct tbd_create_info *const info_in,
      */
 
     if (!(n_type & N_EXT)) {
-        const uint64_t all_allow_symbols_flags =
-            O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS |
+        const uint64_t allow_internal_symbols_flags =
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS |
-            O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS |
-            O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS;
+            O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS |
+            O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
 
-        if (!(options & all_allow_symbols_flags)) {
+        if (!(options & allow_internal_symbols_flags)) {
             return E_MACHO_FILE_PARSE_OK;
         }
     }
@@ -239,10 +238,8 @@ handle_symbol(struct tbd_create_info *const info_in,
     uint32_t length = 0;
 
     if (n_desc & N_WEAK_DEF) {
-        if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
-            if (!(n_type & N_EXT)) {
-                return E_MACHO_FILE_PARSE_OK;
-            }
+        if (!(n_type & N_EXT)) {
+            return E_MACHO_FILE_PARSE_OK;
         }
 
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
@@ -323,10 +320,8 @@ handle_symbol(struct tbd_create_info *const info_in,
 
                 symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
             } else {
-                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
-                    if (!(n_type & N_EXT)) {
-                        return E_MACHO_FILE_PARSE_OK;
-                    }
+                if (!(n_type & N_EXT)) {
+                    return E_MACHO_FILE_PARSE_OK;
                 }
 
                 length = (uint32_t)strnlen(string, max_len);
@@ -335,10 +330,8 @@ handle_symbol(struct tbd_create_info *const info_in,
                 }
             }
         } else {
-            if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS)) {
-                if (!(n_type & N_EXT)) {
-                    return E_MACHO_FILE_PARSE_OK;
-                }
+            if (!(n_type & N_EXT)) {
+                return E_MACHO_FILE_PARSE_OK;
             }
 
             length = (uint32_t)strnlen(string, max_len);

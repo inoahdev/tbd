@@ -16,6 +16,14 @@
 #include "arch_info.h"
 
 /*
+ * Create extra cpusubtypes not in mach/machine.h, which we want to leave
+ * untouched from Apple.
+ */
+
+static const cpu_subtype_t CPU_SUBTYPE_X86_64_ALL_LIB64 =
+    CPU_SUBTYPE_X86_64_ALL | CPU_SUBTYPE_LIB64;
+
+/*
  * To support the use of fake-arrays, we don't const our arch-info table.
  */
 
@@ -119,14 +127,15 @@ static struct arch_info arch_info_list[] = {
     { CPU_TYPE_VEO, CPU_SUBTYPE_VEO_2,   "veo2", 4 },
 
     /*
-     * Index starts at 48 and ends at 49.
+     * Index starts at 48 and ends at 50.
      */
 
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL, "x86_64",  6 },
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,   "x86_64h", 7 },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL,       "x86_64",  6 },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,         "x86_64h", 7 },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL_LIB64, "x86_64",  6 },
 
     /*
-     * Index starts from 50 and ends at 52.
+     * Index starts from 51 and ends at 53.
      */
 
     { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64_ALL, "arm64",  5 },
@@ -134,20 +143,20 @@ static struct arch_info arch_info_list[] = {
     { CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E,    "arm64e", 6 },
 
     /*
-     * Index starts at 53 and ends at 54.
+     * Index starts at 54 and ends at 55.
      */
 
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_ALL, "ppc64",     5 },
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64", 9 },
 
     /*
-     * Following's index is 55.
+     * Following's index is 56.
      */
 
     { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32", 8 },
 
     /*
-     * Following's index is 56.
+     * Following's index is 57.
      */
 
     { 0, 0, NULL, 0 }
@@ -159,8 +168,8 @@ static struct arch_info arch_info_list[] = {
 
 static const struct array arch_info_array = {
     .data = (void *)arch_info_list,
-    .data_end = (void *)(arch_info_list + 55),
-    .alloc_end = (void *)(arch_info_list + 55)
+    .data_end = (void *)(arch_info_list + 56),
+    .alloc_end = (void *)(arch_info_list + 56)
 };
 
 struct arch_info_cputype_info {
@@ -185,10 +194,10 @@ static struct arch_info_cputype_info cputype_info_list[] = {
     { CPU_TYPE_I860,      32, 32 },
     { CPU_TYPE_POWERPC,   33, 44 },
     { CPU_TYPE_VEO,       45, 47 },
-    { CPU_TYPE_X86_64,    48, 49 },
-    { CPU_TYPE_ARM64,     50, 52 },
-    { CPU_TYPE_POWERPC64, 53, 54 },
-    { CPU_TYPE_ARM64_32,  55, 55 }
+    { CPU_TYPE_X86_64,    48, 50 },
+    { CPU_TYPE_ARM64,     51, 53 },
+    { CPU_TYPE_POWERPC64, 54, 55 },
+    { CPU_TYPE_ARM64_32,  56, 56 }
 };
 
 /*

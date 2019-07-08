@@ -211,10 +211,6 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
 
         tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
         tbd->info.flags_field |= parse_flags_list(&index, argc, argv);
-    } else if (strcmp(option, "allow-private-normal-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_NORMAL_SYMBOLS;
-    } else if (strcmp(option, "allow-private-weak-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_WEAK_DEF_SYMBOLS;
     } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
@@ -399,6 +395,14 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
         index += 1;
         if (index == argc) {
             fputs("Please provide a swift-version\n", stderr);
+            exit(1);
+        }
+
+        const char *const argument = argv[index];
+        const uint32_t swift_version = parse_swift_version(argument);
+
+        if (swift_version == 0) {
+            fprintf(stderr, "A swift-version of %s is invalid\n", argument);
             exit(1);
         }
 

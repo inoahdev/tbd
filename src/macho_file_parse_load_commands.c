@@ -416,8 +416,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                  * Temporary hack to fix macOS dyld_shared_cache files.
                  */
 
-                if (info_in->platform == TBD_PLATFORM_MACOS) {
-                    if (build_version_platform == TBD_PLATFORM_IOSMAC) {
+                if (build_version_platform == TBD_PLATFORM_IOSMAC) {
+                    if (info_in->platform == TBD_PLATFORM_MACOS) {
                         break;
                     }
                 }
@@ -935,6 +935,15 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
             if (info_in->platform != 0) {
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
+                    /*
+                     * iOSMac binaries will likely have version information for
+                     * all platforms.
+                     */
+
+                    if (info_in->platform == TBD_PLATFORM_IOSMAC) {
+                        break;
+                    }
+
                     if (info_in->platform != TBD_PLATFORM_MACOS) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                     }
@@ -1122,7 +1131,8 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+    info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
+    info_in->flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
 
     /*
      * Iterate over the load-commands, which is located directly after the
@@ -1256,9 +1266,16 @@ macho_file_parse_load_commands_from_file(
                         continue;
                     }
 
-                    uint32_t sect_offset = sect->offset;
-                    uint32_t sect_size = sect->size;
+                    /*
+                     * If our sect-offset is zero, we have a zero-byte section.
+                     */
 
+                    uint32_t sect_offset = sect->offset;
+                    if (sect_offset == 0) {
+                        continue;
+                    }
+
+                    uint32_t sect_size = sect->size;
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint32(sect_size);
@@ -1358,9 +1375,16 @@ macho_file_parse_load_commands_from_file(
                         continue;
                     }
 
-                    uint32_t sect_offset = sect->offset;
-                    uint64_t sect_size = sect->size;
+                    /*
+                     * If our sect-offset is zero, we have a zero-byte section.
+                     */
 
+                    uint32_t sect_offset = sect->offset;
+                    if (sect_offset == 0) {
+                        continue;
+                    }
+
+                    uint64_t sect_size = sect->size;
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint64(sect_size);
@@ -1683,7 +1707,8 @@ macho_file_parse_load_commands_from_map(
     const uint64_t options = parse_info->options;
 
     if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
-        info_in->flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+        info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
+        info_in->flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     }
 
     const bool is_big_endian = parse_info->is_big_endian;

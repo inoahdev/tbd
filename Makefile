@@ -6,7 +6,7 @@ WARNINGFLAGS := $(WARNINGFLAGS) -Wwrite-strings -Wunused-parameter
 
 DEFAULTFLAGS := -std=gnu11 -I. -Iinclude/ $(WARNINGFLAGS)
 CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
-VSCODEFLAGS := -I.vscode/ -Wno-sign-conversion $(CFLAGS)
+VSCODEFLAGS := -I.vscode/ -Wno-unused-parameter -Wno-sign-conversion $(CFLAGS)
 
 SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd

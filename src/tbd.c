@@ -270,8 +270,11 @@ static void destroy_exports_array(struct array *const list) {
 }
 
 void tbd_create_info_destroy(struct tbd_create_info *const info) {
-    if (info->flags & F_TBD_CREATE_INFO_STRINGS_WERE_COPIED) {
+    if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
         free((char *)info->install_name);
+    }
+
+    if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
         free((char *)info->parent_umbrella);
     }
 

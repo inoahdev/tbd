@@ -59,11 +59,11 @@ array_grow_to_capacity(struct array *const array,
                        const uint64_t current_capacity,
                        const uint64_t wanted_capacity)
 {
-    uint64_t new_capacity = current_capacity * 2;
+    uint64_t new_capacity = current_capacity;
     if (new_capacity != 0) {
-        while (new_capacity < wanted_capacity) {
+        do {
             new_capacity *= 2;
-        }
+        } while (new_capacity < wanted_capacity);
     } else {
         new_capacity = wanted_capacity;
     }

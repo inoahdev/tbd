@@ -163,13 +163,7 @@ uint32_t parse_swift_version(const char *const arg) {
     }
 
     if (arg[0] == '0') {
-        if (arg[1] == '\0') {
-            fputs("A swift-version of 0 is invalid\n", stderr);
-        } else {
-            fprintf(stderr, "Invalid swift-version number %s\n", arg);
-        }
-
-        exit(1);
+        return 0;
     }
 
     uint32_t version = 0;
@@ -177,8 +171,7 @@ uint32_t parse_swift_version(const char *const arg) {
 
     for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
         if (isdigit(ch) == 0) {
-            fprintf(stderr, "Invalid swift-version number %s\n", arg);
-            exit(1);
+            return 0;
         }
 
         const uint32_t new_version = (version * 10) + (ch & 0xf);
@@ -188,8 +181,7 @@ uint32_t parse_swift_version(const char *const arg) {
          */
 
         if (new_version < version) {
-            fprintf(stderr, "Invalid swift-version number: %s\n", arg);
-            exit(1);
+            return 0;
         }
 
         version = new_version;

@@ -19,8 +19,15 @@
 #include "request_user_input.h"
 
 static uint64_t
-request_choice(const char *const prompt, const char *const inputs[const]) {
+request_choice(const char *const prompt,
+               const char *const inputs[const],
+               const bool indent)
+{
     do {
+        if (indent) {
+            fputs("\t\t", stdout);
+        }
+
         fprintf(stdout, "%s (%s", prompt, inputs[0]);
 
         const char *const *iter = inputs + 1;
@@ -73,7 +80,11 @@ request_choice(const char *const prompt, const char *const inputs[const]) {
     } while (true);
 }
 
-static char *request_input(const char *const prompt) {
+static char *request_input(const char *const prompt, const bool indent) {
+    if (indent) {
+        fputs("\t\t", stdout);
+    }
+
     fprintf(stdout, "%s: ", prompt);
     fflush(stdout);
 
@@ -114,6 +125,7 @@ bool
 request_install_name(struct tbd_for_main *const global,
                      struct tbd_for_main *const tbd,
                      uint64_t *const info_in,
+                     const bool indent,
                      FILE *const file,
                      const char *const prompt,
                      ...)
@@ -147,7 +159,7 @@ request_install_name(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Replace install-name?", default_choices);
+        request_choice("Replace install-name?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME;
@@ -156,10 +168,10 @@ request_install_name(struct tbd_for_main *const global,
         return false;
     }
 
-    tbd->info.install_name = request_input("Replacement install-name?");
+    tbd->info.install_name = request_input("Replacement install-name?", indent);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
-    tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+    tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.install_name = tbd->info.install_name;
@@ -173,6 +185,7 @@ bool
 request_objc_constraint(struct tbd_for_main *const global,
                         struct tbd_for_main *const tbd,
                         uint64_t *const info_in,
+                        const bool indent,
                         FILE *const file,
                         const char *const prompt,
                         ...)
@@ -207,7 +220,7 @@ request_objc_constraint(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Replace objc-constraint?", default_choices);
+        request_choice("Replace objc-constraint?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
@@ -220,7 +233,8 @@ request_objc_constraint(struct tbd_for_main *const global,
         char *const input =
             request_input("Replacement objc-constraint? (Enter "
                           "--list-objc-constraint to list all "
-                          "objc-constraints");
+                          "objc-constraints",
+                          indent);
 
         if (strcmp(input, "--list-objc_constraint") == 0) {
             print_objc_constraint_list();
@@ -258,6 +272,7 @@ bool
 request_parent_umbrella(struct tbd_for_main *const global,
                         struct tbd_for_main *const tbd,
                         uint64_t *const info_in,
+                        const bool indent,
                         FILE *const file,
                         const char *const prompt,
                         ...)
@@ -294,7 +309,7 @@ request_parent_umbrella(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Replace parent-umbrella?", default_choices);
+        request_choice("Replace parent-umbrella?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA;
@@ -303,10 +318,11 @@ request_parent_umbrella(struct tbd_for_main *const global,
         return false;
     }
 
-    tbd->info.parent_umbrella = request_input("Replacement parent-umbrella?");
+    tbd->info.parent_umbrella =
+        request_input("Replacement parent-umbrella?", indent);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
-    tbd->info.flags |= F_TBD_CREATE_INFO_STRINGS_WERE_COPIED;
+    tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.parent_umbrella = tbd->info.parent_umbrella;
@@ -320,6 +336,7 @@ bool
 request_platform(struct tbd_for_main *const global,
                  struct tbd_for_main *const tbd,
                  uint64_t *const info_in,
+                 const bool indent,
                  FILE *const file,
                  const char *const prompt,
                  ...)
@@ -351,7 +368,7 @@ request_platform(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Replace platform?", default_choices);
+        request_choice("Replace platform?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM;
@@ -363,7 +380,8 @@ request_platform(struct tbd_for_main *const global,
     do {
         char *const input =
             request_input("Replacement platform? "
-                          "(Enter --list-platform to list all platforms)");
+                          "(Enter --list-platform to list all platforms)",
+                          indent);
 
         if (strcmp(input, "--list-platform") == 0) {
             print_platform_list();
@@ -395,23 +413,11 @@ request_platform(struct tbd_for_main *const global,
     return true;
 }
 
-static bool has_non_digits(const char *const string) {
-    const char *iter = string;
-    for (char ch = *string; ch != '\0'; ch = *(++iter)) {
-        if (isdigit(ch) != 0) {
-            continue;
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
 bool
 request_swift_version(struct tbd_for_main *const global,
                       struct tbd_for_main *const tbd,
                       uint64_t *const info_in,
+                      const bool indent,
                       FILE *const file,
                       const char *const prompt,
                       ...)
@@ -443,7 +449,7 @@ request_swift_version(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Replace swift-version?", default_choices);
+        request_choice("Replace swift-version?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION;
@@ -453,37 +459,19 @@ request_swift_version(struct tbd_for_main *const global,
     }
 
     do {
-        char *const input = request_input("Replacement swift-version?");
-        if (strcmp(input, "1.2") == 0) {
-            tbd->info.swift_version = 2;
-        } else {
-            if (has_non_digits(input)) {
-                fprintf(stderr, "%s is not a valid swift-version\n", input);
-                free(input);
+        char *const input =
+            request_input("Replacement swift-version?", indent);
 
-                break;
-            }
-
-            const uint64_t input_number = strtoul(input, NULL, 10);
-            if (input_number > UINT32_MAX) {
-                fprintf(stderr,
-                        "%s is too large to be a valid swift-version\n",
-                        input);
-
-                free(input);
-                continue;
-            }
-
-            const uint32_t swift_version = (uint32_t)input_number;
-            if (swift_version > 1) {
-                tbd->info.swift_version = swift_version - 1;
-            } else {
-                tbd->info.swift_version = swift_version;
-            }
-
+        const uint32_t swift_version = parse_swift_version(input);
+        if (swift_version == 0) {
+            fprintf(stderr, "A swift-version of %s is invalid\n", input);
             free(input);
-            break;
+
+            continue;
         }
+
+        free(input);
+        break;
     } while (true);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
@@ -500,6 +488,7 @@ bool
 request_if_should_ignore_flags(struct tbd_for_main *const global,
                                struct tbd_for_main *const tbd,
                                uint64_t *const info_in,
+                               const bool indent,
                                FILE *const file,
                                const char *const prompt,
                                ...)
@@ -525,8 +514,8 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
     vfprintf(file, prompt, args);
     va_end(args);
 
-    const uint64_t choice_index = request_choice("Ignore flags?",
-        default_choices);
+    const uint64_t choice_index =
+        request_choice("Ignore flags?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
@@ -547,6 +536,7 @@ bool
 request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
                                           struct tbd_for_main *const tbd,
                                           uint64_t *const info_in,
+                                          const bool indent,
                                           FILE *const file,
                                           const char *const prompt,
                                           ...)
@@ -574,7 +564,7 @@ request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
     va_end(args);
 
     const uint64_t choice_index =
-        request_choice("Ignore non-unique uuids?", default_choices);
+        request_choice("Ignore non-unique uuids?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
         *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS;

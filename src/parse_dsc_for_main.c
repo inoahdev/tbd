@@ -521,8 +521,8 @@ should_parse_image(uint64_t *const path_length_in,
     for (; filter != filters_end; filter++) {
         /*
          * If we've already concluded that the image should be parsed, and the
-         * filter doesn't need to be marked as completed, we can just skip the
-         * expensive path_passes_through_filter() call.
+         * filter doesn't need to be marked as completed, we can save on time
+         * by skipping an unnecessary path_passes_through_filter() call.
          */
 
         if (filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE) {
