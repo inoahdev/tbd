@@ -148,8 +148,24 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     return tbd_export_info_compare(array_info, info);
 }
 
-int
-tbd_uuid_info_comparator(const void *const array_item, const void *const item) {
+int tbd_uuid_info_is_unique_comparator(const void *const array_item,
+                                       const void *const item)
+{
+    const struct tbd_uuid_info *const array_uuid_info =
+        (const struct tbd_uuid_info *)array_item;
+
+    const struct tbd_uuid_info *const uuid_info =
+        (const struct tbd_uuid_info *)item;
+
+    const uint8_t *const array_uuid = array_uuid_info->uuid;
+    const uint8_t *const uuid = uuid_info->uuid;
+
+    return memcmp(array_uuid, uuid, 16);
+}
+
+int tbd_uuid_info_comparator(const void *const array_item,
+                             const void *const item)
+{
     const struct tbd_uuid_info *const array_uuid_info =
         (const struct tbd_uuid_info *)array_item;
 

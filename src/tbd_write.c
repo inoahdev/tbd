@@ -60,8 +60,9 @@ int tbd_write_archs_for_header(FILE *const file, const uint64_t archs) {
      * preceding comma.
      *
      * Count the amount of archs on one line, starting off with one as we just
-     * wrote one before looping over the rest. When the counter reaches 7, print
-     * a newline and reset the counter.
+     * wrote one before looping over the rest.
+     *
+     * When the counter reaches 7, print a newline and reset the counter.
      */
 
     uint64_t counter = 1;
@@ -636,12 +637,6 @@ int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
         return 1;
     }
 
-    /*
-     * Keep a counter of the uuids written out, to limit line-lengths.
-     * Start off with a counter of 1 since we write one uuid-pair first before
-     * looping over the rest.
-     */
-
     const struct tbd_uuid_info *uuid = uuids->data;
     const struct tbd_uuid_info *const end = uuids->data_end;
 
@@ -650,9 +645,12 @@ int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
     }
 
     /*
-     * Count the amount of archs on one line, starting off with one as we just
-     * wrote one before looping over the rest. When the counter reaches 2, print
-     * a newline and reset the counter.
+     * Keep a counter of the uuids written out, to limit line-lengths.
+     *
+     * Start off with a counter of 1 since we write one uuid-pair first before
+     * looping over the rest.
+     *
+     * When the counter reaches 2, print a newline and reset the counter.
      */
 
     uint64_t counter = 1;

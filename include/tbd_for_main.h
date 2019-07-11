@@ -135,14 +135,14 @@ tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
                                uint64_t *length_out);
 
 char *
-tbd_for_main_create_write_path_while_recursing(const struct tbd_for_main *tbd,
-                                               const char *folder_path,
-                                               uint64_t folder_path_length,
-                                               const char *file_name,
-                                               uint64_t file_name_length,
-                                               const char *extension,
-                                               uint64_t extension_length,
-                                               uint64_t *length_out);
+tbd_for_main_create_write_path_for_recursing(const struct tbd_for_main *tbd,
+                                             const char *folder_path,
+                                             uint64_t folder_path_length,
+                                             const char *file_name,
+                                             uint64_t file_name_length,
+                                             const char *extension,
+                                             uint64_t extension_length,
+                                             uint64_t *length_out);
 
 char *
 tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *tbd,

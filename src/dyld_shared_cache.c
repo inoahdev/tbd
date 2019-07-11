@@ -346,8 +346,8 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * file to memory.
      *
      * We map with write protections so we can use extra fields (like a
-     * dyld_cache_image_info's pad field) for memory savings, but use
-     * MAP_PRIVATE to prevent writing back to disk.
+     * dyld_cache_image_info's pad field) to save on memory, but use MAP_PRIVATE
+     * to prevent writing on the original file itself.
      */
 
     uint8_t *const map =
@@ -361,7 +361,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
         (const struct dyld_cache_mapping_info *)(map + header.mappingOffset);
 
     /*
-     * Mappings are like mach-o segments, covering entire swaths of the file.
+     * We use full_cache_range to verify our dsc-mappings.
+     *
+     * Our mappings are comparable to mach-o segments, recording the information
+     * of large swaths of file and address-space in the entire dyld_shared_cache
+     * file.
      */
 
     const struct range full_cache_range = {
@@ -375,15 +379,14 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
 
     for (uint32_t i = 0; i < header.mappingCount; i++) {
         const struct dyld_cache_mapping_info *const mapping = mappings + i;
+        const uint64_t mapping_file_begin = mapping->fileOffset;
 
         /*
          * We skip validation of mapping's address-range as its irrelevant to
          * our operations, and because we aim to be lenient.
          */
 
-        const uint64_t mapping_file_begin = mapping->fileOffset;
         uint64_t mapping_file_end = mapping_file_begin;
-
         if (guard_overflow_add(&mapping_file_end, mapping->size)) {
             munmap(map, dsc_size);
             return E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS;

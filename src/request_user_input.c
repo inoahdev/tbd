@@ -459,10 +459,9 @@ request_swift_version(struct tbd_for_main *const global,
     }
 
     do {
-        char *const input =
-            request_input("Replacement swift-version?", indent);
-
+        char *const input = request_input("Replacement swift-version?", indent);
         const uint32_t swift_version = parse_swift_version(input);
+        
         if (swift_version == 0) {
             fprintf(stderr, "A swift-version of %s is invalid\n", input);
             free(input);

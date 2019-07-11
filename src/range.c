@@ -50,9 +50,5 @@ bool ranges_overlap(struct range left, struct range right) {
      * right completely contains left.
      */
 
-    if (right.begin < left.begin && right.end > left.end) {
-        return true;
-    }
-
-    return false;
+    return (right.begin < left.begin && right.end > left.end);
 }

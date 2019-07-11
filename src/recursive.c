@@ -24,7 +24,7 @@ char *find_last_slash_before_end(char *const path, const char *const end) {
     return (char *)path_find_last_row_of_slashes_before_end(path, end);
 }
 
-static char *find_next_slash_skipping_first_row(char *const path) {
+static char *get_next_path_component_slash(char *const path) {
     char *iter = (char *)path_get_end_of_row_of_slashes(path);
     if (iter == NULL) {
         return NULL;
@@ -44,7 +44,9 @@ static char *find_next_slash_skipping_first_row(char *const path) {
 
 static char *find_next_slash_reverse(char *const path, char *const last_slash) {
     char *iter = last_slash;
-    for (char ch = *(--iter); iter >= path; ch = *(--iter)) {
+    const char *const rev_end = path - 1;
+
+    for (char ch = *(--iter); iter != rev_end; ch = *(--iter)) {
         if (ch == '/') {
             return iter;
         }
@@ -92,8 +94,8 @@ reverse_mkdir_ignoring_last(char *const path,
 
     if (first_ret < 0) {
         /*
-         * If the directory already exists, we are done, as the previous
-         * mkdir should have gone through.
+         * If the directory already exists, we are done, as the previous mkdir
+         * should have gone through.
          */
 
         if (errno == EEXIST) {
@@ -102,9 +104,8 @@ reverse_mkdir_ignoring_last(char *const path,
 
         /*
          * errno is set to ENONENT when a previous path-component doesn't exist.
-         *
-         * So if we get any other error, its due to another reason, and we
-         * should just return immedietly.
+         * Any other error however is beyond our scope, and we just error-return
+         * immediately.
          */
 
         if (errno != ENOENT) {
@@ -113,9 +114,8 @@ reverse_mkdir_ignoring_last(char *const path,
     }
 
     /*
-     * Store a pointer to the final slash we'll terminate, however, store at the
-     * back of any row if one exists as we move backwards when iterating and
-     * when checking against this variable.
+     * We store a pointer to the final slash we need to terminate to finish our
+     * entire task here.
      */
 
     char *const final_slash =
@@ -203,7 +203,7 @@ reverse_mkdir_ignoring_last(char *const path,
      * path-component after the last only that was just created.
      */
 
-    char *slash = find_next_slash_skipping_first_row(last_slash);
+    char *slash = get_next_path_component_slash(last_slash);
 
     /*
      * Iterate forwards to create path-components following the final
@@ -232,7 +232,7 @@ reverse_mkdir_ignoring_last(char *const path,
             break;
         }
 
-        slash = find_next_slash_skipping_first_row(slash);
+        slash = get_next_path_component_slash(slash);
     } while (true);
 
     return 0;
@@ -252,11 +252,11 @@ open_r(char *const path,
     }
 
     /*
-     * The only allowed error is ENOENT (when a directory in the hierarchy
+     * The only error supported is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
      *
-     * Other errors may be due to permissions error and the sort, but which are
-     * beyond the scope of this function.
+     * Other errors are beyond the scope of this function, and so we
+     * error-return immediately.
      */
 
     if (errno != ENOENT) {
@@ -297,11 +297,11 @@ mkdir_r(char *const path,
     }
 
     /*
-     * The only allowed error is ENOENT (when a directory in the hierarchy
+     * The only error supported is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
      *
-     * Other errors may be due to permissions error and the sort, but which are
-     * beyond the scope of this function.
+     * Other errors are beyond the scope of this function, and so we
+     * error-return immediately.
      */
 
     if (errno != ENOENT) {

@@ -255,8 +255,6 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         info_in->flags_field |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
-    struct symtab_command symtab = {};
-
     /*
      * The symbol-table and string-table offsets are absolute, not relative from
      * image's base, but we still need to account for shared-cache's start and
@@ -274,6 +272,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
         macho_options;
 
+    struct symtab_command symtab = {};
     struct mf_parse_load_commands_from_map_info info = {
         .map = map,
         .map_size = dsc_info->size,
@@ -320,30 +319,24 @@ dsc_image_parse(struct tbd_create_info *const info_in,
      */
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
+    const struct macho_file_parse_symbols_args args = {
+        .info_in = info_in,
+        .available_range = dsc_info->available_range,
+
+        .arch_bit = arch_bit,
+        .is_big_endian = is_big_endian,
+
+        .symoff = symtab.symoff,
+        .nsyms = symtab.nsyms,
+
+        .stroff = symtab.stroff,
+        .strsize = symtab.strsize
+    };
+
     if (is_64) {
-        ret =
-            macho_file_parse_symbols_64_from_map(info_in,
-                                                 map,
-                                                 dsc_info->available_range,
-                                                 arch_bit,
-                                                 is_big_endian,
-                                                 symtab.symoff,
-                                                 symtab.nsyms,
-                                                 symtab.stroff,
-                                                 symtab.strsize,
-                                                 tbd_options);
+        ret = macho_file_parse_symbols_64_from_map(args, map);
     } else {
-        ret =
-            macho_file_parse_symbols_from_map(info_in,
-                                              map,
-                                              dsc_info->available_range,
-                                              arch_bit,
-                                              is_big_endian,
-                                              symtab.symoff,
-                                              symtab.nsyms,
-                                              symtab.stroff,
-                                              symtab.strsize,
-                                              tbd_options);
+        ret = macho_file_parse_symbols_from_map(args, map);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {

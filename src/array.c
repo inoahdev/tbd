@@ -431,7 +431,7 @@ array_find_item_in_sorted(const struct array *const array,
 
 void *
 array_find_item_in_sorted_with_slice(
-    const struct array *array,
+    const struct array *const array,
     const size_t item_size,
     const struct array_slice slice,
     const void *const item,
@@ -456,6 +456,13 @@ array_add_item_to_index(struct array *const array,
                         const uint64_t index,
                         void **const item_out)
 {
+    const enum array_result expand_result =
+        array_expand_if_necessary(array, item_size);
+
+    if (expand_result != E_ARRAY_OK) {
+        return expand_result;
+    }
+
     const uint64_t byte_index = item_size * index;
     void *const position = array->data + byte_index;
 
@@ -467,15 +474,21 @@ array_add_item_to_index(struct array *const array,
         return E_ARRAY_INDEX_OUT_OF_BOUNDS;
     }
 
-    const enum array_result add_item_result =
-        array_add_item_to_byte_index(array,
-                                     item_size,
-                                     item,
-                                     byte_index,
-                                     item_out);
+    const void *const data_end = array->data_end;
+    if (position != data_end) {
+        void *const next_position = position + item_size;
+        const uint64_t array_move_size = (uint64_t)(data_end - position);
 
-    if (add_item_result != E_ARRAY_OK) {
-        return add_item_result;
+        memmove(next_position, position, array_move_size);
+    }
+
+    memcpy(position, item, item_size);
+
+    array->data_end = data_end + item_size;
+    array->item_count += 1;
+
+    if (item_out != NULL) {
+        *item_out = position;
     }
 
     return E_ARRAY_OK;
@@ -504,7 +517,7 @@ array_add_item_with_cached_index_info(
 
         /*
          * Otherwise, if our item is greater than the array-item at index 0, add
-         * the item to index 1 and return.
+         * the item to index 1.
          */
 
         return array_add_item_to_index(array, item_size, item, 1, item_out);
@@ -522,8 +535,9 @@ array_add_item_with_cached_index_info(
         }
 
         /*
-         * If our item is less than array's back-item, have the last item move
-         * up one index, with the new item replacing it at its old position.
+         * If our item is less than or equal to array's back-item, have the back
+         * item move up one index, and our item replacing the old back item at
+         * its old position.
          */
 
         const enum array_result add_item_result =
@@ -544,14 +558,15 @@ array_add_item_with_cached_index_info(
         /*
          * If our item isn't greater than array-item at the provided index, have
          * our item replace the old array-item at index by having the old
-         * array-item move to (index + 1), with the our item replacing it.
+         * array-item move to (index + 1), with the our item replacing it at the
+         * old array-item's old position.
          */
 
         return array_add_item_to_index(array, item_size, item, index, item_out);
     }
 
     /*
-     * Since our item is greater than array-item at index + 1, have the new item
+     * Since our item is greater than array-item at index, have the new item
      * be placed at index + 1.
      */
 

@@ -196,7 +196,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
 
     /*
      * Ignore invalid fields so a mach-o file is fully parsed regardless of
-     * errors. Instead, we prefer to check manually for any field errors
+     * errors. Instead, we prefer to check manually for any field errors.
      */
 
     const uint64_t macho_options =
@@ -359,14 +359,14 @@ parse_macho_file_for_main_while_recursing(
 
     uint64_t write_path_length = 0;
     char *const write_path =
-        tbd_for_main_create_write_path_while_recursing(args.tbd,
-                                                       args.dir_path,
-                                                       args.dir_path_length,
-                                                       args.name,
-                                                       args.name_length,
-                                                      "tbd",
-                                                       3,
-                                                       &write_path_length);
+        tbd_for_main_create_write_path_for_recursing(args.tbd,
+                                                     args.dir_path,
+                                                     args.dir_path_length,
+                                                     args.name,
+                                                     args.name_length,
+                                                     "tbd",
+                                                     3,
+                                                     &write_path_length);
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
@@ -379,8 +379,6 @@ parse_macho_file_for_main_while_recursing(
                                    write_path_length,
                                    true);
 
-    free(write_path);
-
     if (write_to_path_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
         handle_write_result_while_recursing(args.tbd,
                                             args.dir_path,
@@ -388,6 +386,10 @@ parse_macho_file_for_main_while_recursing(
                                             write_path,
                                             write_to_path_result,
                                             args.print_paths);
+
+        free(write_path);
+    } else {
+        free(write_path);
     }
 
     clear_create_info(create_info, &original_info);

@@ -697,13 +697,13 @@ dsc_iterate_images(const struct dyld_shared_cache_info *const dsc_info,
             continue;
         }
 
+        const char *const image_path =
+            (const char *)(dsc_info->map + image->pathFileOffset);
+
         /*
          * We should expect to never encounter an empty image-path string, but
          * we should still check anyways as a precaution.
          */
-
-        const char *const image_path =
-            (const char *)(dsc_info->map + image->pathFileOffset);
 
         if (image_path[0] == '\0') {
             continue;

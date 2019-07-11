@@ -130,9 +130,9 @@ static struct arch_info arch_info_list[] = {
      * Index starts at 48 and ends at 50.
      */
 
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL_LIB64, "x86_64",  6 },
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL,       "x86_64",  6 },
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,         "x86_64h", 7 },
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL_LIB64, "x86_64",  6 },
 
     /*
      * Index starts from 51 and ends at 53.
@@ -234,9 +234,17 @@ static int
 arch_info_cpusubtype_comparator(const void *const left, const void *const right)
 {
     const struct arch_info *const info = (const struct arch_info *)left;
+
+    const cpu_subtype_t table_cpusubtype = info->cpusubtype;
     const cpu_subtype_t cpusubtype = *(const cpu_subtype_t *)right;
 
-    return info->cpusubtype - cpusubtype;
+    if (table_cpusubtype > cpusubtype) {
+        return 1;
+    } else if (table_cpusubtype < cpusubtype) {
+        return -1;
+    }
+
+    return 0;
 }
 
 const struct arch_info *

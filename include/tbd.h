@@ -126,8 +126,8 @@ tbd_export_info_compare(const struct tbd_export_info *const array_item,
                         const struct tbd_export_info *const item);
 
 int tbd_export_info_comparator(const void *array_item, const void *item);
-int
-tbd_export_info_no_archs_comparator(const void *array_item, const void *item);
+int tbd_export_info_no_archs_comparator(const void *array_item,
+                                        const void *item);
 
 struct tbd_uuid_info {
     const struct arch_info *arch;
@@ -135,6 +135,8 @@ struct tbd_uuid_info {
 };
 
 int tbd_uuid_info_comparator(const void *array_item, const void *item);
+int tbd_uuid_info_is_unique_comparator(const void *array_item,
+                                       const void *item);
 
 enum tbd_version {
     TBD_VERSION_V1 = 1,

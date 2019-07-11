@@ -459,12 +459,9 @@ handle_dsc_image_parse_result(
     }
 
     /*
-     * If some of the fields are empty, but their respective error-codes weren't
-     * returned (for when O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided),
-     * We instead check here and request info from the user.
-     *
-     * Ignore objc-constraint, swift-version, and parent-umbrella as they aren't
-     * mandatory fields and therefore aren't always provided.
+     * We check here for fields that were left incomplete.
+     * We ignore objc-constraint, swift-version, and parent-umbrella as they're
+     * not mandatory fields and therefore aren't always provided.
      */
 
     if (args.tbd->info.install_name == NULL) {
@@ -684,13 +681,13 @@ print_dsc_image_parse_error(const struct tbd_for_main *const tbd,
         case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
             if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                 fprintf(stderr,
-                        "Image (with path %s) has no clients, re-exports, "
-                        "or symbols to be written out\n",
+                        "Image (with path %s) has no exported clients, "
+                        "re-exports, or symbols to be written out\n",
                         image_path);
             } else {
                 fprintf(stderr,
-                        "Image (with path %s) has no clients, re-exports, "
-                        "or symbols to be written out\n",
+                        "Image (with path %s) has no exported clients, "
+                        "re-exports, or symbols to be written out\n",
                         image_path);
             }
 

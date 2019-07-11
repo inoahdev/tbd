@@ -59,7 +59,7 @@ recurse_directory_callback(const char *const dir_path,
     uint64_t *const retained = &recurse_info->retained_info;
 
     /*
-     * Keep a buffer around for magic to use.
+     * We need to store a buffer for the parse_*_for_main() APIs.
      */
 
     char magic[16] = {};
@@ -239,10 +239,11 @@ int main(const int argc, const char *const argv[]) {
      *
      * Local options are provided to set information of only one file or
      * directory that is provided with one "--path" option.
+     *
      * Global options are provided to set information of all files and all
      * directories that would ever be provided.
      *
-     * Although this concept seem simple, some complexities remain.
+     * Although this construction seems simple, some complexities remain.
      *
      * It would make no sense for a global option to override an explicity
      * stated local option, as there would have been no reason to have
@@ -269,9 +270,9 @@ int main(const int argc, const char *const argv[]) {
 
     for (int index = 1; index < argc; index++) {
         /*
-         * Every argument parsed here should be an option. Any extra arguments,
-         * like a path-string, should be parsed by the option to which it
-         * belongs.
+         * Every argument parsed in this loop should be an option. Any extra
+         * arguments, like a path-string, should be parsed by the option it
+         * belongs to.
          */
 
         const char *const argument = argv[index];
@@ -387,7 +388,7 @@ int main(const int argc, const char *const argv[]) {
                 if (strcmp(path, "stdout") == 0) {
                     if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                         fputs("Writing to stdout (terminal) while recursing "
-                              "a directory is not supported, Please provide "
+                              "a directory is not supported.\nPlease provide "
                               "a directory to write all created files to\n",
                               stderr);
 
@@ -509,9 +510,9 @@ int main(const int argc, const char *const argv[]) {
                             !has_dsc)
                         {
                             fputs("Writing to a directory while parsing a "
-                                  "single mach-o file is not supported, Please "
-                                  "provide a path to a file to write the "
-                                  "mach-o file\n",
+                                  "single mach-o file is not supported.\n"
+                                  "Please provide a path to a file to write "
+                                  "the provided mach-o file's .tbd file\n",
                                   stderr);
 
                             if (full_path != path) {
@@ -1047,8 +1048,8 @@ int main(const int argc, const char *const argv[]) {
         const uint64_t options = tbd->flags;
         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             /*
-             * We have to check here, as its possible output-commands were not
-             * provided for the parse commands.
+             * We have to check write_path here, as its possible the
+             * output-command was not provided, leaving the write_path NULL.
              */
 
             if (tbd->write_path == NULL) {
@@ -1133,7 +1134,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             /*
-             * We need to store an external buffer to read magic.
+             * We need to store a buffer to read magic.
              */
 
             char magic[16] = {};
@@ -1157,12 +1158,17 @@ int main(const int argc, const char *const argv[]) {
                     .dont_handle_non_macho_error = false,
                     .print_paths = should_print_paths,
 
+                    /*
+                     * Verify the write-path only at the last moment, as global
+                     * configuration is now accounted for.
+                     */
+
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
                 /*
-                 * See if any other filetypes are enabled, in which case we
-                 * don't print out the non-filetype error.
+                 * If other filetypes are enabled,  we don't print out the
+                 * non-filetype error.
                  */
 
                 if (tbd->filetypes_count != 1) {
@@ -1203,8 +1209,8 @@ int main(const int argc, const char *const argv[]) {
                 };
 
                 /*
-                 * See if any other filetypes are enabled, in which case we
-                 * don't print out the non-filetype error.
+                 * If other filetypes are enabled,  we don't print out the
+                 * non-filetype error.
                  */
 
                 if (tbd->filetypes_count != 1) {

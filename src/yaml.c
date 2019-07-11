@@ -41,13 +41,13 @@ static inline bool char_needs_quotes(const char ch) {
 }
 
 bool yaml_check_c_str(const char *const string, const uint64_t length) {
-    for (uint64_t i = 0; i != length; i++) {
-        const char ch = string[i];
-        if (!char_needs_quotes(ch)) {
-            continue;
-        }
+    const char *iter = string;
+    const char *const end = string + length;
 
-        return true;
+    for (char ch = *iter; iter != end; ch = *(++iter)) {
+        if (char_needs_quotes(ch)) {
+            return true;
+        }
     }
 
     return false;

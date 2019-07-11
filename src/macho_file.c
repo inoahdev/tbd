@@ -903,11 +903,11 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
                            const uint64_t tbd_options,
                            const uint64_t options)
 {
+    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     const bool is_fat =
         magic == FAT_MAGIC    || magic == FAT_CIGAM ||
         magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
 
-    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (is_fat) {
         uint32_t nfat_arch = 0;
         if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
@@ -940,25 +940,23 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
         const uint64_t file_size = (uint64_t)sbuf.st_size;
 
         if (is_64) {
-            ret =
-                handle_fat_64_file(info_in,
-                                   fd,
-                                   is_big_endian,
-                                   nfat_arch,
-                                   0,
-                                   file_size,
-                                   tbd_options,
-                                   options);
+            ret = handle_fat_64_file(info_in,
+                                     fd,
+                                     is_big_endian,
+                                     nfat_arch,
+                                     0,
+                                     file_size,
+                                     tbd_options,
+                                     options);
         } else {
-            ret =
-                handle_fat_32_file(info_in,
-                                   fd,
-                                   is_big_endian,
-                                   nfat_arch,
-                                   0,
-                                   file_size,
-                                   tbd_options,
-                                   options);
+            ret = handle_fat_32_file(info_in,
+                                     fd,
+                                     is_big_endian,
+                                     nfat_arch,
+                                     0,
+                                     file_size,
+                                     tbd_options,
+                                     options);
         }
 
         if (ret != E_MACHO_FILE_PARSE_OK) {
@@ -983,7 +981,7 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
         }
     } else {
         const bool is_thin =
-            magic == MH_MAGIC    || magic == MH_CIGAM ||
+            magic == MH_MAGIC || magic == MH_CIGAM ||
             magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
 
         if (!is_thin) {
@@ -1039,16 +1037,15 @@ macho_file_parse_from_file(struct tbd_create_info *const info_in,
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }
 
-        ret =
-            parse_thin_file(info_in,
-                            fd,
-                            0,
-                            file_size,
-                            header,
-                            arch,
-                            is_big_endian,
-                            tbd_options,
-                            options);
+        ret = parse_thin_file(info_in,
+                              fd,
+                              0,
+                              file_size,
+                              header,
+                              arch,
+                              is_big_endian,
+                              tbd_options,
+                              options);
 
         if (ret != E_MACHO_FILE_PARSE_OK) {
             return ret;

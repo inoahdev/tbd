@@ -159,8 +159,8 @@ parse_section_from_file(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Keep an offset of our original position, which we'll seek back to after
-     * we're done here.
+     * Keep an offset to our original position, which we'll seek back to after
+     * we're done.
      */
 
     const off_t original_pos = lseek(fd, 0, SEEK_CUR);
@@ -181,18 +181,12 @@ parse_section_from_file(struct tbd_create_info *const info_in,
     }
 
     /*
-     * Seek back to our original-position to continue recursing the
-     * load-commands.
+     * Seek back to our original-position so our caller is unaffected.
      */
 
     if (lseek(fd, original_pos, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
-
-    /*
-     * Parse the objc-constraint and ensure it's the same as the one discovered
-     * for another containers.
-     */
 
     enum tbd_objc_constraint objc_constraint =
         TBD_OBJC_CONSTRAINT_RETAIN_RELEASE;
@@ -275,22 +269,13 @@ add_export_to_info(struct tbd_create_info *const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    /*
-     * Do a quick check here to ensure that the string is a valid yaml-string
-     * (with some additional boundaries).
-     *
-     * We do this after searching for an existing export-info, as its usually
-     * not the case that a mach-o library has an invalid exported string of any
-     * kind.
-     */
-
     const bool needs_quotes = yaml_check_c_str(string, string_length);
     if (needs_quotes) {
         export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
     /*
-     * Copy the provided string as the original string comes from the large
+     * Copy the provided string as the original string comes from the
      * load-command buffer which will soon be freed.
      */
 
@@ -318,8 +303,8 @@ struct parse_load_command_info {
     struct tbd_create_info *info_in;
     struct tbd_uuid_info *uuid_info_in;
 
-    struct load_command load_cmd;
     const uint8_t *load_cmd_iter;
+    struct load_command load_cmd;
 
     bool copy_strings;
     bool is_big_endian;
@@ -328,6 +313,7 @@ struct parse_load_command_info {
     uint64_t tbd_options;
     uint64_t options;
 
+    bool *found_build_version_in;
     bool *found_uuid_in;
     bool *found_identification_out;
 
@@ -372,12 +358,12 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             const struct build_version_command *const build_version =
                 (const struct build_version_command *)parse_info.load_cmd_iter;
 
-            uint32_t build_version_platform = build_version->platform;
+            uint32_t platform = build_version->platform;
             if (parse_info.is_big_endian) {
-                build_version_platform = swap_uint32(build_version_platform);
+                platform = swap_uint32(platform);
             }
 
-            if (build_version_platform < TBD_PLATFORM_MACOS) {
+            if (platform < TBD_PLATFORM_MACOS) {
                 /*
                  * If we're ignoring invalid fields, simply goto the next
                  * load-command.
@@ -390,7 +376,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_PLATFORM;
             }
 
-            if (build_version_platform > TBD_PLATFORM_WATCHOS_SIMULATOR) {
+            if (platform > TBD_PLATFORM_WATCHOS_SIMULATOR) {
                 /*
                  * If we're ignoring invalid fields, simply goto the next
                  * load-command.
@@ -411,43 +397,60 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * are pretty lenient, so we don't enforce this.
              */
 
-            if (info_in->platform != 0) {
+            const enum tbd_platform info_platform = info_in->platform;
+            if (info_platform != 0 && info_platform != platform) {
                 /*
-                 * Temporary hack to fix macOS dyld_shared_cache files.
+                 * We only return the conflicting-platform error if we got our
+                 * platform from a different build-version load-command (with a
+                 * different platform).
+                 *
+                 * Otherwise, we override the platform of the LC_VERSION_MIN_*
+                 * load-commands platform, as with the introduction of the
+                 * iOSMac platform, we can now have multiple different
+                 * LC_VERSION_MIN_* load-commands.
                  */
 
-                if (build_version_platform == TBD_PLATFORM_IOSMAC) {
-                    if (info_in->platform == TBD_PLATFORM_MACOS) {
-                        break;
-                    }
-                }
+                const bool found_build_version =
+                    *parse_info.found_build_version_in;
 
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (info_in->platform != build_version_platform) {
+                if (found_build_version) {
+                    /*
+                     * Temporary hack to fix some dyld_shared_cache files.
+                     */
+
+                    if (platform == TBD_PLATFORM_IOSMAC) {
+                        if (info_platform == TBD_PLATFORM_MACOS) {
+                            info_in->platform = platform;
+                            break;
+                        }
+                    }
+
+                    const bool ignore_conflicting_fields =
+                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
+
+                    if (!ignore_conflicting_fields) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                     }
                 }
-            } else {
-                info_in->platform = build_version_platform;
             }
+
+            info_in->platform = platform;
+            *parse_info.found_build_version_in = true;
 
             break;
         }
 
         case LC_ID_DYLIB: {
             /*
-             * We could check here if an LC_ID_DYLIB was already found for the
-             * same container, but for the sake of leniency, we don't.
-             */
-
-            /*
              * If no information is needed, skip the unnecessary parsing.
              */
 
-            if (tbd_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION &&
-                tbd_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION &&
-                tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)
-            {
+            const uint64_t ignore_all_mask =
+                O_TBD_PARSE_IGNORE_CURRENT_VERSION |
+                O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION |
+                O_TBD_PARSE_IGNORE_INSTALL_NAME;
+
+            if (tbd_options & ignore_all_mask) {
                 *parse_info.found_identification_out = true;
                 break;
             }
@@ -515,23 +518,10 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
             }
 
-            /*
-             * Do a quick check here to ensure that install_name is a valid
-             * yaml-string (with some additional boundaries).
-             */
-
             const bool needs_quotes = yaml_check_c_str(name_ptr, length);
             if (needs_quotes) {
                 info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
             }
-
-            /*
-             * Verify that the information we have received is the same as the
-             * information we may have received earlier.
-             *
-             * Note: Although this information should only be provided once, we
-             * are pretty lenient, so we don't enforce this.
-             */
 
             const struct dylib dylib = dylib_command->dylib;
             if (info_in->install_name != NULL) {
@@ -547,7 +537,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 const uint32_t compatibility_version =
                     dylib.compatibility_version;
 
-                if (compatibility_version != dylib.compatibility_version) {
+                if (info_in->compatibility_version != compatibility_version) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                 }
 
@@ -567,8 +557,10 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
 
                 if (!ignore_compatibility_version) {
-                    info_in->compatibility_version =
+                    const uint32_t compatibility_version =
                         dylib.compatibility_version;
+
+                    info_in->compatibility_version = compatibility_version;
                 }
 
                 if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
@@ -740,7 +732,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
         case LC_SUB_FRAMEWORK: {
             /*
-             * If no sub-umbrella are needed, skip the unnecessary parsing.
+             * If no parent-umbrella is needed, skip the unnecessary parsing.
              */
 
             if (tbd_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
@@ -807,11 +799,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
             }
 
-            /*
-             * Do a quick check here to ensure that parent-umbrella is a valid
-             * yaml-string (with some additional boundaries).
-             */
-
             const bool needs_quotes = yaml_check_c_str(umbrella, length);
             if (needs_quotes) {
                 info_in->flags |=
@@ -870,11 +857,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
             }
 
-            /*
-             * Fill in the symtab's load-command info to mark that we did indeed
-             * fill in the symtab's info fields.
-             */
-
             *parse_info.symtab_out =
                 *(const struct symtab_command *)parse_info.load_cmd_iter;
 
@@ -926,6 +908,16 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             /*
+             * Ignore the version_min_* load-commands if we already found a
+             * build-version load-command.
+             */
+
+            const bool found_build_version = *parse_info.found_build_version_in;
+            if (found_build_version) {
+                break;
+            }
+
+            /*
              * All version_min load-commands should be the of the same cmdsize.
              */
 
@@ -935,15 +927,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
             if (info_in->platform != 0) {
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    /*
-                     * iOSMac binaries will likely have version information for
-                     * all platforms.
-                     */
-
-                    if (info_in->platform == TBD_PLATFORM_IOSMAC) {
-                        break;
-                    }
-
                     if (info_in->platform != TBD_PLATFORM_MACOS) {
                         return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                     }
@@ -961,6 +944,16 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              */
 
             if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                break;
+            }
+
+            /*
+             * Ignore the version_min_* load-commands if we already found a
+             * build-version load-command.
+             */
+
+            const bool found_build_version = *parse_info.found_build_version_in;
+            if (found_build_version) {
                 break;
             }
 
@@ -995,6 +988,16 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             /*
+             * Ignore the version_min_* load-commands if we already found a
+             * build-version load-command.
+             */
+
+            const bool found_build_version = *parse_info.found_build_version_in;
+            if (found_build_version) {
+                break;
+            }
+
+            /*
              * All version_min load-commands should be the of the same cmdsize.
              */
 
@@ -1021,6 +1024,16 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              */
 
             if (tbd_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+                break;
+            }
+
+            /*
+             * Ignore the version_min_* load-commands if we already found a
+             * build-version load-command.
+             */
+
+            const bool found_build_version = *parse_info.found_build_version_in;
+            if (found_build_version) {
                 break;
             }
 
@@ -1072,14 +1085,6 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
 
-    /*
-     * Get the minimum size by multiplying the ncmds and
-     * sizeof(struct load_command).
-     *
-     * Since sizeof(struct load_command) is a power of 2 (8), use a shift by 3
-     * instead.
-     */
-
     uint32_t minimum_size = sizeof(struct load_command);
     if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
@@ -1110,6 +1115,7 @@ macho_file_parse_load_commands_from_file(
         .end = macho_size
     };
 
+    bool found_build_version = false;
     bool found_identification = false;
     bool found_uuid = false;
 
@@ -1130,6 +1136,11 @@ macho_file_parse_load_commands_from_file(
         free(load_cmd_buffer);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
+
+    /*
+     * We end up copying our install-name and parent-umbrella, so we set these
+     * flags beforehand.
+     */
 
     info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
     info_in->flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
@@ -1199,9 +1210,11 @@ macho_file_parse_load_commands_from_file(
                  * unnecessary parsing.
                  */
 
-                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
-                {
+                const uint64_t ignore_all_mask =
+                    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
+                    O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+
+                if (tbd_options & ignore_all_mask) {
                     break;
                 }
 
@@ -1209,8 +1222,7 @@ macho_file_parse_load_commands_from_file(
                  * Verify we have the right segment for the right word-size
                  * (32-bit vs 64-bit).
                  *
-                 * We just ignore this as having the wrong segment-type doesn't
-                 * matter for us.
+                 * For leniency's sake, we skip over segments of the wrong kind.
                  */
 
                 if (is_64) {
@@ -1257,17 +1269,18 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 uint32_t swift_version = 0;
-                const uint8_t *const sect_ptr =
-                    load_cmd_iter + sizeof(struct segment_command);
 
+                const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section *sect = (const struct section *)sect_ptr;
+
                 for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
                     /*
-                     * If our sect-offset is zero, we have a zero-byte section.
+                     * If our sect-offset or sect-size is zero, we have an empty
+                     * section.
                      */
 
                     uint32_t sect_offset = sect->offset;
@@ -1276,6 +1289,10 @@ macho_file_parse_load_commands_from_file(
                     }
 
                     uint32_t sect_size = sect->size;
+                    if (sect_size == 0) {
+                        continue;
+                    }
+
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint32(sect_size);
@@ -1301,14 +1318,11 @@ macho_file_parse_load_commands_from_file(
             }
 
             case LC_SEGMENT_64: {
-                /*
-                 * If no information from a segment is needed, skip the
-                 * unnecessary parsing.
-                 */
+                const uint64_t ignore_all_mask =
+                    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
+                    O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
-                if ((tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) &&
-                    (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION))
-                {
+                if (tbd_options & ignore_all_mask) {
                     break;
                 }
 
@@ -1316,8 +1330,7 @@ macho_file_parse_load_commands_from_file(
                  * Verify we have the right segment for the right word-size
                  * (32-bit vs 64-bit).
                  *
-                 * We just ignore this as having the wrong segment-type doesn't
-                 * matter for us.
+                 * For leniency's sake, we skip over segments of the wrong kind.
                  */
 
                 if (!is_64) {
@@ -1364,9 +1377,8 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 uint32_t swift_version = 0;
-                const uint8_t *const sect_ptr =
-                    load_cmd_iter + sizeof(struct segment_command_64);
 
+                const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section_64 *sect =
                     (const struct section_64 *)sect_ptr;
 
@@ -1376,7 +1388,8 @@ macho_file_parse_load_commands_from_file(
                     }
 
                     /*
-                     * If our sect-offset is zero, we have a zero-byte section.
+                     * If our sect-offset or sect-size is zero, we have an empty
+                     * section.
                      */
 
                     uint32_t sect_offset = sect->offset;
@@ -1385,6 +1398,10 @@ macho_file_parse_load_commands_from_file(
                     }
 
                     uint64_t sect_size = sect->size;
+                    if (sect_size == 0) {
+                        continue;
+                    }
+
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint64(sect_size);
@@ -1413,6 +1430,7 @@ macho_file_parse_load_commands_from_file(
                 const struct parse_load_command_info parse_lc_info = {
                     .info_in = info_in,
 
+                    .found_build_version_in = &found_build_version,
                     .found_uuid_in = &found_uuid,
                     .uuid_info_in = &uuid_info,
 
@@ -1464,7 +1482,7 @@ macho_file_parse_load_commands_from_file(
             array_find_item(&info_in->uuids,
                             sizeof(uuid_info),
                             &uuid_info,
-                            tbd_uuid_info_comparator,
+                            tbd_uuid_info_is_unique_comparator,
                             NULL);
 
         if (array_uuid != NULL) {
@@ -1494,10 +1512,6 @@ macho_file_parse_load_commands_from_file(
         }
     }
 
-    /*
-     * Retrieve the symbol-table and string-table info via the symtab_command.
-     */
-
     if (is_big_endian) {
         symtab.symoff = swap_uint32(symtab.symoff);
         symtab.nsyms = swap_uint32(symtab.nsyms);
@@ -1514,37 +1528,27 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    /*
-     * Verify the symbol-table's information.
-     */
-
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
+    const struct macho_file_parse_symbols_args args = {
+        .info_in = info_in,
+
+        .full_range = full_range,
+        .available_range = available_range,
+
+        .arch_bit = arch_bit,
+        .is_big_endian = is_big_endian,
+
+        .symoff = symtab.symoff,
+        .nsyms = symtab.nsyms,
+
+        .stroff = symtab.stroff,
+        .strsize = symtab.strsize
+    };
+
     if (is_64) {
-        ret =
-            macho_file_parse_symbols_64_from_file(info_in,
-                                                  fd,
-                                                  full_range,
-                                                  available_range,
-                                                  arch_bit,
-                                                  is_big_endian,
-                                                  symtab.symoff,
-                                                  symtab.nsyms,
-                                                  symtab.stroff,
-                                                  symtab.strsize,
-                                                  tbd_options);
+        ret = macho_file_parse_symbols_64_from_file(args, fd);
     } else {
-        ret =
-            macho_file_parse_symbols_from_file(info_in,
-                                               fd,
-                                               full_range,
-                                               available_range,
-                                               arch_bit,
-                                               is_big_endian,
-                                               symtab.symoff,
-                                               symtab.nsyms,
-                                               symtab.stroff,
-                                               symtab.strsize,
-                                               tbd_options);
+        ret = macho_file_parse_symbols_from_file(args, fd);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {
@@ -1590,11 +1594,6 @@ parse_section_from_map(struct tbd_create_info *const info_in,
         const void *const iter = macho + sect_offset;
         image_info = (const struct objc_image_info *)iter;
     }
-
-    /*
-     * Parse the objc-constraint and ensure it's the same as the one discovered
-     * for another containers.
-     */
 
     const uint32_t flags = image_info->flags;
     enum tbd_objc_constraint objc_constraint =
@@ -1655,11 +1654,6 @@ macho_file_parse_load_commands_from_map(
         return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
     }
 
-    /*
-     * Get the minimum size by multiplying the ncmds and
-     * sizeof(struct load_command).
-     */
-
     uint32_t minimum_size = sizeof(struct load_command);
     if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
@@ -1668,10 +1662,6 @@ macho_file_parse_load_commands_from_map(
     if (sizeofcmds < minimum_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
-
-    /*
-     * Ensure that sizeofcmds doesn't go beyond end of mach-o.
-     */
 
     const bool is_64 = parse_info->is_64;
     const uint32_t header_size =
@@ -1691,15 +1681,12 @@ macho_file_parse_load_commands_from_map(
         .end = macho_size
     };
 
+    bool found_build_version = false;
     bool found_identification = false;
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
     struct tbd_uuid_info uuid_info = { .arch = parse_info->arch };
-
-    /*
-     * Allocate the entire load-commands buffer to allow fast parsing.
-     */
 
     const uint8_t *const macho = parse_info->macho;
 
@@ -1759,7 +1746,7 @@ macho_file_parse_load_commands_from_map(
 
         /*
          * We can't check size_left here, as this could be the last
-         * load-command, so we have to check at the very beginning of the loop.
+         * load-command, so we have to check at the start of the next iteration.
          */
 
         switch (load_cmd.cmd) {
@@ -1769,18 +1756,20 @@ macho_file_parse_load_commands_from_map(
                  * unnecessary parsing.
                  */
 
-                if (tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
-                    if (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-                        break;
-                    }
+                const uint64_t ignore_all_mask =
+                    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
+                    O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+
+                if (tbd_options & ignore_all_mask) {
+                    break;
                 }
 
                 /*
                  * Verify we have the right segment for the right word-size
                  * (32-bit vs 64-bit).
                  *
-                 * We just ignore this as having the wrong segment-type doesn't
-                 * matter for us.
+                 * For the sake of leniency, we skip over segments of the wrong
+                 * type.
                  */
 
                 if (is_64) {
@@ -1824,17 +1813,29 @@ macho_file_parse_load_commands_from_map(
                 }
 
                 uint32_t swift_version = 0;
-                const uint8_t *const sect_ptr =
-                    load_cmd_iter + sizeof(struct segment_command);
 
+                const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section *sect = (const struct section *)sect_ptr;
+
                 for (uint32_t j = 0; j < nsects; j++, sect++) {
                     if (!is_image_info_section(sect->sectname)) {
                         continue;
                     }
 
+                    /*
+                     * If our sect-offset or sect-size is zero, we have an empty
+                     * section
+                     */
+
                     uint32_t sect_offset = sect->offset;
+                    if (sect_offset == 0) {
+                        continue;
+                    }
+
                     uint32_t sect_size = sect->size;
+                    if (sect_size == 0) {
+                        continue;
+                    }
 
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
@@ -1866,18 +1867,19 @@ macho_file_parse_load_commands_from_map(
                  * unnecessary parsing.
                  */
 
-                if (tbd_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
-                    if (tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-                        break;
-                    }
+                const uint64_t ignore_all_mask =
+                    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
+                    O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+
+                if (tbd_options & ignore_all_mask) {
+                    break;
                 }
 
                 /*
                  * Verify we have the right segment for the right word-size
                  * (32-bit vs 64-bit).
                  *
-                 * We just ignore this as having the wrong segment-type doesn't
-                 * matter for us.
+                 * For the sake of leniency, we ignore wrong segment-types.
                  */
 
                 if (!is_64) {
@@ -1921,9 +1923,8 @@ macho_file_parse_load_commands_from_map(
                 }
 
                 uint32_t swift_version = 0;
-                const uint8_t *const sect_ptr =
-                    load_cmd_iter + sizeof(struct segment_command_64);
 
+                const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section_64 *sect =
                     (const struct section_64 *)sect_ptr;
 
@@ -1932,8 +1933,20 @@ macho_file_parse_load_commands_from_map(
                         continue;
                     }
 
+                    /*
+                     * If our sect-offset or sect-size is zero, we have an empty
+                     * section.
+                     */
+
                     uint32_t sect_offset = sect->offset;
+                    if (sect_offset == 0) {
+                        continue;
+                    }
+
                     uint64_t sect_size = sect->size;
+                    if (sect_size == 0) {
+                        continue;
+                    }
 
                     if (is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
@@ -1964,6 +1977,7 @@ macho_file_parse_load_commands_from_map(
                     .info_in = info_in,
                     .arch_bit = arch_bit,
 
+                    .found_build_version_in = &found_build_version,
                     .found_uuid_in = &found_uuid,
                     .uuid_info_in = &uuid_info,
 
@@ -2014,7 +2028,7 @@ macho_file_parse_load_commands_from_map(
         array_find_item(&info_in->uuids,
                         sizeof(uuid_info),
                         &uuid_info,
-                        tbd_uuid_info_comparator,
+                        tbd_uuid_info_is_unique_comparator,
                         NULL);
 
     if (array_uuid != NULL) {
@@ -2060,35 +2074,25 @@ macho_file_parse_load_commands_from_map(
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    /*
-     * Verify the symbol-table's information.
-     */
-
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
+    const struct macho_file_parse_symbols_args args = {
+        .info_in = info_in,
+        .available_range = available_map_range,
+
+        .arch_bit = arch_bit,
+        .is_big_endian = is_big_endian,
+
+        .symoff = symtab.symoff,
+        .nsyms = symtab.nsyms,
+
+        .stroff = symtab.stroff,
+        .strsize = symtab.strsize
+    };
+
     if (is_64) {
-        ret =
-            macho_file_parse_symbols_64_from_map(info_in,
-                                                 map,
-                                                 available_map_range,
-                                                 arch_bit,
-                                                 is_big_endian,
-                                                 symtab.symoff,
-                                                 symtab.nsyms,
-                                                 symtab.stroff,
-                                                 symtab.strsize,
-                                                 tbd_options);
+        ret = macho_file_parse_symbols_64_from_map(args, map);
     } else {
-        ret =
-            macho_file_parse_symbols_from_map(info_in,
-                                              map,
-                                              available_map_range,
-                                              arch_bit,
-                                              is_big_endian,
-                                              symtab.symoff,
-                                              symtab.nsyms,
-                                              symtab.stroff,
-                                              symtab.strsize,
-                                              tbd_options);
+        ret = macho_file_parse_symbols_from_map(args, map);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {

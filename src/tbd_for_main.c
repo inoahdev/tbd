@@ -443,6 +443,11 @@ tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
                           const enum tbd_for_main_filetype filetype)
 {
     const uint64_t filetypes = tbd->filetypes;
+
+    /*
+     * If we have no filetypes added, we by default support all filetypes.
+     */
+
     if (filetypes == 0) {
         return true;
     }
@@ -476,7 +481,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
 }
 
 char *
-tbd_for_main_create_write_path_while_recursing(
+tbd_for_main_create_write_path_for_recursing(
     const struct tbd_for_main *const tbd,
     const char *const folder_path,
     const uint64_t folder_path_length,
@@ -686,8 +691,8 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * overwriting.
              *
              * Note: EEXIST is only returned when O_EXCL was set, which is only
-             * set for F_TBD_FOR_MAIN_NO_OVERWRITE, meaning no check here is
-             * necessary.
+             * set for F_TBD_FOR_MAIN_NO_OVERWRITE, implying that we shouldn't
+             * need to check for F_TBD_FOR_MAIN_NO_OVERWRITE here.
              */
 
             if (errno == EEXIST) {
@@ -696,13 +701,13 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
 
             if (print_paths) {
                 fprintf(stderr,
-                        "Failed to open output-file (for path: %s), "
+                        "Failed to open write-file (for path: %s), "
                         "error: %s\n",
                         write_path,
                         strerror(errno));
             } else {
                 fprintf(stderr,
-                        "Failed to open the provided output-file, "
+                        "Failed to open the provided write-file, "
                         "error: %s\n",
                         strerror(errno));
             }
@@ -716,13 +721,13 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
         if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             if (print_paths) {
                 fprintf(stderr,
-                        "Failed to open output-file (for path: %s) as FILE, "
+                        "Failed to open write-file (for path: %s) as FILE, "
                         "error: %s\n",
                         write_path,
                         strerror(errno));
             } else {
                 fprintf(stderr,
-                        "Failed to open the provided output-file as FILE, "
+                        "Failed to open the provided write-file as FILE, "
                         "error: %s\n",
                         strerror(errno));
             }
@@ -816,8 +821,8 @@ tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *const tbd,
 }
 
 static int
-tbd_for_main_dsc_image_filter_comparator(const void *const array_item,
-                                         const void *const item)
+dsc_image_filter_comparator(const void *const array_item,
+                            const void *const item)
 {
     const struct tbd_for_main_dsc_image_filter *const array_filter =
         (const struct tbd_for_main_dsc_image_filter *)array_item;
@@ -859,8 +864,8 @@ image_number_comparator(const void *const array_item,
 }
 
 static int
-tbd_for_main_dsc_image_path_comparator(const void *const array_item,
-                                       const void *const item)
+dsc_image_path_comparator(const void *const array_item,
+                          const void *const item)
 {
     const struct tbd_for_main_dsc_image_path *const array_path =
         (const struct tbd_for_main_dsc_image_path *)array_item;
@@ -940,7 +945,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
                     &dst->dsc_image_filters,
                     sizeof(struct tbd_for_main_dsc_image_filter),
                     src_filters,
-                    tbd_for_main_dsc_image_filter_comparator);
+                    dsc_image_filter_comparator);
 
             if (add_filters_result != E_ARRAY_OK) {
                 fputs("Experienced an array failure when trying to add dsc "
@@ -975,7 +980,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
                     &dst->dsc_image_paths,
                     sizeof(struct tbd_for_main_dsc_image_path),
                     src_paths,
-                    tbd_for_main_dsc_image_path_comparator);
+                    dsc_image_path_comparator);
 
             if (add_paths_result != E_ARRAY_OK) {
                 fputs("Experienced an array failure when trying to add dsc "

@@ -103,16 +103,16 @@ parse_flags_list(int *const index_in,
         const char *const arg = argv[index];
         if (strcmp(arg, "flat_namespace") == 0) {
             if (flags & TBD_FLAG_FLAT_NAMESPACE) {
-                fputs("Notice: tbd-flag flat_namespace was provided twice\n",
-                      stderr);
+                fputs("Note: tbd-flag flat_namespace was provided twice\n",
+                      stdout);
             } else {
                 flags |= TBD_FLAG_FLAT_NAMESPACE;
             }
         } else if (strcmp(arg, "not_app_extension_safe") == 0) {
             if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
-                fputs("Notice: tbd-flag not_app_extension_safe was provided "
+                fputs("Note: tbd-flag not_app_extension_safe was provided "
                       "twice\n",
-                      stderr);
+                      stdout);
             } else {
                 flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
             }

@@ -91,9 +91,11 @@ enum array_cached_index_type {
 };
 
 /*
- * array_cached_index_info is a structure describing the information resulted
- * from the lookup in array_find_item_in_sorted. This is useful to avoid extra
- * lookups if adding the same item to the same array in
+ * array_cached_index_info is a structure describing the information extracted
+ * from the lookup performaced array_find_item_in_sorted.
+ *
+ * Recording our lookup information helps us avoid the performance hiccup of
+ * repeating our lookup when adding to the array.
  */
 
 struct array_cached_index_info {
@@ -129,11 +131,6 @@ array_add_item_with_cached_index_info(struct array *array,
                                       void **item_out);
 
 enum array_result array_copy(struct array *array, struct array *array_out);
-
-/*
- * Deallocate the array's buffer and reset the array's fields.
- */
-
 enum array_result array_destroy(struct array *array);
 
 #endif /* ARRAY_H */

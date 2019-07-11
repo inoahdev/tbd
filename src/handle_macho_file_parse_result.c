@@ -778,12 +778,12 @@ handle_macho_file_parse_result(
                 }
 
                 fprintf(stderr,
-                        "Mach-o file (at path %s) has no clients, "
+                        "Mach-o file (at path %s) has no exported clients, "
                         "re-exports, or symbols to be written out\n",
                         args.dir_path);
             } else {
-                fputs("The provided mach-o file has no clients, re-exports, or "
-                      "symbols to be written out\n",
+                fputs("The provided mach-o file has no exported clients, "
+                      "re-exports, or symbols to be written out\n",
                       stderr);
 
             }
@@ -1684,13 +1684,13 @@ handle_macho_file_parse_result_while_recursing(
                 }
 
                 fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has no clients, "
+                        "Mach-o file (at path %s/%s) has no exported clients, "
                         "re-exports, or symbols to be written out\n",
                         args.dir_path,
                         args.name);
             } else {
-                fputs("The provided mach-o file has no clients, re-exports, or "
-                      "symbols to be written out\n",
+                fputs("The provided mach-o file has no exported clients, "
+                      "re-exports, or symbols to be written out\n",
                       stderr);
 
             }
