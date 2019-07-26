@@ -13,6 +13,7 @@
 #include "mach-o/loader.h"
 
 #include "array.h"
+#include "notnull.h"
 #include "tbd.h"
 
 enum macho_file_options {
@@ -106,14 +107,14 @@ enum macho_file_parse_result {
 };
 
 enum macho_file_parse_result
-macho_file_parse_from_file(struct tbd_create_info *info_in,
+macho_file_parse_from_file(struct tbd_create_info *__notnull info_in,
                            int fd,
                            uint32_t magic,
                            uint64_t parse_options,
                            uint64_t options);
 
 enum macho_file_parse_result
-macho_file_parse_from_range(struct tbd_create_info *info_in,
+macho_file_parse_from_range(struct tbd_create_info *__notnull info_in,
                             int fd,
                             uint64_t start,
                             uint64_t end,

@@ -10,6 +10,8 @@
 #define DSC_IMAGE_H
 
 #include "dyld_shared_cache.h"
+#include "likely.h"
+#include "notnull.h"
 #include "tbd.h"
 
 enum dsc_image_parse_result {
@@ -56,9 +58,9 @@ enum dsc_image_parse_result {
 };
 
 enum dsc_image_parse_result
-dsc_image_parse(struct tbd_create_info *info_in,
-                struct dyld_shared_cache_info *dsc_info,
-                struct dyld_cache_image_info *image,
+dsc_image_parse(struct tbd_create_info *__notnull info_in,
+                struct dyld_shared_cache_info *__notnull dsc_info,
+                struct dyld_cache_image_info *__notnull image,
                 uint64_t macho_options,
                 uint64_t tbd_options,
                 uint64_t options);

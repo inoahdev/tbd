@@ -3,6 +3,8 @@
 **/xcshareddata/
 **/xcuserdata/
 
+*.gcda
+
 .ccls-cache
 .vs/
 .vscode/

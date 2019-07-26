@@ -9,34 +9,41 @@
 #ifndef TBD_WRITE_H
 #define TBD_WRITE_H
 
+#include "notnull.h"
 #include "tbd.h"
 
-int tbd_write_archs_for_header(FILE *file, uint64_t archs);
-int tbd_write_current_version(FILE *file, uint32_t version);
-int tbd_write_compatibility_version(FILE *file, uint32_t version);
+int tbd_write_archs_for_header(FILE *__notnull file, uint64_t archs);
+int tbd_write_current_version(FILE *__notnull file, uint32_t version);
+int tbd_write_compatibility_version(FILE *__notnull file, uint32_t version);
 
 int
-tbd_write_exports(FILE *file,
+tbd_write_exports(FILE *__notnull file,
                   const struct array *exports,
                   enum tbd_version version);
 
 int
-tbd_write_exports_with_full_archs(const struct tbd_create_info *info,
-                                  FILE *file);
+tbd_write_exports_with_full_archs(const struct tbd_create_info *__notnull info,
+                                  FILE *__notnull file);
 
-int tbd_write_flags(FILE *file, uint64_t flags);
-int tbd_write_footer(FILE *file);
+int tbd_write_flags(FILE *__notnull file, uint64_t flags);
+int tbd_write_footer(FILE *__notnull file);
 
-int tbd_write_install_name(FILE *file, const struct tbd_create_info *info);
-int tbd_write_magic(FILE *file, enum tbd_version version);
+int tbd_write_install_name(FILE *__notnull file,
+                           const struct tbd_create_info *__notnull info);
 
-int tbd_write_parent_umbrella(FILE *file, const struct tbd_create_info *info);
-int tbd_write_platform(FILE *file, enum tbd_platform platform);
-int tbd_write_objc_constraint(FILE *file, enum tbd_objc_constraint constraint);
-int tbd_write_uuids(FILE *file, const struct array *uuids);
+int tbd_write_magic(FILE *__notnull file, enum tbd_version version);
+
+int tbd_write_parent_umbrella(FILE *file,
+                              const struct tbd_create_info *__notnull info);
+
+int tbd_write_platform(FILE *__notnull file, enum tbd_platform platform);
+int tbd_write_objc_constraint(FILE *__notnull file,
+                              enum tbd_objc_constraint constraint);
+
+int tbd_write_uuids(FILE *__notnull file, const struct array *__notnull uuids);
 
 int
-tbd_write_swift_version(FILE *file,
+tbd_write_swift_version(FILE *__notnull file,
                         enum tbd_version tbd_vers,
                         uint32_t swift_vers);
 

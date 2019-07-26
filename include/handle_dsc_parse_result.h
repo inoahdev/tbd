@@ -11,6 +11,8 @@
 
 #include "dsc_image.h"
 #include "dyld_shared_cache.h"
+
+#include "notnull.h"
 #include "tbd_for_main.h"
 
 void
@@ -19,8 +21,8 @@ handle_dsc_file_parse_result(const char *path,
                              bool print_paths);
 void
 handle_dsc_file_parse_result_while_recursing(
-    const char *dir_path,
-    const char *name,
+    const char *__notnull dir_path,
+    const char *__notnull name,
     enum dyld_shared_cache_parse_result parse_result,
     bool print_paths);
 
@@ -47,8 +49,8 @@ handle_dsc_image_parse_result_while_recursing(
 	struct handle_dsc_image_parse_result_args args);
 
 void
-print_dsc_image_parse_error(const struct tbd_for_main *tbd,
-                            const char *image_path,
+print_dsc_image_parse_error(const struct tbd_for_main *__notnull tbd,
+                            const char *__notnull image_path,
                             enum dsc_image_parse_result parse_error);
 
 #endif /* HANDLE_DSC_PARSE_RESULT_H */

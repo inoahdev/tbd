@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-bool yaml_check_c_str(const char *string, uint64_t length);
+#include "notnull.h"
+
+bool yaml_check_c_str(const char *__notnull string, uint64_t length);
 
 #endif /* YAML_H */

@@ -16,15 +16,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "likely.h"
 #include "path.h"
 #include "recursive.h"
 
-static
-char *find_last_slash_before_end(char *const path, const char *const end) {
+static char *
+find_last_slash_before_end(char *__notnull const path,
+                           const char *__notnull const end)
+{
     return (char *)path_find_last_row_of_slashes_before_end(path, end);
 }
 
-static char *get_next_path_component_slash(char *const path) {
+static char *get_next_path_component_slash(char *__notnull const path) {
     char *iter = (char *)path_get_end_of_row_of_slashes(path);
     if (iter == NULL) {
         return NULL;
@@ -42,7 +45,10 @@ static char *get_next_path_component_slash(char *const path) {
     return iter;
 }
 
-static char *find_next_slash_reverse(char *const path, char *const last_slash) {
+static char *
+find_next_slash_reverse(char *__notnull const path,
+                        char *__notnull const last_slash)
+{
     char *iter = last_slash;
     const char *const rev_end = path - 1;
 
@@ -55,17 +61,17 @@ static char *find_next_slash_reverse(char *const path, char *const last_slash) {
     return NULL;
 }
 
-static inline void terminate_c_str(char *const iter) {
+static inline void terminate_c_str(char *__notnull const iter) {
     *iter = '\0';
 }
 
-static inline void restore_slash_c_str(char *const iter) {
+static inline void restore_slash_c_str(char *__notnull const iter) {
     *iter = '/';
 }
 
 static int
-reverse_mkdir_ignoring_last(char *const path,
-                            uint64_t path_length,
+reverse_mkdir_ignoring_last(char *__notnull const path,
+                            const uint64_t path_length,
                             const mode_t mode,
                             char **const first_terminator_out)
 {
@@ -79,7 +85,7 @@ reverse_mkdir_ignoring_last(char *const path,
      */
 
     const char possible_end = last_slash[1];
-    if (possible_end == '\0') {
+    if (unlikely(possible_end == '\0')) {
         last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
         last_slash = find_next_slash_reverse(path, last_slash);
     }
@@ -104,6 +110,7 @@ reverse_mkdir_ignoring_last(char *const path,
 
         /*
          * errno is set to ENONENT when a previous path-component doesn't exist.
+         *
          * Any other error however is beyond our scope, and we just error-return
          * immediately.
          */
@@ -114,16 +121,16 @@ reverse_mkdir_ignoring_last(char *const path,
     }
 
     /*
-     * We store a pointer to the final slash we need to terminate to finish our
-     * entire task here.
+     * We store a pointer to the final slash we need to terminate to finish the
+     * entire task.
      */
 
     char *const final_slash =
         (char *)path_get_front_of_row_of_slashes(path, last_slash);
 
     /*
-     * Iterate over the path-components backwayds, finding the final slash
-     * within a range of the of the previous final slash, and terminate the
+     * Iterate over the path-components backwayds, finding the ending-slash
+     * within the range of the of the previous ending-slash, and terminate the
      * string at that slash.
      *
      * Then try creating that directory.
@@ -239,7 +246,7 @@ reverse_mkdir_ignoring_last(char *const path,
 }
 
 int
-open_r(char *const path,
+open_r(char *__notnull const path,
        const uint64_t length,
        const int flags,
        const mode_t mode,
@@ -276,7 +283,7 @@ open_r(char *const path,
 }
 
 int
-mkdir_r(char *const path,
+mkdir_r(char *__notnull const path,
         const uint64_t length,
         const mode_t mode,
         char **const first_terminator_out)
@@ -320,29 +327,34 @@ mkdir_r(char *const path,
 }
 
 int
-remove_partial_r(char *const path, const uint64_t length, char *const from) {
-    if (remove(path) != 0) {
+remove_file_r(char *__notnull const path,
+              const uint64_t length,
+              char *__notnull const last)
+{
+    if (unlink(path) != 0) {
         return 1;
     }
 
-    const uint64_t from_delta = (uint64_t)(from - path);
-    const uint64_t from_length = length - from_delta;
+    const uint64_t range_delta = (uint64_t)(last - path);
+    const uint64_t range_length = length - range_delta;
 
-    char *last_slash = (char *)path_find_last_row_of_slashes(from, from_length);
+    char *last_slash =
+        (char *)path_find_last_row_of_slashes(last, range_length);
+
     if (last_slash == NULL) {
         return 1;
     }
 
     do {
         terminate_c_str(last_slash);
-        const int ret = remove(path);
+        const int ret = rmdir(path);
         restore_slash_c_str(last_slash);
 
         if (ret != 0) {
             return 1;
         }
 
-        last_slash = find_last_slash_before_end(from, last_slash);
+        last_slash = find_last_slash_before_end(last, last_slash);
     } while (last_slash != NULL);
 
     return 0;

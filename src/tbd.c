@@ -29,8 +29,8 @@
  */
 
 int
-tbd_export_info_no_archs_comparator(const void *const array_item,
-                                    const void *const item)
+tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
+                                    const void *__notnull const item)
 {
     const struct tbd_export_info *const array_info =
         (const struct tbd_export_info *)array_item;
@@ -41,8 +41,10 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
 
-    if (array_type != type) {
-        return (int)(array_type - type);
+    if (array_type > type) {
+        return 1;
+    } else if (array_type < type) {
+        return -1;
     }
 
     const uint64_t array_length = array_info->length;
@@ -77,8 +79,9 @@ tbd_export_info_no_archs_comparator(const void *const array_item,
 }
 
 int
-tbd_export_info_compare(const struct tbd_export_info *const array_info,
-                        const struct tbd_export_info *const info)
+tbd_export_info_compare(
+    const struct tbd_export_info *__notnull const array_info,
+    const struct tbd_export_info *__notnull const info)
 {
     const uint64_t array_archs_count = array_info->archs_count;
     const uint64_t archs_count = info->archs_count;
@@ -101,8 +104,10 @@ tbd_export_info_compare(const struct tbd_export_info *const array_info,
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
 
-    if (array_type != type) {
-        return (int)(array_type - type);
+    if (array_type > type) {
+        return 1;
+    } else if (array_type < type) {
+        return -1;
     }
 
     const uint64_t array_length = array_info->length;
@@ -137,7 +142,8 @@ tbd_export_info_compare(const struct tbd_export_info *const array_info,
 }
 
 int
-tbd_export_info_comparator(const void *const array_item, const void *const item)
+tbd_export_info_comparator(const void *__notnull const array_item,
+                           const void *__notnull const item)
 {
     const struct tbd_export_info *const array_info =
         (const struct tbd_export_info *)array_item;
@@ -148,8 +154,9 @@ tbd_export_info_comparator(const void *const array_item, const void *const item)
     return tbd_export_info_compare(array_info, info);
 }
 
-int tbd_uuid_info_is_unique_comparator(const void *const array_item,
-                                       const void *const item)
+int
+tbd_uuid_info_is_unique_comparator(const void *__notnull const array_item,
+                                   const void *__notnull const item)
 {
     const struct tbd_uuid_info *const array_uuid_info =
         (const struct tbd_uuid_info *)array_item;
@@ -163,8 +170,9 @@ int tbd_uuid_info_is_unique_comparator(const void *const array_item,
     return memcmp(array_uuid, uuid, 16);
 }
 
-int tbd_uuid_info_comparator(const void *const array_item,
-                             const void *const item)
+int
+tbd_uuid_info_comparator(const void *__notnull const array_item,
+                         const void *__notnull const item)
 {
     const struct tbd_uuid_info *const array_uuid_info =
         (const struct tbd_uuid_info *)array_item;
@@ -185,8 +193,8 @@ int tbd_uuid_info_comparator(const void *const array_item,
 }
 
 enum tbd_create_result
-tbd_create_with_info(const struct tbd_create_info *const info,
-                     FILE *const file,
+tbd_create_with_info(const struct tbd_create_info *__notnull const info,
+                     FILE *__notnull const file,
                      const uint64_t options)
 {
     const enum tbd_version version = info->version;
@@ -274,7 +282,7 @@ tbd_create_with_info(const struct tbd_create_info *const info,
     return E_TBD_CREATE_OK;
 }
 
-static void destroy_exports_array(struct array *const list) {
+static void destroy_exports_array(struct array *__notnull const list) {
     struct tbd_export_info *info = list->data;
     const struct tbd_export_info *const end = list->data_end;
 
@@ -285,7 +293,7 @@ static void destroy_exports_array(struct array *const list) {
     array_destroy(list);
 }
 
-void tbd_create_info_destroy(struct tbd_create_info *const info) {
+void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
         free((char *)info->install_name);
     }

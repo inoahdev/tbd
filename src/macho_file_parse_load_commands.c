@@ -136,13 +136,14 @@ static inline bool is_image_info_section(const char name[16]) {
 }
 
 static enum macho_file_parse_result
-parse_section_from_file(struct tbd_create_info *const info_in,
-                        uint32_t *const existing_swift_version_in,
+parse_section_from_file(struct tbd_create_info *__notnull const info_in,
+                        uint32_t *__notnull const existing_swift_version_in,
                         const int fd,
                         const struct range full_range,
                         const struct range macho_range,
                         uint32_t sect_offset,
                         uint64_t sect_size,
+                        uint64_t position,
                         const uint64_t options)
 {
     if (sect_size != sizeof(struct objc_image_info)) {
@@ -154,7 +155,7 @@ parse_section_from_file(struct tbd_create_info *const info_in,
         .end = sect_offset + sect_size
     };
 
-    if (!range_contains_range(macho_range, sect_range)) {
+    if (!range_contains_other(macho_range, sect_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
 
@@ -163,7 +164,6 @@ parse_section_from_file(struct tbd_create_info *const info_in,
      * we're done.
      */
 
-    const off_t original_pos = lseek(fd, 0, SEEK_CUR);
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
         if (lseek(fd, sect_offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -184,7 +184,7 @@ parse_section_from_file(struct tbd_create_info *const info_in,
      * Seek back to our original-position so our caller is unaffected.
      */
 
-    if (lseek(fd, original_pos, SEEK_SET) < 0) {
+    if (lseek(fd, position, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -210,10 +210,9 @@ parse_section_from_file(struct tbd_create_info *const info_in,
         info_in->objc_constraint = objc_constraint;
     }
 
-    const uint32_t mask = objc_image_info_swift_version_mask;
-
     const uint32_t existing_swift_version = *existing_swift_version_in;
-    const uint32_t image_swift_version = (image_info.flags & mask) >> 8;
+    const uint32_t image_swift_version =
+        (image_info.flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >> 8;
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
@@ -227,10 +226,10 @@ parse_section_from_file(struct tbd_create_info *const info_in,
 }
 
 static enum macho_file_parse_result
-add_export_to_info(struct tbd_create_info *const info_in,
+add_export_to_info(struct tbd_create_info *__notnull const info_in,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
-                   const char *const string,
+                   const char *__notnull const string,
                    const uint32_t string_length,
                    const uint64_t tbd_options)
 {
@@ -1067,8 +1066,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
-    struct tbd_create_info *const info_in,
-    const struct mf_parse_load_commands_from_file_info *const parse_info,
+    struct tbd_create_info *__notnull const info_in,
+    const struct mf_parse_lc_from_file_info *__notnull const parse_info,
     struct symtab_command *const symtab_out)
 {
     const uint32_t ncmds = parse_info->ncmds;
@@ -1158,7 +1157,9 @@ macho_file_parse_load_commands_from_file(
     const uint64_t tbd_options = parse_info->tbd_options;
 
     uint8_t *load_cmd_iter = load_cmd_buffer;
+
     uint32_t size_left = sizeofcmds;
+    uint64_t lc_position = available_range.begin;
 
     for (uint32_t i = 0; i != ncmds; i++) {
         /*
@@ -1269,6 +1270,7 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 uint32_t swift_version = 0;
+                lc_position += sizeof(struct segment_command);
 
                 const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section *sect = (const struct section *)sect_ptr;
@@ -1306,12 +1308,15 @@ macho_file_parse_load_commands_from_file(
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
+                                                lc_position,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
                         free(load_cmd_buffer);
                         return parse_section_result;
                     }
+
+                    lc_position += sizeof(struct section);
                 }
 
                 break;
@@ -1377,6 +1382,7 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 uint32_t swift_version = 0;
+                lc_position += sizeof(struct segment_command_64);
 
                 const uint8_t *const sect_ptr = (const uint8_t *)(segment + 1);
                 const struct section_64 *sect =
@@ -1415,12 +1421,15 @@ macho_file_parse_load_commands_from_file(
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
+                                                lc_position,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
                         free(load_cmd_buffer);
                         return parse_section_result;
                     }
+
+                    lc_position += sizeof(struct section_64);
                 }
 
                 break;
@@ -1456,6 +1465,7 @@ macho_file_parse_load_commands_from_file(
                     return parse_load_command_result;
                 }
 
+                lc_position += load_cmd.cmdsize;
                 break;
             }
         }
@@ -1542,7 +1552,9 @@ macho_file_parse_load_commands_from_file(
         .nsyms = symtab.nsyms,
 
         .stroff = symtab.stroff,
-        .strsize = symtab.strsize
+        .strsize = symtab.strsize,
+
+        .tbd_options = tbd_options
     };
 
     if (is_64) {
@@ -1559,12 +1571,12 @@ macho_file_parse_load_commands_from_file(
 }
 
 static enum macho_file_parse_result
-parse_section_from_map(struct tbd_create_info *const info_in,
-                       uint32_t *const existing_swift_version_in,
+parse_section_from_map(struct tbd_create_info *__notnull const info_in,
+                       uint32_t *__notnull const existing_swift_version_in,
                        const struct range map_range,
                        const struct range macho_range,
-                       const uint8_t *const map,
-                       const uint8_t *const macho,
+                       const uint8_t *__notnull const map,
+                       const uint8_t *__notnull const macho,
                        uint32_t sect_offset,
                        uint64_t sect_size,
                        const uint64_t options)
@@ -1580,14 +1592,14 @@ parse_section_from_map(struct tbd_create_info *const info_in,
     };
 
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-        if (!range_contains_range(map_range, sect_range)) {
+        if (!range_contains_other(map_range, sect_range)) {
             return E_MACHO_FILE_PARSE_INVALID_SECTION;
         }
 
         const void *const iter = map + sect_offset;
         image_info = (const struct objc_image_info *)iter;
     } else {
-        if (!range_contains_range(macho_range, sect_range)) {
+        if (!range_contains_other(macho_range, sect_range)) {
             return E_MACHO_FILE_PARSE_INVALID_SECTION;
         }
 
@@ -1618,10 +1630,9 @@ parse_section_from_map(struct tbd_create_info *const info_in,
         info_in->objc_constraint = objc_constraint;
     }
 
-    const uint32_t mask = objc_image_info_swift_version_mask;
-
     const uint32_t existing_swift_version = *existing_swift_version_in;
-    const uint32_t image_swift_version = (flags & mask) >> 8;
+    const uint32_t image_swift_version =
+        (flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >> 8;
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
@@ -1636,8 +1647,8 @@ parse_section_from_map(struct tbd_create_info *const info_in,
 
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(
-    struct tbd_create_info *const info_in,
-    const struct mf_parse_load_commands_from_map_info *const parse_info,
+    struct tbd_create_info *__notnull const info_in,
+    const struct mf_parse_lc_from_map_info *__notnull const parse_info,
     struct symtab_command *const symtab_out)
 {
     const uint32_t ncmds = parse_info->ncmds;

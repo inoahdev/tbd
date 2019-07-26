@@ -48,7 +48,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         /*
          * This error should never be returned from
-         * macho_file_parse_load_commands.
+         * macho_file_parse_load_commands().
          */
 
         case E_MACHO_FILE_PARSE_FSTAT_FAIL:
@@ -155,9 +155,10 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 }
 
 static uint64_t
-get_image_file_offset_from_address(struct dyld_shared_cache_info *const info,
-                                   const uint64_t address,
-                                   uint64_t *const max_size_out)
+get_image_file_offset_from_address(
+    struct dyld_shared_cache_info *__notnull const info,
+    const uint64_t address,
+    uint64_t *__notnull const max_size_out)
 {
     const struct dyld_cache_mapping_info *const mappings = info->mappings;
     const uint64_t count = info->mappings_count;
@@ -188,9 +189,9 @@ get_image_file_offset_from_address(struct dyld_shared_cache_info *const info,
 }
 
 enum dsc_image_parse_result
-dsc_image_parse(struct tbd_create_info *const info_in,
-                struct dyld_shared_cache_info *const dsc_info,
-                struct dyld_cache_image_info *const image,
+dsc_image_parse(struct tbd_create_info *__notnull const info_in,
+                struct dyld_shared_cache_info *__notnull const dsc_info,
+                struct dyld_cache_image_info *__notnull const image,
                 const uint64_t macho_options,
                 const uint64_t tbd_options,
                 __unused const uint64_t options)
@@ -273,7 +274,7 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         macho_options;
 
     struct symtab_command symtab = {};
-    struct mf_parse_load_commands_from_map_info info = {
+    struct mf_parse_lc_from_map_info info = {
         .map = map,
         .map_size = dsc_info->size,
 
@@ -330,7 +331,9 @@ dsc_image_parse(struct tbd_create_info *const info_in,
         .nsyms = symtab.nsyms,
 
         .stroff = symtab.stroff,
-        .strsize = symtab.strsize
+        .strsize = symtab.strsize,
+
+        .tbd_options = tbd_options
     };
 
     if (is_64) {

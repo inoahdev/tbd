@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include "macho_file.h"
+#include "notnull.h"
 #include "range.h"
 
 struct macho_file_parse_symbols_args {
@@ -45,10 +46,10 @@ macho_file_parse_symbols_64_from_file(struct macho_file_parse_symbols_args args,
 
 enum macho_file_parse_result
 macho_file_parse_symbols_from_map(struct macho_file_parse_symbols_args args,
-                                  const uint8_t *map);
+                                  const uint8_t *__notnull map);
 
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_map(struct macho_file_parse_symbols_args args,
-                                     const uint8_t *map);
+                                     const uint8_t *__notnull map);
 
 #endif /* MACHO_FILE_PARSE_SYMBOLS_H */

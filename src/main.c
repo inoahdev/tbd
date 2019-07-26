@@ -618,11 +618,11 @@ int main(const int argc, const char *const argv[]) {
                         }
                     } else {
                         const bool ret =
-                            tbd_for_main_parse_option(&tbd,
+                            tbd_for_main_parse_option(&index,
+                                                      &tbd,
                                                       argc,
                                                       argv,
-                                                      inner_opt,
-                                                      &index);
+                                                      inner_opt);
 
                         if (ret) {
                             continue;
@@ -1007,7 +1007,7 @@ int main(const int argc, const char *const argv[]) {
             return 0;
         } else {
             const char *const opt = option;
-            if (tbd_for_main_parse_option(&global, argc, argv, opt, &index)) {
+            if (tbd_for_main_parse_option(&index, &global, argc, argv, opt)) {
                 continue;
             }
 

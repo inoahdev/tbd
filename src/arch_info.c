@@ -210,7 +210,7 @@ const struct array cputype_info_array = {
     .alloc_end = (void *)(cputype_info_list + 14)
 };
 
-const struct arch_info *arch_info_get_list(void) {
+const struct arch_info * __notnull arch_info_get_list(void) {
     return arch_info_list;
 }
 
@@ -223,15 +223,26 @@ static uint64_t cputype_info_list_get_size(void) {
 }
 
 static int
-cputype_info_comparator(const void *const left, const void *const right) {
+cputype_info_comparator(const void *__notnull const left,
+                        const void *__notnull const right)
+{
     const struct arch_info *const info = (const struct arch_info *)left;
+
+    const cpu_type_t table_cputype = info->cputype;
     const cpu_type_t cputype = *(const cpu_type_t *)right;
 
-    return info->cputype - cputype;
+    if (table_cputype > cputype) {
+        return 1;
+    } else if (table_cputype < cputype) {
+        return -1;
+    }
+
+    return 0;
 }
 
 static int
-arch_info_cpusubtype_comparator(const void *const left, const void *const right)
+arch_info_cpusubtype_comparator(const void *__notnull const left,
+                                const void *__notnull const right)
 {
     const struct arch_info *const info = (const struct arch_info *)left;
 
@@ -304,7 +315,7 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
     return arch;
 }
 
-const struct arch_info *arch_info_for_name(const char *const name) {
+const struct arch_info *arch_info_for_name(const char *__notnull const name) {
     const struct arch_info *arch = arch_info_list;
     for (; arch->name != NULL; arch++) {
         if (strcmp(arch->name, name) != 0) {

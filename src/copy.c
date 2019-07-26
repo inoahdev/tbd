@@ -10,10 +10,12 @@
 #include <string.h>
 
 #include "copy.h"
+#include "likely.h"
 
-char *alloc_and_copy(const char *const string, const uint64_t length) {
+char *
+alloc_and_copy(const char *__notnull const string, const uint64_t length) {
     char *const copy = malloc(length + 1);
-    if (copy == NULL) {
+    if (unlikely(copy == NULL)) {
         return NULL;
     }
 

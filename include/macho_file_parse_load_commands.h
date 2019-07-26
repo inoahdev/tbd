@@ -15,9 +15,10 @@
 
 #include "arch_info.h"
 #include "macho_file.h"
+#include "notnull.h"
 #include "range.h"
 
-struct mf_parse_load_commands_from_file_info {
+struct mf_parse_lc_from_file_info {
     int fd;
 
     const struct arch_info *arch;
@@ -38,11 +39,11 @@ struct mf_parse_load_commands_from_file_info {
 
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
-    struct tbd_create_info *info_in,
-    const struct mf_parse_load_commands_from_file_info *parse_info,
+    struct tbd_create_info *__notnull info_in,
+    const struct mf_parse_lc_from_file_info *__notnull parse_info,
     struct symtab_command *symtab_out);
 
-struct mf_parse_load_commands_from_map_info {
+struct mf_parse_lc_from_map_info {
     const uint8_t *map;
     uint64_t map_size;
 
@@ -66,8 +67,8 @@ struct mf_parse_load_commands_from_map_info {
 
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(
-    struct tbd_create_info *info_in,
-    const struct mf_parse_load_commands_from_map_info *parse_info,
+    struct tbd_create_info *__notnull info_in,
+    const struct mf_parse_lc_from_map_info *__notnull parse_info,
     struct symtab_command *symtab_out);
 
 #endif /* MACHO_FILE_PARSE_LOAD_COMMANDS_H */

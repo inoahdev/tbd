@@ -15,12 +15,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "notnull.h"
 #include "parse_or_list_fields.h"
 #include "request_user_input.h"
 
 static uint64_t
-request_choice(const char *const prompt,
-               const char *const inputs[const],
+request_choice(const char *__notnull const prompt,
+               const char *__notnull const inputs[const],
                const bool indent)
 {
     do {
@@ -80,7 +81,8 @@ request_choice(const char *const prompt,
     } while (true);
 }
 
-static char *request_input(const char *const prompt, const bool indent) {
+static char *
+request_input(const char *__notnull const prompt, const bool indent) {
     if (indent) {
         fputs("\t\t", stdout);
     }
@@ -122,22 +124,20 @@ enum default_choice_index {
 };
 
 bool
-request_install_name(struct tbd_for_main *const global,
-                     struct tbd_for_main *const tbd,
-                     uint64_t *const info_in,
+request_install_name(struct tbd_for_main *__notnull const global,
+                     struct tbd_for_main *__notnull const tbd,
+                     uint64_t *__notnull const info_in,
                      const bool indent,
-                     FILE *const file,
-                     const char *const prompt,
+                     FILE *__notnull const file,
+                     const char *__notnull const prompt,
                      ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME) {
-            return false;
-        }
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
@@ -182,23 +182,21 @@ request_install_name(struct tbd_for_main *const global,
 }
 
 bool
-request_objc_constraint(struct tbd_for_main *const global,
-                        struct tbd_for_main *const tbd,
-                        uint64_t *const info_in,
+request_objc_constraint(struct tbd_for_main *__notnull const global,
+                        struct tbd_for_main *__notnull const tbd,
+                        uint64_t *__notnull const info_in,
                         const bool indent,
-                        FILE *const file,
-                        const char *const prompt,
+                        FILE *__notnull const file,
+                        const char *__notnull const prompt,
                         ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        const uint64_t info = *info_in;
-        if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT) {
-            return false;
-        }
+    const uint64_t info = *info_in;
+    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
@@ -269,23 +267,21 @@ request_objc_constraint(struct tbd_for_main *const global,
 }
 
 bool
-request_parent_umbrella(struct tbd_for_main *const global,
-                        struct tbd_for_main *const tbd,
-                        uint64_t *const info_in,
+request_parent_umbrella(struct tbd_for_main *__notnull const global,
+                        struct tbd_for_main *__notnull const tbd,
+                        uint64_t *__notnull const info_in,
                         const bool indent,
-                        FILE *const file,
-                        const char *const prompt,
+                        FILE *__notnull const file,
+                        const char *__notnull const prompt,
                         ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        const uint64_t info = *info_in;
-        if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA) {
-            return false;
-        }
+    const uint64_t info = *info_in;
+    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
@@ -333,22 +329,20 @@ request_parent_umbrella(struct tbd_for_main *const global,
 }
 
 bool
-request_platform(struct tbd_for_main *const global,
-                 struct tbd_for_main *const tbd,
-                 uint64_t *const info_in,
+request_platform(struct tbd_for_main *__notnull const global,
+                 struct tbd_for_main *__notnull const tbd,
+                 uint64_t *__notnull const info_in,
                  const bool indent,
-                 FILE *const file,
-                 const char *const prompt,
+                 FILE *__notnull const file,
+                 const char *__notnull const prompt,
                  ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM) {
-            return false;
-        }
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
@@ -414,22 +408,20 @@ request_platform(struct tbd_for_main *const global,
 }
 
 bool
-request_swift_version(struct tbd_for_main *const global,
-                      struct tbd_for_main *const tbd,
-                      uint64_t *const info_in,
+request_swift_version(struct tbd_for_main *__notnull const global,
+                      struct tbd_for_main *__notnull const tbd,
+                      uint64_t *__notnull const info_in,
                       const bool indent,
-                      FILE *const file,
-                      const char *const prompt,
+                      FILE *__notnull const file,
+                      const char *__notnull const prompt,
                       ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION) {
-            return false;
-        }
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
@@ -461,7 +453,7 @@ request_swift_version(struct tbd_for_main *const global,
     do {
         char *const input = request_input("Replacement swift-version?", indent);
         const uint32_t swift_version = parse_swift_version(input);
-        
+
         if (swift_version == 0) {
             fprintf(stderr, "A swift-version of %s is invalid\n", input);
             free(input);
@@ -484,22 +476,20 @@ request_swift_version(struct tbd_for_main *const global,
 }
 
 bool
-request_if_should_ignore_flags(struct tbd_for_main *const global,
-                               struct tbd_for_main *const tbd,
-                               uint64_t *const info_in,
+request_if_should_ignore_flags(struct tbd_for_main *__notnull const global,
+                               struct tbd_for_main *__notnull const tbd,
+                               uint64_t *__notnull const info_in,
                                const bool indent,
-                               FILE *const file,
-                               const char *const prompt,
+                               FILE *__notnull const file,
+                               const char *__notnull const prompt,
                                ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS) {
-            return false;
-        }
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
@@ -532,23 +522,22 @@ request_if_should_ignore_flags(struct tbd_for_main *const global,
 }
 
 bool
-request_if_should_ignore_non_unique_uuids(struct tbd_for_main *const global,
-                                          struct tbd_for_main *const tbd,
-                                          uint64_t *const info_in,
-                                          const bool indent,
-                                          FILE *const file,
-                                          const char *const prompt,
-                                          ...)
+request_if_should_ignore_non_unique_uuids(
+    struct tbd_for_main *__notnull const global,
+    struct tbd_for_main *__notnull const tbd,
+    uint64_t *__notnull const info_in,
+    const bool indent,
+    FILE *__notnull const file,
+    const char *__notnull const prompt,
+    ...)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
         return false;
     }
 
-    if (info_in != NULL) {
-        const uint64_t info = *info_in;
-        if (info & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS) {
-            return false;
-        }
+    const uint64_t info = *info_in;
+    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS) {
+        return false;
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS) {

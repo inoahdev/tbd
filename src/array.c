@@ -8,7 +8,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+
 #include "array.h"
+#include "likely.h"
 
 void *
 array_get_item_at_index(const struct array *const array,
@@ -18,14 +20,14 @@ array_get_item_at_index(const struct array *const array,
     const uint64_t byte_index = item_size * index;
     void *const iter = array->data + byte_index;
 
-    if (iter > array->data_end) {
+    if (unlikely(iter > array->data_end)) {
         return NULL;
     }
 
     return iter;
 }
 
-void *
+void *__notnull
 array_get_item_at_index_unsafe(const struct array *const array,
                                const size_t item_size,
                                const uint64_t index)
@@ -54,13 +56,13 @@ bool array_is_empty(const struct array *const array) {
 }
 
 static enum array_result
-array_grow_to_capacity(struct array *const array,
+array_grow_to_capacity(struct array *__notnull const array,
                        const uint64_t used_size,
                        const uint64_t current_capacity,
                        const uint64_t wanted_capacity)
 {
     uint64_t new_capacity = current_capacity;
-    if (new_capacity != 0) {
+    if (likely(new_capacity != 0)) {
         do {
             new_capacity *= 2;
         } while (new_capacity < wanted_capacity);
@@ -69,7 +71,7 @@ array_grow_to_capacity(struct array *const array,
     }
 
     void *const new_data = malloc(new_capacity);
-    if (new_data == NULL) {
+    if (unlikely(new_data == NULL)) {
         return E_ARRAY_ALLOC_FAIL;
     }
 
@@ -86,7 +88,7 @@ array_grow_to_capacity(struct array *const array,
 }
 
 static enum array_result
-array_expand_if_necessary(struct array *const array,
+array_expand_if_necessary(struct array *__notnull const array,
                           const uint64_t add_byte_size)
 {
     void *const old_data = array->data;
@@ -102,7 +104,7 @@ array_expand_if_necessary(struct array *const array,
     const enum array_result array_grow_result =
         array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
 
-    if (array_grow_result != E_ARRAY_OK) {
+    if (unlikely(array_grow_result != E_ARRAY_OK)) {
         return array_grow_result;
     }
 
@@ -110,7 +112,7 @@ array_expand_if_necessary(struct array *const array,
 }
 
 enum array_result
-array_ensure_item_capacity(struct array *const array,
+array_ensure_item_capacity(struct array *__notnull const array,
                            const size_t item_size,
                            const uint64_t item_count)
 {
@@ -125,7 +127,7 @@ array_ensure_item_capacity(struct array *const array,
     const enum array_result array_grow_result =
         array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
 
-    if (array_grow_result != E_ARRAY_OK) {
+    if (unlikely(array_grow_result != E_ARRAY_OK)) {
         return array_grow_result;
     }
 
@@ -133,16 +135,16 @@ array_ensure_item_capacity(struct array *const array,
 }
 
 enum array_result
-array_add_item_to_byte_index(struct array *const array,
+array_add_item_to_byte_index(struct array *__notnull const array,
                              const size_t item_size,
-                             const void *const item,
+                             const void *__notnull const item,
                              const uint64_t byte_index,
                              void **const item_out)
 {
     const enum array_result expand_result =
         array_expand_if_necessary(array, item_size);
 
-    if (expand_result != E_ARRAY_OK) {
+    if (unlikely(expand_result != E_ARRAY_OK)) {
         return expand_result;
     }
 
@@ -168,21 +170,21 @@ array_add_item_to_byte_index(struct array *const array,
     return E_ARRAY_OK;
 }
 
-uint64_t array_get_used_size(const struct array *const array) {
+uint64_t array_get_used_size(const struct array *__notnull const array) {
     const uint64_t used_size = (uint64_t)(array->data_end - array->data);
     return used_size;
 }
 
 enum array_result
-array_add_item(struct array *const array,
+array_add_item(struct array *__notnull const array,
                const size_t item_size,
-               const void *const item,
+               const void *__notnull const item,
                void **const item_out)
 {
     const enum array_result expand_result =
         array_expand_if_necessary(array, item_size);
 
-    if (expand_result != E_ARRAY_OK) {
+    if (unlikely(expand_result != E_ARRAY_OK)) {
         return expand_result;
     }
 
@@ -200,14 +202,14 @@ array_add_item(struct array *const array,
 }
 
 enum array_result
-array_add_items_from_array(struct array *const array,
-                           const struct array *const src)
+array_add_items_from_array(struct array *__notnull const array,
+                           const struct array *__notnull const src)
 {
     const uint64_t src_used_size = array_get_used_size(src);
     const enum array_result expand_result =
         array_expand_if_necessary(array, src_used_size);
 
-    if (expand_result != E_ARRAY_OK) {
+    if (unlikely(expand_result != E_ARRAY_OK)) {
         return expand_result;
     }
 
@@ -221,10 +223,11 @@ array_add_items_from_array(struct array *const array,
 }
 
 enum array_result
-array_add_and_unique_items_from_array(struct array *const array,
-                                      const size_t item_size,
-                                      const struct array *const src,
-                                      const array_item_comparator comparator)
+array_add_and_unique_items_from_array(
+    struct array *__notnull const array,
+    const size_t item_size,
+    const struct array *__notnull const src,
+    __notnull const array_item_comparator comparator)
 {
     const uint64_t array_used_size = array_get_used_size(array);
     if (array_used_size == 0) {
@@ -254,10 +257,10 @@ array_add_and_unique_items_from_array(struct array *const array,
 }
 
 void *
-array_find_item(const struct array *const array,
+array_find_item(const struct array *__notnull const array,
                 const size_t item_size,
-                const void *const item,
-                const array_item_comparator comparator,
+                const void *__notnull const item,
+                __notnull const array_item_comparator comparator,
                 uint64_t *const index_out)
 {
     uint64_t index = 0;
@@ -292,14 +295,14 @@ array_slice_get_middle_index(const struct array_slice slice) {
 }
 
 static void
-array_slice_set_to_lower_half(struct array_slice *const slice,
+array_slice_set_to_lower_half(struct array_slice *__notnull const slice,
                               const uint64_t middle)
 {
     slice->back = middle - 1;
 }
 
 static void
-array_slice_set_to_upper_half(struct array_slice *const slice,
+array_slice_set_to_upper_half(struct array_slice *__notnull const slice,
                               const uint64_t middle)
 {
     slice->front = middle + 1;
@@ -340,11 +343,11 @@ static inline bool array_item_is_greater(const int compare_ret) {
 
 static void *
 array_slice_get_sorted_array_item_for_item(
-    const struct array *const array,
+    const struct array *__notnull const array,
     const size_t item_size,
     struct array_slice slice,
-    const void *const item,
-    const array_item_comparator comparator,
+    const void *__notnull const item,
+    __notnull const array_item_comparator comparator,
     struct array_cached_index_info *const info_out)
 {
     void *const data = array->data;
@@ -397,10 +400,10 @@ array_slice_get_sorted_array_item_for_item(
 }
 
 void *
-array_find_item_in_sorted(const struct array *const array,
+array_find_item_in_sorted(const struct array *__notnull const array,
                           const size_t item_size,
-                          const void *const item,
-                          const array_item_comparator comparator,
+                          const void *__notnull const item,
+                          __notnull const array_item_comparator comparator,
                           struct array_cached_index_info *const info_out)
 {
     const uint64_t item_count = array->item_count;
@@ -431,11 +434,11 @@ array_find_item_in_sorted(const struct array *const array,
 
 void *
 array_find_item_in_sorted_with_slice(
-    const struct array *const array,
+    const struct array *__notnull const array,
     const size_t item_size,
     const struct array_slice slice,
-    const void *const item,
-    const array_item_comparator comparator,
+    const void *__notnull const item,
+    __notnull const array_item_comparator comparator,
     struct array_cached_index_info *const info_out)
 {
     void *const array_item =
@@ -450,16 +453,16 @@ array_find_item_in_sorted_with_slice(
 }
 
 static enum array_result
-array_add_item_to_index(struct array *const array,
+array_add_item_to_index(struct array *__notnull const array,
                         const size_t item_size,
-                        const void *const item,
+                        const void *__notnull const item,
                         const uint64_t index,
                         void **const item_out)
 {
     const enum array_result expand_result =
         array_expand_if_necessary(array, item_size);
 
-    if (expand_result != E_ARRAY_OK) {
+    if (unlikely(expand_result != E_ARRAY_OK)) {
         return expand_result;
     }
 
@@ -496,10 +499,10 @@ array_add_item_to_index(struct array *const array,
 
 enum array_result
 array_add_item_with_cached_index_info(
-    struct array *const array,
+    struct array *__notnull const array,
     const size_t item_size,
-    const void *const item,
-    struct array_cached_index_info *const info,
+    const void *__notnull const item,
+    struct array_cached_index_info *__notnull const info,
     void **const item_out)
 {
     const uint64_t index = info->index;
@@ -574,11 +577,11 @@ array_add_item_with_cached_index_info(
 }
 
 enum array_result
-array_copy(struct array *const array, struct array *const array_out) {
+array_copy(struct array *const array, struct array *__notnull const array_out) {
     const uint64_t used_size = array_get_used_size(array);
     void *const data = malloc(used_size);
 
-    if (data == NULL) {
+    if (unlikely(data == NULL)) {
         return E_ARRAY_OK;
     }
 
@@ -592,7 +595,7 @@ array_copy(struct array *const array, struct array *const array_out) {
     return E_ARRAY_OK;
 }
 
-enum array_result array_destroy(struct array *const array) {
+enum array_result array_destroy(struct array *__notnull const array) {
     /*
      * free(NULL) is allowed
      */

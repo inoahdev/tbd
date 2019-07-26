@@ -24,6 +24,7 @@
 #include "parse_dsc_for_main.h"
 
 #include "macho_file.h"
+#include "notnull.h"
 #include "path.h"
 
 #include "recursive.h"
@@ -59,15 +60,17 @@ enum dyld_cache_image_info_pad {
 };
 
 static void
-clear_create_info(struct tbd_create_info *const info_in,
-                  const struct tbd_create_info *const orig)
+clear_create_info(struct tbd_create_info *__notnull const info_in,
+                  const struct tbd_create_info *__notnull const orig)
 {
     tbd_create_info_destroy(info_in);
     *info_in = *orig;
 }
 
 static void
-print_messages_header(struct dsc_iterate_images_info *const iterate_info) {
+print_messages_header(
+    struct dsc_iterate_images_info *__notnull const iterate_info)
+{
     if (iterate_info->did_print_messages_header) {
         return;
     }
@@ -88,8 +91,8 @@ print_messages_header(struct dsc_iterate_images_info *const iterate_info) {
 }
 
 static void
-print_image_error(struct dsc_iterate_images_info *const iterate_info,
-                  const char *const image_path,
+print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
+                  const char *__notnull const image_path,
                   const enum dsc_image_parse_result result)
 {
     /*
@@ -114,8 +117,8 @@ print_image_error(struct dsc_iterate_images_info *const iterate_info,
 }
 
 static void
-print_write_to_path_result(struct tbd_for_main *const tbd,
-                           const char *const image_path,
+print_write_to_path_result(struct tbd_for_main *__notnull const tbd,
+                           const char *__notnull const image_path,
                            const enum tbd_for_main_write_to_path_result result)
 {
     switch (result) {
@@ -146,9 +149,9 @@ print_write_to_path_result(struct tbd_for_main *const tbd,
 }
 
 static void
-print_write_error(struct dsc_iterate_images_info *const iterate_info,
-                  struct tbd_for_main *const tbd,
-                  const char *const image_path,
+print_write_error(struct dsc_iterate_images_info *__notnull const iterate_info,
+                  struct tbd_for_main *__notnull const tbd,
+                  const char *__notnull const image_path,
                   const enum tbd_for_main_write_to_path_result result)
 {
     print_messages_header(iterate_info);
@@ -156,9 +159,9 @@ print_write_error(struct dsc_iterate_images_info *const iterate_info,
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter_dir(struct tbd_for_main *const tbd,
-                                         const char *const filter_dir,
-                                         const char *const image_path,
+write_out_tbd_info_for_single_filter_dir(struct tbd_for_main *__notnull const tbd,
+                                         const char *__notnull const filter_dir,
+                                         const char *__notnull const image_path,
                                          const uint64_t image_path_length)
 {
     const uint64_t delta = (const uint64_t)(filter_dir - image_path);
@@ -188,9 +191,10 @@ write_out_tbd_info_for_single_filter_dir(struct tbd_for_main *const tbd,
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter_filename(struct tbd_for_main *const tbd,
-                                              const char *const filter_filename,
-                                              const uint64_t filter_length)
+write_out_tbd_info_for_single_filter_filename(
+    struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const filter_filename,
+    const uint64_t filter_length)
 {
     uint64_t length = 0;
     char *const write_path =
@@ -217,9 +221,9 @@ write_out_tbd_info_for_single_filter_filename(struct tbd_for_main *const tbd,
 
 static enum tbd_for_main_write_to_path_result
 write_out_tbd_info_for_single_filter(
-    const struct tbd_for_main_dsc_image_filter *const filter,
-    struct tbd_for_main *const tbd,
-    const char *const image_path,
+    const struct tbd_for_main_dsc_image_filter *__notnull const filter,
+    struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const image_path,
     const uint64_t image_path_length)
 {
     enum tbd_for_main_write_to_path_result result =
@@ -249,8 +253,8 @@ write_out_tbd_info_for_single_filter(
 
 static void
 write_out_tbd_info_for_filters(struct dsc_iterate_images_info *const info,
-                               struct tbd_for_main *const tbd,
-                               const char *const image_path,
+                               struct tbd_for_main *__notnull const tbd,
+                               const char *__notnull const image_path,
                                const uint64_t length)
 {
     const struct array *const filters = &tbd->dsc_image_filters;
@@ -278,16 +282,14 @@ write_out_tbd_info_for_filters(struct dsc_iterate_images_info *const info,
         if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
             print_write_error(info, tbd, image_path, write_result);
         }
-
-        break;
     }
 }
 
 static enum tbd_for_main_write_to_path_result
 write_out_tbd_info_for_image_path(
     const struct dsc_iterate_images_info *const iterate_info,
-    const struct tbd_for_main *const tbd,
-    const char *const image_path,
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const image_path,
     const uint64_t image_path_length)
 {
     uint64_t length = 0;
@@ -315,10 +317,11 @@ write_out_tbd_info_for_image_path(
 }
 
 static void
-write_out_tbd_info_for_paths(struct dsc_iterate_images_info *const info,
-                             struct tbd_for_main *const tbd,
-                             const char *const image_path,
-                             const uint64_t length)
+write_out_tbd_info_for_paths(
+    struct dsc_iterate_images_info *__notnull const info,
+    struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const image_path,
+    const uint64_t length)
 {
     const struct array *const paths = &tbd->dsc_image_paths;
 
@@ -342,12 +345,10 @@ write_out_tbd_info_for_paths(struct dsc_iterate_images_info *const info,
         if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
             print_write_error(info, tbd, image_path, write_result);
         }
-
-        break;
     }
 }
 
-static void mark_found_for_all_paths(struct array *const paths) {
+static void mark_found_for_all_paths(struct array *__notnull const paths) {
     struct tbd_for_main_dsc_image_path *path = paths->data;
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
 
@@ -357,9 +358,9 @@ static void mark_found_for_all_paths(struct array *const paths) {
 }
 
 static void
-write_out_tbd_info(struct dsc_iterate_images_info *const info,
-                   struct tbd_for_main *const tbd,
-                   const char *const path,
+write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
+                   struct tbd_for_main *__notnull const tbd,
+                   const char *__notnull const path,
                    const uint64_t path_length)
 {
     char *const write_path = info->write_path;
@@ -395,10 +396,11 @@ write_out_tbd_info(struct dsc_iterate_images_info *const info,
 }
 
 static int
-actually_parse_image(uint64_t *const image_path_length_in,
-                     struct dyld_cache_image_info *const image,
-                     const char *const image_path,
-                     struct dsc_iterate_images_info *const iterate_info)
+actually_parse_image(
+    uint64_t *__notnull const image_path_length_in,
+    struct dyld_cache_image_info *__notnull const image,
+    const char *const image_path,
+    struct dsc_iterate_images_info *__notnull const iterate_info)
 {
     struct tbd_for_main *const tbd = iterate_info->tbd;
     struct tbd_create_info *const create_info = &tbd->info;
@@ -444,9 +446,10 @@ actually_parse_image(uint64_t *const image_path_length_in,
 }
 
 static bool
-path_passes_through_filter(uint64_t *const path_length_in,
-                           const char *const path,
-                           struct tbd_for_main_dsc_image_filter *const filter)
+path_passes_through_filter(
+    uint64_t *__notnull const path_length_in,
+    const char *__notnull const path,
+    struct tbd_for_main_dsc_image_filter *__notnull const filter)
 {
     const char *const string = filter->string;
     const uint64_t length = filter->length;
@@ -480,10 +483,10 @@ path_passes_through_filter(uint64_t *const path_length_in,
 }
 
 static bool
-should_parse_image(uint64_t *const path_length_in,
-                   const struct array *const filters,
-                   const struct array *const paths,
-                   const char *const path)
+should_parse_image(uint64_t *__notnull const path_length_in,
+                   const struct array *__notnull const filters,
+                   const struct array *__notnull const paths,
+                   const char *__notnull const path)
 {
     bool should_parse = false;
     if (!array_is_empty(paths)) {
@@ -541,8 +544,8 @@ should_parse_image(uint64_t *const path_length_in,
 }
 
 static void
-unmark_currently_parsing_conds(const struct array *const filters,
-                               const struct array *const paths)
+unmark_currently_parsing_conds(const struct array *__notnull const filters,
+                               const struct array *__notnull const paths)
 {
     struct tbd_for_main_dsc_image_path *image_path = paths->data;
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
@@ -553,7 +556,6 @@ unmark_currently_parsing_conds(const struct array *const filters,
         }
 
         image_path->flags &= ~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
-        break;
     }
 
     struct tbd_for_main_dsc_image_filter *filter = filters->data;
@@ -566,11 +568,11 @@ unmark_currently_parsing_conds(const struct array *const filters,
         }
 
         filter->flags &= ~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
-        break;
     }
 }
 
-static bool found_at_least_one_image(const struct array *const filters) {
+static bool
+found_at_least_one_image(const struct array *__notnull const filters) {
     const struct tbd_for_main_dsc_image_filter *filter = filters->data;
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
@@ -585,7 +587,7 @@ static bool found_at_least_one_image(const struct array *const filters) {
     return true;
 }
 
-static bool found_all_paths(const struct array *const paths) {
+static bool found_all_paths(const struct array *__notnull const paths) {
     const struct tbd_for_main_dsc_image_path *path = paths->data;
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
 
@@ -609,7 +611,7 @@ static bool found_all_paths(const struct array *const paths) {
  * the filters once for the error-code, then again here to print out.
  */
 
-static void print_missing_filters(const struct array *const filters) {
+static void print_missing_filters(const struct array *__notnull const filters) {
     const struct tbd_for_main_dsc_image_filter *filter = filters->data;
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
@@ -648,7 +650,7 @@ static void print_missing_filters(const struct array *const filters) {
  * the paths once for the error-code, then again here to print out.
  */
 
-static void print_missing_paths(const struct array *const paths) {
+static void print_missing_paths(const struct array *__notnull const paths) {
     const struct tbd_for_main_dsc_image_path *path = paths->data;
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
 
@@ -667,9 +669,9 @@ static void print_missing_paths(const struct array *const paths) {
  */
 
 static void
-print_dsc_warnings(struct dsc_iterate_images_info *const iterate_info,
-                   const struct array *const filters,
-                   const struct array *const paths)
+print_dsc_warnings(struct dsc_iterate_images_info *__notnull const iterate_info,
+                   const struct array *__notnull const filters,
+                   const struct array *__notnull const paths)
 {
     if (found_at_least_one_image(filters)) {
         if (found_all_paths(paths)) {
@@ -683,8 +685,9 @@ print_dsc_warnings(struct dsc_iterate_images_info *const iterate_info,
 }
 
 static void
-dsc_iterate_images(const struct dyld_shared_cache_info *const dsc_info,
-                   struct dsc_iterate_images_info *const info)
+dsc_iterate_images(
+    const struct dyld_shared_cache_info *__notnull const dsc_info,
+    struct dsc_iterate_images_info *__notnull const info)
 {
     const struct tbd_for_main *const tbd = info->tbd;
 
@@ -746,7 +749,9 @@ enum read_magic_result {
 };
 
 static enum read_magic_result
-read_magic(void *const magic_in, uint64_t *const magic_in_size_in, const int fd)
+read_magic(void *__notnull const magic_in,
+           uint64_t *__notnull const magic_in_size_in,
+           const int fd)
 {
     const uint64_t magic_in_size = *magic_in_size_in;
     if (magic_in_size >= 16) {
@@ -766,7 +771,7 @@ read_magic(void *const magic_in, uint64_t *const magic_in_size_in, const int fd)
     return E_READ_MAGIC_OK;
 }
 
-static void verify_write_path(struct tbd_for_main *const tbd) {
+static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
         /*

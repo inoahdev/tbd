@@ -10,20 +10,28 @@
 #define PARSE_OR_LIST_FIELDS_H
 
 #include <stdint.h>
+
+#include "notnull.h"
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(int *index_in,
+parse_architectures_list(int *__notnull index_in,
                          int argc,
-                         const char *const *argv,
+                         const char *const *__notnull argv,
                          uint64_t *count_out);
 
-uint32_t parse_flags_list(int *index_in, int argc, const char *const *argv);
-uint32_t parse_swift_version(const char *const arg);
+uint32_t
+parse_flags_list(int *__notnull index_in,
+                 int argc,
+                 const char *const *__notnull argv);
 
-enum tbd_objc_constraint parse_objc_constraint(const char *const constraint);
-enum tbd_platform parse_platform(const char *const platform);
-enum tbd_version parse_tbd_version(const char *const version);
+uint32_t parse_swift_version(const char *__notnull const arg);
+
+enum tbd_objc_constraint
+parse_objc_constraint(const char *__notnull constraint);
+
+enum tbd_platform parse_platform(const char *__notnull platform);
+enum tbd_version parse_tbd_version(const char *__notnull version);
 
 void print_arch_info_list(void);
 void print_objc_constraint_list(void);

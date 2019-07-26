@@ -17,7 +17,7 @@ bool range_contains_end(const struct range range, const uint64_t end) {
     return (end > range.begin && end <= range.end);
 }
 
-bool range_contains_range(const struct range left, const struct range right) {
+bool range_contains_other(const struct range left, const struct range right) {
     if (!range_contains_location(left, right.begin)) {
         return false;
     }

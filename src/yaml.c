@@ -40,7 +40,8 @@ static inline bool char_needs_quotes(const char ch) {
     }
 }
 
-bool yaml_check_c_str(const char *const string, const uint64_t length) {
+bool
+yaml_check_c_str(const char *__notnull const string, const uint64_t length) {
     const char *iter = string;
     const char *const end = string + length;
 

@@ -10,6 +10,8 @@
 #define TBD_FOR_MAIN_H
 
 #include <stdint.h>
+
+#include "notnull.h"
 #include "tbd.h"
 
 enum tbd_for_main_dsc_image_flags {
@@ -79,8 +81,8 @@ struct tbd_for_main {
     char *write_path;
 
     /*
-     * Store the paths' length here to avoid multiple strlen() calls on
-     * the paths in main's dir_recurse callback.
+     * Store the paths' length here to avoid multiple strlen() calls on the
+     * paths in main's dir_recurse callback.
      */
 
     uint64_t parse_path_length;
@@ -116,57 +118,59 @@ struct tbd_for_main {
 };
 
 bool
-tbd_for_main_has_filetype(const struct tbd_for_main *tbd,
+tbd_for_main_has_filetype(const struct tbd_for_main *__notnull tbd,
                           enum tbd_for_main_filetype filetype);
 
 bool
-tbd_for_main_parse_option(struct tbd_for_main *tbd,
+tbd_for_main_parse_option(int *__notnull const index_in,
+                          struct tbd_for_main *__notnull tbd,
                           int argc,
-                          const char *const *argv,
-                          const char *option,
-                          int *index);
+                          const char *__notnull const *__notnull argv,
+                          const char *__notnull option);
 
 char *
-tbd_for_main_create_write_path(const struct tbd_for_main *tbd,
-                               const char *file_name,
+tbd_for_main_create_write_path(const struct tbd_for_main *__notnull tbd,
+                               const char *__notnull file_name,
                                uint64_t file_name_length,
-                               const char *extension,
+                               const char *__notnull extension,
                                uint64_t extension_length,
                                uint64_t *length_out);
 
 char *
-tbd_for_main_create_write_path_for_recursing(const struct tbd_for_main *tbd,
-                                             const char *folder_path,
-                                             uint64_t folder_path_length,
-                                             const char *file_name,
-                                             uint64_t file_name_length,
-                                             const char *extension,
-                                             uint64_t extension_length,
-                                             uint64_t *length_out);
+tbd_for_main_create_write_path_for_recursing(
+    const struct tbd_for_main *__notnull tbd,
+    const char *__notnull folder_path,
+    uint64_t folder_path_length,
+    const char *__notnull file_name,
+    uint64_t file_name_length,
+    const char *__notnull extension,
+    uint64_t extension_length,
+    uint64_t *length_out);
 
 char *
-tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *tbd,
-                                    const char *folder_path,
+tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *__notnull tbd,
+                                    const char *__notnull folder_path,
                                     uint64_t folder_path_length,
-                                    const char *file_path,
+                                    const char *__notnull file_path,
                                     uint64_t file_path_length,
-                                    const char *extension,
+                                    const char *__notnull extension,
                                     uint64_t extension_length,
                                     uint64_t *length_out);
 
 char *
-tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *tbd,
-                                         const char *write_path,
-                                         uint64_t write_path_length,
-                                         const char *image_path,
-                                         uint64_t image_path_length,
-                                         const char *extension,
-                                         uint64_t extension_length,
-                                         uint64_t *length_out);
+tbd_for_main_create_dsc_image_write_path(
+    const struct tbd_for_main *__notnull tbd,
+    const char *__notnull write_path,
+    uint64_t write_path_length,
+    const char *__notnull image_path,
+    uint64_t image_path_length,
+    const char *__notnull extension,
+    uint64_t extension_length,
+    uint64_t *length_out);
 
 void
-tbd_for_main_apply_from(struct tbd_for_main *dst,
-                        const struct tbd_for_main *src);
+tbd_for_main_apply_from(struct tbd_for_main *__notnull dst,
+                        const struct tbd_for_main *__notnull src);
 
 enum tbd_for_main_write_to_path_result {
     E_TBD_FOR_MAIN_WRITE_TO_PATH_OK,
@@ -176,22 +180,23 @@ enum tbd_for_main_write_to_path_result {
 };
 
 enum tbd_for_main_write_to_path_result
-tbd_for_main_write_to_path(const struct tbd_for_main *tbd,
-                           char *write_path,
+tbd_for_main_write_to_path(const struct tbd_for_main *__notnull tbd,
+                           char *__notnull write_path,
                            uint64_t write_path_length,
                            bool print_paths);
 
 void
-tbd_for_main_write_to_stdout(const struct tbd_for_main *tbd,
-                             const char *input_path,
+tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull tbd,
+                             const char *__notnull input_path,
                              bool print_paths);
 
 void
-tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *tbd,
-                                           const char *dsc_path,
-                                           const char *image_path,
-                                           bool print_paths);
+tbd_for_main_write_to_stdout_for_dsc_image(
+    const struct tbd_for_main *__notnull tbd,
+    const char *__notnull dsc_path,
+    const char *__notnull image_path,
+    bool print_paths);
 
-void tbd_for_main_destroy(struct tbd_for_main *tbd);
+void tbd_for_main_destroy(struct tbd_for_main *__notnull tbd);
 
 #endif /* TBD_FOR_MAIN_H */

@@ -23,10 +23,10 @@
 #include "tbd_for_main.h"
 
 static void
-add_image_filter(int *const index_in,
-                 struct tbd_for_main *const tbd,
+add_image_filter(int *__notnull const index_in,
+                 struct tbd_for_main *__notnull const tbd,
                  const int argc,
-                 const char *const *const argv,
+                 const char *const *__notnull const argv,
                  const bool is_directory)
 {
     const int index = *index_in;
@@ -64,10 +64,10 @@ add_image_filter(int *const index_in,
 }
 
 static void
-add_image_number(int *const index_in,
-                 struct tbd_for_main *const tbd,
+add_image_number(int *__notnull const index_in,
+                 struct tbd_for_main *__notnull const tbd,
                  const int argc,
-                 const char *const *const argv)
+                 const char *const *__notnull const argv)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -121,10 +121,10 @@ add_image_number(int *const index_in,
 }
 
 static void
-add_image_path(struct tbd_for_main *const tbd,
+add_image_path(int *__notnull const index_in,
+               struct tbd_for_main *__notnull const tbd,
                const int argc,
-               const char *const *const argv,
-               int *const index_in)
+               const char *const *__notnull const argv)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -156,11 +156,11 @@ add_image_path(struct tbd_for_main *const tbd,
 }
 
 bool
-tbd_for_main_parse_option(struct tbd_for_main *const tbd,
+tbd_for_main_parse_option(int *const __notnull index_in,
+                          struct tbd_for_main *const tbd,
                           const int argc,
                           const char *const *const argv,
-                          const char *const option,
-                          int *const index_in)
+                          const char *const option)
 {
     int index = *index_in;
     if (strcmp(option, "add-archs") == 0) {
@@ -252,7 +252,7 @@ tbd_for_main_parse_option(struct tbd_for_main *const tbd,
     } else if (strcmp(option, "filter-image-number") == 0) {
         add_image_number(&index, tbd, argc, argv);
     } else if (strcmp(option, "image-path") == 0) {
-        add_image_path(tbd, argc, argv, &index);
+        add_image_path(&index, tbd, argc, argv);
     } else if (strcmp(option, "dsc") == 0) {
         tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
         tbd->filetypes_count++;
@@ -482,12 +482,12 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
 
 char *
 tbd_for_main_create_write_path_for_recursing(
-    const struct tbd_for_main *const tbd,
-    const char *const folder_path,
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const folder_path,
     const uint64_t folder_path_length,
-    const char *const file_name,
+    const char *__notnull const file_name,
     const uint64_t file_name_length,
-    const char *const extension,
+    const char *__notnull const extension,
     const uint64_t extension_length,
     uint64_t *const length_out)
 {
@@ -553,14 +553,15 @@ tbd_for_main_create_write_path_for_recursing(
 }
 
 char *
-tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *const tbd,
-                                         const char *const write_path,
-                                         const uint64_t write_path_length,
-                                         const char *const image_path,
-                                         const uint64_t image_path_length,
-                                         const char *const extension,
-                                         const uint64_t extension_length,
-                                         uint64_t *const length_out)
+tbd_for_main_create_dsc_image_write_path(
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const write_path,
+    const uint64_t write_path_length,
+    const char *__notnull const image_path,
+    const uint64_t image_path_length,
+    const char *__notnull const extension,
+    const uint64_t extension_length,
+    uint64_t *const length_out)
 {
     uint64_t new_image_path_length = image_path_length;
     if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
@@ -581,7 +582,7 @@ tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *const tbd,
                                                      extension_length,
                                                      length_out);
 
-    if (write_path == NULL) {
+    if (image_write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
         exit(1);
     }
@@ -590,14 +591,15 @@ tbd_for_main_create_dsc_image_write_path(const struct tbd_for_main *const tbd,
 }
 
 char *
-tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *const tbd,
-                                    const char *const folder_path,
-                                    const uint64_t folder_path_length,
-                                    const char *const file_name,
-                                    const uint64_t file_name_length,
-                                    const char *const extension,
-                                    const uint64_t extension_length,
-                                    uint64_t *const length_out)
+tbd_for_main_create_dsc_folder_path(
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const folder_path,
+    const uint64_t folder_path_length,
+    const char *__notnull const file_name,
+    const uint64_t file_name_length,
+    const char *__notnull const extension,
+    const uint64_t extension_length,
+    uint64_t *const length_out)
 {
     char *write_path = NULL;
     if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
@@ -651,7 +653,7 @@ tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *const tbd,
 }
 
 enum tbd_for_main_write_to_path_result
-tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
+tbd_for_main_write_to_path(const struct tbd_for_main *__notnull const tbd,
                            char *const write_path,
                            const uint64_t write_path_length,
                            const bool print_paths)
@@ -682,7 +684,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * may now be populated with other files.
              */
 
-            remove_partial_r(write_path, write_path_length, terminator);
+            remove_file_r(write_path, write_path_length, terminator);
         }
 
         if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
@@ -750,7 +752,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
              * may now be populated with other files.
              */
 
-            remove_partial_r(write_path, write_path_length, terminator);
+            remove_file_r(write_path, write_path_length, terminator);
         }
 
         if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
@@ -763,8 +765,8 @@ tbd_for_main_write_to_path(const struct tbd_for_main *const tbd,
 }
 
 void
-tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
-                             const char *const input_path,
+tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull const tbd,
+                             const char *__notnull const input_path,
                              const bool print_paths)
 {
     const struct tbd_create_info *const create_info = &tbd->info;
@@ -789,10 +791,11 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *const tbd,
 }
 
 void
-tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *const tbd,
-                                           const char *const dsc_path,
-                                           const char *const image_path,
-                                           const bool print_paths)
+tbd_for_main_write_to_stdout_for_dsc_image(
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const dsc_path,
+    const char *__notnull const image_path,
+    const bool print_paths)
 {
     const struct tbd_create_info *const create_info = &tbd->info;
     const enum tbd_create_result create_tbd_result =
@@ -821,8 +824,8 @@ tbd_for_main_write_to_stdout_for_dsc_image(const struct tbd_for_main *const tbd,
 }
 
 static int
-dsc_image_filter_comparator(const void *const array_item,
-                            const void *const item)
+dsc_image_filter_comparator(const void *__notnull const array_item,
+                            const void *__notnull const item)
 {
     const struct tbd_for_main_dsc_image_filter *const array_filter =
         (const struct tbd_for_main_dsc_image_filter *)array_item;
@@ -848,8 +851,8 @@ dsc_image_filter_comparator(const void *const array_item,
 }
 
 static int
-image_number_comparator(const void *const array_item,
-                        const void *const item)
+image_number_comparator(const void *__notnull const array_item,
+                        const void *__notnull const item)
 {
     const uint32_t array_number = *(const uint32_t *)array_item;
     const uint32_t number = *(const uint32_t *)item;
@@ -864,8 +867,8 @@ image_number_comparator(const void *const array_item,
 }
 
 static int
-dsc_image_path_comparator(const void *const array_item,
-                          const void *const item)
+dsc_image_path_comparator(const void *__notnull const array_item,
+                          const void *__notnull const item)
 {
     const struct tbd_for_main_dsc_image_path *const array_path =
         (const struct tbd_for_main_dsc_image_path *)array_item;
@@ -886,14 +889,15 @@ dsc_image_path_comparator(const void *const array_item,
 }
 
 void
-tbd_for_main_apply_from(struct tbd_for_main *const dst,
-                        const struct tbd_for_main *const src)
+tbd_for_main_apply_from(struct tbd_for_main *__notnull const dst,
+                        const struct tbd_for_main *__notnull const src)
 {
     if (dst->archs_re == 0) {
         dst->archs_re = src->archs_re;
     }
 
-    if (dst->info.archs == 0) {
+    if (dst->info.archs_count == 0) {
+        dst->info.archs_count = src->info.archs_count;
         dst->info.archs = src->info.archs;
     }
 
@@ -939,56 +943,50 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
 
     if (tbd_for_main_has_filetype(dst, TBD_FOR_MAIN_FILETYPE_DSC)) {
         const struct array *const src_filters = &src->dsc_image_filters;
-        if (!array_is_empty(src_filters)) {
-            const enum array_result add_filters_result =
-                array_add_and_unique_items_from_array(
-                    &dst->dsc_image_filters,
-                    sizeof(struct tbd_for_main_dsc_image_filter),
-                    src_filters,
-                    dsc_image_filter_comparator);
+        const enum array_result add_filters_result =
+            array_add_and_unique_items_from_array(
+                &dst->dsc_image_filters,
+                sizeof(struct tbd_for_main_dsc_image_filter),
+                src_filters,
+                dsc_image_filter_comparator);
 
-            if (add_filters_result != E_ARRAY_OK) {
-                fputs("Experienced an array failure when trying to add dsc "
-                      "image-filters\n",
-                      stderr);
+        if (add_filters_result != E_ARRAY_OK) {
+            fputs("Experienced an array failure when trying to add dsc "
+                  "image-filters\n",
+                  stderr);
 
-                exit(1);
-            }
+            exit(1);
         }
 
         const struct array *const src_numbers = &src->dsc_image_numbers;
-        if (!array_is_empty(src_numbers)) {
-            const enum array_result add_numbers_result =
-                array_add_and_unique_items_from_array(&dst->dsc_image_numbers,
-                                                      sizeof(uint32_t),
-                                                      src_numbers,
-                                                      image_number_comparator);
+        const enum array_result add_numbers_result =
+            array_add_and_unique_items_from_array(&dst->dsc_image_numbers,
+                                                  sizeof(uint32_t),
+                                                  src_numbers,
+                                                  image_number_comparator);
 
-            if (add_numbers_result != E_ARRAY_OK) {
-                fputs("Experienced an array failure when trying to add dsc "
-                      "image-numbers\n",
-                      stderr);
+        if (add_numbers_result != E_ARRAY_OK) {
+            fputs("Experienced an array failure when trying to add dsc "
+                  "image-numbers\n",
+                  stderr);
 
-                exit(1);
-            }
+            exit(1);
         }
 
         const struct array *const src_paths = &src->dsc_image_paths;
-        if (!array_is_empty(src_paths)) {
-            const enum array_result add_paths_result =
-                array_add_and_unique_items_from_array(
-                    &dst->dsc_image_paths,
-                    sizeof(struct tbd_for_main_dsc_image_path),
-                    src_paths,
-                    dsc_image_path_comparator);
+        const enum array_result add_paths_result =
+            array_add_and_unique_items_from_array(
+                &dst->dsc_image_paths,
+                sizeof(struct tbd_for_main_dsc_image_path),
+                src_paths,
+                dsc_image_path_comparator);
 
-            if (add_paths_result != E_ARRAY_OK) {
-                fputs("Experienced an array failure when trying to add dsc "
-                      "image-paths\n",
-                      stderr);
+        if (add_paths_result != E_ARRAY_OK) {
+            fputs("Experienced an array failure when trying to add dsc "
+                  "image-paths\n",
+                  stderr);
 
-                exit(1);
-            }
+            exit(1);
         }
     }
 
@@ -1003,7 +1001,7 @@ tbd_for_main_apply_from(struct tbd_for_main *const dst,
     dst->info.flags |= src->info.flags;
 }
 
-void tbd_for_main_destroy(struct tbd_for_main *const tbd) {
+void tbd_for_main_destroy(struct tbd_for_main *__notnull const tbd) {
     tbd_create_info_destroy(&tbd->info);
 
     array_destroy(&tbd->dsc_image_filters);

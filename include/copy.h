@@ -10,8 +10,9 @@
 #define COPY_H
 
 #include <stdint.h>
+#include "notnull.h"
 
-char *alloc_and_copy(const char *string, uint64_t length);
+char *alloc_and_copy(const char *__notnull string, uint64_t length);
 
 #endif /* COPY_H */
 

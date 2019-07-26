@@ -10,9 +10,11 @@
 #define DYLD_SHARED_CACHE_H
 
 #include <stdbool.h>
-#include "mach/machine.h"
 
+#include "mach/machine.h"
 #include "dyld_shared_cache_format.h"
+
+#include "notnull.h"
 #include "range.h"
 
 enum dyld_shared_cache_parse_options {
@@ -65,23 +67,26 @@ struct dyld_shared_cache_info {
 };
 
 enum dyld_shared_cache_parse_result
-dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *info_in,
-                                  int fd,
-                                  const char magic[16],
-                                  uint64_t options);
+dyld_shared_cache_parse_from_file(
+    struct dyld_shared_cache_info *__notnull info_in,
+    int fd,
+    const char magic[16],
+    uint64_t options);
 
 enum dyld_shared_cache_parse_result
-dyld_shared_cache_parse_from_range(struct dyld_shared_cache_info *info_in,
-                                   int fd,
-                                   uint64_t start,
-                                   uint64_t end,
-                                   uint64_t options);
+dyld_shared_cache_parse_from_range(
+    struct dyld_shared_cache_info *__notnull info_in,
+    int fd,
+    uint64_t start,
+    uint64_t end,
+    uint64_t options);
 
 void
 dyld_shared_cache_print_list_of_images(int fd,
                                        uint64_t start,
                                        uint64_t end);
 
-void dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *info);
+void
+dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *__notnull info);
 
 #endif /* DYLD_SHARED_CACHE_H */

@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "notnull.h"
+
 int
 open_r(char *path,
        uint64_t path_length,
@@ -29,10 +31,13 @@ mkdir_r(char *path,
         char **first_terminator_out);
 
 /*
- * Remove only directories whose path-strings are formed when terminating
- * from and all subsequent slashes.
+ * Remove the files and all directories above it until we reach last.
+ *
+ * last is a pointer to the last-path component to be removed. Null-terminating
+ * last will give the path to the first directory created.
  */
 
-int remove_partial_r(char *path, uint64_t path_length, char *from);
+int
+remove_file_r(char *__notnull path, uint64_t path_length, char *__notnull last);
 
 #endif /* RECURSIVE_H */

@@ -33,7 +33,7 @@
 #include "deps/sort/sort.h"
 
 static enum macho_file_parse_result
-parse_thin_file(struct tbd_create_info *const info_in,
+parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const int fd,
                 const uint64_t start,
                 const uint64_t size,
@@ -56,7 +56,8 @@ parse_thin_file(struct tbd_create_info *const info_in,
          * which only differs by having an extra uint32_t field at the end.
          */
 
-        if (lseek(fd, sizeof(uint32_t), SEEK_CUR) < 0) {
+        const uint64_t offset = start + sizeof(struct mach_header_64);
+        if (lseek(fd, offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
@@ -95,7 +96,7 @@ parse_thin_file(struct tbd_create_info *const info_in,
             sizeof(struct mach_header);
 
     const uint64_t arch_index = (uint64_t)(arch - arch_info_get_list());
-    struct mf_parse_load_commands_from_file_info info = {
+    struct mf_parse_lc_from_file_info info = {
         .fd = fd,
 
         .arch = arch,
@@ -132,7 +133,7 @@ static inline bool thin_magic_is_valid(const uint32_t magic) {
 }
 
 static enum macho_file_parse_result
-handle_fat_32_file(struct tbd_create_info *const info_in,
+handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                    const int fd,
                    const bool is_big_endian,
                    const uint32_t nfat_arch,
@@ -508,7 +509,7 @@ handle_fat_32_file(struct tbd_create_info *const info_in,
 }
 
 static enum macho_file_parse_result
-handle_fat_64_file(struct tbd_create_info *const info_in,
+handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                    const int fd,
                    const bool is_big_endian,
                    const uint32_t nfat_arch,
@@ -897,7 +898,7 @@ handle_fat_64_file(struct tbd_create_info *const info_in,
 }
 
 enum macho_file_parse_result
-macho_file_parse_from_file(struct tbd_create_info *const info_in,
+macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                            const int fd,
                            const uint32_t magic,
                            const uint64_t tbd_options,

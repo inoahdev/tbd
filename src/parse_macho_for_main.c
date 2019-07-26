@@ -20,16 +20,16 @@
 #include "parse_macho_for_main.h"
 
 static void
-clear_create_info(struct tbd_create_info *const info_in,
-                  const struct tbd_create_info *const orig)
+clear_create_info(struct tbd_create_info *__notnull const info_in,
+                  const struct tbd_create_info *__notnull const orig)
 {
     tbd_create_info_destroy(info_in);
     *info_in = *orig;
 }
 
 static int
-read_magic(void *const magic_in,
-           uint64_t *const magic_in_size_in,
+read_magic(void *__notnull const magic_in,
+           uint64_t *__notnull const magic_in_size_in,
            const int fd)
 {
     const uint64_t magic_in_size = *magic_in_size_in;
@@ -47,9 +47,9 @@ read_magic(void *const magic_in,
 }
 
 static void
-handle_write_result(const struct tbd_for_main *const tbd,
-                    const char *const path,
-                    const char *const write_path,
+handle_write_result(const struct tbd_for_main *__notnull const tbd,
+                    const char *__notnull const path,
+                    const char *__notnull const write_path,
                     const enum tbd_for_main_write_to_path_result result,
                     const bool print_paths)
 {
@@ -90,10 +90,10 @@ handle_write_result(const struct tbd_for_main *const tbd,
 
 static void
 handle_write_result_while_recursing(
-    const struct tbd_for_main *const tbd,
-    const char *const dir_path,
-    const char *const name,
-    const char *const write_path,
+    const struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const dir_path,
+    const char *__notnull const name,
+    const char *__notnull const write_path,
     const enum tbd_for_main_write_to_path_result result,
     const bool print_paths)
 {
@@ -133,7 +133,7 @@ handle_write_result_while_recursing(
     }
 }
 
-static void verify_write_path(const struct tbd_for_main *const tbd) {
+static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
         return;

@@ -178,8 +178,8 @@ handle_dsc_file_parse_result(
 
 void
 handle_dsc_file_parse_result_while_recursing(
-    const char *const dir_path,
-    const char *const name,
+    const char *__notnull const dir_path,
+    const char *__notnull const name,
     const enum dyld_shared_cache_parse_result parse_result,
     const bool print_paths)
 {
@@ -460,6 +460,7 @@ handle_dsc_image_parse_result(
 
     /*
      * We check here for fields that were left incomplete.
+     *
      * We ignore objc-constraint, swift-version, and parent-umbrella as they're
      * not mandatory fields and therefore aren't always provided.
      */
@@ -499,8 +500,8 @@ handle_dsc_image_parse_result(
 }
 
 void
-print_dsc_image_parse_error(const struct tbd_for_main *const tbd,
-                            const char *const image_path,
+print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
+                            const char *__notnull const image_path,
                             const enum dsc_image_parse_result parse_error)
 {
     switch (parse_error) {

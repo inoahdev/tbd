@@ -237,10 +237,11 @@ get_arch_info_from_magic(const char magic[16],
 }
 
 enum dyld_shared_cache_parse_result
-dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
-                                  const int fd,
-                                  const char magic[16],
-                                  const uint64_t options)
+dyld_shared_cache_parse_from_file(
+    struct dyld_shared_cache_info *__notnull const info_in,
+    const int fd,
+    const char magic[16],
+    const uint64_t options)
 {
     /*
      * For performance, check magic and verify headers before mapping file to
@@ -324,11 +325,11 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
      * versioning, more stringent validation is not performed.
      */
 
-    if (!range_contains_range(no_main_header_range, mappings_range)) {
+    if (!range_contains_other(no_main_header_range, mappings_range)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
     }
 
-    if (!range_contains_range(no_main_header_range, images_range)) {
+    if (!range_contains_other(no_main_header_range, images_range)) {
         return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
     }
 
@@ -397,7 +398,7 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
             .end = mapping_file_end
         };
 
-        if (!range_contains_range(full_cache_range, mapping_file_range)) {
+        if (!range_contains_other(full_cache_range, mapping_file_range)) {
             munmap(map, dsc_size);
             return E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS;
         }
@@ -503,7 +504,10 @@ dyld_shared_cache_parse_from_file(struct dyld_shared_cache_info *const info_in,
     return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
 
-void dyld_shared_cache_info_destroy(struct dyld_shared_cache_info *const info) {
+void
+dyld_shared_cache_info_destroy(
+    struct dyld_shared_cache_info *__notnull const info)
+{
     if (info->flags & F_DYLD_SHARED_CACHE_UNMAP_MAP) {
         munmap(info->map, info->size);
     }

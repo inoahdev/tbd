@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "notnull.h"
+
 /*
  * array is a structure to hold items of the same-size.
  *
@@ -43,46 +45,49 @@ enum array_result {
 };
 
 enum array_result
-array_ensure_item_capacity(struct array *array,
+array_ensure_item_capacity(struct array *__notnull array,
                            size_t item_size,
                            uint64_t item_count);
 
-bool array_is_empty(const struct array *array);
-uint64_t array_get_used_size(const struct array *array);
+bool array_is_empty(const struct array *__notnull array);
+uint64_t array_get_used_size(const struct array *__notnull array);
 
-void *array_get_front(const struct array *array);
-void *array_get_back(const struct array *array, size_t item_size);
+void *array_get_front(const struct array *__notnull array);
+void *array_get_back(const struct array *__notnull array, size_t item_size);
 
 void *
-array_get_item_at_index(const struct array *array,
+array_get_item_at_index(const struct array *__notnull array,
                         size_t item_size,
                         uint64_t index);
 
-void *
-array_get_item_at_index_unsafe(const struct array *array,
+__notnull void *
+array_get_item_at_index_unsafe(const struct array *__notnull array,
                                size_t item_size,
                                uint64_t index);
 
 enum array_result
-array_add_item(struct array *array,
+array_add_item(struct array *__notnull array,
                size_t item_size,
-               const void *item,
+               const void *__notnull item,
                void **item_out);
 
-typedef int (*array_item_comparator)(const void *array_item, const void *item);
+typedef int
+(*array_item_comparator)(const void *__notnull array_item,
+                         const void *__notnull item);
 
 void *
-array_find_item(const struct array *array,
+array_find_item(const struct array *__notnull array,
                 size_t item_size,
-                const void *item,
-                array_item_comparator comparator,
+                const void *__notnull item,
+                __notnull array_item_comparator comparator,
                 uint64_t *index_out);
 
 enum array_result
-array_add_and_unique_items_from_array(struct array *array,
-                                      size_t item_size,
-                                      const struct array *other,
-                                      array_item_comparator comparator);
+array_add_and_unique_items_from_array(
+    struct array *__notnull array,
+    size_t item_size,
+    const struct array *__notnull other,
+    __notnull array_item_comparator comparator);
 
 enum array_cached_index_type {
     ARRAY_CACHED_INDEX_LESS_THAN    = -1,
@@ -104,10 +109,10 @@ struct array_cached_index_info {
 };
 
 void *
-array_find_item_in_sorted(const struct array *array,
+array_find_item_in_sorted(const struct array *__notnull array,
                           size_t item_size,
-                          const void *item,
-                          array_item_comparator comparator,
+                          const void *__notnull item,
+                          __notnull array_item_comparator comparator,
                           struct array_cached_index_info *index_out);
 
 struct array_slice {
@@ -116,11 +121,11 @@ struct array_slice {
 };
 
 void *
-array_find_item_in_sorted_with_slice(const struct array *array,
+array_find_item_in_sorted_with_slice(const struct array *__notnull array,
                                      size_t item_size,
                                      struct array_slice slice,
-                                     const void *item,
-                                     array_item_comparator comparator,
+                                     const void *__notnull item,
+                                     __notnull array_item_comparator comparator,
                                      struct array_cached_index_info *info_out);
 
 enum array_result
@@ -130,7 +135,9 @@ array_add_item_with_cached_index_info(struct array *array,
                                       struct array_cached_index_info *info,
                                       void **item_out);
 
-enum array_result array_copy(struct array *array, struct array *array_out);
-enum array_result array_destroy(struct array *array);
+enum array_result
+array_copy(struct array *__notnull array, struct array *__notnull array_out);
+
+enum array_result array_destroy(struct array *__notnull array);
 
 #endif /* ARRAY_H */

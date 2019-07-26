@@ -17,7 +17,7 @@ enum objc_image_info_flags {
     F_OBJC_IMAGE_INFO_IS_FOR_SIMULATOR = 1 << 5,
 };
 
-static const uint32_t objc_image_info_swift_version_mask = 0xff00;
+static const uint32_t OBJC_IMAGE_INFO_SWIFT_VERSION_MASK = 0xff00;
 struct objc_image_info {
     uint32_t version;
     uint32_t flags;

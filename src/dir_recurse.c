@@ -18,12 +18,12 @@
 #include "path.h"
 
 enum dir_recurse_result
-dir_recurse(const char *const path,
+dir_recurse(const char *__notnull const path,
             const uint64_t path_length,
             const int file_open_flags,
             void *const callback_info,
-            const dir_recurse_callback callback,
-            const dir_recurse_fail_callback fail_callback)
+            __notnull const dir_recurse_callback callback,
+            __notnull const dir_recurse_fail_callback fail_callback)
 {
     const int dir_fd = open(path, O_RDONLY | O_DIRECTORY);
     if (dir_fd < 0) {
@@ -106,12 +106,12 @@ dir_recurse(const char *const path,
 
 static enum dir_recurse_result
 recurse_dir_fd(const int dir_fd,
-               const char *const dir_path,
+               const char *__notnull const dir_path,
                const uint64_t dir_path_length,
                const int file_open_flags,
                void *const callback_info,
-               const dir_recurse_callback callback,
-               const dir_recurse_fail_callback fail_callback)
+               __notnull const dir_recurse_callback callback,
+               __notnull const dir_recurse_fail_callback fail_callback)
 {
     DIR *const dir = fdopendir(dir_fd);
     if (dir == NULL) {
@@ -253,12 +253,13 @@ recurse_dir_fd(const int dir_fd,
 }
 
 enum dir_recurse_result
-dir_recurse_with_subdirs(const char *const dir_path,
-                         const uint64_t dir_path_length,
-                         const int file_open_flags,
-                         void *const callback_info,
-                         const dir_recurse_callback callback,
-                         const dir_recurse_fail_callback fail_callback)
+dir_recurse_with_subdirs(
+    const char *__notnull const dir_path,
+    const uint64_t dir_path_length,
+    const int file_open_flags,
+    void *const callback_info,
+    __notnull const dir_recurse_callback callback,
+    __notnull const dir_recurse_fail_callback fail_callback)
 {
     const int dir_fd = open(dir_path, O_RDONLY | O_DIRECTORY);
     if (dir_fd < 0) {

@@ -14,6 +14,8 @@
 #include "arch_info.h"
 #include "array.h"
 
+#include "notnull.h"
+
 /*
  * Options to handle when parsing out information for tbd_create_info.
  */
@@ -114,29 +116,38 @@ struct tbd_export_info {
     uint64_t archs;
     uint64_t archs_count;
 
-    enum tbd_export_type type;
     char *string;
+    enum tbd_export_type type;
 
     uint32_t length;
     uint64_t flags;
 };
 
 int
-tbd_export_info_compare(const struct tbd_export_info *const array_item,
-                        const struct tbd_export_info *const item);
+tbd_export_info_compare(
+    const struct tbd_export_info *__notnull const array_item,
+    const struct tbd_export_info *__notnull const item);
 
-int tbd_export_info_comparator(const void *array_item, const void *item);
-int tbd_export_info_no_archs_comparator(const void *array_item,
-                                        const void *item);
+int
+tbd_export_info_comparator(const void *__notnull array_item,
+                           const void *__notnull item);
+
+int
+tbd_export_info_no_archs_comparator(const void *__notnull array_item,
+                                    const void *__notnull item);
 
 struct tbd_uuid_info {
     const struct arch_info *arch;
     uint8_t uuid[16];
 };
 
-int tbd_uuid_info_comparator(const void *array_item, const void *item);
-int tbd_uuid_info_is_unique_comparator(const void *array_item,
-                                       const void *item);
+int
+tbd_uuid_info_comparator(const void *__notnull array_item,
+                         const void *__notnull item);
+
+int
+tbd_uuid_info_is_unique_comparator(const void *__notnull array_item,
+                                   const void *__notnull item);
 
 enum tbd_version {
     TBD_VERSION_V1 = 1,
@@ -206,10 +217,10 @@ enum tbd_create_options {
 };
 
 enum tbd_create_result
-tbd_create_with_info(const struct tbd_create_info *info,
-                     FILE *file,
+tbd_create_with_info(const struct tbd_create_info *__notnull info,
+                     FILE *__notnull file,
                      uint64_t options);
 
-void tbd_create_info_destroy(struct tbd_create_info *info);
+void tbd_create_info_destroy(struct tbd_create_info *__notnull info);
 
 #endif /* TBD_H */

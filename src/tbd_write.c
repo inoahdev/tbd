@@ -12,7 +12,8 @@
 #include "tbd_write.h"
 #include "yaml.h"
 
-int tbd_write_archs_for_header(FILE *const file, const uint64_t archs) {
+int
+tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
     if (archs == 0) {
         return 1;
     }
@@ -107,7 +108,8 @@ int tbd_write_archs_for_header(FILE *const file, const uint64_t archs) {
     return 0;
 }
 
-static int write_archs_for_exports(FILE *const file, const uint64_t archs) {
+static int
+write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
     if (archs == 0) {
         return 1;
     }
@@ -200,7 +202,8 @@ static int write_archs_for_exports(FILE *const file, const uint64_t archs) {
     return 0;
 }
 
-static int write_packed_version(FILE *const file, const uint32_t version) {
+static int
+write_packed_version(FILE *__notnull const file, const uint32_t version) {
     /*
      * The revision for a packed-version is stored in the LSB byte.
      */
@@ -252,7 +255,8 @@ static int write_packed_version(FILE *const file, const uint32_t version) {
     return 0;
 }
 
-int tbd_write_current_version(FILE *const file, const uint32_t version) {
+int
+tbd_write_current_version(FILE *__notnull const file, const uint32_t version) {
     if (fprintf(file, "current-version:%-7s", "") < 0) {
         return 1;
     }
@@ -260,7 +264,10 @@ int tbd_write_current_version(FILE *const file, const uint32_t version) {
     return write_packed_version(file, version);
 }
 
-int tbd_write_compatibility_version(FILE *const file, const uint32_t version) {
+int
+tbd_write_compatibility_version(FILE *__notnull const file,
+                                const uint32_t version)
+{
     if (fputs("compatibility-version: ", file) < 0) {
         return 1;
     }
@@ -268,15 +275,11 @@ int tbd_write_compatibility_version(FILE *const file, const uint32_t version) {
     return write_packed_version(file, version);
 }
 
-int tbd_write_footer(FILE *const file) {
-    if (fputs("...\n", file) < 0) {
-        return 1;
-    }
-
-    return 0;
+int tbd_write_footer(FILE *__notnull const file) {
+    return (fputs("...\n", file) < 0);
 }
 
-int tbd_write_flags(FILE *const file, const uint64_t flags) {
+int tbd_write_flags(FILE *__notnull const file, const uint64_t flags) {
     if (flags == 0) {
         return 0;
     }
@@ -305,8 +308,8 @@ int tbd_write_flags(FILE *const file, const uint64_t flags) {
 }
 
 static int
-write_yaml_string(FILE *const file,
-                  const char *const string,
+write_yaml_string(FILE *__notnull const file,
+                  const char *__notnull const string,
                   const uint64_t length,
                   const bool needs_quotes)
 {
@@ -314,20 +317,18 @@ write_yaml_string(FILE *const file,
         if (fprintf(file, "\"%s\"", string) < 0) {
             return 1;
         }
-
-        return 0;
-    }
-
-    if (fwrite(string, length, 1, file) != 1) {
-        return 1;
+    } else {
+        if (fwrite(string, length, 1, file) != 1) {
+            return 1;
+        }
     }
 
     return 0;
 }
 
 int
-tbd_write_install_name(FILE *const file,
-                       const struct tbd_create_info *const info)
+tbd_write_install_name(FILE *__notnull const file,
+                       const struct tbd_create_info *__notnull const info)
 {
     if (fprintf(file, "install-name:%-10s", "") < 0) {
         return 1;
@@ -351,7 +352,7 @@ tbd_write_install_name(FILE *const file,
 }
 
 int
-tbd_write_objc_constraint(FILE *const file,
+tbd_write_objc_constraint(FILE *__notnull const file,
                           const enum tbd_objc_constraint constraint)
 {
     switch (constraint) {
@@ -398,7 +399,8 @@ tbd_write_objc_constraint(FILE *const file,
     return 0;
 }
 
-int tbd_write_magic(FILE *const file, const enum tbd_version version) {
+int
+tbd_write_magic(FILE *__notnull const file, const enum tbd_version version) {
     switch (version) {
         case TBD_VERSION_V1:
             if (fputs("---\n", file) < 0) {
@@ -426,8 +428,8 @@ int tbd_write_magic(FILE *const file, const enum tbd_version version) {
 }
 
 int
-tbd_write_parent_umbrella(FILE *const file,
-                          const struct tbd_create_info *const info)
+tbd_write_parent_umbrella(FILE *__notnull const file,
+                          const struct tbd_create_info *__notnull const info)
 {
     const char *const umbrella = info->parent_umbrella;
     if (umbrella == NULL) {
@@ -453,7 +455,10 @@ tbd_write_parent_umbrella(FILE *const file,
     return 0;
 }
 
-int tbd_write_platform(FILE *const file, const enum tbd_platform platform) {
+int
+tbd_write_platform(FILE *__notnull const file,
+                   const enum tbd_platform platform)
+{
     switch (platform) {
         case TBD_PLATFORM_MACOS:
             if (fprintf(file, "platform:%-14smacosx\n", "") < 0) {
@@ -515,7 +520,7 @@ int tbd_write_platform(FILE *const file, const enum tbd_platform platform) {
 }
 
 int
-tbd_write_swift_version(FILE *const file,
+tbd_write_swift_version(FILE *__notnull const file,
                         const enum tbd_version tbd_version,
                         const uint32_t swift_version)
 {
@@ -569,9 +574,9 @@ tbd_write_swift_version(FILE *const file,
 }
 
 static inline int
-write_uuid(FILE *const file,
-           const struct arch_info *const arch,
-           const uint8_t *const uuid,
+write_uuid(FILE *__notnull const file,
+           const struct arch_info *__notnull const arch,
+           const uint8_t *__notnull const uuid,
            const bool has_comma)
 {
     int ret = 0;
@@ -628,7 +633,10 @@ write_uuid(FILE *const file,
     return 0;
 }
 
-int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
+int
+tbd_write_uuids(FILE *__notnull const file,
+                const struct array *__notnull const uuids)
+{
     if (array_is_empty(uuids)) {
         return 1;
     }
@@ -692,7 +700,7 @@ int tbd_write_uuids(FILE *const file, const struct array *const uuids) {
 }
 
 static int
-write_export_type_key(FILE *const file,
+write_export_type_key(FILE *__notnull const file,
                       const enum tbd_export_type type,
                       const enum tbd_version version)
 {
@@ -757,13 +765,9 @@ write_export_type_key(FILE *const file,
     return 0;
 }
 
-static inline int end_written_export_array(FILE *const file) {
-    const char *const end = " ]\n";
-    if (fwrite(end, 3, 1, file) != 1) {
-        return 1;
-    }
-
-    return 0;
+static inline int end_written_export_array(FILE *__notnull const file) {
+    static const char *const end = " ]\n";
+    return (fwrite(end, 3, 1, file) != 1);
 }
 
 static uint32_t line_length_max = 105;
@@ -787,7 +791,7 @@ enum write_comma_result {
 };
 
 static enum write_comma_result
-write_comma_or_newline(FILE *const file,
+write_comma_or_newline(FILE *__notnull const file,
                        const uint32_t line_length,
                        const uint32_t string_length)
 {
@@ -835,8 +839,8 @@ write_comma_or_newline(FILE *const file,
 }
 
 static inline int
-write_export_info(FILE *const file,
-                  const struct tbd_export_info *const info)
+write_export_info(FILE *__notnull const file,
+                  const struct tbd_export_info *__notnull const info)
 {
     const bool needs_quotes =
         info->flags & F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
@@ -845,8 +849,8 @@ write_export_info(FILE *const file,
 }
 
 int
-tbd_write_exports(FILE *const file,
-                  const struct array *const exports,
+tbd_write_exports(FILE *__notnull const file,
+                  const struct array *__notnull const exports,
                   const enum tbd_version version)
 {
     const struct tbd_export_info *info = exports->data;
@@ -983,15 +987,16 @@ tbd_write_exports(FILE *const file,
 }
 
 int
-tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
-                                  FILE *const file)
+tbd_write_exports_with_full_archs(
+    const struct tbd_create_info *__notnull const info,
+    FILE *__notnull const file)
 {
-    const struct array *const exports = &tbd->exports;
+    const struct array *const exports = &info->exports;
 
-    const struct tbd_export_info *info = exports->data;
+    const struct tbd_export_info *export = exports->data;
     const struct tbd_export_info *const end = exports->data_end;
 
-    if (info == end) {
+    if (export == end) {
         return 0;
     }
 
@@ -999,32 +1004,32 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
         return 1;
     }
 
-    if (write_archs_for_exports(file, info->archs)) {
+    if (write_archs_for_exports(file, export->archs)) {
         return 1;
     }
 
-    const enum tbd_version version = tbd->version;
-    enum tbd_export_type type = info->type;
+    const enum tbd_version version = info->version;
+    enum tbd_export_type type = export->type;
 
     if (write_export_type_key(file, type, version)) {
         return 1;
     }
 
-    if (write_export_info(file, info)) {
+    if (write_export_info(file, export)) {
         return 1;
     }
 
-    uint32_t line_length = info->length;
+    uint32_t line_length = export->length;
 
     do {
-        info++;
+        export++;
 
         /*
          * If we've written out all exports, simply end the current
          * export-type array and return.
          */
 
-        if (info == end) {
+        if (export == end) {
             if (end_written_export_array(file)) {
                 return 1;
             }
@@ -1038,7 +1043,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
          * the new one of the current export-info.
          */
 
-        const enum tbd_export_type inner_type = info->type;
+        const enum tbd_export_type inner_type = export->type;
         if (inner_type != type) {
             if (end_written_export_array(file)) {
                 return 1;
@@ -1048,7 +1053,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
                 return 1;
             }
 
-            if (write_export_info(file, info)) {
+            if (write_export_info(file, export)) {
                 return 1;
             }
 
@@ -1057,7 +1062,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
              * array.
              */
 
-            line_length = info->length;
+            line_length = export->length;
             type = inner_type;
 
             continue;
@@ -1068,7 +1073,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
          * to preserve a limit on line-lengths.
          */
 
-        const uint32_t length = info->length;
+        const uint32_t length = export->length;
         const enum write_comma_result write_comma_result =
             write_comma_or_newline(file, line_length, length);
 
@@ -1084,7 +1089,7 @@ tbd_write_exports_with_full_archs(const struct tbd_create_info *const tbd,
                 break;
         }
 
-        if (write_export_info(file, info)) {
+        if (write_export_info(file, export)) {
             return 1;
         }
 

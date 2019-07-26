@@ -23,9 +23,9 @@
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(int *const index_in,
+parse_architectures_list(int *__notnull const index_in,
                          const int argc,
-                         const char *const *const argv,
+                         const char *const *__notnull const argv,
                          uint64_t *const count_out)
 {
     uint64_t archs = 0;
@@ -92,9 +92,9 @@ parse_architectures_list(int *const index_in,
 }
 
 uint32_t
-parse_flags_list(int *const index_in,
+parse_flags_list(int *__notnull const index_in,
                  const int argc,
-                 const char *const *const argv)
+                 const char *const *__notnull const argv)
 {
     int index = *index_in;
     uint32_t flags = 0;
@@ -141,7 +141,8 @@ parse_flags_list(int *const index_in,
     return flags;
 }
 
-enum tbd_objc_constraint parse_objc_constraint(const char *const constraint) {
+enum tbd_objc_constraint
+parse_objc_constraint(const char *__notnull const constraint) {
     if (strcmp(constraint, "none") == 0) {
         return TBD_OBJC_CONSTRAINT_NONE;
     } else if (strcmp(constraint, "retain_release") == 0) {
@@ -157,7 +158,7 @@ enum tbd_objc_constraint parse_objc_constraint(const char *const constraint) {
     return 0;
 }
 
-uint32_t parse_swift_version(const char *const arg) {
+uint32_t parse_swift_version(const char *__notnull const arg) {
     if (strcmp(arg, "1.2") == 0) {
         return 2;
     }
@@ -194,7 +195,7 @@ uint32_t parse_swift_version(const char *const arg) {
     return version;
 }
 
-enum tbd_platform parse_platform(const char *const platform) {
+enum tbd_platform parse_platform(const char *__notnull const platform) {
     if (strcmp(platform, "macosx") == 0) {
         return TBD_PLATFORM_MACOS;
     } else if (strcmp(platform, "ios") == 0) {
@@ -214,7 +215,7 @@ enum tbd_platform parse_platform(const char *const platform) {
     return 0;
 }
 
-enum tbd_version parse_tbd_version(const char *const version) {
+enum tbd_version parse_tbd_version(const char *__notnull const version) {
     if (strcmp(version, "v1") == 0) {
         return TBD_VERSION_V1;
     } else if (strcmp(version, "v2") == 0) {
