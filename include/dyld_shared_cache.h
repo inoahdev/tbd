@@ -23,7 +23,7 @@ enum dyld_shared_cache_parse_options {
 };
 
 enum dyld_shared_cache_flags {
-    F_DYLD_SHARED_CACHE_UNMAP_MAP = 1 << 0
+    F_DYLD_SHARED_CACHE_UNMAP_MAP = 1ull << 0
 };
 
 enum dyld_shared_cache_parse_result {

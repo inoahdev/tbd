@@ -137,7 +137,7 @@ const char *
 path_find_last_row_of_slashes_before_end(const char *__notnull const path,
                                          const char *__notnull const end)
 {
-    const char *iter = end;
+    const char *iter = end - 1;
     const char *const rev_end = path - 1;
 
     for (; iter != rev_end; --iter) {
@@ -855,12 +855,12 @@ path_has_filename(const char *__notnull const path,
         --path_iter;
         --filename_iter;
 
-        /*
-         * We have reached the "reverse version" of the null-terminator if the
-         * filename_iter is located before filename.
-         */
-
         if (path_iter == path) {
+            /*
+             * We have reached the "reverse version" of the null-terminator if
+             * the filename_iter is located before filename.
+             */
+
             if (filename_iter < filename) {
                 if (filename_out != NULL) {
                     *filename_out = path_iter;

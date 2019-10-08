@@ -274,7 +274,7 @@
 		C392B6072233686600419D2D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1010;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = inoahdev;
 				TargetAttributes = {
 					C392B60E2233686600419D2D = {
@@ -391,6 +391,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "-Wsign-conversion";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -443,6 +444,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "-Wsign-conversion";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -450,6 +452,8 @@
 		C392B6172233686600419D2D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = NO;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				OTHER_CFLAGS = (
@@ -463,6 +467,8 @@
 		C392B6182233686600419D2D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = NO;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_OPTIMIZATION_LEVEL = fast;

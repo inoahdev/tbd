@@ -119,11 +119,6 @@ recurse_dir_fd(const int dir_fd,
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }
 
-    /*
-     * Set errno to zero so we can distinguish later when readdir() has failed,
-     * and when there are no more files and sub-directories left.
-     */
-
     errno = 0;
 
     do {
@@ -176,7 +171,9 @@ recurse_dir_fd(const int dir_fd,
                     break;
                 }
 
-                const int subdir_fd = openat(dir_fd, name, O_RDONLY);
+                const int subdir_fd =
+                    openat(dir_fd, name, O_RDONLY | O_DIRECTORY);
+
                 if (subdir_fd < 0) {
                     const bool should_continue =
                         fail_callback(subdir_path,
@@ -238,6 +235,11 @@ recurse_dir_fd(const int dir_fd,
                 if (!callback_result) {
                     should_exit = true;
                 }
+
+                /*
+                 * We need to reset errno here as we don't know what happened
+                 * in callback().
+                 */
 
                 errno = 0;
                 break;

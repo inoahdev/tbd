@@ -889,8 +889,8 @@ dsc_image_path_comparator(const void *__notnull const array_item,
 }
 
 void
-tbd_for_main_apply_from(struct tbd_for_main *__notnull const dst,
-                        const struct tbd_for_main *__notnull const src)
+tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
+                                const struct tbd_for_main *__notnull const src)
 {
     if (dst->archs_re == 0) {
         dst->archs_re = src->archs_re;

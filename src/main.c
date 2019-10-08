@@ -26,6 +26,7 @@
 #include "parse_macho_for_main.h"
 
 #include "macho_file.h"
+#include "notnull.h"
 #include "path.h"
 
 #include "recursive.h"
@@ -44,11 +45,11 @@ struct recurse_callback_info {
 };
 
 static bool
-recurse_directory_callback(const char *const dir_path,
+recurse_directory_callback(const char *__notnull const dir_path,
                            const uint64_t dir_path_length,
                            const int fd,
-                           struct dirent *__unused const dirent,
-                           void *const callback_info)
+                           struct dirent *const dirent,
+                           void *__notnull const callback_info)
 {
     struct recurse_callback_info *const recurse_info =
         (struct recurse_callback_info *)callback_info;
@@ -59,16 +60,12 @@ recurse_directory_callback(const char *const dir_path,
     uint64_t *const retained = &recurse_info->retained_info;
 
     /*
-     * We need to store a buffer for the parse_*_for_main() APIs.
+     * We need to store a buffer for the parse_*_for_main_while_recursing()
+     * APIs.
      */
 
     char magic[16] = {};
     uint64_t magic_size = 0;
-
-    /*
-     * By default we always allow mach-o, but if the filetype is instead
-     * dyld_shared_cache, we only recurse for dyld_shared_cache.
-     */
 
     const char *const name = dirent->d_name;
     const uint64_t name_length = strnlen(name, sizeof(dirent->d_name));
@@ -128,7 +125,7 @@ recurse_directory_callback(const char *const dir_path,
             .dsc_dir_path = dir_path,
             .dsc_dir_path_length = dir_path_length,
 
-            .dsc_name = dirent->d_name,
+            .dsc_name = name,
             .dsc_name_length = name_length,
 
             .dont_handle_non_dsc_error = true,
@@ -268,7 +265,7 @@ int main(const int argc, const char *const argv[]) {
     uint64_t current_tbd_index = 0;
     bool has_stdout = false;
 
-    for (int index = 1; index < argc; index++) {
+    for (int index = 1; index != argc; index++) {
         /*
          * Every argument parsed in this loop should be an option. Any extra
          * arguments, like a path-string, should be parsed by the option it
@@ -340,7 +337,7 @@ int main(const int argc, const char *const argv[]) {
             }
 
             bool found_path = false;
-            for (; index < argc; index++) {
+            for (; index != argc; index++) {
                 /*
                  * Here, we can either receive an option or a path-string, so
                  * the same validation as above cannot be carried out here.
@@ -580,7 +577,7 @@ int main(const int argc, const char *const argv[]) {
             struct tbd_for_main tbd = {};
             bool found_path = false;
 
-            for (; index < argc; index++) {
+            for (; index != argc; index++) {
                 const char *const inner_arg = argv[index];
                 const char inner_arg_front = inner_arg[0];
 
@@ -691,11 +688,10 @@ int main(const int argc, const char *const argv[]) {
 
                     if (S_ISREG(info.st_mode)) {
                         if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                            fprintf(stderr,
-                                    "Recursing file (at path %s) is not "
-                                    "supported, Please provide a path to a "
-                                    "directory if recursing is needed\n",
-                                    full_path);
+                            fputs("Only directories can be recursed through. "
+                                  "Please provide a path to a directory if "
+                                  "recursing is needed\n",
+                                  stderr);
 
                             if (full_path != path) {
                                 free(full_path);
@@ -708,9 +704,10 @@ int main(const int argc, const char *const argv[]) {
                         }
                     } else if (S_ISDIR(info.st_mode)) {
                         if (!(tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
-                            fputs("Unable to open a directory as a mach-o file"
-                                  ", Please provide option '-r' to indicate "
-                                  "recursing\n",
+                            fputs("Unable to open a directory as a mach-o "
+                                  "file. Please provide option '-r' to "
+                                  "if you want to recurse the provided "
+                                  "directory\n",
                                   stderr);
 
                             if (full_path != path) {
@@ -1043,7 +1040,7 @@ int main(const int argc, const char *const argv[]) {
 
     struct tbd_for_main *tbd = tbds.data;
     for (; tbd != end; tbd++) {
-        tbd_for_main_apply_from(tbd, &global);
+        tbd_for_main_apply_missing_from(tbd, &global);
 
         const uint64_t options = tbd->flags;
         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
@@ -1167,8 +1164,8 @@ int main(const int argc, const char *const argv[]) {
                 };
 
                 /*
-                 * If other filetypes are enabled,  we don't print out the
-                 * non-filetype error.
+                 * We're only supposed to print the non-macho error if no other
+                 * filetypes are enabled.
                  */
 
                 if (tbd->filetypes_count != 1) {
@@ -1209,7 +1206,7 @@ int main(const int argc, const char *const argv[]) {
                 };
 
                 /*
-                 * If other filetypes are enabled,  we don't print out the
+                 * If other filetypes are enabled, we don't print out the
                  * non-filetype error.
                  */
 

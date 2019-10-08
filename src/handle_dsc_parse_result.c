@@ -360,7 +360,7 @@ handle_dsc_image_parse_result(
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME: {
-            bool request_result =
+            const bool request_result =
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
@@ -378,7 +378,7 @@ handle_dsc_image_parse_result(
         }
 
         case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
-            bool request_result =
+            const bool request_result =
                 request_install_name(args.global,
                                      args.tbd,
                                      args.retained_info_in,
@@ -396,7 +396,7 @@ handle_dsc_image_parse_result(
         }
 
         case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA: {
-            bool request_result =
+            const bool request_result =
                 request_parent_umbrella(args.global,
                                         args.tbd,
                                         args.retained_info_in,
@@ -414,7 +414,7 @@ handle_dsc_image_parse_result(
         }
 
         case E_DSC_IMAGE_PARSE_NO_PLATFORM: {
-            bool request_result =
+            const bool request_result =
                 request_platform(args.global,
                                  args.tbd,
                                  args.retained_info_in,
@@ -459,14 +459,13 @@ handle_dsc_image_parse_result(
     }
 
     /*
-     * We check here for fields that were left incomplete.
-     *
-     * We ignore objc-constraint, swift-version, and parent-umbrella as they're
-     * not mandatory fields and therefore aren't always provided.
+     * Because the O_MACHO_FILE_IGNORE_INVALID_FIELDS option was passed in to
+     * parse_macho_from_main(), we may have some incomplete yet mandatory
+     * fields.
      */
 
     if (args.tbd->info.install_name == NULL) {
-        bool request_result =
+        const bool request_result =
             request_install_name(args.global,
                                  args.tbd,
                                  args.retained_info_in,
@@ -482,7 +481,7 @@ handle_dsc_image_parse_result(
     }
 
     if (args.tbd->info.platform == 0) {
-        bool request_result =
+        const bool request_result =
             request_platform(args.global,
                              args.tbd,
                              args.retained_info_in,

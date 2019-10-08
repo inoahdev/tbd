@@ -205,13 +205,13 @@ write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
 static int
 write_packed_version(FILE *__notnull const file, const uint32_t version) {
     /*
-     * The revision for a packed-version is stored in the LSB byte.
+     * The revision for a packed-version is stored in the LSB.
      */
 
     const uint8_t revision = version & 0xff;
 
     /*
-     * The minor for a packed-version is stored in the second LSB byte.
+     * The minor for a packed-version is stored in the second LSB.
      */
 
     const uint8_t minor = (version & 0xff00) >> 8;
@@ -248,7 +248,7 @@ write_packed_version(FILE *__notnull const file, const uint32_t version) {
         }
     }
 
-    if (fputc('\n', file) < 0) {
+    if (fputc('\n', file) == EOF) {
         return 1;
     }
 
@@ -344,7 +344,7 @@ tbd_write_install_name(FILE *__notnull const file,
         return 1;
     }
 
-    if (fputc('\n', file) < 0) {
+    if (fputc('\n', file) == EOF) {
         return 1;
     }
 
@@ -448,7 +448,7 @@ tbd_write_parent_umbrella(FILE *__notnull const file,
         return 1;
     }
 
-    if (fputc('\n', file) < 0) {
+    if (fputc('\n', file) == EOF) {
         return 1;
     }
 
@@ -456,8 +456,7 @@ tbd_write_parent_umbrella(FILE *__notnull const file,
 }
 
 int
-tbd_write_platform(FILE *__notnull const file,
-                   const enum tbd_platform platform)
+tbd_write_platform(FILE *__notnull const file, const enum tbd_platform platform)
 {
     switch (platform) {
         case TBD_PLATFORM_MACOS:

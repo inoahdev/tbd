@@ -15,16 +15,17 @@
 
 /*
  * Have the symbols array be sorted first into groups of matching arch-lists.
+ *
  * The arch-lists themselves are sorted to where arch-lists with more archs are
- * "greater", than those without.
- * Arch-lists with the same number of archs are just compared numberically.
+ * "greater", than those without. Arch-lists with the same number of archs are
+ * just compared numberically.
  *
  * Within each arch-list group, the symbols are then organized by their types.
  * Within each type group, the symbols are then finally organized
  * alphabetically.
  *
- * This is done to make the creation of export-groups later on easier, as no
- * the symbols are already organized by their arch-lists, and then their types,
+ * This is done to make the creation of export-groups later on easier, as no the
+ * symbols are already organized by their arch-lists, and then their types,
  * all alphabetically.
  */
 
@@ -280,6 +281,45 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     return E_TBD_CREATE_OK;
+}
+
+static void clear_exports_array(struct array *__notnull const list) {
+    struct tbd_export_info *info = list->data;
+    const struct tbd_export_info *const end = list->data_end;
+
+    for (; info != end; info++) {
+        free(info->string);
+    }
+
+    array_clear(list);
+}
+
+void tbd_create_info_clear(struct tbd_create_info *__notnull const info) {
+    if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
+        free((char *)info->install_name);
+    }
+
+    if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
+        free((char *)info->parent_umbrella);
+    }
+
+    info->version = 0;
+
+    info->archs = 0;
+    info->flags = 0;
+
+    info->platform = 0;
+    info->objc_constraint = 0;
+
+    info->install_name = NULL;
+    info->parent_umbrella = NULL;
+
+    info->current_version = 0;
+    info->compatibility_version = 0;
+    info->swift_version = 0;
+
+    clear_exports_array(&info->exports);
+    array_clear(&info->uuids);
 }
 
 static void destroy_exports_array(struct array *__notnull const list) {

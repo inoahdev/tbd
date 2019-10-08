@@ -47,31 +47,31 @@ struct tbd_for_main_dsc_image_path {
 };
 
 enum tbd_for_main_flags {
-    F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1 << 0,
-    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1 << 1,
+    F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1ull << 0,
+    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1ull << 1,
 
-    F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1 << 2,
-    F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1 << 3,
+    F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1ull << 2,
+    F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1ull << 3,
 
-    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1 << 5,
+    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1ull << 5,
 
-    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1 << 6,
-    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1 << 7,
+    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1ull << 6,
+    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1ull << 7,
 
-    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1 << 9,
-    F_TBD_FOR_MAIN_NO_REQUESTS     = 1 << 10,
+    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 9,
+    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 10,
 
     /*
      * dyld_shared_cache extractions can be stored in either a file or a
      * directory. (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1 << 11
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 11
 };
 
 enum tbd_for_main_filetype {
-    TBD_FOR_MAIN_FILETYPE_MACHO = 1 << 0,
-    TBD_FOR_MAIN_FILETYPE_DSC   = 1 << 1
+    TBD_FOR_MAIN_FILETYPE_MACHO = 1ull << 0,
+    TBD_FOR_MAIN_FILETYPE_DSC   = 1ull << 1
 };
 
 struct tbd_for_main {
@@ -169,8 +169,8 @@ tbd_for_main_create_dsc_image_write_path(
     uint64_t *length_out);
 
 void
-tbd_for_main_apply_from(struct tbd_for_main *__notnull dst,
-                        const struct tbd_for_main *__notnull src);
+tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull dst,
+                                const struct tbd_for_main *__notnull src);
 
 enum tbd_for_main_write_to_path_result {
     E_TBD_FOR_MAIN_WRITE_TO_PATH_OK,

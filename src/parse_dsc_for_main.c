@@ -56,15 +56,18 @@ struct dsc_iterate_images_info {
 };
 
 enum dyld_cache_image_info_pad {
-    E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED = 1 << 0
+    E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED = 1ull << 0
 };
 
 static void
 clear_create_info(struct tbd_create_info *__notnull const info_in,
                   const struct tbd_create_info *__notnull const orig)
 {
-    tbd_create_info_destroy(info_in);
+    tbd_create_info_clear(info_in);
+    const struct array exports = info_in->exports;
+
     *info_in = *orig;
+    info_in->exports = exports;
 }
 
 static void
@@ -96,8 +99,7 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
                   const enum dsc_image_parse_result result)
 {
     /*
-     * To ignore warnings, we ignore warnings of any dsc-images lacking exports,
-     * but only while recursing.
+     * E_DSC_IMAGE_PARSE_NO_EXPORTS is classified as a warning when recursing.
      */
 
     const struct tbd_for_main *const tbd = iterate_info->tbd;
@@ -159,10 +161,11 @@ print_write_error(struct dsc_iterate_images_info *__notnull const iterate_info,
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter_dir(struct tbd_for_main *__notnull const tbd,
-                                         const char *__notnull const filter_dir,
-                                         const char *__notnull const image_path,
-                                         const uint64_t image_path_length)
+write_out_tbd_info_for_single_filter_dir(
+    struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const filter_dir,
+    const char *__notnull const image_path,
+    const uint64_t image_path_length)
 {
     const uint64_t delta = (const uint64_t)(filter_dir - image_path);
     const uint64_t path_length = image_path_length - delta;
@@ -551,10 +554,6 @@ unmark_currently_parsing_conds(const struct array *__notnull const filters,
     const struct tbd_for_main_dsc_image_path *const end = paths->data_end;
 
     for (; image_path != end; image_path++) {
-        if (!(image_path->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
-            continue;
-        }
-
         image_path->flags &= ~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
     }
 
@@ -563,10 +562,6 @@ unmark_currently_parsing_conds(const struct array *__notnull const filters,
         filters->data_end;
 
     for (; filter != filters_end; filter++) {
-        if (!(filter->flags & F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING)) {
-            continue;
-        }
-
         filter->flags &= ~F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING;
     }
 }
@@ -646,7 +641,7 @@ static void print_missing_filters(const struct array *__notnull const filters) {
  * isn't found.
  *
  * We verify this here, rather that in
- * dyld_shared_cache_iterate_images_with_callback as we don't want to loop over
+ * dyld_shared_cache_iterate_images_with_callback, as we don't want to loop over
  * the paths once for the error-code, then again here to print out.
  */
 
@@ -694,7 +689,7 @@ dsc_iterate_images(
     const struct array *const filters = &tbd->dsc_image_filters;
     const struct array *const paths = &tbd->dsc_image_paths;
 
-    for (uint64_t i = 0; i < dsc_info->images_count; i++) {
+    for (uint64_t i = 0; i != dsc_info->images_count; i++) {
         struct dyld_cache_image_info *const image = dsc_info->images + i;
         if (image->pad & E_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
             continue;
@@ -704,17 +699,17 @@ dsc_iterate_images(
             (const char *)(dsc_info->map + image->pathFileOffset);
 
         /*
-         * We should expect to never encounter an empty image-path string, but
-         * we should still check anyways as a precaution.
+         * We never expect to encounter an empty image-path string, but we
+         * check regardless as a general precaution.
          */
 
-        if (image_path[0] == '\0') {
+        if (unlikely(image_path[0] == '\0')) {
             continue;
         }
 
         /*
          * If we're not parsing all images, we need to verify that our image
-         * meets either a fiter or a path.
+         * passes through either a name-filter or a path-filter.
          */
 
         uint64_t length = 0;
@@ -779,7 +774,7 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
          * path, we can write to stdout (which is what NULL write_path
          * represents).
          *
-         * Or if we have exactly zero filtera and zero paths, and exactly one
+         * Or if we have exactly zero filters and zero paths, and exactly one
          * number, we can write to stdout.
          *
          * The reason why no filters, no numbers, and no paths is not allowed to
@@ -1073,7 +1068,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
     }
 
     const uint64_t dsc_options =
-        O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | args.tbd->dsc_options;
+        args.tbd->dsc_options | O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS;
 
     struct dyld_shared_cache_info dsc_info = {};
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
@@ -1228,6 +1223,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
 
     dsc_iterate_images(&dsc_info, &iterate_info);
     dyld_shared_cache_info_destroy(&dsc_info);
+
     free(write_path);
 
     return E_PARSE_DSC_FOR_MAIN_OK;
@@ -1256,7 +1252,7 @@ void print_list_of_dsc_images(const int fd) {
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",
             dsc_info.images_count);
 
-    for (uint64_t i = 0; i < dsc_info.images_count; i++) {
+    for (uint64_t i = 0; i != dsc_info.images_count; i++) {
         const struct dyld_cache_image_info *const image = dsc_info.images + i;
         const char *const image_path =
             (const char *)(dsc_info.map + image->pathFileOffset);
@@ -1299,7 +1295,7 @@ void print_list_of_dsc_images_ordered(const int fd) {
     }
 
     const char **image_paths_ptr = image_paths.data;
-    for (uint64_t i = 0; i < dsc_info.images_count; i++, image_paths_ptr++) {
+    for (uint64_t i = 0; i != dsc_info.images_count; i++, image_paths_ptr++) {
         const struct dyld_cache_image_info *const image = dsc_info.images + i;
         const char *const image_path =
             (const char *)(dsc_info.map + image->pathFileOffset);
@@ -1313,13 +1309,9 @@ void print_list_of_dsc_images_ordered(const int fd) {
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",
             dsc_info.images_count);
 
-    for (uint64_t i = 0; i < dsc_info.images_count; i++) {
-        const char **const image_path =
-            array_get_item_at_index_unsafe(&image_paths,
-                                           sizeof(const char *),
-                                           i);
-
-        fprintf(stdout, "\t%" PRIu64 ". %s\n", i + 1, *image_path);
+    image_paths_ptr = image_paths.data;
+    for (uint64_t i = 0; i != dsc_info.images_count; i++, image_paths_ptr++) {
+        fprintf(stdout, "\t%" PRIu64 ". %s\n", i + 1, *image_paths_ptr);
     }
 
     array_destroy(&image_paths);

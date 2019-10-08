@@ -11,11 +11,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 
 #include "handle_macho_file_parse_result.h"
-
 #include "macho_file.h"
 #include "parse_macho_for_main.h"
 
@@ -23,8 +21,11 @@ static void
 clear_create_info(struct tbd_create_info *__notnull const info_in,
                   const struct tbd_create_info *__notnull const orig)
 {
-    tbd_create_info_destroy(info_in);
+    tbd_create_info_clear(info_in);
+    const struct array exports = info_in->exports;
+
     *info_in = *orig;
+    info_in->exports = exports;
 }
 
 static int
@@ -142,7 +143,7 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     struct stat sbuf = {};
     if (stat(write_path, &sbuf) < 0) {
         /*
-         * Ignore any errors if the object doesn't even exist.
+         * The write-file doesn't have to exist.
          */
 
         if (errno != ENOENT) {
@@ -251,17 +252,17 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
 
     char *write_path = args.tbd->write_path;
     if (write_path != NULL) {
-        enum tbd_for_main_write_to_path_result ret =
+        const enum tbd_for_main_write_to_path_result write_to_path_result =
             tbd_for_main_write_to_path(args.tbd,
                                        write_path,
                                        args.tbd->write_path_length,
                                        args.print_paths);
 
-        if (ret != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
+        if (write_to_path_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
             handle_write_result(args.tbd,
                                 args.dir_path,
                                 write_path,
-                                ret,
+                                write_to_path_result,
                                 args.print_paths);
         }
     } else {
@@ -282,9 +283,9 @@ parse_macho_file_for_main_while_recursing(
         }
 
         /*
-         * Manually handle the read fail by passing on to
-         * handle_macho_file_parse_result() as if we went to
-         * macho_file_parse_from_file().
+         * Pass on the read-failure to
+         * åhandle_macho_file_parse_result_while_recursing() as should be done
+         * with every error faced in this function.
          */
 
         const struct handle_macho_file_parse_result_args handle_args = {
@@ -302,7 +303,7 @@ parse_macho_file_for_main_while_recursing(
     }
 
     /*
-     * Handle the replacement options if provided.
+     * Handle any provided replacement options.
      */
 
     const uint32_t magic = *(const uint32_t *)args.magic_in;
@@ -373,7 +374,7 @@ parse_macho_file_for_main_while_recursing(
         exit(1);
     }
 
-    enum tbd_for_main_write_to_path_result write_to_path_result =
+    const enum tbd_for_main_write_to_path_result write_to_path_result =
         tbd_for_main_write_to_path(args.tbd,
                                    write_path,
                                    write_path_length,
@@ -386,12 +387,10 @@ parse_macho_file_for_main_while_recursing(
                                             write_path,
                                             write_to_path_result,
                                             args.print_paths);
-
-        free(write_path);
-    } else {
-        free(write_path);
     }
 
     clear_create_info(create_info, &original_info);
+    free(write_path);
+
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }

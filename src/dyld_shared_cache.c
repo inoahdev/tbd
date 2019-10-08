@@ -378,7 +378,7 @@ dyld_shared_cache_parse_from_file(
      * Verify we don't have any overlapping mappings.
      */
 
-    for (uint32_t i = 0; i < header.mappingCount; i++) {
+    for (uint32_t i = 0; i != header.mappingCount; i++) {
         const struct dyld_cache_mapping_info *const mapping = mappings + i;
         const uint64_t mapping_file_begin = mapping->fileOffset;
 
@@ -409,13 +409,13 @@ dyld_shared_cache_parse_from_file(
          * current mapping.
          */
 
-        for (uint32_t j = 0; j < i; j++) {
+        for (uint32_t j = 0; j != i; j++) {
             const struct dyld_cache_mapping_info *const inner_mapping =
                 mappings + j;
 
             const uint64_t inner_file_begin = inner_mapping->fileOffset;
-            const uint64_t inner_file_end =
-                inner_file_begin + inner_mapping->size;
+            const uint64_t inner_size = inner_mapping->size;
+            const uint64_t inner_file_end = inner_file_begin + inner_size;
 
             const struct range inner_file_range = {
                 .begin = inner_file_begin,
@@ -457,7 +457,7 @@ dyld_shared_cache_parse_from_file(
      */
 
     if (options & O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS) {
-        for (uint32_t i = 0; i < header.imagesCount; i++) {
+        for (uint32_t i = 0; i != header.imagesCount; i++) {
             struct dyld_cache_image_info *const image = images + i;
 
             if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
@@ -473,7 +473,7 @@ dyld_shared_cache_parse_from_file(
             image->pad = 0;
         }
     } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
-        for (uint32_t i = 0; i < header.imagesCount; i++) {
+        for (uint32_t i = 0; i != header.imagesCount; i++) {
             struct dyld_cache_image_info *const image = images + i;
             const uint32_t location = image->pathFileOffset;
 

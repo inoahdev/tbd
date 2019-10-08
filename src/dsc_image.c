@@ -21,11 +21,14 @@
 #include "unused.h"
 
 /*
- * To avoid duplicating code, we pass on the mach-o verification to macho_file's
- * operations, which have a different error-code.
+ * We avoid copying code by handing most of the mach-o parsing over to the
+ * macho_file namespace. To handle the different result-types, we use this
+ * translate function.
  *
- * We have many of the same error-codes, save for a few (no fat support), so all
- * that is needed is a simple translation.
+ * However, not all macho_file_parse_result codes are translated. For example,
+ * because dsc-images are not fat mach-o files, we ignore the fat-related
+ * error-codes such as those relating to architectures and conflicting
+ * information.
  */
 
 static enum dsc_image_parse_result
@@ -47,8 +50,8 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
             return E_DSC_IMAGE_PARSE_READ_FAIL;
 
         /*
-         * This error should never be returned from
-         * macho_file_parse_load_commands().
+         * Because we never call macho_file_parse_from_file(), fstat() should
+         * never be called.
          */
 
         case E_MACHO_FILE_PARSE_FSTAT_FAIL:
@@ -64,8 +67,9 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
             return E_DSC_IMAGE_PARSE_INVALID_RANGE;
 
         /*
-         * There is no appropriate error-code for this, but this will never get
-         * returned anyways.
+         * Because we never call macho_file_parse_from_file(), the arch-info
+         * from the header should never be checked, and this error should never
+         * be returned.
          */
 
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
@@ -122,7 +126,8 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
             return E_DSC_IMAGE_PARSE_INVALID_UUID;
 
         /*
-         * Conflicting error-codes are only returned for fat-files.
+         * Because a dsc-image is never a fat mach-o, we will never receive the
+         * following error-codes.
          */
 
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
@@ -154,6 +159,22 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
     return E_DSC_IMAGE_PARSE_OK;
 }
 
+/*
+ * dyld_shared_cache data is stored in different mappings, with each mapping
+ * copied over to memory at runtime with different memory-protections.
+ *
+ * To find our precious mach-o data, we have to take the data's memory-address,
+ * and find the mapping whose memory-range contains the data's memory-address.
+ *
+ * The mach-o data's file-offset is simply at the data=mapping's file location
+ * plus the delta of (the difference between) the data's memory-address and the
+ * data-mapping's memory address.
+ *
+ * Some dyld_shared_cache mappings will have a memory-range larger than the
+ * range reserved on file, for whatever reason. For this reason, we may have a
+ * memory-address that doesn't have a corresponding file-location.
+ */
+
 static uint64_t
 get_image_file_offset_from_address(
     struct dyld_shared_cache_info *__notnull const info,
@@ -163,7 +184,7 @@ get_image_file_offset_from_address(
     const struct dyld_cache_mapping_info *const mappings = info->mappings;
     const uint64_t count = info->mappings_count;
 
-    for (uint64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i != count; i++) {
         const struct dyld_cache_mapping_info *const mapping = mappings + i;
 
         const uint64_t mapping_begin = mapping->address;
@@ -196,14 +217,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 const uint64_t tbd_options,
                 __unused const uint64_t options)
 {
-    /*
-     * The mappings store the data-structures that make up a mach-o file for all
-     * dyld_shared_cache images.
-     *
-     * To find out image's data, we have to recurse the mappings, to find the
-     * one containing our file.
-     */
-
     uint64_t max_image_size = 0;
     const uint64_t file_offset =
         get_image_file_offset_from_address(dsc_info,
@@ -224,8 +237,8 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
     const uint32_t magic = header->magic;
 
-    const bool is_64 = magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
-    const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+    const bool is_64 = (magic == MH_MAGIC_64 || magic == MH_CIGAM_64);
+    const bool is_big_endian = (magic == MH_CIGAM || magic == MH_CIGAM_64);
 
     if (is_64) {
         if (max_image_size < sizeof(struct mach_header_64)) {
@@ -257,14 +270,12 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * The symbol-table and string-table offsets are absolute, not relative from
-     * image's base, but we still need to account for shared-cache's start and
-     * size.
+     * The symbol-table and string-table's file-offsets are relative to the
+     * cache-base, not the mach-o header. However, all other mach-o information
+     * we parse is relative to the mach-o header.
      *
-     * To accomplish this, we parse the symbol-table separately.
-     *
-     * The section's offset are also absolute (relative to the map, not to the
-     * header).
+     * Because of this conundrum, we use the flags below to
+     * parse the symbol and string tables separately.
      */
 
     const uint64_t arch_bit = dsc_info->arch_bit;
@@ -304,9 +315,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * If symtab is invalid, we can simply assume that no symbol-table was
-     * found, but that this was ok from the options as
-     * macho_file_parse_load_commands_from_map didn't return an error-code.
+     * Because macho_file_parse_load_commands_from_map() didn't return an
+     * error-code, we can assume that lacking a symtab is no big deal.
+     *
+     * However, this should never happen in the first place.
      */
 
     if (symtab.cmd != LC_SYMTAB) {
@@ -314,9 +326,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * For parsing the symbol-tables, we provide the full dyld_shared_cache map
-     * as the symbol-table and string-table offsets are relative to the full
-     * map, not relative to the mach-o header.
+     * Because the symbol-table and string-table offsets are relative to the
+     * cache-base and not the mach-o header, we have to provide the full map and
+     * the full map range to macho_file_parse_symbols_from_map().
      */
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;

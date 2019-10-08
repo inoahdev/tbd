@@ -22,7 +22,7 @@ enum parse_dsc_for_main_result {
 };
 
 enum parse_dsc_for_main_options {
-    O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH = 1 << 0
+    O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH = 1ull << 0
 };
 
 struct parse_dsc_for_main_args {

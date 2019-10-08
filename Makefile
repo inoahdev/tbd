@@ -1,9 +1,7 @@
 SHELL = /bin/sh
 C := clang
 
-WARNINGFLAGS := -Wshadow
-WARNINGFLAGS := $(WARNINGFLAGS) -Wwrite-strings -Wunused-parameter
-
+WARNINGFLAGS := -Wshadow -Wwrite-strings -Wunused-parameter
 DEFAULTFLAGS := -std=gnu11 -I. -Iinclude/ $(WARNINGFLAGS)
 CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
 VSCODEFLAGS := -I.vscode/ -Wno-unused-parameter -Wno-sign-conversion $(CFLAGS)
@@ -32,7 +30,7 @@ install: all
 	@sudo mv $(TARGET) /usr/bin
 
 vscode:
-	@$(C) $(VSCODEFLAGS) $(SRCS) -o $(TARGET)
+	@$(C) $(VSCODEFLAGS) $(SRCS)
 
 compile_commands:
 	@bear make vscode

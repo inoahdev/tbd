@@ -27,8 +27,8 @@
 #include "yaml.h"
 
 /*
- * For performance, compare strings using the largest byte-size integers
- * possible, instead of iterating with strncmp.
+ * We compare strings by using the largest possible byte size when reading from
+ * memory to maximize our performance.
  */
 
 static inline bool
@@ -43,7 +43,7 @@ is_objc_class_symbol(const char *__notnull const symbol,
     }
 
     /*
-     * Objc-class symbols can have different prefixes.
+     * Objc-class symbols may have different prefixes.
      */
 
     switch (first) {
@@ -137,21 +137,22 @@ is_objc_class_symbol(const char *__notnull const symbol,
     return true;
 }
 
-static inline bool
-is_objc_ehtype_symbol(const char *__notnull const symbol,
-                      const uint64_t first,
-                      const uint64_t max_len,
-                      const enum tbd_version version)
+static inline
+bool is_objc_ehtype_symbol(const char *__notnull const symbol,
+                           const uint64_t first,
+                           const uint64_t max_len,
+                           const enum tbd_version version)
 {
     /*
-     * ObjC eh-type symbols are only officially classified in tbd-version v3.
+     * The ObjC eh-type group was introduced in tbd-version v3, with objc-eh
+     * type symbols belonging to the normal-symbols group in previous versions.
      */
 
     if (version != TBD_VERSION_V3) {
         return false;
     }
 
-    if (max_len <= 15) {
+    if (max_len < 16) {
         return false;
     }
 
@@ -212,45 +213,36 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
               const uint64_t options)
 {
     /*
-     * Short-circuit symbols if they're not external and no options have been
-     * provided to allow any type of non-external symbols.
+     * We can exit this function quickly if the symbol isn't external and no
+     * flags for private-symbols were provided.
      */
 
     if (!(n_type & N_EXT)) {
-        const uint64_t allow_internal_symbols_flags =
+        const uint64_t allow_priv_symbols_flags =
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS |
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS |
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
 
-        if (!(options & allow_internal_symbols_flags)) {
+        if ((options & allow_priv_symbols_flags) == allow_priv_symbols_flags) {
             return E_MACHO_FILE_PARSE_OK;
         }
     }
 
+    /*
+     * We save space on the heap by storing only the part of the string we will
+     * write-out later for the tbd-file.
+     */
+
     const char *string = symbol_string;
     uint32_t max_len = strsize - index;
-
-    /*
-     * Figure out the symbol-type from the symbol-string and desc.
-     *
-     * Also ensure only exported symbols are added, unless options have been
-     * provided to allow otherwise.
-     */
 
     enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
     uint32_t length = 0;
 
-    if (n_desc & N_WEAK_DEF) {
-        if (!(n_type & N_EXT)) {
-            return E_MACHO_FILE_PARSE_OK;
-        }
-
-        symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-        length = (uint32_t)strnlen(symbol_string, max_len);
-    } else {
+    if (likely(!(n_desc & N_WEAK_DEF))) {
         /*
-         * Only check for symbols who max potential length is greater than 12,
-         * as that is the minimum length for an objc-ivar symbol.
+         * We can skip calls to is_objc_*_symbol if the symbol's max-length
+         * disqualifies the symbol from being an objc symbol.
          */
 
         if (max_len > 12) {
@@ -266,13 +258,13 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     }
                 }
 
-                if (length == 0) {
+                if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
 
                 /*
-                 * On tbd-version v3, the underscore at front of the class-name
-                 * is removed.
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the class-name is to be removed.
                  */
 
                 if (info_in->version == TBD_VERSION_V3) {
@@ -292,7 +284,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 string += 15;
                 length = (uint32_t)strnlen(string, max_len - 15);
 
-                if (length == 0) {
+                if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
 
@@ -305,8 +297,8 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 /*
-                 * On tbd-version v3, the underscore at front of the symbol is
-                 * removed.
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the ivar-name is to be removed.
                  */
 
                 if (info_in->version == TBD_VERSION_V3) {
@@ -317,7 +309,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 string += 12;
                 length = (uint32_t)strnlen(string, max_len - 12);
 
-                if (length == 0) {
+                if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
 
@@ -328,7 +320,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 length = (uint32_t)strnlen(string, max_len);
-                if (length == 0) {
+                if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
             }
@@ -338,10 +330,21 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             }
 
             length = (uint32_t)strnlen(string, max_len);
-            if (length == 0) {
+            if (unlikely(length == 0)) {
                 return E_MACHO_FILE_PARSE_OK;
             }
         }
+    } else {
+        if (!(n_type & N_EXT)) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        /*
+         * We don't check if length is zero as the caller already verified that.
+         */
+
+        symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
+        length = (uint32_t)strnlen(symbol_string, max_len);
     }
 
     struct tbd_export_info export_info = {
@@ -373,8 +376,8 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         }
 
         /*
-         * Ensure multiple symbols for the same arch are ignored (For the
-         * sake of leniency).
+         * Avoid erroneously incrementing the archs-count in the rare case we
+         * encounter the symbol multiple times in the same architecture.
          */
 
         const uint64_t archs = existing_info->archs;
@@ -392,14 +395,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     if (needs_quotes) {
         export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
-
-    /*
-     * Add our symbol-info to the list, as a matching symbol-info was not found.
-     *
-     * Note: As the symbol is from a large allocation in the call hierarchy that
-     * will eventually be freed, we need to allocate a copy of the symbol before
-     * placing it in the list.
-     */
 
     export_info.string = alloc_and_copy(export_info.string, export_info.length);
     if (unlikely(export_info.string == NULL)) {
@@ -431,7 +426,7 @@ macho_file_parse_symbols_from_file(
     }
 
     /*
-     * Ensure the string-table and symbol-table are fully contained within
+     * Ensure the string-table and symbol-table can be fully contained within
      * the mach-o file.
      */
 
@@ -456,7 +451,7 @@ macho_file_parse_symbols_from_file(
     };
 
     /*
-     * Validate that the symbol-table range is fully within the given
+     * Validate that the symbol-table range is fully within the provided
      * available-range.
      */
 
@@ -530,8 +525,8 @@ macho_file_parse_symbols_from_file(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -544,8 +539,8 @@ macho_file_parse_symbols_from_file(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -576,8 +571,8 @@ macho_file_parse_symbols_from_file(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -590,8 +585,8 @@ macho_file_parse_symbols_from_file(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = nlist->n_un.n_strx;
@@ -637,8 +632,8 @@ macho_file_parse_symbols_64_from_file(
     }
 
     /*
-     * Get the size of the symbol table by multipying the symbol-count and the
-     * size of symbol-table-entry.
+     * Ensure the string-table and symbol-table can be fully contained within
+     * the mach-o file.
      */
 
     uint64_t symbol_table_size = sizeof(struct nlist_64);
@@ -662,7 +657,7 @@ macho_file_parse_symbols_64_from_file(
     };
 
     /*
-     * Validate that the symbol-table range is fully within the given
+     * Validate that the symbol-table range is fully within the provided
      * available-range.
      */
 
@@ -736,8 +731,8 @@ macho_file_parse_symbols_64_from_file(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -750,8 +745,8 @@ macho_file_parse_symbols_64_from_file(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -782,8 +777,8 @@ macho_file_parse_symbols_64_from_file(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -796,8 +791,8 @@ macho_file_parse_symbols_64_from_file(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = nlist->n_un.n_strx;
@@ -851,6 +846,11 @@ macho_file_parse_symbols_from_map(
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
+    /*
+     * Ensure the string-table and symbol-table can be fully contained within
+     * the mach-o map.
+     */
+
     uint64_t symbol_table_size = sizeof(struct nlist);
     if (guard_overflow_mul(&symbol_table_size, args.nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
@@ -886,8 +886,8 @@ macho_file_parse_symbols_from_map(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -900,8 +900,8 @@ macho_file_parse_symbols_from_map(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -929,8 +929,8 @@ macho_file_parse_symbols_from_map(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -993,8 +993,8 @@ macho_file_parse_symbols_64_from_map(
     }
 
     /*
-     * Get the size of the symbol table by multipying the symbol-count and the
-     * size of symbol-table-entry.
+     * Ensure the string-table and symbol-table can be fully contained within
+     * the mach-o map.
      */
 
     uint64_t symbol_table_size = sizeof(struct nlist_64);
@@ -1032,8 +1032,8 @@ macho_file_parse_symbols_64_from_map(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol either connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -1046,8 +1046,8 @@ macho_file_parse_symbols_64_from_map(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -1075,8 +1075,8 @@ macho_file_parse_symbols_64_from_map(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol connects back to __TEXT, or is an
-             * indirect symbol.
+             * Ensure that each symbol is either an indirect symbol, or that the
+             * symbol's n_value points back to the __TEXT segment.
              */
 
             const uint8_t n_type = nlist->n_type;
@@ -1089,8 +1089,8 @@ macho_file_parse_symbols_64_from_map(
             }
 
             /*
-             * For leniency reasons, ignore invalid symbol-references instead of
-             * erroring out.
+             * For the sake of leniency, we avoid erroring out for symbols with
+             * invalid string-table references
              */
 
             const uint32_t index = nlist->n_un.n_strx;

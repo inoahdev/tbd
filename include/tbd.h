@@ -21,41 +21,41 @@
  */
 
 enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_ARCHS                 = 1 << 0,
-    O_TBD_PARSE_IGNORE_CLIENTS               = 1 << 1,
-    O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1 << 2,
-    O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1 << 3,
-    O_TBD_PARSE_IGNORE_FLAGS                 = 1 << 4,
-    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1 << 5,
-    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1 << 6,
-    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1 << 7,
-    O_TBD_PARSE_IGNORE_PLATFORM              = 1 << 8,
-    O_TBD_PARSE_IGNORE_REEXPORTS             = 1 << 9,
-    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1 << 10,
-    O_TBD_PARSE_IGNORE_SYMBOLS               = 1 << 11,
-    O_TBD_PARSE_IGNORE_UUIDS                 = 1 << 12,
+    O_TBD_PARSE_IGNORE_ARCHS                 = 1ull << 0,
+    O_TBD_PARSE_IGNORE_CLIENTS               = 1ull << 1,
+    O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1ull << 2,
+    O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1ull << 3,
+    O_TBD_PARSE_IGNORE_FLAGS                 = 1ull << 4,
+    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1ull << 5,
+    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1ull << 6,
+    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1ull << 7,
+    O_TBD_PARSE_IGNORE_PLATFORM              = 1ull << 8,
+    O_TBD_PARSE_IGNORE_REEXPORTS             = 1ull << 9,
+    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1ull << 10,
+    O_TBD_PARSE_IGNORE_SYMBOLS               = 1ull << 11,
+    O_TBD_PARSE_IGNORE_UUIDS                 = 1ull << 12,
 
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1 << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1 << 14,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1 << 15,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 13,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 14,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 15,
 
-    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1 << 16,
-    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1 << 17,
-    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1 << 18,
-    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1 << 19,
-    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1 << 20,
+    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1ull << 16,
+    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1ull << 17,
+    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1ull << 18,
+    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1ull << 19,
+    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1ull << 20,
 
-    O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS = 1 << 21
+    O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS = 1ull << 21
 };
 
 enum tbd_flags {
-    TBD_FLAG_FLAT_NAMESPACE         = 1 << 0,
-    TBD_FLAG_NOT_APP_EXTENSION_SAFE = 1 << 1
+    TBD_FLAG_FLAT_NAMESPACE         = 1ull << 0,
+    TBD_FLAG_NOT_APP_EXTENSION_SAFE = 1ull << 1
 };
 
 enum tbd_objc_constraint {
@@ -109,7 +109,7 @@ enum tbd_export_type {
 };
 
 enum tbd_export_info_flags {
-    F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES = 1 << 0
+    F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES = 1ull << 0
 };
 
 struct tbd_export_info {
@@ -156,11 +156,11 @@ enum tbd_version {
 };
 
 enum tbd_create_info_flags {
-    F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1 << 0,
-    F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1 << 1,
+    F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1ull << 0,
+    F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1ull << 1,
 
-    F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED    = 1 << 2,
-    F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED = 1 << 3,
+    F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED    = 1ull << 2,
+    F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED = 1ull << 3,
 
     /*
      * Indicte that all exports have the same arch-set as the tbd.
@@ -169,7 +169,7 @@ enum tbd_create_info_flags {
      * does not check for archs.
      */
 
-    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS = 1 << 4
+    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS = 1ull << 4
 };
 
 struct tbd_create_info {
@@ -205,15 +205,15 @@ enum tbd_create_result {
 };
 
 enum tbd_create_options {
-    O_TBD_CREATE_IGNORE_CURRENT_VERSION       = 1 << 0,
-    O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1 << 1,
-    O_TBD_CREATE_IGNORE_EXPORTS               = 1 << 2,
-    O_TBD_CREATE_IGNORE_FLAGS                 = 1 << 3,
-    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1 << 4,
-    O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1 << 5,
-    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1 << 6,
-    O_TBD_CREATE_IGNORE_UUIDS                 = 1 << 7,
-    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1 << 8
+    O_TBD_CREATE_IGNORE_CURRENT_VERSION       = 1ull << 0,
+    O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1ull << 1,
+    O_TBD_CREATE_IGNORE_EXPORTS               = 1ull << 2,
+    O_TBD_CREATE_IGNORE_FLAGS                 = 1ull << 3,
+    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 4,
+    O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1ull << 5,
+    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 6,
+    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 7,
+    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 8
 };
 
 enum tbd_create_result
@@ -221,6 +221,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull info,
                      FILE *__notnull file,
                      uint64_t options);
 
+void tbd_create_info_clear(struct tbd_create_info *__notnull info);
 void tbd_create_info_destroy(struct tbd_create_info *__notnull info);
 
 #endif /* TBD_H */

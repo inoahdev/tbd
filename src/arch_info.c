@@ -210,7 +210,7 @@ const struct array cputype_info_array = {
     .alloc_end = (void *)(cputype_info_list + 14)
 };
 
-const struct arch_info * __notnull arch_info_get_list(void) {
+const struct arch_info *__notnull arch_info_get_list(void) {
     return arch_info_list;
 }
 

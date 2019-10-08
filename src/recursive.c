@@ -80,7 +80,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
 
     /*
      * We may have a slash at the back of the string, which we should ignore as
-     * terminating at that point does not lead us to the path of the immediate
+     * terminating at that point does not lead us to the path of the parent
      * directory in the full-path's hierarchy.
      */
 
@@ -115,7 +115,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
          * immediately.
          */
 
-        if (errno != ENOENT) {
+        if (unlikely(errno != ENOENT)) {
             return 1;
         }
     }
@@ -129,12 +129,14 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
         (char *)path_get_front_of_row_of_slashes(path, last_slash);
 
     /*
-     * Iterate over the path-components backwayds, finding the ending-slash
-     * within the range of the of the previous ending-slash, and terminate the
-     * string at that slash.
+     * We move backwards trying to create the hierarchy. If we fail, we move
+     * yet further back, until we successfully create that directory.
      *
-     * Then try creating that directory.
-     * If that succeeds, break out of the loop to then iterate forwards and
+     * last_slash is the ending-slash of every path-component. We
+     * null-terminate at last_slash to try and create a directory, and if it
+     * fails, we move last-slash back.
+     *
+     * We then break out of the loop to then iterate forwards and
      * create the directories afterwards.
      *
      * If the directory already exists, we can simply return as it cannot happen
@@ -147,7 +149,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
     last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
     while (last_slash != path) {
         last_slash = find_last_slash_before_end(path, last_slash);
-        if (last_slash == NULL) {
+        if (unlikely(last_slash == NULL)) {
             return 1;
         }
 
@@ -186,7 +188,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
              * should just return immedietly.
             */
 
-            if (errno != ENOENT) {
+            if (unlikely(errno != ENOENT)) {
                 return 1;
             }
         }
@@ -226,7 +228,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
         const int ret = mkdir(path, mode);
         restore_slash_c_str(slash);
 
-        if (ret < 0) {
+        if (unlikely(ret < 0)) {
             return 1;
         }
 
@@ -254,7 +256,7 @@ open_r(char *__notnull const path,
        char **const terminator_out)
 {
     int fd = open(path, O_CREAT | flags, mode);
-    if (fd >= 0) {
+    if (likely(fd >= 0)) {
         return fd;
     }
 
@@ -262,11 +264,11 @@ open_r(char *__notnull const path,
      * The only error supported is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
      *
-     * Other errors are beyond the scope of this function, and so we
-     * error-return immediately.
+     * Other errors are beyond the scope of this function, and so we error out
+     * immediately.
      */
 
-    if (errno != ENOENT) {
+    if (unlikely(errno != ENOENT)) {
         return -1;
     }
 
@@ -275,7 +277,7 @@ open_r(char *__notnull const path,
     }
 
     fd = open(path, O_CREAT | flags, mode);
-    if (fd < 0) {
+    if (unlikely(fd < 0)) {
         return -1;
     }
 
@@ -288,7 +290,7 @@ mkdir_r(char *__notnull const path,
         const mode_t mode,
         char **const first_terminator_out)
 {
-    if (mkdir(path, mode) == 0) {
+    if (likely(mkdir(path, mode) == 0)) {
         return 0;
     }
 
@@ -296,7 +298,8 @@ mkdir_r(char *__notnull const path,
      * If the directory already exists, return as a success.
      *
      * Note: To avoid multiple syscalls, we call mkdir() knowing that the
-     * directory may already exist, preferring to check errno instead.
+     * directory may already exist, preferring checking of errno over an extra
+     * syscall.
      */
 
     if (errno == EEXIST) {
@@ -311,7 +314,7 @@ mkdir_r(char *__notnull const path,
      * error-return immediately.
      */
 
-    if (errno != ENOENT) {
+    if (unlikely(errno != ENOENT)) {
         return 1;
     }
 
@@ -331,7 +334,7 @@ remove_file_r(char *__notnull const path,
               const uint64_t length,
               char *__notnull const last)
 {
-    if (unlink(path) != 0) {
+    if (unlikely(unlink(path) != 0)) {
         return 1;
     }
 
@@ -349,8 +352,8 @@ remove_file_r(char *__notnull const path,
         terminate_c_str(last_slash);
         const int ret = rmdir(path);
         restore_slash_c_str(last_slash);
-
-        if (ret != 0) {
+ 
+        if (unlikely(ret != 0)) {
             return 1;
         }
 

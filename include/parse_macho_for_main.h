@@ -16,7 +16,7 @@
  */
 
 enum parse_macho_for_main_options {
-    O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH = 1 << 0
+    O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH = 1ull << 0
 };
 
 struct parse_macho_for_main_args {

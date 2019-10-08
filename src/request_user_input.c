@@ -106,7 +106,7 @@ request_input(const char *__notnull const prompt, const bool indent) {
     }
 
     /*
-     * We remove the delimiter getline() returns back to us.
+     * We need to remove the delimiter getline() returns back to us.
      */
 
     input[input_length - 1] = '\0';
@@ -230,8 +230,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
     do {
         char *const input =
             request_input("Replacement objc-constraint? (Enter "
-                          "--list-objc-constraint to list all "
-                          "objc-constraints",
+                          "--list-objc-constraint to list all objc-constraints",
                           indent);
 
         if (strcmp(input, "--list-objc_constraint") == 0) {
@@ -373,8 +372,8 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     do {
         char *const input =
-            request_input("Replacement platform? "
-                          "(Enter --list-platform to list all platforms)",
+            request_input("Replacement platform? (Enter --list-platform to "
+                          "list all platforms)",
                           indent);
 
         if (strcmp(input, "--list-platform") == 0) {

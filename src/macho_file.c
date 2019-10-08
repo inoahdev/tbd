@@ -129,7 +129,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 }
 
 static inline bool thin_magic_is_valid(const uint32_t magic) {
-    return magic == MH_MAGIC || magic == MH_MAGIC_64;
+    return (magic == MH_MAGIC || magic == MH_MAGIC_64);
 }
 
 static enum macho_file_parse_result
@@ -286,7 +286,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
      * Before parsing, verify each architecture.
      */
 
-    for (uint32_t i = 1; i < nfat_arch; i++) {
+    for (uint32_t i = 1; i != nfat_arch; i++) {
         struct fat_arch *const arch = archs + i;
 
         cpu_type_t arch_cputype = arch->cputype;
@@ -398,7 +398,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             .end = arch_end
         };
 
-        for (uint32_t j = 0; j < i; j++) {
+        for (uint32_t j = 0; j != i; j++) {
             struct fat_arch inner = archs[j];
             const struct range inner_range = {
                 .begin = inner.offset,
@@ -413,7 +413,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
     }
 
     bool parsed_one_arch = false;
-    for (uint32_t i = 0; i < nfat_arch; i++) {
+    for (uint32_t i = 0; i != nfat_arch; i++) {
         const struct fat_arch arch = archs[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
@@ -671,7 +671,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
      * Before parsing, verify each architecture.
      */
 
-    for (uint32_t i = 1; i < nfat_arch; i++) {
+    for (uint32_t i = 1; i != nfat_arch; i++) {
         struct fat_arch_64 *const arch = archs + i;
 
         cpu_type_t arch_cputype = arch->cputype;
@@ -786,7 +786,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             .end = arch_end
         };
 
-        for (uint32_t j = 0; j < i; j++) {
+        for (uint32_t j = 0; j != i; j++) {
             struct fat_arch_64 inner = archs[j];
             const struct range inner_range = {
                 .begin = inner.offset,
@@ -801,7 +801,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     }
 
     bool parsed_one_arch = false;
-    for (uint32_t i = 0; i < nfat_arch; i++) {
+    for (uint32_t i = 0; i != nfat_arch; i++) {
         const struct fat_arch_64 arch = archs[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
@@ -822,7 +822,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
          */
 
         const bool arch_is_big_endian =
-            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
+            (header.magic == MH_CIGAM || header.magic == MH_CIGAM_64);
 
         if (arch_is_big_endian) {
             header.cputype = swap_int32(header.cputype);
@@ -923,7 +923,9 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_NO_ARCHITECTURES;
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM || magic == FAT_CIGAM_64;
+        const bool is_big_endian =
+            (magic == FAT_CIGAM || magic == FAT_CIGAM_64);
+
         if (is_big_endian) {
             nfat_arch = swap_uint32(nfat_arch);
         }
@@ -937,7 +939,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             info_in->archs_count = nfat_arch;
         }
 
-        const bool is_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
+        const bool is_64 = (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64);
         const uint64_t file_size = (uint64_t)sbuf.st_size;
 
         if (is_64) {
@@ -1004,7 +1006,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         const uint64_t file_size = (uint64_t)sbuf.st_size;
-        const bool is_big_endian = magic == MH_CIGAM || magic == MH_CIGAM_64;
+        const bool is_big_endian = (magic == MH_CIGAM || magic == MH_CIGAM_64);
 
         /*
          * Swap the mach_header's fields if big-endian.
@@ -1072,7 +1074,7 @@ void macho_file_print_archs(const int fd) {
         exit(1);
     }
 
-    const bool is_fat_64 = magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64;
+    const bool is_fat_64 = (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64);
     if (is_fat_64) {
         uint32_t nfat_arch = 0;
         if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
@@ -1088,7 +1090,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM_64;
+        const bool is_big_endian = (magic == FAT_CIGAM_64);
         if (is_big_endian) {
             nfat_arch = swap_uint32(nfat_arch);
         }
@@ -1118,7 +1120,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        for (uint32_t i = 0; i < nfat_arch; i++) {
+        for (uint32_t i = 0; i != nfat_arch; i++) {
             struct fat_arch_64 arch = archs[i];
             if (is_big_endian) {
                 arch.cputype = swap_int32(arch.cputype);
@@ -1153,7 +1155,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian = magic == FAT_CIGAM;
+        const bool is_big_endian = (magic == FAT_CIGAM);
         if (is_big_endian) {
             nfat_arch = swap_uint32(nfat_arch);
         }
@@ -1184,7 +1186,7 @@ void macho_file_print_archs(const int fd) {
         }
 
         fprintf(stdout, "%" PRIu32 " architecture(s):\n", nfat_arch);
-        for (uint32_t i = 0; i < nfat_arch; i++) {
+        for (uint32_t i = 0; i != nfat_arch; i++) {
             struct fat_arch arch = archs[i];
             if (is_big_endian) {
                 arch.cputype = swap_int32(arch.cputype);
@@ -1223,7 +1225,7 @@ void macho_file_print_archs(const int fd) {
             }
 
             const bool is_big_endian =
-                magic == MH_CIGAM || magic == MH_CIGAM_64;
+                (magic == MH_CIGAM || magic == MH_CIGAM_64);
 
             if (is_big_endian) {
                 header.cputype = swap_int32(header.cputype);

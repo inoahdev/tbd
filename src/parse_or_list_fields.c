@@ -39,7 +39,7 @@ parse_architectures_list(int *__notnull const index_in,
 
         /*
          * Perform a quick check to see if our arch is either a path-string or
-         * option to avoid searching arch-info list.
+         * option to avoid an unnecessary arch-info lookup.
          */
 
         const char arch_front = arch[0];
@@ -54,6 +54,10 @@ parse_architectures_list(int *__notnull const index_in,
 
         const struct arch_info *const arch_info = arch_info_for_name(arch);
         if (arch_info == NULL) {
+            /*
+             * At least one architecture must be provided for the list.
+             */
+
             if (archs == 0) {
                 fprintf(stderr,
                         "Unrecognized architecture (with name %s) provided\n",
@@ -117,18 +121,18 @@ parse_flags_list(int *__notnull const index_in,
                 flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
             }
         } else {
-            const char front = arg[0];
-            if (flags == 0) {
-                if (front == '-' || front == '/') {
-                    fputs("Please provide a list of tbd-flags\n", stderr);
-                } else {
-                    fprintf(stderr, "Unrecognized flag: %s\n", arg);
-                }
-
-                exit(1);
+            if (flags != 0) {
+                break;
             }
 
-            break;
+            const char front = arg[0];
+            if (front == '-' || front == '/') {
+                fputs("Please provide a list of tbd-flags\n", stderr);
+            } else {
+                fprintf(stderr, "Unrecognized flag: %s\n", arg);
+            }
+
+            exit(1);
         }
     }
 

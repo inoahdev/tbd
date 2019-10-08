@@ -44,7 +44,7 @@ void *array_get_front(const struct array *const array) {
 
 void *array_get_back(const struct array *const array, const size_t item_size) {
     const void *const data_end = array->data_end;
-    if (array->data == data_end) {
+    if (unlikely(array->data == data_end)) {
         return NULL;
     }
 
@@ -53,6 +53,10 @@ void *array_get_back(const struct array *const array, const size_t item_size) {
 
 bool array_is_empty(const struct array *const array) {
     return array->data == array->data_end;
+}
+
+static uint64_t get_new_capacity(const uint64_t old_capacity) {
+    return old_capacity * 2;
 }
 
 static enum array_result
@@ -64,7 +68,7 @@ array_grow_to_capacity(struct array *__notnull const array,
     uint64_t new_capacity = current_capacity;
     if (likely(new_capacity != 0)) {
         do {
-            new_capacity *= 2;
+            new_capacity = get_new_capacity(new_capacity);
         } while (new_capacity < wanted_capacity);
     } else {
         new_capacity = wanted_capacity;
@@ -288,8 +292,7 @@ array_find_item(const struct array *__notnull const array,
  * array_slice_get_sorted_array_item_for_item() easier to read.
  */
 
-static uint64_t
-array_slice_get_middle_index(const struct array_slice slice) {
+static uint64_t array_slice_get_middle_index(const struct array_slice slice) {
     const uint64_t length = slice.back - slice.front;
     return slice.front + (length >> 1);
 }
@@ -308,14 +311,12 @@ array_slice_set_to_upper_half(struct array_slice *__notnull const slice,
     slice->front = middle + 1;
 }
 
-static bool
-array_slice_holds_one_element(const struct array_slice slice) {
+static bool array_slice_holds_one_element(const struct array_slice slice) {
     return slice.front == slice.back;
 }
 
-static bool
-array_slice_holds_two_elements(const struct array_slice slice) {
-    return slice.back - slice.front == 1;
+static bool array_slice_holds_two_elements(const struct array_slice slice) {
+    return (slice.back - slice.front) == 1;
 }
 
 static inline
@@ -595,6 +596,11 @@ array_copy(struct array *const array, struct array *__notnull const array_out) {
     return E_ARRAY_OK;
 }
 
+void array_clear(struct array *__notnull const array) {
+    array->data_end = array->data;
+    array->item_count = 0;
+}
+
 enum array_result array_destroy(struct array *__notnull const array) {
     /*
      * free(NULL) is allowed
@@ -605,6 +611,7 @@ enum array_result array_destroy(struct array *__notnull const array) {
     array->data = NULL;
     array->data_end = NULL;
     array->alloc_end = NULL;
+    array->item_count = 0;
 
     return E_ARRAY_OK;
 }
