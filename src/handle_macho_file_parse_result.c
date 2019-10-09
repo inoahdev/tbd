@@ -542,8 +542,7 @@ handle_macho_file_parse_result(
                         "Mach-o file (at path %s) has architectures with "
                         "conflicting information for its identification "
                         "(install-name, current-version, and/or "
-                        "comatibility-version)"
-                        "\n",
+                        "comatibility-version)\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file has architectures with "
@@ -703,12 +702,16 @@ handle_macho_file_parse_result(
             return false;
 
         case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
-            /*
-             * No identification means that the mach-o file is not a library
-             * file, which we check for only here, at the last moment.
-             *
-             * No errors are printed, and this is simply inored
-             */
+            if (args.print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) is not a "
+                        "dynamic-library\n",
+                        args.dir_path,
+                        args.name);
+            } else {
+                fputs("The provided mach-o file is not a dynamic library\n",
+                      stderr);
+            }
 
             return false;
 
@@ -770,26 +773,12 @@ handle_macho_file_parse_result(
 
             return false;
 
-        case E_MACHO_FILE_PARSE_NO_EXPORTS: {
-            const uint64_t flags = args.tbd->flags;
-            if (flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                    return false;
-                }
-
-                fprintf(stderr,
-                        "Mach-o file (at path %s) has no exported clients, "
-                        "re-exports, or symbols to be written out\n",
-                        args.dir_path);
-            } else {
-                fputs("The provided mach-o file has no exported clients, "
-                      "re-exports, or symbols to be written out\n",
-                      stderr);
-
-            }
+        case E_MACHO_FILE_PARSE_NO_EXPORTS:
+            fputs("The provided mach-o file has no exported clients, "
+                  "re-exports, or symbols to be written out\n",
+                  stderr);
 
             return false;
-        }
     }
 
     /*
@@ -1439,8 +1428,7 @@ handle_macho_file_parse_result_while_recursing(
                         "Mach-o file (at path %s/%s) has architectures with "
                         "conflicting information for its identification "
                         "(install-name, current-version, and/or "
-                        "comatibility-version)"
-                        "\n",
+                        "comatibility-version)\n",
                         args.dir_path,
                         args.name);
             } else {
@@ -1608,9 +1596,10 @@ handle_macho_file_parse_result_while_recursing(
         case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
             /*
              * No identification means that the mach-o file is not a library
-             * file, which we check for only here, at the last moment.
+             * file, which we check for here at the very last moment.
              *
-             * No errors are printed, and this is simply inored
+             * No errors are printed as these files are to be ignored while
+             * recursing.
              */
 
             return false;
@@ -1678,22 +1667,15 @@ handle_macho_file_parse_result_while_recursing(
 
         case E_MACHO_FILE_PARSE_NO_EXPORTS: {
             const uint64_t flags = args.tbd->flags;
-            if (flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                    return false;
-                }
-
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has no exported clients, "
-                        "re-exports, or symbols to be written out\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file has no exported clients, "
-                      "re-exports, or symbols to be written out\n",
-                      stderr);
-
+            if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                return false;
             }
+
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has no exported clients, "
+                    "re-exports, or symbols to be written out\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
         }

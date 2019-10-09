@@ -231,10 +231,6 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
     }
 
-    if (args.options & O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH) {
-        verify_write_path(args.tbd);
-    }
-
     const struct handle_macho_file_parse_result_args handle_args = {
         .retained_info_in = args.retained_info_in,
         .global = args.global,
@@ -248,6 +244,10 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
+    }
+
+    if (args.options & O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH) {
+        verify_write_path(args.tbd);
     }
 
     char *write_path = args.tbd->write_path;
