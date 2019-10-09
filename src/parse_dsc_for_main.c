@@ -161,7 +161,7 @@ print_write_error(struct dsc_iterate_images_info *__notnull const iterate_info,
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter_dir(
+write_out_tbd_info_for_filter_dir(
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const filter_dir,
     const char *__notnull const image_path,
@@ -194,7 +194,7 @@ write_out_tbd_info_for_single_filter_dir(
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter_filename(
+write_out_tbd_info_for_filter_filename(
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const filter_filename,
     const uint64_t filter_length)
@@ -223,7 +223,7 @@ write_out_tbd_info_for_single_filter_filename(
 }
 
 static enum tbd_for_main_write_to_path_result
-write_out_tbd_info_for_single_filter(
+write_out_tbd_info_for_filter(
     const struct tbd_for_main_dsc_image_filter *__notnull const filter,
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const image_path,
@@ -235,18 +235,18 @@ write_out_tbd_info_for_single_filter(
     switch (filter->type) {
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
             result =
-                write_out_tbd_info_for_single_filter_dir(tbd,
-                                                         filter->tmp_ptr,
-                                                         image_path,
-                                                         image_path_length);
+                write_out_tbd_info_for_filter_dir(tbd,
+                                                  filter->tmp_ptr,
+                                                  image_path,
+                                                  image_path_length);
 
             break;
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
             result =
-                write_out_tbd_info_for_single_filter_filename(tbd,
-                                                              filter->tmp_ptr,
-                                                              filter->length);
+                write_out_tbd_info_for_filter_filename(tbd,
+                                                       filter->tmp_ptr,
+                                                       filter->length);
 
             break;
     }
@@ -255,10 +255,11 @@ write_out_tbd_info_for_single_filter(
 }
 
 static void
-write_out_tbd_info_for_filters(struct dsc_iterate_images_info *const info,
-                               struct tbd_for_main *__notnull const tbd,
-                               const char *__notnull const image_path,
-                               const uint64_t length)
+write_out_tbd_info_for_filter_list(
+    struct dsc_iterate_images_info *const info,
+    struct tbd_for_main *__notnull const tbd,
+    const char *__notnull const image_path,
+    const uint64_t length)
 {
     const struct array *const filters = &tbd->dsc_image_filters;
 
@@ -277,10 +278,7 @@ write_out_tbd_info_for_filters(struct dsc_iterate_images_info *const info,
         filter->flags = flags;
 
         const enum tbd_for_main_write_to_path_result write_result =
-            write_out_tbd_info_for_single_filter(filter,
-                                                 tbd,
-                                                 image_path,
-                                                 length);
+            write_out_tbd_info_for_filter(filter, tbd, image_path, length);
 
         if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
             print_write_error(info, tbd, image_path, write_result);
@@ -394,7 +392,7 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
         return;
     }
 
-    write_out_tbd_info_for_filters(info, tbd, path, path_length);
+    write_out_tbd_info_for_filter_list(info, tbd, path, path_length);
     write_out_tbd_info_for_paths(info, tbd, path, path_length);
 }
 
