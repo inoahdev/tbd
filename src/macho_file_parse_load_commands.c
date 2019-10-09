@@ -492,11 +492,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
             }
 
-            const bool needs_quotes = yaml_check_c_str(name_ptr, length);
-            if (needs_quotes) {
-                info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
-            }
-
             const struct dylib dylib = dylib_command->dylib;
             if (info_in->install_name != NULL) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS) {
@@ -553,6 +548,12 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
                     info_in->install_name_length = length;
                 }
+
+                const bool needs_quotes = yaml_check_c_str(name_ptr, length);
+                if (needs_quotes) {
+                    info_in->flags |=
+                        F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+                }
             }
 
             *parse_info.found_identification_out = true;
@@ -595,7 +596,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
             }
 
-            const char *const reexport_string =
+            const char *const string =
                 (const char *)reexport_dylib + reexport_offset;
 
             /*
@@ -604,8 +605,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              */
 
             const uint32_t max_length = load_cmd.cmdsize - reexport_offset;
-            const uint32_t length =
-                (uint32_t)strnlen(reexport_string, max_length);
+            const uint32_t length = (uint32_t)strnlen(string, max_length);
 
             if (length == 0) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
@@ -619,7 +619,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 add_export_to_info(info_in,
                                    parse_info.arch_bit,
                                    TBD_EXPORT_TYPE_REEXPORT,
-                                   reexport_string,
+                                   string,
                                    length,
                                    tbd_options);
 
@@ -778,12 +778,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
             }
 
-            const bool needs_quotes = yaml_check_c_str(umbrella, length);
-            if (needs_quotes) {
-                info_in->flags |=
-                    F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
-            }
-
             if (info_in->parent_umbrella != NULL) {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS) {
                     break;
@@ -811,6 +805,12 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     info_in->parent_umbrella = umbrella_string;
                 } else {
                     info_in->parent_umbrella = umbrella;
+                }
+
+                const bool needs_quotes = yaml_check_c_str(umbrella, length);
+                if (needs_quotes) {
+                    info_in->flags |=
+                        F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
                 }
 
                 info_in->parent_umbrella_length = length;
