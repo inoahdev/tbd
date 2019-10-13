@@ -38,7 +38,11 @@ is_objc_class_symbol(const char *__notnull const symbol,
                      const char **__notnull const symbol_out,
                      uint32_t *__notnull const length_out)
 {
-    if (max_length <= 13) {
+    /*
+     * Ensure the max potential length of the symbol is at least 14 bytes.
+     */
+
+    if (max_length < 15) {
         return false;
     }
 
@@ -50,9 +54,9 @@ is_objc_class_symbol(const char *__notnull const symbol,
         case 5495340712935444319: {
             /*
              * The check here is `if (first == "_OBJC_CL")`, checking of whether
-             * the prefix is "_OBJC_CLASS_$".
+             * the prefix is "_OBJC_CLASS_$_".
              *
-             * The check below is `if (second == "ASS_")`.
+             * The check below is `if (second != "ASS_")`.
              */
 
             const uint32_t second = *(const uint32_t *)(symbol + 8);
@@ -60,14 +64,30 @@ is_objc_class_symbol(const char *__notnull const symbol,
                 return false;
             }
 
-            if (symbol[12] != '$') {
+            /*
+             * The check below is `if (third != "$_")`.
+             */
+
+            const uint16_t third = *(const uint16_t *)(symbol + 12);
+            if (third != 24356) {
                 return false;
             }
 
+            /*
+             * We return the symbol with its preceding underscore.
+             */
+
             const char *const real_symbol = symbol + 13;
 
+            /*
+             * Add one to real_symbol to avoid rechecking the underscore.
+             */
+
+            const uint32_t length =
+                (uint32_t)strnlen(real_symbol + 1, max_length - 14) + 1;
+
             *symbol_out = real_symbol;
-            *length_out = (uint32_t)strnlen(real_symbol, max_length - 13);
+            *length_out = length;
 
             break;
         }
@@ -75,15 +95,18 @@ is_objc_class_symbol(const char *__notnull const symbol,
         case 4993752304437055327: {
             /*
              * The check here is `if (first == "_OBJC_ME")`, checking if the
-             * prefix is "_OBJC_METACLASS_$".
+             * prefix is "_OBJC_METACLASS_$_".
+             *
+             * Ensure the max potential length of the symbol is at least 18
+             * bytes.
              */
 
-            if (max_length <= 17) {
+            if (max_length < 19) {
                 return false;
             }
 
             /*
-             * The check below is `if (second == "TACLASS")`.
+             * The check below is `if (second != "TACLASS_")`.
              */
 
             const uint64_t second = *(const uint64_t *)(symbol + 8);
@@ -91,14 +114,30 @@ is_objc_class_symbol(const char *__notnull const symbol,
                 return false;
             }
 
-            if (symbol[16] != '$') {
+            /*
+             * The check below is `if (third != "$_")`.
+             */
+
+            const uint16_t third = *(const uint16_t *)(symbol + 16);
+            if (third != 24356) {
                 return false;
             }
 
+            /*
+             * We return the symbol with its preceding underscore.
+             */
+
             const char *const real_symbol = symbol + 17;
 
+            /*
+             * Add one to real_symbol to avoid rechecking the underscore.
+             */
+
+            const uint32_t length =
+                (uint32_t)strnlen(real_symbol + 1, max_length - 18) + 1;
+
             *symbol_out = real_symbol;
-            *length_out = (uint32_t)strnlen(real_symbol, max_length - 17);
+            *length_out = length;
 
             break;
         }
@@ -107,14 +146,17 @@ is_objc_class_symbol(const char *__notnull const symbol,
             /*
              * The check here is `if (first == ".objc_cl")`, checking if the
              * prefix is ".objc_class_name".
+             *
+             * Ensure that the max potential length of this symbol is at least
+             * 17 btyes.
              */
 
-            if (max_length <= 16) {
+            if (max_length < 18) {
                 return false;
             }
 
             /*
-             * The check below is `if (second == ".ass_name")`.
+             * The check below is `if (second != "ass_name")`.
              */
 
             const uint64_t second = *(const uint64_t *)(symbol + 8);
@@ -122,10 +164,25 @@ is_objc_class_symbol(const char *__notnull const symbol,
                 return false;
             }
 
+            if (symbol[16] != '_') {
+                return false;
+            }
+
+            /*
+             * We return the symbol with its preceding underscore.
+             */
+
             const char *const real_symbol = symbol + 16;
 
+            /*
+             * Add one to real_symbol to avoid rechecking the underscore.
+             */
+
+            const uint32_t length =
+                (uint32_t)strnlen(real_symbol + 1, max_length - 17) + 1;
+
             *symbol_out = real_symbol;
-            *length_out = (uint32_t)strnlen(real_symbol, max_length - 16);
+            *length_out = length;
 
             break;
         }
@@ -156,22 +213,33 @@ bool is_objc_ehtype_symbol(const char *__notnull const symbol,
         return false;
     }
 
+    /*
+     * The check below is `if (first != "_OBJC_EH")`.
+     */
+
     if (first != 5207673286737153887) {
         return false;
     }
+
+    /*
+     * The check below is `if (second != "TYPE")`.
+     */
 
     const uint32_t second = *(const uint32_t *)(symbol + 8);
     if (second != 1162893652) {
         return false;
     }
 
+    /*
+     * The check below is `if (third != "_$")`.
+     */
+
     const uint16_t third = *(const uint16_t *)(symbol + 12);
     if (third != 9311) {
         return false;
     }
 
-    const uint8_t fourth = *(const uint8_t *)(symbol + 14);
-    if (fourth != 95) {
+    if (symbol[14] != '_') {
         return false;
     }
 
@@ -196,6 +264,10 @@ bool is_objc_ivar_symbol(const char *__notnull const symbol,
 
     const uint32_t second = *(const uint32_t *)(symbol + 8);
     if (second != 610226753) {
+        return false;
+    }
+
+    if (symbol[12] != '_') {
         return false;
     }
 
@@ -245,7 +317,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
          * disqualifies the symbol from being an objc symbol.
          */
 
-        if (max_len > 12) {
+        if (max_len > 13) {
             const enum tbd_version version = info_in->version;
 
             const uint64_t first = *(const uint64_t *)string;
@@ -307,13 +379,13 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 string += 12;
+
+                symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
                 length = (uint32_t)strnlen(string, max_len - 12);
 
                 if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
-
-                symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
             } else {
                 if (!(n_type & N_EXT)) {
                     return E_MACHO_FILE_PARSE_OK;
@@ -339,12 +411,12 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_OK;
         }
 
-        /*
-         * We don't check if length is zero as the caller already verified that.
-         */
-
         symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
         length = (uint32_t)strnlen(symbol_string, max_len);
+
+        if (unlikely(length == 0)) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
     }
 
     struct tbd_export_info export_info = {
@@ -540,7 +612,7 @@ macho_file_parse_symbols_from_file(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -586,7 +658,7 @@ macho_file_parse_symbols_from_file(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = nlist->n_un.n_strx;
@@ -746,7 +818,7 @@ macho_file_parse_symbols_64_from_file(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -792,7 +864,7 @@ macho_file_parse_symbols_64_from_file(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = nlist->n_un.n_strx;
@@ -901,7 +973,7 @@ macho_file_parse_symbols_from_map(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -1047,7 +1119,7 @@ macho_file_parse_symbols_64_from_map(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
@@ -1090,7 +1162,7 @@ macho_file_parse_symbols_64_from_map(
 
             /*
              * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references
+             * invalid string-table references.
              */
 
             const uint32_t index = nlist->n_un.n_strx;
