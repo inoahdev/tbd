@@ -408,12 +408,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                         }
                     }
 
-                    const bool ignore_conflicting_fields =
-                        options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS;
-
-                    if (!ignore_conflicting_fields) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             }
 
@@ -501,11 +496,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
             const struct dylib dylib = dylib_command->dylib;
             if (info_in->install_name != NULL) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS) {
-                    *parse_info.found_identification_out = true;
-                    break;
-                }
-
                 if (info_in->current_version != dylib.current_version) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                 }
@@ -786,17 +776,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (info_in->parent_umbrella != NULL) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS) {
-                    break;
-                }
-
-                if (info_in->parent_umbrella_length != length) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
-                }
-
-                const char *const parent_umbrella =
-                    info_in->parent_umbrella;
-
+                const char *const parent_umbrella = info_in->parent_umbrella;
                 if (memcmp(parent_umbrella, umbrella, length) != 0) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
                 }
@@ -871,10 +851,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 const char *const uuid_str =
                     (const char *)parse_info.uuid_info_in->uuid;
 
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (memcmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
-                    }
+                if (memcmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
                 }
             } else {
                 memcpy(parse_info.uuid_info_in->uuid, uuid_cmd->uuid, 16);
@@ -912,10 +890,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (info_in->platform != 0) {
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (info_in->platform != TBD_PLATFORM_MACOS) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
+                if (info_in->platform != TBD_PLATFORM_MACOS) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_MACOS;
@@ -952,10 +928,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (info_in->platform != 0) {
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (info_in->platform != TBD_PLATFORM_IOS) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
+                if (info_in->platform != TBD_PLATFORM_IOS) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_IOS;
@@ -992,10 +966,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (info_in->platform != 0) {
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (info_in->platform != TBD_PLATFORM_WATCHOS) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
+                if (info_in->platform != TBD_PLATFORM_WATCHOS) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_WATCHOS;
@@ -1032,10 +1004,8 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (info_in->platform != 0) {
-                if (!(options & O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS)) {
-                    if (info_in->platform != TBD_PLATFORM_TVOS) {
-                        return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
-                    }
+                if (info_in->platform != TBD_PLATFORM_TVOS) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             } else {
                 info_in->platform = TBD_PLATFORM_TVOS;

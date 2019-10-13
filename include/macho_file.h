@@ -22,22 +22,20 @@ enum macho_file_options {
      */
 
     O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS      = 1ull << 0,
-    O_MACHO_FILE_PARSE_IGNORE_CONFLICTING_FIELDS  = 1ull << 1,
-    O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1ull << 2,
-
-    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE = 1ull << 3,
+    O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1ull << 1,
+    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE    = 1ull << 2,
 
     /*
      * By default, strings are not copied for a mapped mach-o file.
      */
 
-    O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP = 1ull << 4,
+    O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP = 1ull << 3,
 
     /*
      * Treat a section's offset as absolute.
      */
 
-    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE = 1ull << 5
+    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE = 1ull << 4
 };
 
 struct macho_arch_group_specific_info {
