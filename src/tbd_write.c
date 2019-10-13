@@ -356,6 +356,9 @@ tbd_write_objc_constraint(FILE *__notnull const file,
                           const enum tbd_objc_constraint constraint)
 {
     switch (constraint) {
+        case TBD_OBJC_CONSTRAINT_INVALID_VALUE:
+            return 1;
+
         case TBD_OBJC_CONSTRAINT_NONE:
             if (fprintf(file, "objc-constraint:%-7snone\n", "") < 0) {
                 return 1;
@@ -402,6 +405,9 @@ tbd_write_objc_constraint(FILE *__notnull const file,
 int
 tbd_write_magic(FILE *__notnull const file, const enum tbd_version version) {
     switch (version) {
+        case TBD_VERSION_NONE:
+            return 1;
+
         case TBD_VERSION_V1:
             if (fputs("---\n", file) < 0) {
                 return 1;
@@ -528,6 +534,9 @@ tbd_write_swift_version(FILE *__notnull const file,
     }
 
     switch (tbd_version) {
+        case TBD_VERSION_NONE:
+            return 1;
+
         case TBD_VERSION_V1:
             return 0;
 
@@ -636,7 +645,7 @@ int
 tbd_write_uuids(FILE *__notnull const file,
                 const struct array *__notnull const uuids)
 {
-    if (array_is_empty(uuids)) {
+    if (uuids->item_count == 0) {
         return 1;
     }
 
@@ -704,6 +713,9 @@ write_export_type_key(FILE *__notnull const file,
                       const enum tbd_version version)
 {
     switch (type) {
+        case TBD_EXPORT_TYPE_NONE:
+            return 1;
+
         case TBD_EXPORT_TYPE_CLIENT: {
             if (version == TBD_VERSION_V1) {
                 if (fprintf(file, "%-4sallowed-clients:%-4s[ ", "", "") < 0) {
@@ -766,7 +778,11 @@ write_export_type_key(FILE *__notnull const file,
 
 static inline int end_written_export_array(FILE *__notnull const file) {
     static const char *const end = " ]\n";
-    return (fwrite(end, 3, 1, file) != 1);
+    if (fwrite(end, 3, 1, file) != 1) {
+        return 1;
+    }
+
+    return 0;
 }
 
 static uint32_t line_length_max = 105;

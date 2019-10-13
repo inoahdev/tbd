@@ -199,16 +199,16 @@ recurse_directory_fail_callback(const char *const dir_path,
 
 static int validate_tbd_filetype(struct tbd_for_main *const tbd) {
     const struct array *const filters = &tbd->dsc_image_filters;
-    const struct array *const paths = &tbd->dsc_image_paths;
+    if (filters->item_count == 0) {
+        return 0;
+    }
 
-    if (!array_is_empty(filters) || !array_is_empty(paths)) {
-        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
-            fputs("dsc image-filters and/or dsc image-paths have been provided "
-                  "for a file that is not a dyld_shared_cache\n",
-                  stderr);
+    if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+        fputs("dsc image-filters and/or dsc image-paths have been provided "
+              "for a file that is not a dyld_shared_cache\n",
+              stderr);
 
-            exit(1);
-        }
+        exit(1);
     }
 
     return 0;
@@ -480,11 +480,11 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 struct stat info = {};
-                if (stat(path, &info) == 0) {
+                if (stat(full_path, &info) == 0) {
                     if (S_ISREG(info.st_mode)) {
                         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
                             fputs("Writing to a regular file while recursing a "
-                                  "directory is not supported, Please provide "
+                                  "directory is not supported.\nPlease provide "
                                   "a directory to write all found files to\n",
                                   stderr);
 
@@ -526,7 +526,7 @@ int main(const int argc, const char *const argv[]) {
 
                 /*
                  * Copy the path (if still from argv) to allow open_r to create
-                 * the file (and directory hierarchy if needed).
+                 * the file, as modifying full_path's memory is necessary.
                  */
 
                 if (full_path == path) {
@@ -563,8 +563,8 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "p") == 0 || strcmp(option, "path") == 0) {
             index += 1;
             if (index == argc) {
-                fputs("Please provide either a path to a mach-o file or a "
-                      "dyld_shared_cache file or \"stdin\" to parse from "
+                fputs("Please provide path to either a mach-o file, a "
+                      "dyld_shared_cache file, or \"stdin\" to parse from "
                       "terminal input\n",
                       stderr);
 
@@ -665,14 +665,21 @@ int main(const int argc, const char *const argv[]) {
 
                     struct stat info = {};
                     if (stat(full_path, &info) != 0) {
-                        if (errno == ENOENT) {
+                        /*
+                         * ENOTDIR will be returned if a directory in the
+                         * path directory isn't a directory at all, which still
+                         * means that no file/directory exists at the provided
+                         * path.
+                         */
+
+                        if (errno == ENOENT || errno == ENOTDIR) {
                             fprintf(stderr,
                                     "No file or directory exists at path: %s\n",
                                     full_path);
                         } else {
                             fprintf(stderr,
-                                    "Failed to retrieve information on object "
-                                    "at path: %s\n",
+                                    "Failed to retrieve information on file or "
+                                    "directory at path, error: %s\n",
                                     full_path);
                         }
 
@@ -688,9 +695,7 @@ int main(const int argc, const char *const argv[]) {
 
                     if (S_ISREG(info.st_mode)) {
                         if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                            fputs("Only directories can be recursed through. "
-                                  "Please provide a path to a directory if "
-                                  "recursing is needed\n",
+                            fputs("Only directories can be recursed through\n",
                                   stderr);
 
                             if (full_path != path) {
@@ -749,14 +754,10 @@ int main(const int argc, const char *const argv[]) {
                          * functions don't append ending slashes.
                          */
 
-                        const char *const last_slashes =
-                            path_find_ending_row_of_slashes(full_path,
-                                                            full_path_length);
-
-                        if (last_slashes != NULL) {
-                            full_path_length =
-                                (uint64_t)(last_slashes - full_path);
-                        }
+                        full_path_length =
+                            path_get_length_by_removing_end_slashes(
+                                full_path,
+                                full_path_length);
 
                         full_path = alloc_and_copy(full_path, full_path_length);
                         if (full_path == NULL) {
@@ -792,9 +793,9 @@ int main(const int argc, const char *const argv[]) {
                 if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
                     if (tbd.flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
                         fprintf(stderr,
-                                "Both modifying tbd-flags and removing the "
-                                "field entirely for path (%s) is not "
-                                "not supported. Please choose only a single "
+                                "Both modifying tbd-flags, and removing the "
+                                "field entirely, for path (%s) is not "
+                                "supported. Please choose only a single "
                                 "option\n",
                                 path);
 
@@ -807,9 +808,9 @@ int main(const int argc, const char *const argv[]) {
 
                     if (tbd.flags_re != 0) {
                         fprintf(stderr,
-                                "Both modifying tbd-flags and removing the "
-                                "field entirely for file(s) at path (%s) is "
-                                "not supported. Please choose only a single "
+                                "Both modifying tbd-flags, and removing the "
+                                "field entirely, for file(s) at path (%s) is "
+                                "not supported.\nPlease choose only a single "
                                 "option\n",
                                 path);
 
@@ -842,7 +843,7 @@ int main(const int argc, const char *const argv[]) {
                 array_add_item(&tbds, sizeof(tbd), &tbd, NULL);
 
             if (add_tbd_result != E_ARRAY_OK) {
-                fputs("Internal failure: Failed to add info to array\n",
+                fputs("Internal failure: Failed to add path-info to array\n",
                       stderr);
 
                 tbd_for_main_destroy(&global);
@@ -872,10 +873,10 @@ int main(const int argc, const char *const argv[]) {
 
             if (argc == 3) {
                 const char *const path = argv[2];
-                char *const full_path =
-                    path_get_absolute_path(path, strlen(path), NULL);
 
+                char *const full_path = path_get_absolute_path(path, 0, NULL);
                 const int fd = open(full_path, O_RDONLY);
+
                 if (fd < 0) {
                     fprintf(stderr,
                             "Failed to open file at path: %s, error: %s\n",
@@ -889,6 +890,10 @@ int main(const int argc, const char *const argv[]) {
                     return 1;
                 }
 
+                if (full_path != path) {
+                    free(full_path);
+                }
+
                 macho_file_print_archs(fd);
             } else {
                 print_arch_info_list();
@@ -898,7 +903,7 @@ int main(const int argc, const char *const argv[]) {
         } else if (strcmp(option, "list-dsc-images") == 0) {
             if (index != 1 || argc > 4) {
                 fputs("--list-dsc-images needs to be run with a single path to "
-                      "a dyld_shared_cache file whose images will be printed."
+                      "a dyld_shared_cache file whose images will be printed.\n"
                       "An additional option (--ordered) can be provided to "
                       "sort the image-paths before printing them\n",
                       stderr);
@@ -908,10 +913,10 @@ int main(const int argc, const char *const argv[]) {
             }
 
             const char *const path = argv[2];
-            char *const full_path =
-                path_get_absolute_path(path, strlen(path), NULL);
 
+            char *const full_path = path_get_absolute_path(path, 0, NULL);
             const int fd = open(full_path, O_RDONLY);
+
             if (fd < 0) {
                 fprintf(stderr,
                         "Failed to open file at path: %s, error: %s\n",
@@ -925,7 +930,17 @@ int main(const int argc, const char *const argv[]) {
                 return 1;
             }
 
-            if (argc > 3) {
+            if (full_path != path) {
+                free(full_path);
+            }
+
+            /*
+             * Two modes exist for option --list-dsc-images:
+             *     - Listing the images by index.
+             *     - Listing the images after sorting them.
+             */
+
+            if (argc == 4) {
                 const char *const arg = argv[3];
                 if (strcmp(arg, "--ordered") != 0) {
                     fprintf(stderr, "Unrecognized argument: %s\n", arg);
@@ -1017,7 +1032,7 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
-    if (array_is_empty(&tbds)) {
+    if (tbds.item_count == 0) {
         fputs("Please provide paths to either files to parse or directories to "
               "recurse\n",
               stderr);
@@ -1093,20 +1108,20 @@ int main(const int argc, const char *const argv[]) {
                             "Failed to recurse directory (at path %s)\n",
                             tbd->parse_path);
                 } else {
-                    fputs("Failed to recurse the provided directory\n", stderr);
+                    fputs("Failed to recurse directory at the provided path\n",
+                          stderr);
                 }
             }
 
             if (recurse_info.files_parsed == 0) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "No suitable files were found to create .tbd files "
-                            "from while recursing directory (at path %s)\n",
+                            "No supported files were found from while "
+                            "recursing directory (at path %s)\n",
                             tbd->parse_path);
                 } else {
-                    fputs("No suitable files were found to create .tbd files "
-                          "from while recursing directory at the provided "
-                          "path\n",
+                    fputs("No supported files were found while recursing "
+                          "directory at the provided path\n",
                           stderr);
                 }
             }
@@ -1228,22 +1243,22 @@ int main(const int argc, const char *const argv[]) {
 
             if (tbd->filetypes == 0) {
                 if (should_print_paths) {
-                    fputs("File at provided path (%s) was not among any of "
-                          "the supported filetypes\n",
+                    fputs("File (at path %s) is not among any of the supported "
+                          "filetypes\n",
                           stderr);
                 } else {
-                    fputs("File at the provided path was not among any of "
-                          "the supported filetypes\n",
+                    fputs("File at the provided path is not among any of the "
+                          "supported filetypes\n",
                           stderr);
                 }
             } else if (tbd->filetypes_count != 1) {
                 if (should_print_paths) {
-                    fputs("File at provided path (%s) was not among any of "
-                          "the provided filetypes\n",
+                    fputs("File (at path %s) is not among any of the provided "
+                          "filetypes\n",
                           stderr);
                 } else {
-                    fputs("File at the provided path was not among any of "
-                          "the provided filetypes\n",
+                    fputs("File at the provided path is not among any of the "
+                          "provided filetypes\n",
                           stderr);
                 }
             }

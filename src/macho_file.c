@@ -967,7 +967,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-            if (array_is_empty(&info_in->exports)) {
+            if (info_in->exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
         }
@@ -1055,7 +1055,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-            if (array_is_empty(&info_in->exports)) {
+            if (info_in->exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
         }

@@ -51,10 +51,6 @@ void *array_get_back(const struct array *const array, const size_t item_size) {
     return (void *)(data_end - item_size);
 }
 
-bool array_is_empty(const struct array *const array) {
-    return array->data == array->data_end;
-}
-
 static uint64_t get_new_capacity(const uint64_t old_capacity) {
     return old_capacity * 2;
 }
@@ -474,11 +470,11 @@ array_add_item_to_index(struct array *__notnull const array,
      * Note: We do allow providing index of back + 1 (array->data_end).
      */
 
-    if (position > array->data_end) {
+    const void *const data_end = array->data_end;
+    if (position > data_end) {
         return E_ARRAY_INDEX_OUT_OF_BOUNDS;
     }
 
-    const void *const data_end = array->data_end;
     if (position != data_end) {
         void *const next_position = position + item_size;
         const uint64_t array_move_size = (uint64_t)(data_end - position);

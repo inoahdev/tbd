@@ -9,7 +9,7 @@ VSCODEFLAGS := -I.vscode/ -Wno-unused-parameter -Wno-sign-conversion $(CFLAGS)
 SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd
 
-EXTRADEBUGFLAGS := -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer
+EXTRADEBUGFLAGS := -fsanitize=address -fno-omit-frame-pointer
 DEBUGFLAGS := -fprofile-arcs $(DEFAULTFLAGS) -g $(EXTRADEBUGFLAGS)
 
 .DEFAULT_GOAL := all

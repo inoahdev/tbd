@@ -159,16 +159,12 @@ parse_objc_constraint(const char *__notnull const constraint) {
         return TBD_OBJC_CONSTRAINT_GC;
     }
 
-    return 0;
+    return TBD_OBJC_CONSTRAINT_INVALID_VALUE;
 }
 
 uint32_t parse_swift_version(const char *__notnull const arg) {
     if (strcmp(arg, "1.2") == 0) {
         return 2;
-    }
-
-    if (arg[0] == '0') {
-        return 0;
     }
 
     uint32_t version = 0;
@@ -216,7 +212,7 @@ enum tbd_platform parse_platform(const char *__notnull const platform) {
         return TBD_PLATFORM_ZIPPERED;
     }
 
-    return 0;
+    return TBD_PLATFORM_NONE;
 }
 
 enum tbd_version parse_tbd_version(const char *__notnull const version) {
@@ -228,14 +224,12 @@ enum tbd_version parse_tbd_version(const char *__notnull const version) {
         return TBD_VERSION_V3;
     }
 
-    return 0;
+    return TBD_VERSION_NONE;
 }
 
 void print_arch_info_list(void) {
     const struct arch_info *info = arch_info_get_list();
-    const char *name = info->name;
-
-    for (; name != NULL; name = (++info)->name) {
+    for (const char *name = info->name; name != NULL; name = (++info)->name) {
         fprintf(stdout, "%s\n", name);
     }
 }

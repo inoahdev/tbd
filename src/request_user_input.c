@@ -57,24 +57,18 @@ request_choice(const char *__notnull const prompt,
         }
 
         uint64_t index = 0;
-        const uint64_t check_length = (uint64_t)(input_length - 1);
 
         iter = inputs;
         acceptable_input = *iter;
+        input[input_length - 1] = '\0';
 
         for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-            if (strncmp(acceptable_input, input, check_length) != 0) {
-                index++;
-                continue;
+            if (strcmp(acceptable_input, input) != 0) {
+                free(input);
+                return index;
             }
 
-            if (acceptable_input[check_length] != '\0') {
-                index++;
-                continue;
-            }
-
-            free(input);
-            return index;
+            ++index;
         }
 
         free(input);
@@ -143,7 +137,7 @@ request_install_name(struct tbd_for_main *__notnull const global,
     if (global->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
         if (global->info.install_name != NULL) {
             const char *const global_install_name = global->info.install_name;
-            if (global->info.install_name != NULL) {
+            if (global_install_name != NULL) {
                 tbd->info.install_name = global_install_name;
                 tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
             }
@@ -243,7 +237,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(input);
 
-        if (objc_constraint == 0) {
+        if (objc_constraint == TBD_OBJC_CONSTRAINT_INVALID_VALUE) {
             fprintf(stderr, "Unrecognized objc-constraint type: %s\n", input);
             free(input);
 
@@ -346,7 +340,7 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
         const enum tbd_platform global_platform = global->info.platform;
-        if (global->info.platform != 0) {
+        if (global_platform != 0) {
             tbd->info.platform = global_platform;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
@@ -384,7 +378,7 @@ request_platform(struct tbd_for_main *__notnull const global,
         }
 
         const enum tbd_platform platform = parse_platform(input);
-        if (platform == 0) {
+        if (platform == TBD_PLATFORM_NONE) {
             fprintf(stderr, "Unrecognized platform: %s\n", input);
             free(input);
 

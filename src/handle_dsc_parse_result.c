@@ -459,8 +459,8 @@ handle_dsc_image_parse_result(
     }
 
     /*
-     * Because the O_MACHO_FILE_IGNORE_INVALID_FIELDS option was passed in to
-     * parse_macho_from_main(), we may have some incomplete yet mandatory
+     * Because the O_MACHO_FILE_IGNORE_INVALID_FIELDS option was passed in from
+     * parse_dcs_from_main(), we may have some incomplete, yet mandatory
      * fields.
      */
 

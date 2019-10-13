@@ -135,12 +135,13 @@ add_image_path(int *__notnull const index_in,
     }
 
     const char *const string = argv[index + 1];
-    const struct tbd_for_main_dsc_image_path path = {
+    const struct tbd_for_main_dsc_image_filter path = {
         .string = string,
-        .length = strlen(string)
+        .length = strlen(string),
+        .type = TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH
     };
 
-    struct array *const paths = &tbd->dsc_image_paths;
+    struct array *const paths = &tbd->dsc_image_filters;
     const enum array_result add_path_result =
         array_add_item(paths, sizeof(path), &path, NULL);
 
@@ -152,6 +153,7 @@ add_image_path(int *__notnull const index_in,
         exit(1);
     }
 
+    tbd->dsc_filter_paths_count += 1;
     *index_in = index + 1;
 }
 
@@ -358,7 +360,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(argument);
 
-        if (objc_constraint == 0) {
+        if (objc_constraint == TBD_OBJC_CONSTRAINT_INVALID_VALUE) {
             fprintf(stderr,
                     "Unrecognized objc-constraint: %s. Run "
                     "--list-objc-constraint to see a list of valid "
@@ -420,7 +422,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         const char *const argument = argv[index];
         const enum tbd_version version = parse_tbd_version(argument);
 
-        if (version == 0) {
+        if (version == TBD_VERSION_NONE) {
             fprintf(stderr,
                     "Unrecognized tbd-version: %s. Run --list-tbd-versions to "
                     "see a list of valid tbd-versions\n",
@@ -509,12 +511,9 @@ tbd_for_main_create_write_path_for_recursing(
         uint64_t new_file_name_length = file_name_length;
 
         if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-            const char *const path_extension =
-                path_find_extension(file_name, file_name_length);
-
-            if (path_extension != NULL) {
-                new_file_name_length = (uint64_t)(path_extension - file_name);
-            }
+            new_file_name_length =
+                path_get_length_by_removing_extension(file_name,
+                                                      file_name_length);
         }
 
         write_path =
@@ -565,12 +564,9 @@ tbd_for_main_create_dsc_image_write_path(
 {
     uint64_t new_image_path_length = image_path_length;
     if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
-        const char *const path_extension =
-            path_find_extension(image_path, image_path_length);
-
-        if (path_extension != NULL) {
-            new_image_path_length = (uint64_t)(path_extension - image_path);
-        }
+        new_image_path_length =
+            path_get_length_by_removing_extension(image_path,
+                                                  image_path_length);
     }
 
     char *const image_write_path =
@@ -673,8 +669,8 @@ tbd_for_main_write_to_path(const struct tbd_for_main *__notnull const tbd,
     if (write_fd < 0) {
         /*
          * Although getting the file descriptor failed, its likely open_r still
-         * created the directory hierarchy (and if so the terminator shouldn't
-         * be NULL).
+         * created the directory hierarchy, and if so the terminator shouldn't
+         * be NULL.
          */
 
         if (terminator != NULL) {
@@ -693,8 +689,7 @@ tbd_for_main_write_to_path(const struct tbd_for_main *__notnull const tbd,
              * overwriting.
              *
              * Note: EEXIST is only returned when O_EXCL was set, which is only
-             * set for F_TBD_FOR_MAIN_NO_OVERWRITE, implying that we shouldn't
-             * need to check for F_TBD_FOR_MAIN_NO_OVERWRITE here.
+             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
              */
 
             if (errno == EEXIST) {
@@ -703,14 +698,12 @@ tbd_for_main_write_to_path(const struct tbd_for_main *__notnull const tbd,
 
             if (print_paths) {
                 fprintf(stderr,
-                        "Failed to open write-file (for path: %s), "
-                        "error: %s\n",
+                        "Failed to open write-file (for path: %s), error: %s\n",
                         write_path,
                         strerror(errno));
             } else {
                 fprintf(stderr,
-                        "Failed to open the provided write-file, "
-                        "error: %s\n",
+                        "Failed to open the provided write-file, error: %s\n",
                         strerror(errno));
             }
         }
@@ -833,6 +826,16 @@ dsc_image_filter_comparator(const void *__notnull const array_item,
     const struct tbd_for_main_dsc_image_filter *const filter =
         (const struct tbd_for_main_dsc_image_filter *)item;
 
+    const enum tbd_for_main_dsc_image_filter_type type = filter->type;
+    const enum tbd_for_main_dsc_image_filter_type array_type =
+        array_filter->type;
+
+    if (array_type > type) {
+        return 1;
+    } else if (array_type < type) {
+        return -1;
+    }
+
     const uint64_t array_filter_length = array_filter->length;
     const uint64_t filter_length = filter->length;
 
@@ -841,9 +844,7 @@ dsc_image_filter_comparator(const void *__notnull const array_item,
 
     if (array_filter_length > filter_length) {
         return memcmp(array_string, string, filter_length + 1);
-    }
-
-    if (array_filter_length < filter_length) {
+    } else if (array_filter_length < filter_length) {
         return memcmp(array_string, string, array_filter_length + 1);
     }
 
@@ -851,8 +852,8 @@ dsc_image_filter_comparator(const void *__notnull const array_item,
 }
 
 static int
-image_number_comparator(const void *__notnull const array_item,
-                        const void *__notnull const item)
+dsc_image_number_comparator(const void *__notnull const array_item,
+                            const void *__notnull const item)
 {
     const uint32_t array_number = *(const uint32_t *)array_item;
     const uint32_t number = *(const uint32_t *)item;
@@ -864,28 +865,6 @@ image_number_comparator(const void *__notnull const array_item,
     }
 
     return 0;
-}
-
-static int
-dsc_image_path_comparator(const void *__notnull const array_item,
-                          const void *__notnull const item)
-{
-    const struct tbd_for_main_dsc_image_path *const array_path =
-        (const struct tbd_for_main_dsc_image_path *)array_item;
-
-    const struct tbd_for_main_dsc_image_path *const path =
-        (const struct tbd_for_main_dsc_image_path *)item;
-
-    const uint64_t array_path_length = array_path->length;
-    const uint64_t path_length = path->length;
-
-    if (array_path_length > path_length) {
-        return memcmp(array_path->string, path->string, path_length + 1);
-    } else if (array_path_length < path_length) {
-        return memcmp(array_path->string, path->string, array_path_length + 1);
-    }
-
-    return memcmp(array_path->string, path->string, path_length);
 }
 
 void
@@ -963,27 +942,11 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
             array_add_and_unique_items_from_array(&dst->dsc_image_numbers,
                                                   sizeof(uint32_t),
                                                   src_numbers,
-                                                  image_number_comparator);
+                                                  dsc_image_number_comparator);
 
         if (add_numbers_result != E_ARRAY_OK) {
             fputs("Experienced an array failure when trying to add dsc "
                   "image-numbers\n",
-                  stderr);
-
-            exit(1);
-        }
-
-        const struct array *const src_paths = &src->dsc_image_paths;
-        const enum array_result add_paths_result =
-            array_add_and_unique_items_from_array(
-                &dst->dsc_image_paths,
-                sizeof(struct tbd_for_main_dsc_image_path),
-                src_paths,
-                dsc_image_path_comparator);
-
-        if (add_paths_result != E_ARRAY_OK) {
-            fputs("Experienced an array failure when trying to add dsc "
-                  "image-paths\n",
                   stderr);
 
             exit(1);
@@ -1006,7 +969,6 @@ void tbd_for_main_destroy(struct tbd_for_main *__notnull const tbd) {
 
     array_destroy(&tbd->dsc_image_filters);
     array_destroy(&tbd->dsc_image_numbers);
-    array_destroy(&tbd->dsc_image_paths);
 
     free(tbd->parse_path);
     free(tbd->write_path);

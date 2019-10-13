@@ -274,8 +274,8 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      * cache-base, not the mach-o header. However, all other mach-o information
      * we parse is relative to the mach-o header.
      *
-     * Because of this conundrum, we use the flags below to
-     * parse the symbol and string tables separately.
+     * Because of this conundrum, we use the flags below to parse the symbol and
+     * string tables separately.
      */
 
     const uint64_t arch_bit = dsc_info->arch_bit;
@@ -359,7 +359,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-        if (array_is_empty(&info_in->exports)) {
+        if (info_in->exports.item_count == 0) {
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
         }
     }

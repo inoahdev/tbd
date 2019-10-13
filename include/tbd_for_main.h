@@ -15,35 +15,48 @@
 #include "tbd.h"
 
 enum tbd_for_main_dsc_image_flags {
-    F_TBD_FOR_MAIN_DSC_IMAGE_FOUND_ONE         = 1ull << 0,
-    F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING = 1ull << 1
+    F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING = 1ull << 0,
 };
 
 enum tbd_for_main_dsc_image_filter_type {
     TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE,
-    TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY,
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH
+};
+
+enum tbd_for_main_dsc_image_filter_parse_status {
+    /*
+     * Not Found signifies no images that passed the filter were found.
+     *
+     * Happening signifies that an image passing the filter was found, and is
+     * currently being parsed.
+     *
+     * Found signifies at least one image that passed the filter was found, but
+     * not successfully parsed.
+     *
+     * Ok signifies that at least one image passing the filter was found and
+     * was successfully parsed.
+     */
+
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_NOT_FOUND,
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_HAPPENING,
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_FOUND,
+    TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_OK,
 };
 
 struct tbd_for_main_dsc_image_filter {
     /*
      * tmp_ptr is used to store a pointer to the path-component needed when
-     * creating the right write-path.
+     * creating the write-path.
      */
 
     const char *string;
     const char *tmp_ptr;
 
+    uint64_t length;
+
     enum tbd_for_main_dsc_image_filter_type type;
-
-    uint64_t length;
-    uint64_t flags;
-};
-
-struct tbd_for_main_dsc_image_path {
-    const char *string;
-
-    uint64_t length;
-    uint64_t flags;
+    enum tbd_for_main_dsc_image_filter_parse_status status;
 };
 
 enum tbd_for_main_flags {
@@ -114,7 +127,8 @@ struct tbd_for_main {
 
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
-    struct array dsc_image_paths;
+
+    uint64_t dsc_filter_paths_count;
 };
 
 bool

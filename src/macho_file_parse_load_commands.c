@@ -303,6 +303,18 @@ struct parse_load_command_info {
     uint64_t tbd_options;
     uint64_t options;
 
+    /*
+     * With the introduction of the iOSMac platform, we can now have multiple
+     * LC_VERSION_MIN_* load-commands in a single mach-o file.
+     *
+     * To detect the actual platform and other build-related information,
+     * Apple introduced the LC_BUILD_VERSION load-command.
+     *
+     * We still parse LC_VERSION_MIN_* load-commands, but if we find a
+     * LC_BUILD_VERSION load-command, the LC_VERSION_MIN_* load-commands are
+     * ignored.
+     */
+
     bool *found_build_version_in;
     bool *found_uuid_in;
     bool *found_identification_out;
@@ -378,14 +390,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              */
 
             const enum tbd_platform info_platform = info_in->platform;
-            if (info_platform != 0 && info_platform != platform) {
-                /*
-                 * We prefer using the build-version load-command to find the
-                 * platform, because with the introduction of the iOSMac
-                 * platform, we can have multiple conflicting
-                 * LC_VERSION_MIN_* load-commands.
-                 */
-
+            if (info_platform != TBD_PLATFORM_NONE &&
+                info_platform != platform)
+            {
                 const bool found_build_version =
                     *parse_info.found_build_version_in;
 
@@ -1117,8 +1124,8 @@ macho_file_parse_load_commands_from_file(
     }
 
     /*
-     * We end up copying our install-name and parent-umbrella, so setup these
-     * flags beforehand.
+     * We end up copying our install-name and parent-umbrella, so we can setup
+     * these flags beforehand.
      */
 
     const uint64_t alloc_flags =

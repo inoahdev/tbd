@@ -18,7 +18,7 @@ uint64_t
 parse_architectures_list(int *__notnull index_in,
                          int argc,
                          const char *const *__notnull argv,
-                         uint64_t *count_out);
+                         uint64_t *__notnull count_out);
 
 uint32_t
 parse_flags_list(int *__notnull index_in,

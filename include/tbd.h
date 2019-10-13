@@ -59,7 +59,9 @@ enum tbd_flags {
 };
 
 enum tbd_objc_constraint {
-    TBD_OBJC_CONSTRAINT_NONE = 1,
+    TBD_OBJC_CONSTRAINT_INVALID_VALUE,
+
+    TBD_OBJC_CONSTRAINT_NONE,
     TBD_OBJC_CONSTRAINT_GC,
     TBD_OBJC_CONSTRAINT_RETAIN_RELEASE,
     TBD_OBJC_CONSTRAINT_RETAIN_RELEASE_OR_GC,
@@ -67,7 +69,9 @@ enum tbd_objc_constraint {
 };
 
 enum tbd_platform {
-    TBD_PLATFORM_MACOS = 1,
+    TBD_PLATFORM_NONE,
+
+    TBD_PLATFORM_MACOS,
     TBD_PLATFORM_IOS,
     TBD_PLATFORM_TVOS,
     TBD_PLATFORM_WATCHOS,
@@ -99,7 +103,9 @@ enum tbd_platform {
 };
 
 enum tbd_export_type {
-    TBD_EXPORT_TYPE_CLIENT = 1,
+    TBD_EXPORT_TYPE_NONE,
+
+    TBD_EXPORT_TYPE_CLIENT,
     TBD_EXPORT_TYPE_REEXPORT,
     TBD_EXPORT_TYPE_NORMAL_SYMBOL,
     TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL,
@@ -150,7 +156,9 @@ tbd_uuid_info_is_unique_comparator(const void *__notnull array_item,
                                    const void *__notnull item);
 
 enum tbd_version {
-    TBD_VERSION_V1 = 1,
+    TBD_VERSION_NONE,
+    
+    TBD_VERSION_V1,
     TBD_VERSION_V2,
     TBD_VERSION_V3
 };

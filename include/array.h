@@ -49,7 +49,6 @@ array_ensure_item_capacity(struct array *__notnull array,
                            size_t item_size,
                            uint64_t item_count);
 
-bool array_is_empty(const struct array *__notnull array);
 uint64_t array_get_used_size(const struct array *__notnull array);
 
 void *array_get_front(const struct array *__notnull array);

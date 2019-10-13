@@ -75,8 +75,8 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
                             const mode_t mode,
                             char **const first_terminator_out)
 {
-    char *last_slash =
-        (char *)path_find_back_of_last_row_of_slashes(path, path_length);
+    char *last_slash = (char *)path_find_last_slash(path, path_length);
+    const char possible_end = last_slash[1];
 
     /*
      * We may have a slash at the back of the string, which we should ignore as
@@ -84,7 +84,6 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
      * directory in the full-path's hierarchy.
      */
 
-    const char possible_end = last_slash[1];
     if (unlikely(possible_end == '\0')) {
         last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
         last_slash = find_next_slash_reverse(path, last_slash);
@@ -352,7 +351,7 @@ remove_file_r(char *__notnull const path,
         terminate_c_str(last_slash);
         const int ret = rmdir(path);
         restore_slash_c_str(last_slash);
- 
+
         if (unlikely(ret != 0)) {
             return 1;
         }
