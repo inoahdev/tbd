@@ -33,19 +33,6 @@ handle_macho_file_parse_result(
             return false;
 
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to seek to a location while parsing mach-o "
-                        "file (at path: %s)\n",
-                        args.dir_path);
-            } else {
-                fputs("Failed to seek to a location while parsing the provided "
-                      "mach-o file\n",
-                      stderr);
-            }
-
-            return false;
-
         case E_MACHO_FILE_PARSE_READ_FAIL:
             if (args.print_paths) {
                 fprintf(stderr,
@@ -889,20 +876,6 @@ handle_macho_file_parse_result_while_recursing(
             return false;
 
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to seek to a location while parsing mach-o "
-                        "file (at path: %s/%s)\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Failed to seek to a location while parsing the provided "
-                      "mach-o file\n",
-                      stderr);
-            }
-
-            return false;
-
         case E_MACHO_FILE_PARSE_READ_FAIL:
             if (args.print_paths) {
                 fprintf(stderr,
@@ -1666,8 +1639,7 @@ handle_macho_file_parse_result_while_recursing(
             return false;
 
         case E_MACHO_FILE_PARSE_NO_EXPORTS: {
-            const uint64_t flags = args.tbd->flags;
-            if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            if (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
                 return false;
             }
 

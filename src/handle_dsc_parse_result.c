@@ -515,13 +515,6 @@ print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
             break;
 
         case E_DSC_IMAGE_PARSE_SEEK_FAIL:
-            fprintf(stderr,
-                    "Image (with path %s) could not be parsed due to a seek "
-                    "failure\n",
-                    image_path);
-
-            break;
-
         case E_DSC_IMAGE_PARSE_READ_FAIL:
             fprintf(stderr,
                     "Image (with path %s) could not be parsed due to a read "
