@@ -21,7 +21,7 @@
 
 static uint64_t
 request_choice(const char *__notnull const prompt,
-               const char *__notnull const inputs[const],
+               const char *__notnull const choices[const],
                const bool indent)
 {
     do {
@@ -29,13 +29,13 @@ request_choice(const char *__notnull const prompt,
             fputs("\t\t", stdout);
         }
 
-        fprintf(stdout, "%s (%s", prompt, inputs[0]);
+        fprintf(stdout, "%s (%s", prompt, choices[0]);
 
-        const char *const *iter = inputs + 1;
-        const char *acceptable_input = *iter;
+        const char *const *iter = choices + 1;
+        const char *choice = *iter;
 
-        for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-            fprintf(stdout, ", %s", acceptable_input);
+        for (; choice != NULL; choice = *(++iter)) {
+            fprintf(stdout, ", %s", choice);
         }
 
         fputs("): ", stdout);
@@ -58,12 +58,12 @@ request_choice(const char *__notnull const prompt,
 
         uint64_t index = 0;
 
-        iter = inputs;
-        acceptable_input = *iter;
+        iter = choices;
+        choice = *iter;
         input[input_length - 1] = '\0';
 
-        for (; acceptable_input != NULL; acceptable_input = *(++iter)) {
-            if (strcmp(acceptable_input, input) != 0) {
+        for (; choice != NULL; choice = *(++iter)) {
+            if (strcmp(choice, input) == 0) {
                 free(input);
                 return index;
             }
@@ -90,7 +90,6 @@ request_input(const char *__notnull const prompt, const bool indent) {
     ssize_t input_length = getline(&input, &input_size, stdin);
 
     if (input_length < 0) {
-        free(input);
         fprintf(stderr,
                 "\nInternal error: getline() failed while trying to "
                 "receive user input, error: %s\n",
@@ -135,10 +134,12 @@ request_install_name(struct tbd_for_main *__notnull const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
-        if (global->info.install_name != NULL) {
-            const char *const global_install_name = global->info.install_name;
+        const char *const global_install_name =
+            global->info.fields.install_name;
+
+        if (global_install_name != NULL) {
             if (global_install_name != NULL) {
-                tbd->info.install_name = global_install_name;
+                tbd->info.fields.install_name = global_install_name;
                 tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
             }
 
@@ -162,13 +163,14 @@ request_install_name(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    tbd->info.install_name = request_input("Replacement install-name?", indent);
+    tbd->info.fields.install_name =
+        request_input("Replacement install-name?", indent);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.install_name = tbd->info.install_name;
+        global->info.fields.install_name = tbd->info.fields.install_name;
         global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     }
 
@@ -195,10 +197,10 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
         const enum tbd_objc_constraint global_objc_constraint =
-            global->info.objc_constraint;
+            global->info.fields.objc_constraint;
 
         if (global_objc_constraint != 0) {
-            tbd->info.objc_constraint = global_objc_constraint;
+            tbd->info.fields.objc_constraint = global_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
 
@@ -237,14 +239,14 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(input);
 
-        if (objc_constraint == TBD_OBJC_CONSTRAINT_INVALID_VALUE) {
+        if (objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
             fprintf(stderr, "Unrecognized objc-constraint type: %s\n", input);
             free(input);
 
             continue;
         }
 
-        tbd->info.objc_constraint = objc_constraint;
+        tbd->info.fields.objc_constraint = objc_constraint;
         free(input);
 
         break;
@@ -252,7 +254,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.objc_constraint = tbd->info.objc_constraint;
+        global->info.fields.objc_constraint = tbd->info.fields.objc_constraint;
         global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
 
@@ -279,11 +281,11 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
         const char *const global_parent_umbrella =
-            global->info.parent_umbrella;
+            global->info.fields.parent_umbrella;
 
         if (global_parent_umbrella != NULL) {
-            if (global->info.parent_umbrella != NULL) {
-                tbd->info.parent_umbrella = global_parent_umbrella;
+            if (global_parent_umbrella != NULL) {
+                tbd->info.fields.parent_umbrella = global_parent_umbrella;
                 tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
             }
 
@@ -307,14 +309,14 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    tbd->info.parent_umbrella =
+    tbd->info.fields.parent_umbrella =
         request_input("Replacement parent-umbrella?", indent);
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.parent_umbrella = tbd->info.parent_umbrella;
+        global->info.fields.parent_umbrella = tbd->info.fields.parent_umbrella;
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
 
@@ -339,9 +341,9 @@ request_platform(struct tbd_for_main *__notnull const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
-        const enum tbd_platform global_platform = global->info.platform;
+        const enum tbd_platform global_platform = global->info.fields.platform;
         if (global_platform != 0) {
-            tbd->info.platform = global_platform;
+            tbd->info.fields.platform = global_platform;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
 
@@ -385,7 +387,7 @@ request_platform(struct tbd_for_main *__notnull const global,
             continue;
         }
 
-        tbd->info.platform = platform;
+        tbd->info.fields.platform = platform;
         free(input);
 
         break;
@@ -393,7 +395,7 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.platform = tbd->info.platform;
+        global->info.fields.platform = tbd->info.fields.platform;
         global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
 
@@ -418,9 +420,9 @@ request_swift_version(struct tbd_for_main *__notnull const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-        const uint32_t global_swift_version = global->info.swift_version;
+        const uint32_t global_swift_version = global->info.fields.swift_version;
         if (global_swift_version != 0) {
-            tbd->info.swift_version = global_swift_version;
+            tbd->info.fields.swift_version = global_swift_version;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
         }
 
@@ -461,7 +463,7 @@ request_swift_version(struct tbd_for_main *__notnull const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.swift_version = tbd->info.swift_version;
+        global->info.fields.swift_version = tbd->info.fields.swift_version;
         global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
 

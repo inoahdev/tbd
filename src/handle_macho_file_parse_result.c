@@ -769,24 +769,6 @@ handle_macho_file_parse_result(
     }
 
     /*
-     * Handle the remove/replace fields
-     */
-
-    const uint64_t archs_re = args.tbd->archs_re;
-    if (archs_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            args.tbd->info.archs &= ~archs_re;
-        }
-    }
-
-    const uint32_t flags_re = args.tbd->flags_re;
-    if (flags_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            args.tbd->info.flags_field &= ~flags_re;
-        }
-    }
-
-    /*
      * If some of the fields are empty (for when
      * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from the
      * user.
@@ -795,7 +777,7 @@ handle_macho_file_parse_result(
      * mandatory fields and aren't always provided.
      */
 
-    if (args.tbd->info.install_name == NULL) {
+    if (args.tbd->info.fields.install_name == NULL) {
         bool request_result = false;
         if (args.print_paths) {
             request_result =
@@ -823,7 +805,7 @@ handle_macho_file_parse_result(
         }
     }
 
-    if (args.tbd->info.platform == 0) {
+    if (args.tbd->info.fields.platform == TBD_PLATFORM_NONE) {
         bool request_result = false;
         if (args.print_paths) {
             request_result =
@@ -1654,24 +1636,6 @@ handle_macho_file_parse_result_while_recursing(
     }
 
     /*
-     * Handle the remove/replace fields
-     */
-
-    const uint64_t archs_re = args.tbd->archs_re;
-    if (archs_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            args.tbd->info.archs &= ~archs_re;
-        }
-    }
-
-    const uint32_t flags_re = args.tbd->flags_re;
-    if (flags_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            args.tbd->info.flags_field &= ~flags_re;
-        }
-    }
-
-    /*
      * If some of the fields are empty (for when
      * O_MACHO_PARSE_IGNORE_INVALID_FIELDS is provided), request info from the
      * user.
@@ -1680,7 +1644,7 @@ handle_macho_file_parse_result_while_recursing(
      * mandatory fields and aren't always provided.
      */
 
-    if (args.tbd->info.install_name == NULL) {
+    if (args.tbd->info.fields.install_name == NULL) {
         bool request_result = false;
         if (args.print_paths) {
             request_result =
@@ -1709,7 +1673,7 @@ handle_macho_file_parse_result_while_recursing(
         }
     }
 
-    if (args.tbd->info.platform == 0) {
+    if (args.tbd->info.fields.platform == TBD_PLATFORM_NONE) {
         bool request_result = false;
         if (args.print_paths) {
             request_result =

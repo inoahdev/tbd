@@ -22,10 +22,10 @@ clear_create_info(struct tbd_create_info *__notnull const info_in,
                   const struct tbd_create_info *__notnull const orig)
 {
     tbd_create_info_clear(info_in);
-    const struct array exports = info_in->exports;
+    const struct array exports = info_in->fields.exports;
 
     *info_in = *orig;
-    info_in->exports = exports;
+    info_in->fields.exports = exports;
 }
 
 static int
@@ -144,9 +144,14 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     if (stat(write_path, &sbuf) < 0) {
         /*
          * The write-file doesn't have to exist.
+         *
+         * Note:
+         * ENOTDIR is returned when a directory in the hierarchy of the
+         * path is not a directory at all, which means that an object doesn't
+         * exist at the provided path.
          */
 
-        if (errno != ENOENT) {
+        if (errno != ENOENT && errno != ENOTDIR) {
             fprintf(stderr,
                     "Failed to get information on object at the provided "
                     "write-path (%s), error: %s\n",
@@ -201,7 +206,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
      */
 
     const uint64_t macho_options =
-        O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options;
+        (O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options);
 
     struct tbd_create_info *const create_info = &args.tbd->info;
     struct tbd_create_info original_info = *create_info;
@@ -284,7 +289,7 @@ parse_macho_file_for_main_while_recursing(
 
         /*
          * Pass on the read-failure to
-         * åhandle_macho_file_parse_result_while_recursing() as should be done
+         * handle_macho_file_parse_result_while_recursing() as should be done
          * with every error faced in this function.
          */
 
@@ -310,7 +315,7 @@ parse_macho_file_for_main_while_recursing(
 
     const uint64_t parse_options = args.tbd->parse_options;
     const uint64_t macho_options =
-        O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options;
+        (O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options);
 
     struct tbd_create_info *const create_info = &args.tbd->info;
     struct tbd_create_info original_info = *create_info;

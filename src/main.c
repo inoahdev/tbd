@@ -709,10 +709,8 @@ int main(const int argc, const char *const argv[]) {
                         }
                     } else if (S_ISDIR(info.st_mode)) {
                         if (!(tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
-                            fputs("Unable to open a directory as a mach-o "
-                                  "file. Please provide option '-r' to "
-                                  "if you want to recurse the provided "
-                                  "directory\n",
+                            fputs("Please provide option '-r' to if you want "
+                                  "to recurse the provided directory\n",
                                   stderr);
 
                             if (full_path != path) {
@@ -774,7 +772,7 @@ int main(const int argc, const char *const argv[]) {
                     tbd.parse_path_length = full_path_length;
                 } else {
                     if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                        fputs("Recursing the input file is not supported, "
+                        fputs("Recursing the input file is not supported.\n"
                               "Please provide a path to a directory if "
                               "recursing is needed\n",
                               stderr);
@@ -791,26 +789,11 @@ int main(const int argc, const char *const argv[]) {
                  */
 
                 if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
-                    if (tbd.flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
+                    if (tbd.info.fields.flags != 0) {
                         fprintf(stderr,
                                 "Both modifying tbd-flags, and removing the "
-                                "field entirely, for path (%s) is not "
-                                "supported. Please choose only a single "
-                                "option\n",
-                                path);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        free(tbd.parse_path);
-                        return 1;
-                    }
-
-                    if (tbd.flags_re != 0) {
-                        fprintf(stderr,
-                                "Both modifying tbd-flags, and removing the "
-                                "field entirely, for file(s) at path (%s) is "
-                                "not supported.\nPlease choose only a single "
+                                "field entirely, for file(s) at path (%s), is "
+                                "not supported.\nPlease select only one "
                                 "option\n",
                                 path);
 
@@ -1116,8 +1099,8 @@ int main(const int argc, const char *const argv[]) {
             if (recurse_info.files_parsed == 0) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "No supported files were found from while "
-                            "recursing directory (at path %s)\n",
+                            "No supported files were found while recursing "
+                            "directory (at path %s)\n",
                             tbd->parse_path);
                 } else {
                     fputs("No supported files were found while recursing "

@@ -163,23 +163,22 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
  * dyld_shared_cache data is stored in different mappings, with each mapping
  * copied over to memory at runtime with different memory-protections.
  *
- * To find our precious mach-o data, we have to take the data's memory-address,
- * and find the mapping whose memory-range contains the data's memory-address.
+ * To find our mach-o data, we have to take the data's memory-address, and find
+ * the mapping whose memory-range contains the data's memory-address.
  *
- * The mach-o data's file-offset is simply at the data=mapping's file location
+ * The mach-o data's file-offset is simply at the mapping's file location
  * plus the delta of (the difference between) the data's memory-address and the
  * data-mapping's memory address.
  *
  * Some dyld_shared_cache mappings will have a memory-range larger than the
- * range reserved on file, for whatever reason. For this reason, we may have a
- * memory-address that doesn't have a corresponding file-location.
+ * range reserved on file. For this reason, we may have a memory-address that
+ * doesn't have a corresponding file-location.
  */
 
 static uint64_t
-get_image_file_offset_from_address(
-    struct dyld_shared_cache_info *__notnull const info,
-    const uint64_t address,
-    uint64_t *__notnull const max_size_out)
+get_offset_from_addr(struct dyld_shared_cache_info *__notnull const info,
+                     const uint64_t address,
+                     uint64_t *__notnull const max_size_out)
 {
     const struct dyld_cache_mapping_info *const mappings = info->mappings;
     const uint64_t count = info->mappings_count;
@@ -219,12 +218,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 {
     uint64_t max_image_size = 0;
     const uint64_t file_offset =
-        get_image_file_offset_from_address(dsc_info,
-                                           image->address,
-                                           &max_image_size);
+        get_offset_from_addr(dsc_info, image->address, &max_image_size);
 
     if (file_offset == 0) {
-        return E_DSC_IMAGE_PARSE_NO_CORRESPONDING_MAPPING;
+        return E_DSC_IMAGE_PARSE_NO_MAPPING;
     }
 
     if (max_image_size < sizeof(struct mach_header)) {
@@ -262,11 +259,11 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
     const uint32_t flags = header->flags;
     if (flags & MH_TWOLEVEL) {
-        info_in->flags_field |= TBD_FLAG_FLAT_NAMESPACE;
+        info_in->fields.flags |= TBD_FLAG_FLAT_NAMESPACE;
     }
 
     if (!(flags & MH_APP_EXTENSION_SAFE)) {
-        info_in->flags_field |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+        info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
     /*
@@ -359,13 +356,13 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-        if (info_in->exports.item_count == 0) {
+        if (info_in->fields.exports.item_count == 0) {
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
         }
     }
 
-    info_in->archs = arch_bit;
-    info_in->archs_count = 1;
+    info_in->fields.archs = arch_bit;
+    info_in->fields.archs_count = 1;
     info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
 
     return E_DSC_IMAGE_PARSE_OK;

@@ -69,10 +69,10 @@ clear_create_info(struct tbd_create_info *__notnull const info_in,
                   const struct tbd_create_info *__notnull const orig)
 {
     tbd_create_info_clear(info_in);
-    const struct array exports = info_in->exports;
+    const struct array exports = info_in->fields.exports;
 
     *info_in = *orig;
-    info_in->exports = exports;
+    info_in->fields.exports = exports;
 }
 
 static void
@@ -759,9 +759,14 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
     if (stat(write_path, &sbuf) < 0) {
         /*
          * Ignore any errors if the object doesn't even exist.
+         *
+         * Note:
+         * ENOTDIR is returned when a directory in the hierarchy of the
+         * path is not a directory at all, which means that an object doesn't
+         * exist at the provided path.
          */
 
-        if (errno != ENOENT) {
+        if (errno != ENOENT && errno != ENOTDIR) {
             fprintf(stderr,
                     "Failed to get information on object at the provided "
                     "write-path (%s), error: %s\n",
@@ -895,28 +900,24 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
      */
 
     if (numbers->item_count != 0) {
-        const uint32_t *numbers_iter = numbers->data;
-        const uint32_t *const numbers_end = numbers->data_end;
+        const uint32_t *iter = numbers->data;
+        const uint32_t *const end = numbers->data_end;
 
-        for (; numbers_iter != numbers_end; numbers_iter++) {
-            const uint32_t number = *numbers_iter;
+        for (; iter != end; iter++) {
+            const uint32_t number = *iter;
             if (number > dsc_info.images_count) {
                 if (args.print_paths) {
                     fprintf(stderr,
-                            "An image-number of %" PRIu32 " goes beyond the "
-                            "images-count of %" PRIu32 " the dyld_shared_cache "
-                            "(at path %s/%s) has\n",
-                            number,
-                            dsc_info.images_count,
+                            "dyld_shared_cache (at path %s/%s) does not have "
+                            "an image with number %" PRIu32 "\n",
                             args.dsc_dir_path,
-                            args.dsc_name);
+                            args.dsc_name,
+                            number);
                 } else {
                     fprintf(stderr,
-                            "An image-number of %" PRIu32 " goes beyond the "
-                            "images-count of %" PRIu32 " the dyld_shared_cache "
-                            "at the provided path has\n",
-                            number,
-                            dsc_info.images_count);
+                            "dyld_shared_cache at the provided path does not "
+                            "have an image with number %" PRIu32 "\n",
+                            number);
                 }
 
                 /*
@@ -947,11 +948,11 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         }
 
         /*
-         * If there are no filters and no paths, we should simply return after
-         * handling the numbers.
+         * If there are no filters, we should simply return after handling the
+         * numbers.
          *
-         * Note: Since there are numbers, we do not parse all images as we do by
-         * default.
+         * Note: Since there numbers were provided, we do not parse all images
+         * as we would otherwise do.
          */
 
         if (filters->item_count == 0) {

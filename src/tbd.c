@@ -143,19 +143,6 @@ tbd_export_info_compare(
 }
 
 int
-tbd_export_info_comparator(const void *__notnull const array_item,
-                           const void *__notnull const item)
-{
-    const struct tbd_export_info *const array_info =
-        (const struct tbd_export_info *)array_item;
-
-    const struct tbd_export_info *const info =
-        (const struct tbd_export_info *)item;
-
-    return tbd_export_info_compare(array_info, info);
-}
-
-int
 tbd_uuid_info_is_unique_comparator(const void *__notnull const array_item,
                                    const void *__notnull const item)
 {
@@ -203,25 +190,25 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    if (tbd_write_archs_for_header(file, info->archs)) {
+    if (tbd_write_archs_for_header(file, info->fields.archs)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
     if (!(options & O_TBD_CREATE_IGNORE_UUIDS)) {
         if (version != TBD_VERSION_V1) {
-            if (tbd_write_uuids(file, &info->uuids)) {
+            if (tbd_write_uuids(file, &info->fields.uuids)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
     }
 
-    if (tbd_write_platform(file, info->platform)) {
+    if (tbd_write_platform(file, info->fields.platform)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
     if (version != TBD_VERSION_V1) {
         if (!(options & O_TBD_CREATE_IGNORE_FLAGS)) {
-            if (tbd_write_flags(file, info->flags_field)) {
+            if (tbd_write_flags(file, info->fields.flags)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
@@ -232,13 +219,15 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (!(options & O_TBD_CREATE_IGNORE_CURRENT_VERSION)) {
-        if (tbd_write_current_version(file, info->current_version)) {
+        if (tbd_write_current_version(file, info->fields.current_version)) {
             return E_TBD_CREATE_WRITE_FAIL;
         }
     }
 
     if (!(options & O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION)) {
-        const uint32_t compatibility_version = info->compatibility_version;
+        const uint32_t compatibility_version =
+            info->fields.compatibility_version;
+
         if (tbd_write_compatibility_version(file, compatibility_version)) {
             return E_TBD_CREATE_WRITE_FAIL;
         }
@@ -246,13 +235,17 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
 
     if (version != TBD_VERSION_V1) {
         if (!(options & O_TBD_CREATE_IGNORE_SWIFT_VERSION)) {
-            if (tbd_write_swift_version(file, version, info->swift_version)) {
+            const uint32_t swift_version = info->fields.swift_version;
+            if (tbd_write_swift_version(file, version, swift_version)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
 
         if (!(options & O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT)) {
-            if (tbd_write_objc_constraint(file, info->objc_constraint)) {
+            const enum tbd_objc_constraint objc_constraint =
+                info->fields.objc_constraint;
+
+            if (tbd_write_objc_constraint(file, objc_constraint)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
@@ -270,7 +263,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         } else {
-            if (tbd_write_exports(file, &info->exports, version)) {
+            if (tbd_write_exports(file, &info->fields.exports, version)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         }
@@ -296,30 +289,30 @@ static void clear_exports_array(struct array *__notnull const list) {
 
 void tbd_create_info_clear(struct tbd_create_info *__notnull const info) {
     if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
-        free((char *)info->install_name);
+        free((char *)info->fields.install_name);
     }
 
     if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
-        free((char *)info->parent_umbrella);
+        free((char *)info->fields.parent_umbrella);
     }
 
     info->version = 0;
 
-    info->archs = 0;
-    info->flags = 0;
+    info->fields.archs = 0;
+    info->fields.flags = 0;
 
-    info->platform = 0;
-    info->objc_constraint = 0;
+    info->fields.platform = 0;
+    info->fields.objc_constraint = 0;
 
-    info->install_name = NULL;
-    info->parent_umbrella = NULL;
+    info->fields.install_name = NULL;
+    info->fields.parent_umbrella = NULL;
 
-    info->current_version = 0;
-    info->compatibility_version = 0;
-    info->swift_version = 0;
+    info->fields.current_version = 0;
+    info->fields.compatibility_version = 0;
+    info->fields.swift_version = 0;
 
-    clear_exports_array(&info->exports);
-    array_clear(&info->uuids);
+    clear_exports_array(&info->fields.exports);
+    array_clear(&info->fields.uuids);
 }
 
 static void destroy_exports_array(struct array *__notnull const list) {
@@ -335,28 +328,28 @@ static void destroy_exports_array(struct array *__notnull const list) {
 
 void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
-        free((char *)info->install_name);
+        free((char *)info->fields.install_name);
     }
 
     if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
-        free((char *)info->parent_umbrella);
+        free((char *)info->fields.parent_umbrella);
     }
 
     info->version = 0;
 
-    info->archs = 0;
-    info->flags = 0;
+    info->fields.archs = 0;
+    info->fields.flags = 0;
 
-    info->platform = 0;
-    info->objc_constraint = 0;
+    info->fields.platform = 0;
+    info->fields.objc_constraint = 0;
 
-    info->install_name = NULL;
-    info->parent_umbrella = NULL;
+    info->fields.install_name = NULL;
+    info->fields.parent_umbrella = NULL;
 
-    info->current_version = 0;
-    info->compatibility_version = 0;
-    info->swift_version = 0;
+    info->fields.current_version = 0;
+    info->fields.compatibility_version = 0;
+    info->fields.swift_version = 0;
 
-    destroy_exports_array(&info->exports);
-    array_destroy(&info->uuids);
+    destroy_exports_array(&info->fields.exports);
+    array_destroy(&info->fields.uuids);
 }

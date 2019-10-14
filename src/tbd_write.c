@@ -334,11 +334,11 @@ tbd_write_install_name(FILE *__notnull const file,
         return 1;
     }
 
-    const char *const install_name = info->install_name;
-    const uint32_t length = info->install_name_length;
+    const char *const install_name = info->fields.install_name;
+    const uint32_t length = info->fields.install_name_length;
 
     const bool needs_quotes =
-        info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+        (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES);
 
     if (write_yaml_string(file, install_name, length, needs_quotes)) {
         return 1;
@@ -356,8 +356,8 @@ tbd_write_objc_constraint(FILE *__notnull const file,
                           const enum tbd_objc_constraint constraint)
 {
     switch (constraint) {
-        case TBD_OBJC_CONSTRAINT_INVALID_VALUE:
-            return 1;
+        case TBD_OBJC_CONSTRAINT_NO_VALUE:
+            break;
 
         case TBD_OBJC_CONSTRAINT_NONE:
             if (fprintf(file, "objc-constraint:%-7snone\n", "") < 0) {
@@ -437,7 +437,7 @@ int
 tbd_write_parent_umbrella(FILE *__notnull const file,
                           const struct tbd_create_info *__notnull const info)
 {
-    const char *const umbrella = info->parent_umbrella;
+    const char *const umbrella = info->fields.parent_umbrella;
     if (umbrella == NULL) {
         return 0;
     }
@@ -446,9 +446,9 @@ tbd_write_parent_umbrella(FILE *__notnull const file,
         return 1;
     }
 
-    const uint32_t length = info->parent_umbrella_length;
+    const uint32_t length = info->fields.parent_umbrella_length;
     const bool needs_quotes =
-        info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
+        (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES);
 
     if (write_yaml_string(file, umbrella, length, needs_quotes)) {
         return 1;
@@ -465,6 +465,9 @@ int
 tbd_write_platform(FILE *__notnull const file, const enum tbd_platform platform)
 {
     switch (platform) {
+        case TBD_PLATFORM_NONE:
+            return 1;
+            
         case TBD_PLATFORM_MACOS:
             if (fprintf(file, "platform:%-14smacosx\n", "") < 0) {
                 return 1;
@@ -516,9 +519,6 @@ tbd_write_platform(FILE *__notnull const file, const enum tbd_platform platform)
             }
 
             break;
-
-        default:
-            return E_TBD_CREATE_WRITE_FAIL;
     }
 
     return 0;
@@ -820,9 +820,11 @@ write_comma_or_newline(FILE *__notnull const file,
             if (fprintf(file, ",\n%-26s", "") < 0) {
                 return E_WRITE_COMMA_WRITE_FAIL;
             }
+
+            return E_WRITE_COMMA_RESET_LINE_LENGTH;
         }
 
-        return E_WRITE_COMMA_RESET_LINE_LENGTH;
+        return E_WRITE_COMMA_OK;
     }
 
     /*
@@ -858,7 +860,7 @@ write_export_info(FILE *__notnull const file,
                   const struct tbd_export_info *__notnull const info)
 {
     const bool needs_quotes =
-        info->flags & F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+        (info->flags & F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES);
 
     return write_yaml_string(file, info->string, info->length, needs_quotes);
 }
@@ -1006,7 +1008,7 @@ tbd_write_exports_with_full_archs(
     const struct tbd_create_info *__notnull const info,
     FILE *__notnull const file)
 {
-    const struct array *const exports = &info->exports;
+    const struct array *const exports = &info->fields.exports;
 
     const struct tbd_export_info *export = exports->data;
     const struct tbd_export_info *const end = exports->data_end;

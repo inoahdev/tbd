@@ -44,7 +44,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const uint64_t options)
 {
     const bool is_64 =
-        header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64;
+        (header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64);
 
     if (is_64) {
         if (size < sizeof(struct mach_header_64)) {
@@ -68,25 +68,25 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    if (info_in->flags_field != 0) {
-        if (info_in->flags_field & TBD_FLAG_FLAT_NAMESPACE) {
+    if (info_in->fields.flags != 0) {
+        if (info_in->fields.flags & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
 
-        if (info_in->flags_field & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (info_in->fields.flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (header.flags & MH_APP_EXTENSION_SAFE) {
                 return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
             }
         }
     } else {
         if (header.flags & MH_TWOLEVEL) {
-            info_in->flags_field |= TBD_FLAG_FLAT_NAMESPACE;
+            info_in->fields.flags |= TBD_FLAG_FLAT_NAMESPACE;
         }
 
         if (!(header.flags & MH_APP_EXTENSION_SAFE)) {
-            info_in->flags_field |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+            info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
         }
     }
 
@@ -267,12 +267,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             (uint64_t)(first_arch_info - arch_info_list);
 
         const uint64_t first_arch_bit = 1ull << first_arch_index;
-        if (info_in->archs & first_arch_bit) {
+        if (info_in->fields.archs & first_arch_bit) {
             free(archs);
             return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
         }
 
-        info_in->archs |= first_arch_bit;
+        info_in->fields.archs |= first_arch_bit;
 
         /*
          * To avoid re-lookup of arch-info, we store the pointer within the
@@ -378,12 +378,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
             const uint64_t arch_bit = 1ull << arch_index;
 
-            if (info_in->archs & arch_bit) {
+            if (info_in->fields.archs & arch_bit) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
             }
 
-            info_in->archs |= arch_bit;
+            info_in->fields.archs |= arch_bit;
 
             /*
              * To avoid re-lookup of arch-info, we store the pointer within the
@@ -444,12 +444,10 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
-            if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
-                continue;
+            if (!(options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES)) {
+                free(archs);
+                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
-
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         /*
@@ -584,6 +582,15 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
+     * Verify that the architecture is not located beyond end of file.
+     */
+
+    if (first_arch_offset > size) {
+        free(archs);
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
      * Verify each architecture is a valid mach-o by ensuring that it
      * can hold at the least a mach_header.
      */
@@ -599,15 +606,6 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
     uint64_t first_arch_end = first_arch_offset;
     if (guard_overflow_add(&first_arch_end, first_arch_size)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture is not located beyond end of file.
-     */
-
-    if (first_arch_offset > size) {
         free(archs);
         return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
@@ -652,12 +650,12 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             (uint64_t)(first_arch_info - arch_info_list);
 
         const uint64_t first_arch_bit = 1ull << first_arch_index;
-        if (info_in->archs & first_arch_bit) {
+        if (info_in->fields.archs & first_arch_bit) {
             free(archs);
             return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
         }
 
-        info_in->archs |= first_arch_bit;
+        info_in->fields.archs |= first_arch_bit;
 
         /*
          * To avoid re-lookup of arch-info, we store the pointer within the
@@ -705,8 +703,17 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         }
 
         /*
-         * Verify each architecture is a valid mach-o by ensuring that it
-         * can hold at the least a mach_header.
+         * Verify that the architecture is not located beyond end of file.
+         */
+
+        if (arch_offset > size) {
+            free(archs);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        /*
+         * We consider an architecture to be a valid mach-o if it is large
+         * enough to contain a mach_header.
          */
 
         if (arch_size < sizeof(struct mach_header)) {
@@ -720,15 +727,6 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
         uint64_t arch_end = arch_offset;
         if (guard_overflow_add(&arch_end, arch_size)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture is not located beyond end of file.
-         */
-
-        if (arch_offset > size) {
             free(archs);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
@@ -773,12 +771,12 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
             const uint64_t arch_bit = 1ull << arch_index;
 
-            if (info_in->archs & arch_bit) {
+            if (info_in->fields.archs & arch_bit) {
                 free(archs);
                 return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
             }
 
-            info_in->archs |= arch_bit;
+            info_in->fields.archs |= arch_bit;
         }
 
         const struct range arch_range = {
@@ -936,7 +934,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-            info_in->archs_count = nfat_arch;
+            info_in->fields.archs_count = nfat_arch;
         }
 
         const bool is_64 = (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64);
@@ -967,7 +965,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-            if (info_in->exports.item_count == 0) {
+            if (info_in->fields.exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
         }
@@ -977,8 +975,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
              * Finally sort the exports array.
              */
 
-            tbd_export_info_quick_sort(info_in->exports.data,
-                                       info_in->exports.item_count);
+            tbd_export_info_quick_sort(info_in->fields.exports.data,
+                                       info_in->fields.exports.item_count);
         } else {
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }
@@ -1035,8 +1033,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         const uint64_t arch_bit = 1ull << arch_index;
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-            info_in->archs |= arch_bit;
-            info_in->archs_count = 1;
+            info_in->fields.archs |= arch_bit;
+            info_in->fields.archs_count = 1;
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }
 
@@ -1055,7 +1053,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-            if (info_in->exports.item_count == 0) {
+            if (info_in->fields.exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
         }

@@ -436,15 +436,14 @@ dyld_shared_cache_parse_from_file(
      * overlapping with dyld_shared_cache file structures.
      */
 
-    uint64_t available_range_start = images_end;
-    if (available_range_start < mapping_end) {
-        available_range_start = mapping_end;
-    }
-
-    const struct range available_range = {
-        .begin = available_range_start,
+    struct range available_range = {
+        .begin = images_end,
         .end = dsc_size
     };
+
+    if (available_range.begin < mapping_end) {
+        available_range.begin = mapping_end;
+    }
 
     struct dyld_cache_image_info *const images =
         (struct dyld_cache_image_info *)(map + header.imagesOffset);

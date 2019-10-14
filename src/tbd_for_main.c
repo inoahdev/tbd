@@ -165,55 +165,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                           const char *const option)
 {
     int index = *index_in;
-    if (strcmp(option, "add-archs") == 0) {
-        index += 1;
-        if (index == argc) {
-            fputs("Please provide a list of architectures to add onto archs "
-                  "found in input files\n", stderr);
-
-            exit(1);
-        }
-
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            if (tbd->archs_re != 0) {
-                fputs("Both adding and replacing architectures is not "
-                      "supported. Please choose only a single option\n",
-                      stderr);
-
-                exit(1);
-            }
-        }
-
-        tbd->info.archs |=
-            parse_architectures_list(&index,
-                                     argc,
-                                     argv,
-                                     &tbd->info.archs_count);
-
-        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
-        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
-    } else if (strcmp(option, "add-flags") == 0) {
-        index += 1;
-        if (index == argc) {
-            fputs("Please provide a list of flags to add onto flags found in "
-                  "input files\n", stderr);
-
-            exit(1);
-        }
-
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            if (tbd->flags_re != 0) {
-                fputs("Both replacing and adding flags is not supported. "
-                      "Please choose only a single option\n",
-                      stderr);
-
-                exit(1);
-            }
-        }
-
-        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS;
-        tbd->info.flags_field |= parse_flags_list(&index, argc, argv);
-    } else if (strcmp(option, "allow-private-objc-symbols") == 0) {
+    if (strcmp(option, "allow-private-objc-symbols") == 0) {
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
@@ -261,48 +213,6 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "macho") == 0) {
         tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
         tbd->filetypes_count++;
-    } else if (strcmp(option, "remove-archs") == 0) {
-        index += 1;
-        if (index == argc) {
-            fputs("Please provide a list of architectures to remove from archs "
-                  "found in input files\n", stderr);
-
-            exit(1);
-        }
-
-        if (!(tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS)) {
-            if (tbd->archs_re != 0) {
-                fputs("Replacing and removing architectures is not supported. "
-                      "Please choose only a single option\n",
-                      stderr);
-
-                exit(1);
-            }
-        }
-
-        tbd->archs_re = parse_architectures_list(&index, argc, argv, NULL);
-        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
-        tbd->flags |= F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS;
-    } else if (strcmp(option, "remove-flags") == 0) {
-        index += 1;
-        if (index == argc) {
-            fputs("Please provide a list of flags to remove from flags found "
-                  "in input files\n", stderr);
-
-            exit(1);
-        }
-
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            if (tbd->info.flags != 0) {
-                fputs("Replacing and removing flags is not supported, Please "
-                      "choose only a single option\n",
-                      stderr);
-
-                exit(1);
-            }
-        }
-
-        tbd->flags_re = parse_flags_list(&index, argc, argv);
     } else if (strcmp(option, "replace-archs") == 0) {
         index += 1;
         if (index == argc) {
@@ -312,19 +222,17 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            fputs("Adding/removing and replacing architectures is not "
-                  "supported, Please choose only a single option\n",
+        if (tbd->info.fields.archs != 0) {
+            fputs("Note: Option --replace-archs has been provided twice\nOlder "
+                  "option's list of architectures will be overriden\n",
                   stderr);
-
-            exit(1);
         }
 
-        tbd->info.archs =
+        tbd->info.fields.archs =
             parse_architectures_list(&index,
                                      argc,
                                      argv,
-                                     &tbd->info.archs_count);
+                                     &tbd->info.fields.archs_count);
 
         tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS;
@@ -339,15 +247,13 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            fputs("Adding/removing and replacing flags is not supported. "
-                  "Please choose only a single option\n",
+        if (tbd->info.fields.flags != 0) {
+            fputs("Note: Option --replace-flags has been provided twice\nOlder "
+                  "option's list of flags will be overriden\n",
                   stderr);
-
-            exit(1);
         }
 
-        tbd->info.flags_field = parse_flags_list(&index, argc, argv);
+        tbd->info.fields.flags = parse_flags_list(&index, argc, argv);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
@@ -360,9 +266,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         const enum tbd_objc_constraint objc_constraint =
             parse_objc_constraint(argument);
 
-        if (objc_constraint == TBD_OBJC_CONSTRAINT_INVALID_VALUE) {
+        if (objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
             fprintf(stderr,
-                    "Unrecognized objc-constraint: %s. Run "
+                    "Unrecognized objc-constraint: %s.\nRun "
                     "--list-objc-constraint to see a list of valid "
                     "objc-constraints\n",
                     argument);
@@ -370,7 +276,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.objc_constraint = objc_constraint;
+        tbd->info.fields.objc_constraint = objc_constraint;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
@@ -382,16 +288,16 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         const char *const argument = argv[index];
         const enum tbd_platform platform = parse_platform(argument);
 
-        if (platform == 0) {
+        if (platform == TBD_PLATFORM_NONE) {
             fprintf(stderr,
-                    "Unrecognized platform: %s. Run --list-platform to see a "
+                    "Unrecognized platform: %s.\nRun --list-platform to see a "
                     "list of valid platforms\n",
                     argument);
 
             exit(1);
         }
 
-        tbd->info.platform = platform;
+        tbd->info.fields.platform = platform;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     } else if (strcmp(option, "replace-swift-version") == 0) {
         index += 1;
@@ -408,7 +314,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.swift_version = parse_swift_version(argv[index]);
+        tbd->info.fields.swift_version = parse_swift_version(argv[index]);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
@@ -424,7 +330,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         if (version == TBD_VERSION_NONE) {
             fprintf(stderr,
-                    "Unrecognized tbd-version: %s. Run --list-tbd-versions to "
+                    "Unrecognized tbd-version: %s.\nRun --list-tbd-versions to "
                     "see a list of valid tbd-versions\n",
                     argument);
 
@@ -871,49 +777,46 @@ void
 tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
                                 const struct tbd_for_main *__notnull const src)
 {
-    if (dst->archs_re == 0) {
-        dst->archs_re = src->archs_re;
+    if (dst->info.fields.archs_count == 0) {
+        dst->info.fields.archs = src->info.fields.archs;
+        dst->info.fields.archs_count = src->info.fields.archs_count;
     }
 
-    if (dst->info.archs_count == 0) {
-        dst->info.archs_count = src->info.archs_count;
-        dst->info.archs = src->info.archs;
+    if (dst->info.fields.current_version == 0) {
+        dst->info.fields.current_version = src->info.fields.current_version;
     }
 
-    if (dst->info.current_version == 0) {
-        dst->info.current_version = src->info.current_version;
-    }
-
-    if (dst->info.compatibility_version == 0) {
-        dst->info.compatibility_version = src->info.compatibility_version;
+    if (dst->info.fields.compatibility_version == 0) {
+        const uint32_t comp_version = src->info.fields.compatibility_version;
+        dst->info.fields.compatibility_version = comp_version;
     }
 
     if (dst->flags_re == 0) {
         dst->flags_re = src->flags_re;
     }
 
-    if (dst->info.flags_field == 0) {
-        dst->info.flags_field = src->info.flags_field;
+    if (dst->info.fields.flags == 0) {
+        dst->info.fields.flags = src->info.fields.flags;
     }
 
-    if (dst->info.install_name == NULL) {
-        dst->info.install_name = src->info.install_name;
+    if (dst->info.fields.install_name == NULL) {
+        dst->info.fields.install_name = src->info.fields.install_name;
     }
 
-    if (dst->info.parent_umbrella == NULL) {
-        dst->info.parent_umbrella = src->info.parent_umbrella;
+    if (dst->info.fields.parent_umbrella == NULL) {
+        dst->info.fields.parent_umbrella = src->info.fields.parent_umbrella;
     }
 
-    if (dst->info.platform == 0) {
-        dst->info.platform = src->info.platform;
+    if (dst->info.fields.platform == TBD_PLATFORM_NONE) {
+        dst->info.fields.platform = src->info.fields.platform;
     }
 
-    if (dst->info.objc_constraint == 0) {
-        dst->info.objc_constraint = src->info.objc_constraint;
+    if (dst->info.fields.objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
+        dst->info.fields.objc_constraint = src->info.fields.objc_constraint;
     }
 
-    if (dst->info.swift_version == 0) {
-        dst->info.swift_version = src->info.swift_version;
+    if (dst->info.fields.swift_version == 0) {
+        dst->info.fields.swift_version = src->info.fields.swift_version;
     }
 
     if (dst->info.version == 0) {

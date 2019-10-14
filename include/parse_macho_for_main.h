@@ -11,15 +11,15 @@
 
 #include "tbd_for_main.h"
 
-/*
- * magic_in should be atleast 4 bytes large.
- */
-
 enum parse_macho_for_main_options {
     O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH = 1ull << 0
 };
 
 struct parse_macho_for_main_args {
+    /*
+     * magic_in should be at least 4 bytes large.
+     */
+
     int fd;
     void *magic_in;
 
@@ -52,6 +52,6 @@ parse_macho_file_for_main(struct parse_macho_for_main_args args);
 
 enum parse_macho_for_main_result
 parse_macho_file_for_main_while_recursing(
-	struct parse_macho_for_main_args args);
+    struct parse_macho_for_main_args args);
 
 #endif /* PARSE_MACHO_FOR_MAIN_H */

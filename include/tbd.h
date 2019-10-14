@@ -59,7 +59,7 @@ enum tbd_flags {
 };
 
 enum tbd_objc_constraint {
-    TBD_OBJC_CONSTRAINT_INVALID_VALUE,
+    TBD_OBJC_CONSTRAINT_NO_VALUE,
 
     TBD_OBJC_CONSTRAINT_NONE,
     TBD_OBJC_CONSTRAINT_GC,
@@ -135,10 +135,6 @@ tbd_export_info_compare(
     const struct tbd_export_info *__notnull const item);
 
 int
-tbd_export_info_comparator(const void *__notnull array_item,
-                           const void *__notnull item);
-
-int
 tbd_export_info_no_archs_comparator(const void *__notnull array_item,
                                     const void *__notnull item);
 
@@ -180,13 +176,11 @@ enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS = 1ull << 4
 };
 
-struct tbd_create_info {
-    enum tbd_version version;
-
+struct tbd_create_info_fields {
     uint64_t archs;
     uint64_t archs_count;
 
-    uint32_t flags_field;
+    uint32_t flags;
 
     enum tbd_platform platform;
     enum tbd_objc_constraint objc_constraint;
@@ -203,6 +197,11 @@ struct tbd_create_info {
 
     struct array exports;
     struct array uuids;
+};
+
+struct tbd_create_info {
+    enum tbd_version version;
+    struct tbd_create_info_fields fields;
 
     uint64_t flags;
 };

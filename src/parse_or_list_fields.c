@@ -26,7 +26,7 @@ uint64_t
 parse_architectures_list(int *__notnull const index_in,
                          const int argc,
                          const char *const *__notnull const argv,
-                         uint64_t *const count_out)
+                         uint64_t *__notnull const count_out)
 {
     uint64_t archs = 0;
     uint64_t count = 0;
@@ -38,7 +38,7 @@ parse_architectures_list(int *__notnull const index_in,
         const char *const arch = argv[index];
 
         /*
-         * Perform a quick check to see if our arch is either a path-string or
+         * Quickly check whether our arch-string is either a path-string or
          * option to avoid an unnecessary arch-info lookup.
          */
 
@@ -82,16 +82,15 @@ parse_architectures_list(int *__notnull const index_in,
         }
     } while (true);
 
-    if (count_out != NULL) {
-        *count_out = count;
-    }
 
     /*
      * Subtract one from index as we're supposed to end with the index pointing
      * to the last argument.
      */
 
+    *count_out = count;
     *index_in = index - 1;
+
     return archs;
 }
 
@@ -159,7 +158,7 @@ parse_objc_constraint(const char *__notnull const constraint) {
         return TBD_OBJC_CONSTRAINT_GC;
     }
 
-    return TBD_OBJC_CONSTRAINT_INVALID_VALUE;
+    return TBD_OBJC_CONSTRAINT_NO_VALUE;
 }
 
 uint32_t parse_swift_version(const char *__notnull const arg) {

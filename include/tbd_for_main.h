@@ -63,23 +63,21 @@ enum tbd_for_main_flags {
     F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1ull << 0,
     F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1ull << 1,
 
-    F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS = 1ull << 2,
-    F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS = 1ull << 3,
+    F_TBD_FOR_MAIN_REMOVE_ARCHS               = 1ull << 2,
+    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1ull << 3,
 
-    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1ull << 5,
+    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1ull << 4,
+    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1ull << 5,
 
-    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1ull << 6,
-    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1ull << 7,
-
-    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 9,
-    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 10,
+    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 6,
+    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 7,
 
     /*
      * dyld_shared_cache extractions can be stored in either a file or a
      * directory. (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 11
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 8
 };
 
 enum tbd_for_main_filetype {
@@ -115,20 +113,19 @@ struct tbd_for_main {
     uint64_t parse_options;
     uint64_t write_options;
 
-    uint64_t flags;
+    uint64_t add_archs;
+    uint64_t add_archs_count;
 
-    /*
-     * Archs and flags to either replace/remove ones found in a mach-o file.
-     * Default is to replace.
-     */
+    uint64_t remove_archs;
+    uint64_t remove_archs_count;
 
-    uint64_t archs_re;
     uint32_t flags_re;
 
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
 
     uint64_t dsc_filter_paths_count;
+    uint64_t flags;
 };
 
 bool

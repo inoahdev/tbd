@@ -437,34 +437,12 @@ handle_dsc_image_parse_result(
     }
 
     /*
-     * Handle the remove/replace fields.
-     */
-
-    const uint64_t archs_re = args.tbd->archs_re;
-    if (archs_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_ARCHS) {
-            args.tbd->info.archs &= ~archs_re;
-        } else {
-            args.tbd->info.archs = archs_re;
-        }
-    }
-
-    const uint32_t flags_re = args.tbd->flags_re;
-    if (flags_re != 0) {
-        if (args.tbd->flags & F_TBD_FOR_MAIN_ADD_OR_REMOVE_FLAGS) {
-            args.tbd->info.flags_field &= ~flags_re;
-         } else {
-            args.tbd->info.flags_field = flags_re;
-        }
-    }
-
-    /*
      * Because the O_MACHO_FILE_IGNORE_INVALID_FIELDS option was passed in from
      * parse_dcs_from_main(), we may have some incomplete, yet mandatory
      * fields.
      */
 
-    if (args.tbd->info.install_name == NULL) {
+    if (args.tbd->info.fields.install_name == NULL) {
         const bool request_result =
             request_install_name(args.global,
                                  args.tbd,
@@ -480,7 +458,7 @@ handle_dsc_image_parse_result(
         }
     }
 
-    if (args.tbd->info.platform == 0) {
+    if (args.tbd->info.fields.platform == TBD_PLATFORM_NONE) {
         const bool request_result =
             request_platform(args.global,
                              args.tbd,
@@ -523,7 +501,7 @@ print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
 
             break;
 
-        case E_DSC_IMAGE_PARSE_NO_CORRESPONDING_MAPPING:
+        case E_DSC_IMAGE_PARSE_NO_MAPPING:
             fprintf(stderr,
                     "Image (with path %s) has no corresponding mapping\n",
                     image_path);
@@ -554,7 +532,7 @@ print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
 
         case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
             fprintf(stderr,
-                    "Image (with path %s) could not be parsed due to an "
+                    "Image (with path %s) could not be parsed due to a memory "
                     "allocation failure\n",
                     image_path);
 

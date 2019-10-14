@@ -53,8 +53,8 @@ is_objc_class_symbol(const char *__notnull const symbol,
     switch (first) {
         case 5495340712935444319: {
             /*
-             * The check here is `if (first == "_OBJC_CL")`, checking of whether
-             * the prefix is "_OBJC_CLASS_$_".
+             * The check above is `if (first == "_OBJC_CL")`, checking if the
+             * prefix is "_OBJC_CLASS_$_".
              *
              * The check below is `if (second != "ASS_")`.
              */
@@ -94,7 +94,7 @@ is_objc_class_symbol(const char *__notnull const symbol,
 
         case 4993752304437055327: {
             /*
-             * The check here is `if (first == "_OBJC_ME")`, checking if the
+             * The check above is `if (first == "_OBJC_ME")`, checking if the
              * prefix is "_OBJC_METACLASS_$_".
              *
              * Ensure the max potential length of the symbol is at least 18
@@ -144,7 +144,7 @@ is_objc_class_symbol(const char *__notnull const symbol,
 
         case 7810191059381808942: {
             /*
-             * The check here is `if (first == ".objc_cl")`, checking if the
+             * The check above is `if (first == ".objc_cl")`, checking if the
              * prefix is ".objc_class_name".
              *
              * Ensure that the max potential length of this symbol is at least
@@ -345,22 +345,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-            } else if (is_objc_ehtype_symbol(str, first, max_len, version)) {
-                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
-                {
-                    if (!(n_type & N_EXT)) {
-                        return E_MACHO_FILE_PARSE_OK;
-                    }
-                }
-
-                string += 15;
-                length = (uint32_t)strnlen(string, max_len - 15);
-
-                if (unlikely(length == 0)) {
-                    return E_MACHO_FILE_PARSE_OK;
-                }
-
-                symbol_type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else if (is_objc_ivar_symbol(str, first)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
                     if (!(n_type & N_EXT)) {
@@ -386,6 +370,22 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 if (unlikely(length == 0)) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
+            } else if (is_objc_ehtype_symbol(str, first, max_len, version)) {
+                if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
+                {
+                    if (!(n_type & N_EXT)) {
+                        return E_MACHO_FILE_PARSE_OK;
+                    }
+                }
+
+                string += 15;
+                length = (uint32_t)strnlen(string, max_len - 15);
+
+                if (unlikely(length == 0)) {
+                    return E_MACHO_FILE_PARSE_OK;
+                }
+
+                symbol_type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else {
                 if (!(n_type & N_EXT)) {
                     return E_MACHO_FILE_PARSE_OK;
@@ -428,11 +428,11 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     };
 
     if (options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
-        export_info.archs = info_in->archs;
-        export_info.archs_count = info_in->archs_count;
+        export_info.archs = info_in->fields.archs;
+        export_info.archs_count = info_in->fields.archs_count;
     }
 
-    struct array *const exports = &info_in->exports;
+    struct array *const exports = &info_in->fields.exports;
     struct array_cached_index_info cached_info = {};
 
     struct tbd_export_info *const existing_info =
