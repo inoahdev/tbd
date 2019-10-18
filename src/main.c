@@ -40,8 +40,6 @@ struct recurse_callback_info {
 
     uint64_t files_parsed;
     uint64_t retained_info;
-
-    bool print_paths;
 };
 
 static bool
@@ -738,8 +736,8 @@ int main(const int argc, const char *const argv[]) {
                     }
 
                     /*
-                     * Copy the path (if not from argv) to allow open_r to
-                     * create the file (and directory hierarchy if needed).
+                     * Copy the path, if still from argv, to allow open_r to
+                     * create the file.
                      */
 
                     if (full_path == path) {
@@ -850,7 +848,7 @@ int main(const int argc, const char *const argv[]) {
 
             /*
              * Two modes exist for option --list-architectures:
-             *     - Listing the archs in the arch-info table
+             *     - Listing the archs in the arch-info table.
              *     - Listing the archs in a provided mach-o file.
              */
 
@@ -1063,7 +1061,6 @@ int main(const int argc, const char *const argv[]) {
                 .global = &global,
                 .tbd = tbd,
                 .retained_info = retained_info,
-                .print_paths = true
             };
 
             enum dir_recurse_result recurse_dir_result = E_DIR_RECURSE_OK;
@@ -1120,7 +1117,7 @@ int main(const int argc, const char *const argv[]) {
                             strerror(errno));
                 } else {
                     fprintf(stderr,
-                            "Failed to open the provided mach-o file, "
+                            "Failed to open the file at the provided path, "
                             "error: %s\n",
                             strerror(errno));
                 }
