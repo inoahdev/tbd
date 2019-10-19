@@ -397,6 +397,10 @@ path_append_two_components_and_extension_with_len(
     const char *extension_copy_iter = extension;
     uint64_t extension_copy_length = 0;
 
+    /*
+     * We prefer to add the dot ourselves.
+     */
+
     extension_copy_iter = go_to_end_of_dots(extension);
     if (extension_copy_iter != NULL) {
         const uint64_t drift = (uint64_t)(extension_copy_iter - extension);

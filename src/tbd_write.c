@@ -1042,8 +1042,8 @@ tbd_write_exports_with_full_archs(
         export++;
 
         /*
-         * If we've written out all exports, simply end the current
-         * export-type array and return.
+         * If we've written out all exports, simply end the current export-type
+         * array and return.
          */
 
         if (export == end) {
@@ -1056,8 +1056,8 @@ tbd_write_exports_with_full_archs(
 
         /*
          * If the current export-info has a different type from the previous
-         * ones written out, end the current-export-info array and create
-         * the new one of the current export-info.
+         * ones written out, end the current-export-info array and create the
+         * new one of the current export-info.
          */
 
         const enum tbd_export_type inner_type = export->type;
@@ -1086,8 +1086,8 @@ tbd_write_exports_with_full_archs(
         }
 
         /*
-         * Write either a comma or a newline before writing the next export
-         * to preserve a limit on line-lengths.
+         * Write either a comma or a newline before writing the next export to
+         * preserve a limit on line-lengths.
          */
 
         const uint32_t length = export->length;

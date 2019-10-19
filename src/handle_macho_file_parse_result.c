@@ -37,7 +37,7 @@ handle_macho_file_parse_result(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Failed to read data while parsing mach-o file (at "
-                        "args.dir_path: %s)\n",
+                        "path: %s)\n",
                         args.dir_path);
             } else {
                 fputs("Failed to read data while parsing mach-o file at the "
@@ -65,12 +65,11 @@ handle_macho_file_parse_result(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s), or one of its "
-                        "architectures, is too small to be a valid "
-                        "mach-o file\n",
+                        "architectures, is too small to be a valid mach-o\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
-                      "is too small to be a valid mach-o file\n",
+                      "is too small to be a valid mach-o\n",
                       stderr);
             }
 
@@ -97,8 +96,8 @@ handle_macho_file_parse_result(
                         "architectures, has an unsupported cpu-type\n",
                         args.dir_path);
             } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has an unsupported cpu-type\n",
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has an unsupported cpu-type\n",
                       stderr);
             }
 
@@ -119,8 +118,8 @@ handle_macho_file_parse_result(
         case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
             if (args.print_paths) {
                 fprintf(stderr,
-                        "Mach-o file (at path %s) has too many "
-                        "architectures to fit inside a mach-o file\n",
+                        "Mach-o file (at path %s) has too many architectures "
+                        "to fit inside a mach-o file\n",
                         args.dir_path);
             } else {
                 fputs("Mach-o file at the provided path has too many "
@@ -218,13 +217,13 @@ handle_macho_file_parse_result(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s), or one of its "
-                        "architectures, has no load-commands. "
-                        "Subsequently, no information was extracted\n",
+                        "architectures, has no load-commands.\n"
+                        "Because of this, no information was retrieved\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
-                      "has no load-commands. Subsequently, no information was "
-                      "extracted\n",
+                      "has no load-commands.\nBecause of this, no information "
+                      "was retrieved\n",
                       stderr);
             }
 
@@ -250,13 +249,12 @@ handle_macho_file_parse_result(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s), or one of its "
-                        "architectures, has too small an area to store all "
-                        "of its load-commands\n",
+                        "architectures, has too small an area to store a "
+                        "load-command\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
-                      "has too small an area to store all "
-                      "of its load-commands\n",
+                      "has too small to store a load-command\n",
                       stderr);
             }
 
@@ -501,7 +499,7 @@ handle_macho_file_parse_result(
                                                    "(at path %s) has "
                                                    "architectures with "
                                                    "conflicting information "
-                                                   "for its tbd-flags\n",
+                                                   "for its flags\n",
                                                    args.dir_path);
             } else {
                 request_result =
@@ -513,7 +511,7 @@ handle_macho_file_parse_result(
                                                    "The provided mach-o file "
                                                    "has architectures with "
                                                    "conflicting information "
-                                                   "for its tbd-flags\n");
+                                                   "for its flags\n");
             }
 
             if (!request_result) {
@@ -527,14 +525,14 @@ handle_macho_file_parse_result(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s) has architectures with "
-                        "conflicting information for its identification "
-                        "(install-name, current-version, and/or "
+                        "conflicting information for its identification:\n"
+                        "\t(install-name, current-version, and/or "
                         "comatibility-version)\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file has architectures with "
-                      "conflicting information for its identification "
-                      "(install-name, current-version, and/or "
+                      "conflicting information for its identification:\n"
+                      "\t(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
         }
@@ -711,8 +709,8 @@ handle_macho_file_parse_result(
                                      args.retained_info_in,
                                      false,
                                      stderr,
-                                     "Mach-o file (at path %s), does not "
-                                     "have a platform\n",
+                                     "Mach-o file (at path %s), does not have "
+                                     "a platform\n",
                                      args.dir_path);
             } else {
                 request_result =
@@ -721,8 +719,8 @@ handle_macho_file_parse_result(
                                      args.retained_info_in,
                                      false,
                                      stderr,
-                                     "The provided mach-o file does not "
-                                     "have a platform\n");
+                                     "The provided mach-o file does not have a "
+                                     "platform\n");
             }
 
             if (!request_result) {
@@ -739,8 +737,8 @@ handle_macho_file_parse_result(
                         "architectures, has no symbol-table\n",
                         args.dir_path);
             } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has no symbol-table\n",
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has no symbol-table\n",
                       stderr);
             }
 
@@ -862,7 +860,7 @@ handle_macho_file_parse_result_while_recursing(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Failed to read data while parsing mach-o file (at "
-                        "args.dir_path: %s/%s)\n",
+                        "path: %s/%s)\n",
                         args.dir_path,
                         args.name);
             } else {
@@ -1354,7 +1352,7 @@ handle_macho_file_parse_result_while_recursing(
                                                    "(at path %s/%s) has "
                                                    "architectures with "
                                                    "conflicting information "
-                                                   "for its tbd-flags\n",
+                                                   "for its flags\n",
                                                    args.dir_path,
                                                    args.name);
             } else {
@@ -1367,7 +1365,7 @@ handle_macho_file_parse_result_while_recursing(
                                                    "The provided mach-o file "
                                                    "has architectures with "
                                                    "conflicting information "
-                                                   "for its tbd-flags\n");
+                                                   "for its flags\n");
             }
 
             if (!request_result) {
@@ -1381,15 +1379,15 @@ handle_macho_file_parse_result_while_recursing(
             if (args.print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s/%s) has architectures with "
-                        "conflicting information for its identification "
-                        "(install-name, current-version, and/or "
+                        "conflicting information for its identification:\n"
+                        "\t(install-name, current-version, and/or "
                         "comatibility-version)\n",
                         args.dir_path,
                         args.name);
             } else {
                 fputs("The provided mach-o file has architectures with "
-                      "conflicting information for its identification "
-                      "(install-name, current-version, and/or "
+                      "conflicting information for its identification:\n"
+                      "\t(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
         }

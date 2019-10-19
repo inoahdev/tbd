@@ -39,7 +39,7 @@ parse_architectures_list(int *__notnull const index_in,
 
         /*
          * Quickly check whether our arch-string is either a path-string or
-         * option to avoid an unnecessary arch-info lookup.
+         * an option to avoid an unnecessary arch-info lookup.
          */
 
         const char arch_front = arch[0];

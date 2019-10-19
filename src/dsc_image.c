@@ -25,10 +25,11 @@
  * macho_file namespace. To handle the different result-types, we use this
  * translate function.
  *
- * However, not all macho_file_parse_result codes are translated. For example,
- * because dsc-images are not fat mach-o files, we ignore the fat-related
- * error-codes such as those relating to architectures and conflicting
- * information.
+ * However, not all macho_file_parse_result codes are translated.
+ *
+ * For example, because dsc-images are not fat mach-o files, we ignore the
+ * fat-related error-codes, like errors relating to architectures and
+ * conflicting information.
  */
 
 static enum dsc_image_parse_result
@@ -68,8 +69,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         /*
          * Because we never call macho_file_parse_from_file(), the arch-info
-         * from the header should never be checked, and this error should never
-         * be returned.
+         * from the header woul never be checked.
          */
 
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
@@ -163,12 +163,11 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
  * dyld_shared_cache data is stored in different mappings, with each mapping
  * copied over to memory at runtime with different memory-protections.
  *
- * To find our mach-o data, we have to take the data's memory-address, and find
- * the mapping whose memory-range contains the data's memory-address.
+ * To find our mach-o data, we have to take our data's memory-address, and find
+ * the mapping with a memory-range that contains our data's memory-address.
  *
- * The mach-o data's file-offset is simply at the mapping's file location
- * plus the delta of (the difference between) the data's memory-address and the
- * data-mapping's memory address.
+ * The mach-o data's file-offset is simply at the mapping's file location,
+ * plus the memory-mapping-index of the mach-o data.
  *
  * Some dyld_shared_cache mappings will have a memory-range larger than the
  * range reserved on file. For this reason, we may have a memory-address that
@@ -201,7 +200,7 @@ get_offset_from_addr(struct dyld_shared_cache_info *__notnull const info,
         const uint64_t delta = address - mapping_begin;
         const uint64_t file_offset = mapping->fileOffset + delta;
 
-        *max_size_out = mapping->size - delta;
+        *max_size_out = (mapping->size - delta);
         return file_offset;
     }
 

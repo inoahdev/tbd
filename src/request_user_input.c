@@ -47,7 +47,6 @@ request_choice(const char *__notnull const prompt,
         ssize_t input_length = getline(&input, &input_size, stdin);
 
         if (input_length < 0) {
-            free(input);
             fprintf(stderr,
                     "\nInternal error: getline() failed while trying to "
                     "receive user input, error: %s\n",
@@ -62,13 +61,11 @@ request_choice(const char *__notnull const prompt,
         choice = *iter;
         input[input_length - 1] = '\0';
 
-        for (; choice != NULL; choice = *(++iter)) {
+        for (; choice != NULL; choice = *(++iter), ++index) {
             if (strcmp(choice, input) == 0) {
                 free(input);
                 return index;
             }
-
-            ++index;
         }
 
         free(input);

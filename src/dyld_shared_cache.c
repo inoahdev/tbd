@@ -23,13 +23,6 @@
 #include "our_io.h"
 #include "range.h"
 
-/*
- * dyld_shared_cache file-headers usually have a magic beginning with a
- * single 8-byte prefix.
- *
- * With the addition of the arm64_32 cpu-type, a new prefix was created.
- */
-
 static const uint64_t dsc_magic_64_normal = 2319765435151317348;
 static const uint64_t dsc_magic_64_arm64_32 = 7003509047616633188;
 

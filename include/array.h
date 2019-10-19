@@ -98,11 +98,19 @@ enum array_cached_index_type {
  * array_cached_index_info is a structure describing the information extracted
  * from the lookup performaced array_find_item_in_sorted.
  *
- * Recording our lookup information helps us avoid the performance hiccup of
+ * Recording our lookup information helps us avoid the performance penalty of
  * repeating our lookup when adding to the array.
  */
 
 struct array_cached_index_info {
+    /*
+     * type stores the relationship between the array-item and the item passed
+     * in by the caller.
+     *
+     * For example, a type of ARRAY_CACHED_INDEX_LESS_THAN means that the
+     * array-item is "less than" the item passed in by the caller.
+     */
+
     uint64_t index;
     enum array_cached_index_type type;
 };

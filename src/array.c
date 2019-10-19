@@ -51,8 +51,8 @@ void *array_get_back(const struct array *const array, const size_t item_size) {
     return (void *)(data_end - item_size);
 }
 
-static uint64_t get_new_capacity(const uint64_t old_capacity) {
-    return old_capacity * 2;
+static inline uint64_t get_new_capacity(const uint64_t old_capacity) {
+    return (old_capacity * 2);
 }
 
 static enum array_result
@@ -101,11 +101,11 @@ array_expand_if_necessary(struct array *__notnull const array,
         return E_ARRAY_OK;
     }
 
-    const enum array_result array_grow_result =
+    const enum array_result grow_result =
         array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
 
-    if (unlikely(array_grow_result != E_ARRAY_OK)) {
-        return array_grow_result;
+    if (unlikely(grow_result != E_ARRAY_OK)) {
+        return grow_result;
     }
 
     return E_ARRAY_OK;
@@ -124,11 +124,11 @@ array_ensure_item_capacity(struct array *__notnull const array,
     }
 
     const uint64_t used_size = array_get_used_size(array);
-    const enum array_result array_grow_result =
+    const enum array_result grow_result =
         array_grow_to_capacity(array, used_size, old_capacity, wanted_capacity);
 
-    if (unlikely(array_grow_result != E_ARRAY_OK)) {
-        return array_grow_result;
+    if (unlikely(grow_result != E_ARRAY_OK)) {
+        return grow_result;
     }
 
     return E_ARRAY_OK;
@@ -153,9 +153,9 @@ array_add_item_to_byte_index(struct array *__notnull const array,
 
     if (position != data_end) {
         void *const next_position = position + item_size;
-        const uint64_t array_move_size = (uint64_t)(data_end - position);
+        const uint64_t move_size = (uint64_t)(data_end - position);
 
-        memmove(next_position, position, array_move_size);
+        memmove(next_position, position, move_size);
     }
 
     memcpy(position, item, item_size);
@@ -205,18 +205,18 @@ enum array_result
 array_add_items_from_array(struct array *__notnull const array,
                            const struct array *__notnull const src)
 {
-    const uint64_t src_used_size = array_get_used_size(src);
+    const uint64_t used_size = array_get_used_size(src);
     const enum array_result expand_result =
-        array_expand_if_necessary(array, src_used_size);
+        array_expand_if_necessary(array, used_size);
 
     if (unlikely(expand_result != E_ARRAY_OK)) {
         return expand_result;
     }
 
     void *const data_end = (void *)array->data_end;
-    memcpy(data_end, src->data, src_used_size);
+    memcpy(data_end, src->data, used_size);
 
-    array->data_end = data_end + src_used_size;
+    array->data_end = data_end + used_size;
     array->item_count += src->item_count;
 
     return E_ARRAY_OK;
@@ -229,24 +229,23 @@ array_add_and_unique_items_from_array(
     const struct array *__notnull const src,
     __notnull const array_item_comparator comparator)
 {
-    const uint64_t array_used_size = array_get_used_size(array);
-    if (array_used_size == 0) {
+    if (array->item_count == 0) {
         return array_add_items_from_array(array, src);
     }
 
-    const void *src_iter = src->data;
+    const void *iter = src->data;
     const void *const end = src->data_end;
 
-    for (; src_iter != end; src_iter += item_size) {
+    for (; iter != end; iter += item_size) {
         const void *const match =
-            array_find_item(array, item_size, src_iter, comparator, NULL);
+            array_find_item(array, item_size, iter, comparator, NULL);
 
         if (match != NULL) {
             continue;
         }
 
         const enum array_result add_item_result =
-            array_add_item(array, item_size, src_iter, NULL);
+            array_add_item(array, item_size, iter, NULL);
 
         if (add_item_result != E_ARRAY_OK) {
             return add_item_result;
@@ -263,13 +262,11 @@ array_find_item(const struct array *__notnull const array,
                 __notnull const array_item_comparator comparator,
                 uint64_t *const index_out)
 {
-    uint64_t index = 0;
+    void *iter = array->data;
+    const uint64_t item_count = array->item_count;
 
-    void *data_iter = array->data;
-    const void *const data_end = array->data_end;
-
-    for (; data_iter != data_end; data_iter += item_size, index++) {
-        if (comparator(data_iter, item) != 0) {
+    for (uint64_t index = 0; index != item_count; index++, iter += item_size) {
+        if (comparator(iter, item) != 0) {
             continue;
         }
 
@@ -277,7 +274,7 @@ array_find_item(const struct array *__notnull const array,
             *index_out = index;
         }
 
-        return data_iter;
+        return iter;
     }
 
     return NULL;
@@ -290,7 +287,9 @@ array_find_item(const struct array *__notnull const array,
 
 static uint64_t array_slice_get_middle_index(const struct array_slice slice) {
     const uint64_t length = slice.back - slice.front;
-    return slice.front + (length >> 1);
+    const uint64_t middle_index = length >> 1;
+
+    return (slice.front + middle_index);
 }
 
 static void
@@ -308,11 +307,12 @@ array_slice_set_to_upper_half(struct array_slice *__notnull const slice,
 }
 
 static bool array_slice_holds_one_element(const struct array_slice slice) {
-    return slice.front == slice.back;
+    return (slice.front == slice.back);
 }
 
 static bool array_slice_holds_two_elements(const struct array_slice slice) {
-    return (slice.back - slice.front) == 1;
+    const uint64_t length = slice.back - slice.front;
+    return (length == 1);
 }
 
 static inline
@@ -335,7 +335,7 @@ static inline bool array_item_is_greater(const int compare_ret) {
      * so we need to set slice to its upper half.
      */
 
-    return compare_ret > 0;
+    return (compare_ret > 0);
 }
 
 static void *
@@ -477,9 +477,9 @@ array_add_item_to_index(struct array *__notnull const array,
 
     if (position != data_end) {
         void *const next_position = position + item_size;
-        const uint64_t array_move_size = (uint64_t)(data_end - position);
+        const uint64_t move_size = (uint64_t)(data_end - position);
 
-        memmove(next_position, position, array_move_size);
+        memmove(next_position, position, move_size);
     }
 
     memcpy(position, item, item_size);

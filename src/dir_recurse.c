@@ -21,7 +21,7 @@
 enum dir_recurse_result
 dir_recurse(const char *__notnull const path,
             const uint64_t path_length,
-            const int file_open_flags,
+            const int open_flags,
             void *const callback_info,
             __notnull const dir_recurse_callback callback,
             __notnull const dir_recurse_fail_callback fail_callback)
@@ -68,7 +68,7 @@ dir_recurse(const char *__notnull const path,
         bool should_exit = false;
         switch (entry->d_type) {
             case DT_REG: {
-                const int fd = our_openat(dir_fd, name, file_open_flags);
+                const int fd = our_openat(dir_fd, name, open_flags);
                 if (fd < 0) {
                     const bool should_continue =
                         fail_callback(path,
@@ -87,6 +87,11 @@ dir_recurse(const char *__notnull const path,
                 if (!callback(path, path_length, fd, entry, callback_info)) {
                     should_exit = true;
                 }
+
+                /*
+                 * We need to reset errno as we don't know what happened while
+                 * in callback().
+                 */
 
                 errno = 0;
                 break;
@@ -238,7 +243,7 @@ recurse_dir_fd(const int dir_fd,
                 }
 
                 /*
-                 * We need to reset errno here as we don't know what happened
+                 * We need to reset errno as we don't know what happened while
                  * in callback().
                  */
 

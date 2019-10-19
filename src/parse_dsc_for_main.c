@@ -272,28 +272,25 @@ write_out_tbd_info_for_filter(
 
     switch (filter->type) {
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH:
-            result =
-                write_out_tbd_info_for_image_path(info,
-                                                  tbd,
-                                                  image_path,
-                                                  image_path_length);
+            result = write_out_tbd_info_for_image_path(info,
+                                                       tbd,
+                                                       image_path,
+                                                       image_path_length);
 
             break;
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
-            result =
-                write_out_tbd_info_for_filter_dir(tbd,
-                                                  filter->tmp_ptr,
-                                                  image_path,
-                                                  image_path_length);
+            result = write_out_tbd_info_for_filter_dir(tbd,
+                                                       filter->tmp_ptr,
+                                                       image_path,
+                                                       image_path_length);
 
             break;
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
-            result =
-                write_out_tbd_info_for_filter_filename(tbd,
-                                                       filter->tmp_ptr,
-                                                       filter->length);
+            result = write_out_tbd_info_for_filter_filename(tbd,
+                                                            filter->tmp_ptr,
+                                                            filter->length);
 
             break;
     }
@@ -377,7 +374,7 @@ actually_parse_image(
                         iterate_info->dsc_info,
                         image,
                         tbd->macho_options,
-                        tbd->dsc_options,
+                        tbd->parse_options,
                         0);
 
     struct handle_dsc_image_parse_result_args args = {
@@ -1087,11 +1084,11 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
      */
 
     if (numbers->item_count != 0) {
-        const uint32_t *numbers_iter = numbers->data;
-        const uint32_t *const numbers_end = numbers->data_end;
+        const uint32_t *iter = numbers->data;
+        const uint32_t *const end = numbers->data_end;
 
-        for (; numbers_iter != numbers_end; numbers_iter++) {
-            const uint32_t number = *numbers_iter;
+        for (; iter != end; iter++) {
+            const uint32_t number = *iter;
             if (number > dsc_info.images_count) {
                 if (args.print_paths) {
                     fprintf(stderr,
@@ -1153,8 +1150,8 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
         iterate_info.parse_all_images = false;
     } else {
         /*
-         * By default, if no filters, numbers, or paths are provided, we parse
-         * all images.
+         * By default, if no filters or numbers are provided, we parse all
+         * images.
          *
          * Otherwise, all images have to be explicitly allowed to be parsed.
          */
