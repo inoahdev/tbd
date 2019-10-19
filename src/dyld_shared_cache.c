@@ -20,6 +20,7 @@
 #include "dyld_shared_cache.h"
 
 #include "guard_overflow.h"
+#include "our_io.h"
 #include "range.h"
 
 /*
@@ -256,7 +257,7 @@ dyld_shared_cache_parse_from_file(
     }
 
     struct dyld_cache_header header = {};
-    if (read(fd, &header.mappingOffset, sizeof(header) - 16) < 0) {
+    if (our_read(fd, &header.mappingOffset, sizeof(header) - 16) < 0) {
         if (errno == EOVERFLOW) {
             return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
         }

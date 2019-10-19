@@ -27,6 +27,8 @@
 
 #include "macho_file.h"
 #include "notnull.h"
+
+#include "our_io.h"
 #include "path.h"
 
 #include "recursive.h"
@@ -856,7 +858,7 @@ int main(const int argc, const char *const argv[]) {
                 const char *const path = argv[2];
 
                 char *const full_path = path_get_absolute_path(path, 0, NULL);
-                const int fd = open(full_path, O_RDONLY);
+                const int fd = our_open(full_path, O_RDONLY, 0);
 
                 if (fd < 0) {
                     fprintf(stderr,
@@ -896,7 +898,7 @@ int main(const int argc, const char *const argv[]) {
             const char *const path = argv[2];
 
             char *const full_path = path_get_absolute_path(path, 0, NULL);
-            const int fd = open(full_path, O_RDONLY);
+            const int fd = our_open(full_path, O_RDONLY, 0);
 
             if (fd < 0) {
                 fprintf(stderr,
@@ -1107,7 +1109,7 @@ int main(const int argc, const char *const argv[]) {
             }
         } else {
             char *const parse_path = tbd->parse_path;
-            const int fd = open(parse_path, O_RDONLY);
+            const int fd = our_open(parse_path, O_RDONLY, 0);
 
             if (fd < 0) {
                 if (should_print_paths) {

@@ -15,6 +15,7 @@
 
 #include "handle_macho_file_parse_result.h"
 #include "macho_file.h"
+#include "our_io.h"
 #include "parse_macho_for_main.h"
 
 static void
@@ -39,7 +40,7 @@ read_magic(void *__notnull const magic_in,
     }
 
     const uint64_t read_size = sizeof(uint32_t) - magic_in_size;
-    if (read(fd, magic_in + magic_in_size, read_size) < 0) {
+    if (our_read(fd, magic_in + magic_in_size, read_size) < 0) {
         return 1;
     }
 

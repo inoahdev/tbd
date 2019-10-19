@@ -17,9 +17,11 @@
 #include "copy.h"
 
 #include "guard_overflow.h"
-#include "macho_file_parse_symbols.h"
-
 #include "likely.h"
+
+#include "macho_file_parse_symbols.h"
+#include "our_io.h"
+
 #include "range.h"
 #include "swap.h"
 
@@ -559,7 +561,7 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    if (lseek(fd, absolute_symoff, SEEK_SET) < 0) {
+    if (our_lseek(fd, absolute_symoff, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -568,12 +570,12 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (read(fd, symbol_table, symbol_table_size) < 0) {
+    if (our_read(fd, symbol_table, symbol_table_size) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
+    if (our_lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
@@ -584,7 +586,7 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    if (read(fd, string_table, args.strsize) < 0) {
+    if (our_read(fd, string_table, args.strsize) < 0) {
         free(symbol_table);
         free(string_table);
 
@@ -765,7 +767,7 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    if (lseek(fd, absolute_symoff, SEEK_SET) < 0) {
+    if (our_lseek(fd, absolute_symoff, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -774,12 +776,12 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (read(fd, symbol_table, symbol_table_size) < 0) {
+    if (our_read(fd, symbol_table, symbol_table_size) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    if (lseek(fd, absolute_stroff, SEEK_SET) < 0) {
+    if (our_lseek(fd, absolute_stroff, SEEK_SET) < 0) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
@@ -790,7 +792,7 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    if (read(fd, string_table, args.strsize) < 0) {
+    if (our_read(fd, string_table, args.strsize) < 0) {
         free(symbol_table);
         free(string_table);
 

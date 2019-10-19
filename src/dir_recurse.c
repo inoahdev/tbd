@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "dir_recurse.h"
+#include "our_io.h"
 #include "path.h"
 
 enum dir_recurse_result
@@ -25,12 +26,12 @@ dir_recurse(const char *__notnull const path,
             __notnull const dir_recurse_callback callback,
             __notnull const dir_recurse_fail_callback fail_callback)
 {
-    const int dir_fd = open(path, O_RDONLY | O_DIRECTORY);
+    const int dir_fd = our_open(path, O_RDONLY | O_DIRECTORY, 0);
     if (dir_fd < 0) {
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }
 
-    DIR *const dir = fdopendir(dir_fd);
+    DIR *const dir = our_fdopendir(dir_fd);
     if (dir == NULL) {
         close(dir_fd);
         return E_DIR_RECURSE_FAILED_TO_OPEN;
@@ -44,7 +45,7 @@ dir_recurse(const char *__notnull const path,
     errno = 0;
 
     do {
-        struct dirent *entry = readdir(dir);
+        struct dirent *entry = our_readdir(dir);
         if (entry == NULL) {
             closedir(dir);
 
@@ -67,7 +68,7 @@ dir_recurse(const char *__notnull const path,
         bool should_exit = false;
         switch (entry->d_type) {
             case DT_REG: {
-                const int fd = openat(dir_fd, name, file_open_flags);
+                const int fd = our_openat(dir_fd, name, file_open_flags);
                 if (fd < 0) {
                     const bool should_continue =
                         fail_callback(path,
@@ -113,7 +114,7 @@ recurse_dir_fd(const int dir_fd,
                __notnull const dir_recurse_callback callback,
                __notnull const dir_recurse_fail_callback fail_callback)
 {
-    DIR *const dir = fdopendir(dir_fd);
+    DIR *const dir = our_fdopendir(dir_fd);
     if (dir == NULL) {
         close(dir_fd);
         return E_DIR_RECURSE_FAILED_TO_OPEN;
@@ -122,7 +123,7 @@ recurse_dir_fd(const int dir_fd,
     errno = 0;
 
     do {
-        struct dirent *entry = readdir(dir);
+        struct dirent *entry = our_readdir(dir);
         if (entry == NULL) {
             closedir(dir);
 
@@ -172,7 +173,7 @@ recurse_dir_fd(const int dir_fd,
                 }
 
                 const int subdir_fd =
-                    openat(dir_fd, name, O_RDONLY | O_DIRECTORY);
+                    our_openat(dir_fd, name, O_RDONLY | O_DIRECTORY);
 
                 if (subdir_fd < 0) {
                     const bool should_continue =
@@ -209,7 +210,7 @@ recurse_dir_fd(const int dir_fd,
             }
 
             case DT_REG: {
-                const int fd = openat(dir_fd, name, file_open_flags);
+                const int fd = our_openat(dir_fd, name, file_open_flags);
                 if (fd < 0) {
                     const bool should_continue =
                         fail_callback(dir_path,
@@ -263,7 +264,7 @@ dir_recurse_with_subdirs(
     __notnull const dir_recurse_callback callback,
     __notnull const dir_recurse_fail_callback fail_callback)
 {
-    const int dir_fd = open(dir_path, O_RDONLY | O_DIRECTORY);
+    const int dir_fd = our_open(dir_path, O_RDONLY | O_DIRECTORY, 0);
     if (dir_fd < 0) {
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }

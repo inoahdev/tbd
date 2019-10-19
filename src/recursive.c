@@ -17,6 +17,8 @@
 #include <unistd.h>
 
 #include "likely.h"
+#include "our_io.h"
+
 #include "path.h"
 #include "recursive.h"
 
@@ -90,7 +92,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
     }
 
     terminate_c_str(last_slash);
-    const int first_ret = mkdir(path, mode);
+    const int first_ret = our_mkdir(path, mode);
     restore_slash_c_str(last_slash);
 
     if (first_ret == 0) {
@@ -153,7 +155,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
         }
 
         terminate_c_str(last_slash);
-        const int ret = mkdir(path, mode);
+        const int ret = our_mkdir(path, mode);
         restore_slash_c_str(last_slash);
 
         /*
@@ -224,7 +226,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
 
     do {
         terminate_c_str(slash);
-        const int ret = mkdir(path, mode);
+        const int ret = our_mkdir(path, mode);
         restore_slash_c_str(slash);
 
         if (unlikely(ret < 0)) {
@@ -254,7 +256,7 @@ open_r(char *__notnull const path,
        const mode_t dir_mode,
        char **const terminator_out)
 {
-    int fd = open(path, O_CREAT | flags, mode);
+    int fd = our_open(path, O_CREAT | flags, mode);
     if (likely(fd >= 0)) {
         return fd;
     }
@@ -275,7 +277,7 @@ open_r(char *__notnull const path,
         return -1;
     }
 
-    fd = open(path, O_CREAT | flags, mode);
+    fd = our_open(path, O_CREAT | flags, mode);
     if (unlikely(fd < 0)) {
         return -1;
     }
@@ -289,14 +291,14 @@ mkdir_r(char *__notnull const path,
         const mode_t mode,
         char **const first_terminator_out)
 {
-    if (likely(mkdir(path, mode) == 0)) {
+    if (likely(our_mkdir(path, mode) == 0)) {
         return 0;
     }
 
     /*
      * If the directory already exists, return as a success.
      *
-     * Note: To avoid multiple syscalls, we call mkdir() knowing that the
+     * Note: To avoid multiple syscalls, we call our_mkdir() knowing that the
      * directory may already exist, preferring checking of errno over an extra
      * syscall.
      */
@@ -321,7 +323,7 @@ mkdir_r(char *__notnull const path,
         return 1;
     }
 
-    if (mkdir(path, mode) < 0) {
+    if (our_mkdir(path, mode) < 0) {
         return 1;
     }
 
@@ -333,7 +335,7 @@ remove_file_r(char *__notnull const path,
               const uint64_t length,
               char *__notnull const last)
 {
-    if (unlikely(unlink(path) != 0)) {
+    if (unlikely(our_unlink(path) != 0)) {
         return 1;
     }
 
@@ -349,7 +351,7 @@ remove_file_r(char *__notnull const path,
 
     do {
         terminate_c_str(last_slash);
-        const int ret = rmdir(path);
+        const int ret = our_rmdir(path);
         restore_slash_c_str(last_slash);
 
         if (unlikely(ret != 0)) {

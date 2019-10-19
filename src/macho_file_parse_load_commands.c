@@ -21,6 +21,7 @@
 #include "macho_file_parse_load_commands.h"
 #include "macho_file_parse_symbols.h"
 
+#include "our_io.h"
 #include "path.h"
 #include "swap.h"
 
@@ -165,22 +166,22 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
      */
 
     if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
-        if (lseek(fd, sect_offset, SEEK_SET) < 0) {
+        if (our_lseek(fd, sect_offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
         const off_t absolute = (off_t)(full_range.begin + sect_offset);
-        if (lseek(fd, absolute, SEEK_SET) < 0) {
+        if (our_lseek(fd, absolute, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     }
 
     struct objc_image_info image_info = {};
-    if (read(fd, &image_info, sizeof(image_info)) < 0) {
+    if (our_read(fd, &image_info, sizeof(image_info)) < 0) {
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    if (lseek(fd, position, SEEK_SET) < 0) {
+    if (our_lseek(fd, position, SEEK_SET) < 0) {
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
@@ -1089,7 +1090,7 @@ macho_file_parse_load_commands_from_file(
     }
 
     const int fd = parse_info->fd;
-    if (read(fd, load_cmd_buffer, sizeofcmds) < 0) {
+    if (our_read(fd, load_cmd_buffer, sizeofcmds) < 0) {
         free(load_cmd_buffer);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }

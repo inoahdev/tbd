@@ -25,6 +25,7 @@
 
 #include "macho_file.h"
 #include "notnull.h"
+#include "our_io.h"
 #include "path.h"
 
 #include "recursive.h"
@@ -702,7 +703,7 @@ read_magic(void *__notnull const magic_in,
     }
 
     const uint64_t read_size = 16 - magic_in_size;
-    if (read(fd, magic_in + magic_in_size, read_size) < 0) {
+    if (our_read(fd, magic_in + magic_in_size, read_size) < 0) {
         if (errno == EOVERFLOW) {
             return E_READ_MAGIC_NOT_LARGE_ENOUGH;
         }
@@ -1016,7 +1017,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
     }
 
     const uint64_t dsc_options =
-        args.tbd->dsc_options | O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS;
+        (args.tbd->dsc_options | O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS);
 
     struct dyld_shared_cache_info dsc_info = {};
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
@@ -1178,7 +1179,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
 
 void print_list_of_dsc_images(const int fd) {
     char magic[16] = {};
-    if (read(fd, &magic, sizeof(magic)) < 0) {
+    if (our_read(fd, &magic, sizeof(magic)) < 0) {
         handle_dsc_file_parse_result(NULL,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
                                      false);
@@ -1210,7 +1211,7 @@ void print_list_of_dsc_images(const int fd) {
 
 void print_list_of_dsc_images_ordered(const int fd) {
     char magic[16] = {};
-    if (read(fd, &magic, sizeof(magic)) < 0) {
+    if (our_read(fd, &magic, sizeof(magic)) < 0) {
         handle_dsc_file_parse_result(NULL,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
                                      false);

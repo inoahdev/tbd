@@ -17,13 +17,13 @@
 #include <unistd.h>
 
 #include "mach-o/fat.h"
-
 #include "guard_overflow.h"
-#include "range.h"
 
 #include "macho_file.h"
 #include "macho_file_parse_load_commands.h"
 
+#include "our_io.h"
+#include "range.h"
 #include "swap.h"
 
 #define SORT_NAME tbd_export_info
@@ -57,7 +57,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
          */
 
         const uint64_t offset = start + sizeof(struct mach_header_64);
-        if (lseek(fd, offset, SEEK_SET) < 0) {
+        if (our_lseek(fd, offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
@@ -165,7 +165,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (read(fd, archs, archs_size) < 0) {
+    if (our_read(fd, archs, archs_size) < 0) {
         free(archs);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
@@ -417,13 +417,13 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         const struct fat_arch arch = archs[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
-        if (lseek(fd, arch_offset, SEEK_SET) < 0) {
+        if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
             free(archs);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
 
         struct mach_header header = {};
-        if (read(fd, &header, sizeof(header)) < 0) {
+        if (our_read(fd, &header, sizeof(header)) < 0) {
             free(archs);
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
@@ -539,7 +539,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (read(fd, archs, archs_size) < 0) {
+    if (our_read(fd, archs, archs_size) < 0) {
         free(archs);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
@@ -803,13 +803,13 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         const struct fat_arch_64 arch = archs[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
-        if (lseek(fd, arch_offset, SEEK_SET) < 0) {
+        if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
             free(archs);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
 
         struct mach_header header = {};
-        if (read(fd, &header, sizeof(header)) < 0) {
+        if (our_read(fd, &header, sizeof(header)) < 0) {
             free(archs);
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
@@ -909,7 +909,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
 
     if (is_fat) {
         uint32_t nfat_arch = 0;
-        if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
             if (errno == EOVERFLOW) {
                 return E_MACHO_FILE_PARSE_NOT_A_MACHO;
             }
@@ -990,7 +990,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         struct mach_header header = { .magic = magic };
-        if (read(fd, &header.cputype, sizeof(header) - sizeof(magic)) < 0) {
+        if (our_read(fd, &header.cputype, sizeof(header) - sizeof(magic)) < 0) {
             if (errno == EOVERFLOW) {
                 return E_MACHO_FILE_PARSE_NOT_A_MACHO;
             }
@@ -1064,7 +1064,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
 
 void macho_file_print_archs(const int fd) {
     uint32_t magic = 0;
-    if (read(fd, &magic, sizeof(magic)) < 0) {
+    if (our_read(fd, &magic, sizeof(magic)) < 0) {
         fprintf(stderr,
                 "Failed to read data from mach-o, error: %s\n",
                 strerror(errno));
@@ -1075,7 +1075,7 @@ void macho_file_print_archs(const int fd) {
     const bool is_fat_64 = (magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64);
     if (is_fat_64) {
         uint32_t nfat_arch = 0;
-        if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
                     strerror(errno));
@@ -1109,7 +1109,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        if (read(fd, archs, archs_size) < 0) {
+        if (our_read(fd, archs, archs_size) < 0) {
             free(archs);
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
@@ -1140,7 +1140,7 @@ void macho_file_print_archs(const int fd) {
         free(archs);
     } else if (magic == FAT_MAGIC || magic == FAT_CIGAM) {
         uint32_t nfat_arch = 0;
-        if (read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
                     strerror(errno));
@@ -1174,7 +1174,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        if (read(fd, archs, archs_size) < 0) {
+        if (our_read(fd, archs, archs_size) < 0) {
             free(archs);
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
@@ -1214,7 +1214,7 @@ void macho_file_print_archs(const int fd) {
             const uint32_t read_size =
                 sizeof(header.cputype) + sizeof(header.cpusubtype);
 
-            if (read(fd, &header.cputype, read_size) < 0) {
+            if (our_read(fd, &header.cputype, read_size) < 0) {
                 fprintf(stderr,
                         "Failed to read data from mach-o, error: %s\n",
                         strerror(errno));
