@@ -502,75 +502,26 @@ array_add_item_with_cached_index_info(
     struct array_cached_index_info *__notnull const info,
     void **const item_out)
 {
-    const uint64_t index = info->index;
-    const enum array_cached_index_type type = info->type;
+    uint64_t index = 0;
+    switch (info->type) {
+        case ARRAY_CACHED_INDEX_LESS_THAN:
+        case ARRAY_CACHED_INDEX_EQUAL:
+            index = info->index;
+            break;
 
-    if (index == 0) {
-        /*
-         * If our item isn't greater than the array-item at index 0, simply have
-         * the array-item at index 0 move up to index 1 and return.
-         */
-
-        if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
-            return array_add_item_to_index(array, item_size, item, 0, item_out);
-        }
-
-        /*
-         * Otherwise, if our item is greater than the array-item at index 0, add
-         * the item to index 1.
-         */
-
-        return array_add_item_to_index(array, item_size, item, 1, item_out);
+        case ARRAY_CACHED_INDEX_GREATER_THAN:
+            index = info->index + 1;
+            break;
     }
 
-    const uint64_t back_index = array->item_count - 1;
-    if (index == back_index) {
-        /*
-         * Since we're at the back anyways, if the item is greater than the
-         * array-item, simply add item to the end.
-         */
+    const enum array_result add_item_result =
+        array_add_item_to_index(array, item_size, item, index, item_out);
 
-        if (type == ARRAY_CACHED_INDEX_GREATER_THAN) {
-            return array_add_item(array, item_size, item, NULL);
-        }
-
-        /*
-         * If our item is less than or equal to array's back-item, have the back
-         * item move up one index, and our item replacing the old back item at
-         * its old position.
-         */
-
-        const enum array_result add_item_result =
-            array_add_item_to_index(array,
-                                    item_size,
-                                    item,
-                                    back_index,
-                                    item_out);
-
-        if (add_item_result != E_ARRAY_OK) {
-            return add_item_result;
-        }
-
-        return E_ARRAY_OK;
+    if (add_item_result != E_ARRAY_OK) {
+        return add_item_result;
     }
 
-    if (type != ARRAY_CACHED_INDEX_GREATER_THAN) {
-        /*
-         * If our item isn't greater than array-item at the provided index, have
-         * our item replace the old array-item at index by having the old
-         * array-item move to (index + 1), with the our item replacing it at the
-         * old array-item's old position.
-         */
-
-        return array_add_item_to_index(array, item_size, item, index, item_out);
-    }
-
-    /*
-     * Since our item is greater than array-item at index, have the new item
-     * be placed at index + 1.
-     */
-
-    return array_add_item_to_index(array, item_size, item, index + 1, item_out);
+    return E_ARRAY_OK;
 }
 
 enum array_result
