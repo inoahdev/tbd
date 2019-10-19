@@ -138,7 +138,7 @@ static inline bool is_image_info_section(const char name[16]) {
 
 static enum macho_file_parse_result
 parse_section_from_file(struct tbd_create_info *__notnull const info_in,
-                        uint32_t *__notnull const existing_swift_version_in,
+                        uint32_t *__notnull const swift_version_in,
                         const int fd,
                         const struct range full_range,
                         const struct range macho_range,
@@ -207,16 +207,17 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
         info_in->fields.objc_constraint = objc_constraint;
     }
 
-    const uint32_t existing_swift_version = *existing_swift_version_in;
+    const uint32_t existing_swift_version = *swift_version_in;
     const uint32_t image_swift_version =
-        (image_info.flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >> 8;
+        (image_info.flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >>
+            OBJC_IMAGE_INFO_SWIFT_VERSION_SHIFT;
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
             return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
         }
     } else {
-        *existing_swift_version_in = image_swift_version;
+        *swift_version_in = image_swift_version;
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -227,18 +228,18 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
                    const uint64_t arch_bit,
                    const enum tbd_export_type type,
                    const char *__notnull const string,
-                   const uint32_t string_length,
+                   const uint32_t length,
                    const uint64_t tbd_options)
 {
     struct tbd_export_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
-        .length = string_length,
+        .length = length,
         .string = (char *)string,
         .type = type
     };
 
-    if (tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+    if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
         export_info.archs = info_in->fields.archs;
         export_info.archs_count = info_in->fields.archs_count;
     }
@@ -254,25 +255,29 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (!(tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
-            const uint64_t archs = existing_info->archs;
-            if (!(archs & arch_bit)) {
-                existing_info->archs = archs | arch_bit;
-                existing_info->archs_count += 1;
-            }
+        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
+        const uint64_t archs = existing_info->archs;
+        if (!(archs & arch_bit)) {
+            existing_info->archs = archs | arch_bit;
+            existing_info->archs_count += 1;
         }
 
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const bool needs_quotes = yaml_check_c_str(string, string_length);
-    if (needs_quotes) {
-        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
-    }
-
     export_info.string = alloc_and_copy(export_info.string, export_info.length);
     if (export_info.string == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+    }
+
+    const bool needs_quotes =
+        yaml_check_c_str(export_info.string, export_info.length);
+
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
     const enum array_result add_export_info_result =
@@ -359,20 +364,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 platform = swap_uint32(platform);
             }
 
-            if (platform < TBD_PLATFORM_MACOS) {
-                /*
-                 * Move on to the next load-commmand if we have to ignore
-                 * invalid fields.
-                 */
-
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
-                return E_MACHO_FILE_PARSE_INVALID_PLATFORM;
-            }
-
-            if (platform > TBD_PLATFORM_WATCHOS_SIMULATOR) {
+            if (platform < TBD_PLATFORM_MACOS ||
+                platform > TBD_PLATFORM_WATCHOS_SIMULATOR)
+            {
                 /*
                  * Move on to the next load-commmand if we have to ignore
                  * invalid fields.
@@ -398,17 +392,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     *parse_info.found_build_version_in;
 
                 if (found_build_version) {
-                    /*
-                     * Temporary hack to fix some dyld_shared_cache files.
-                     */
-
-                    if (platform == TBD_PLATFORM_IOSMAC) {
-                        if (info_platform == TBD_PLATFORM_MACOS) {
-                            info_in->fields.platform = platform;
-                            break;
-                        }
-                    }
-
                     return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
                 }
             }
@@ -457,16 +440,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * basic information.
              */
 
-            if (name_offset < sizeof(struct dylib_command)) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *parse_info.found_identification_out = true;
-                    break;
-                }
-
-                return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
-            }
-
-            if (name_offset >= load_cmd.cmdsize) {
+            if (name_offset < sizeof(struct dylib_command) ||
+                name_offset >= load_cmd.cmdsize)
+            {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                     *parse_info.found_identification_out = true;
                     break;
@@ -496,13 +472,47 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             const struct dylib dylib = dylib_command->dylib;
-            if (info_in->fields.install_name != NULL) {
+            if (info_in->fields.install_name == NULL) {
+                if (!(tbd_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION)) {
+                    info_in->fields.current_version = dylib.current_version;
+                }
+
+                if (!(options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION)) {
+                    const uint32_t compat_version = dylib.compatibility_version;
+                    info_in->fields.compatibility_version = compat_version;
+                }
+
+                if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
+                    const char *install_name = name;
+                    if (parse_info.copy_strings) {
+                        install_name = alloc_and_copy(name, length);
+                        if (install_name == NULL) {
+                            return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+                        }
+
+
+                        info_in->fields.install_name = install_name;
+                    } else {
+                        info_in->fields.install_name = name;
+                    }
+
+                    const bool needs_quotes =
+                        yaml_check_c_str(install_name, length);
+
+                    if (needs_quotes) {
+                        info_in->flags |=
+                            F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
+                    }
+
+                    info_in->fields.install_name_length = length;
+                }
+            } else {
                 if (info_in->fields.current_version != dylib.current_version) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                 }
 
-                const uint32_t comp_version = dylib.compatibility_version;
-                if (info_in->fields.compatibility_version != comp_version) {
+                const uint32_t compat_version = dylib.compatibility_version;
+                if (info_in->fields.compatibility_version != compat_version) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
                 }
 
@@ -512,41 +522,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
                 if (memcmp(info_in->fields.install_name, name, length) != 0) {
                     return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
-                }
-            } else {
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION)) {
-                    info_in->fields.current_version = dylib.current_version;
-                }
-
-                const bool ignore_compatibility_version =
-                    options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
-
-                if (!ignore_compatibility_version) {
-                    const uint32_t comp_version = dylib.compatibility_version;
-                    info_in->fields.compatibility_version = comp_version;
-                }
-
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
-                    if (parse_info.copy_strings) {
-                        char *const install_name =
-                            alloc_and_copy(name, length);
-
-                        if (install_name == NULL) {
-                            return E_MACHO_FILE_PARSE_ALLOC_FAIL;
-                        }
-
-                        info_in->fields.install_name = install_name;
-                    } else {
-                        info_in->fields.install_name = name;
-                    }
-
-                    info_in->fields.install_name_length = length;
-                }
-
-                const bool needs_quotes = yaml_check_c_str(name, length);
-                if (needs_quotes) {
-                    info_in->flags |=
-                        F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
                 }
             }
 
@@ -582,11 +557,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * basic information.
              */
 
-            if (reexport_offset < sizeof(struct dylib_command)) {
-                return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
-            }
-
-            if (reexport_offset >= load_cmd.cmdsize) {
+            if (reexport_offset < sizeof(struct dylib_command) ||
+                reexport_offset >= load_cmd.cmdsize)
+            {
                 return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
             }
 
@@ -664,11 +637,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * doesn't overlap the basic structure of the client-command.
              */
 
-            if (client_offset < sizeof(struct sub_client_command)) {
-                return E_MACHO_FILE_PARSE_INVALID_CLIENT;
-            }
-
-            if (client_offset >= load_cmd.cmdsize) {
+            if (client_offset < sizeof(struct sub_client_command) ||
+                client_offset >= load_cmd.cmdsize)
+            {
                 return E_MACHO_FILE_PARSE_INVALID_CLIENT;
             }
 
@@ -737,15 +708,9 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * doesn't overlap the basic structure of the umbrella-command.
              */
 
-            if (umbrella_offset < sizeof(struct sub_framework_command)) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
-                return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
-            }
-
-            if (umbrella_offset >= load_cmd.cmdsize) {
+            if (umbrella_offset < sizeof(struct sub_framework_command) ||
+                umbrella_offset >= load_cmd.cmdsize)
+            {
                 if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
                     break;
                 }
@@ -772,18 +737,10 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
             }
 
-            if (info_in->fields.parent_umbrella != NULL) {
-                const char *const parent_umbrella =
-                    info_in->fields.parent_umbrella;
-
-                if (memcmp(parent_umbrella, umbrella, length) != 0) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
-                }
-            } else {
+            if (info_in->fields.parent_umbrella == NULL) {
+                const char *umbrella_string = umbrella;
                 if (parse_info.copy_strings) {
-                    char *const umbrella_string =
-                        alloc_and_copy(umbrella, length);
-
+                    umbrella_string = alloc_and_copy(umbrella, length);
                     if (umbrella_string == NULL) {
                         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                     }
@@ -793,13 +750,22 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     info_in->fields.parent_umbrella = umbrella;
                 }
 
-                const bool needs_quotes = yaml_check_c_str(umbrella, length);
+                const bool needs_quotes =
+                    yaml_check_c_str(umbrella_string, length);
+
                 if (needs_quotes) {
                     info_in->flags |=
                         F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES;
                 }
 
                 info_in->fields.parent_umbrella_length = length;
+            } else {
+                const char *const parent_umbrella =
+                    info_in->fields.parent_umbrella;
+
+                if (memcmp(parent_umbrella, umbrella, length) != 0) {
+                    return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
+                }
             }
 
             break;
@@ -833,7 +799,7 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              * If uuids aren't needed, skip the unnecessary parsing.
              */
 
-            if (tbd_options & O_TBD_PARSE_IGNORE_UUIDS) {
+            if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
                 break;
             }
 
@@ -1078,10 +1044,15 @@ macho_file_parse_load_commands_from_file(
     bool found_uuid = false;
 
     struct symtab_command symtab = {};
-    struct tbd_uuid_info uuid_info = { .arch = parse_info->arch };
+    struct tbd_uuid_info uuid_info = {};
+
+    const struct arch_info *const arch = parse_info->arch;
+    if (arch != NULL) {
+        uuid_info.arch = arch;
+    }
 
     /*
-     * Allocate the entire load-commands buffer for better parsing.
+     * Allocate the entire load-commands buffer for better performance.
      */
 
     uint8_t *const load_cmd_buffer = malloc(sizeofcmds);
@@ -1133,12 +1104,6 @@ macho_file_parse_load_commands_from_file(
         }
 
         struct load_command load_cmd = *(struct load_command *)load_cmd_iter;
-
-        /*
-         * Big-endian mach-o files have load-commands whose information is also
-         * big-endian.
-         */
-
         if (is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
@@ -1146,7 +1111,9 @@ macho_file_parse_load_commands_from_file(
 
         /*
          * Verify the cmdsize by checking that a load-cmd can actually fit.
-         * More verification can be done here, but we don't aim to be too picky.
+         *
+         * We could also verify cmdsize meets the requirements for each type of
+         * load-command, but we don't want to be too picky.
          */
 
         if (load_cmd.cmdsize < sizeof(struct load_command)) {
@@ -1246,12 +1213,9 @@ macho_file_parse_load_commands_from_file(
                      */
 
                     uint32_t sect_offset = sect->offset;
-                    if (sect_offset == 0) {
-                        continue;
-                    }
-
                     uint32_t sect_size = sect->size;
-                    if (sect_size == 0) {
+
+                    if (sect_offset == 0 || sect_size == 0) {
                         continue;
                     }
 
@@ -1362,12 +1326,9 @@ macho_file_parse_load_commands_from_file(
                      */
 
                     uint32_t sect_offset = sect->offset;
-                    if (sect_offset == 0) {
-                        continue;
-                    }
-
                     uint64_t sect_size = sect->size;
-                    if (sect_size == 0) {
+
+                    if (sect_offset == 0 || sect_size == 0) {
                         continue;
                     }
 
@@ -1441,7 +1402,7 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUIDS)) {
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
         if (!found_uuid) {
             return E_MACHO_FILE_PARSE_NO_UUID;
         }
@@ -1600,7 +1561,8 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
 
     const uint32_t existing_swift_version = *existing_swift_version_in;
     const uint32_t image_swift_version =
-        (flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >> 8;
+        (flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >>
+            OBJC_IMAGE_INFO_SWIFT_VERSION_SHIFT;
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
@@ -1726,8 +1688,9 @@ macho_file_parse_load_commands_from_map(
 
         /*
          * size_left cannot be checked here, because we don't care about
-         * size_left on the last iteration. The verification instead happens on
-         * the next iteration.
+         * size_left on the last iteration.
+         *
+         * The verification instead happens on the next iteration.
          */
 
         switch (load_cmd.cmd) {
@@ -1988,7 +1951,7 @@ macho_file_parse_load_commands_from_map(
         return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UUIDS)) {
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
         if (!found_uuid) {
             return E_MACHO_FILE_PARSE_NO_UUID;
         }

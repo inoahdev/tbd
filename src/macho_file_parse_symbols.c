@@ -310,7 +310,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     const char *string = symbol_string;
     uint32_t max_len = strsize - index;
 
-    enum tbd_export_type symbol_type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
+    enum tbd_export_type type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
     uint32_t length = 0;
 
     if (likely(!(n_desc & N_WEAK_DEF))) {
@@ -346,7 +346,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     length -= 1;
                 }
 
-                symbol_type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
+                type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
             } else if (is_objc_ivar_symbol(str, first)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
                     if (!(n_type & N_EXT)) {
@@ -366,7 +366,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
                 string += 12;
 
-                symbol_type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
+                type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
                 length = (uint32_t)strnlen(string, max_len - 12);
 
                 if (unlikely(length == 0)) {
@@ -387,7 +387,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     return E_MACHO_FILE_PARSE_OK;
                 }
 
-                symbol_type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
+                type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else {
                 if (!(n_type & N_EXT)) {
                     return E_MACHO_FILE_PARSE_OK;
@@ -413,7 +413,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_OK;
         }
 
-        symbol_type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
+        type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
         length = (uint32_t)strnlen(symbol_string, max_len);
 
         if (unlikely(length == 0)) {
@@ -426,10 +426,10 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         .archs_count = 1,
         .length = length,
         .string = (char *)string,
-        .type = symbol_type,
+        .type = type,
     };
 
-    if (options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+    if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
         export_info.archs = info_in->fields.archs;
         export_info.archs_count = info_in->fields.archs_count;
     }
@@ -445,7 +445,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS) {
+        if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
             return E_MACHO_FILE_PARSE_OK;
         }
 

@@ -18,6 +18,8 @@ enum objc_image_info_flags {
 };
 
 static const uint32_t OBJC_IMAGE_INFO_SWIFT_VERSION_MASK = 0xff00;
+static const uint32_t OBJC_IMAGE_INFO_SWIFT_VERSION_SHIFT = 0x8;
+
 struct objc_image_info {
     uint32_t version;
     uint32_t flags;

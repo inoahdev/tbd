@@ -95,12 +95,16 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
             sizeof(struct mach_header_64) :
             sizeof(struct mach_header);
 
-    const uint64_t arch_index = (uint64_t)(arch - arch_info_get_list());
+    uint64_t arch_index = 0;
+    if (arch != NULL) {
+        arch_index = (uint64_t)(arch - arch_info_get_list());
+    }
+
     struct mf_parse_lc_from_file_info info = {
         .fd = fd,
 
         .arch = arch,
-        .arch_bit = 1ull << arch_index,
+        .arch_bit = (1ull << arch_index),
 
         .is_64 = is_64,
         .is_big_endian = is_big_endian,
@@ -133,6 +137,120 @@ static inline bool thin_magic_is_valid(const uint32_t magic) {
 }
 
 static enum macho_file_parse_result
+verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
+                   struct fat_arch *__notnull const arch,
+                   const uint64_t start,
+                   const uint64_t size,
+                   const uint64_t total_headers_size,
+                   const bool is_big_endian,
+                   const uint64_t tbd_options,
+                   struct range *const range_out)
+{
+    cpu_type_t arch_cputype = arch->cputype;
+    cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+
+    uint32_t arch_offset = arch->offset;
+    uint32_t arch_size = arch->size;
+
+    if (is_big_endian) {
+        arch_cputype = swap_int32(arch_cputype);
+        arch_cpusubtype = swap_int32(arch_cpusubtype);
+
+        arch_offset = swap_uint32(arch_offset);
+        arch_size = swap_uint32(arch_size);
+
+        arch->cputype = arch_cputype;
+        arch->cpusubtype = arch_cpusubtype;
+
+        arch->offset = arch_offset;
+        arch->size = arch_size;
+    }
+
+    /*
+     * Ensure the arch's mach-o isn't within the fat-header or the
+     * arch-headers.
+     */
+
+    if (arch_offset < total_headers_size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify each architecture is a valid mach-o by ensuring that it
+     * can hold at the least a mach_header.
+     */
+
+    if (arch_size < sizeof(struct mach_header)) {
+        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
+    }
+
+    /*
+     * Verify that the architecture is not located beyond end of file.
+     */
+
+    if (arch_offset >= size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is fully within the given size.
+     */
+
+    const uint64_t arch_end = arch_offset + arch_size;
+    if (arch_end > size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture can fully exist within the range of the
+     * provided file.
+     */
+
+    uint64_t real_arch_offset = start;
+    if (guard_overflow_add(&real_arch_offset, arch_offset)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t real_arch_end = start;
+    if (guard_overflow_add(&real_arch_end, arch_end)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    const struct arch_info *arch_info = NULL;
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
+        arch_info = arch_info_for_cputype(arch_cputype, arch_cpusubtype);
+        if (arch_info == NULL) {
+            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+        }
+
+        const struct arch_info *const arch_info_list = arch_info_get_list();
+
+        const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
+        const uint64_t arch_bit = 1ull << arch_index;
+
+        if (info_in->fields.archs & arch_bit) {
+            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+        }
+
+        info_in->fields.archs |= arch_bit;
+
+        /*
+         * To avoid re-lookup of arch-info, we store the pointer within the
+         * cputype and cpusubtype fields.
+         */
+
+        memcpy(&arch->cputype, &arch_info, sizeof(arch_info));
+    }
+
+    if (range_out != NULL) {
+        range_out->begin = arch_offset;
+        range_out->end = arch_end;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+static enum macho_file_parse_result
 handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                    const int fd,
                    const bool is_big_endian,
@@ -160,253 +278,69 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
-    struct fat_arch *const archs = malloc(archs_size);
-    if (archs == NULL) {
+    struct fat_arch *const arch_list = malloc(archs_size);
+    if (arch_list == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (our_read(fd, archs, archs_size) < 0) {
-        free(archs);
+    if (our_read(fd, arch_list, archs_size) < 0) {
+        free(arch_list);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
     /*
-     * First loop over only to swap the arch-header's fields. We also do some
-     * basic verification to ensure no architectures overflow.
+     * Loop over the architectures once to verify its info, then loop over again
+     * to parse.
      */
 
-    struct fat_arch *const first_arch = archs;
+    struct fat_arch *const first_arch = arch_list;
+    const enum macho_file_parse_result verify_first_arch_result =
+        verify_fat_32_arch(info_in,
+                           first_arch,
+                           start,
+                           size,
+                           total_headers_size,
+                           is_big_endian,
+                           tbd_options,
+                           NULL);
 
-    cpu_type_t first_arch_cputype = first_arch->cputype;
-    cpu_subtype_t first_arch_cpusubtype = first_arch->cpusubtype;
-
-    uint32_t first_arch_offset = first_arch->offset;
-    uint32_t first_arch_size = first_arch->size;
-
-    if (is_big_endian) {
-        first_arch_cputype = swap_int32(first_arch_cputype);
-        first_arch_cpusubtype = swap_int32(first_arch_cpusubtype);
-
-        first_arch_offset = swap_uint32(first_arch_offset);
-        first_arch_size = swap_uint32(first_arch_size);
-
-        first_arch->cputype = first_arch_cputype;
-        first_arch->cpusubtype = first_arch_cpusubtype;
-
-        first_arch->offset = first_arch_offset;
-        first_arch->size = first_arch_size;
+    if (verify_first_arch_result != E_MACHO_FILE_PARSE_OK) {
+        free(arch_list);
+        return verify_first_arch_result;
     }
-
-    /*
-     * Ensure the arch's mach-o isn't within the fat-header or the
-     * arch-headers.
-     */
-
-    if (first_arch_offset < total_headers_size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify each architecture is a valid mach-o by ensuring that it
-     * can hold at the least a mach_header.
-     */
-
-    if (first_arch_size < sizeof(struct mach_header)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
-    }
-
-    /*
-     * Verify that the architecture is not located beyond end of file.
-     */
-
-    if (first_arch_offset >= size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture is fully within the given size.
-     */
-
-    const uint64_t first_arch_end = first_arch_offset + first_arch_size;
-    if (first_arch_end > size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture can fully exist within the range of the
-     * provided file.
-     */
-
-    uint64_t first_real_arch_offset = start;
-    if (guard_overflow_add(&first_real_arch_offset, first_arch_offset)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    uint64_t first_real_arch_end = start;
-    if (guard_overflow_add(&first_real_arch_end, first_arch_end)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-        const struct arch_info *const first_arch_info =
-            arch_info_for_cputype(first_arch_cputype, first_arch_cpusubtype);
-
-        if (first_arch_info == NULL) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-        }
-
-        const struct arch_info *const arch_info_list = arch_info_get_list();
-        const uint64_t first_arch_index =
-            (uint64_t)(first_arch_info - arch_info_list);
-
-        const uint64_t first_arch_bit = 1ull << first_arch_index;
-        if (info_in->fields.archs & first_arch_bit) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-        }
-
-        info_in->fields.archs |= first_arch_bit;
-
-        /*
-         * To avoid re-lookup of arch-info, we store the pointer within the
-         * cputype and cpusubtype fields.
-         */
-
-        memcpy(&first_arch->cputype, &first_arch_info, sizeof(first_arch_info));
-    }
-
-    /*
-     * Before parsing, verify each architecture.
-     */
 
     for (uint32_t i = 1; i != nfat_arch; i++) {
-        struct fat_arch *const arch = archs + i;
+        struct fat_arch *const arch = arch_list + i;
+        struct range arch_range = {};
 
-        cpu_type_t arch_cputype = arch->cputype;
-        cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+        const enum macho_file_parse_result verify_arch_result =
+            verify_fat_32_arch(info_in,
+                               arch,
+                               start,
+                               size,
+                               total_headers_size,
+                               is_big_endian,
+                               tbd_options,
+                               &arch_range);
 
-        uint32_t arch_offset = arch->offset;
-        uint32_t arch_size = arch->size;
-
-        if (is_big_endian) {
-            arch_cputype = swap_int32(arch_cputype);
-            arch_cpusubtype = swap_int32(arch_cpusubtype);
-
-            arch_offset = swap_uint32(arch_offset);
-            arch_size = swap_uint32(arch_size);
-
-            arch->cputype = arch_cputype;
-            arch->cpusubtype = arch_cpusubtype;
-
-            arch->offset = arch_offset;
-            arch->size = arch_size;
+        if (verify_arch_result != E_MACHO_FILE_PARSE_OK) {
+            free(arch_list);
+            return verify_arch_result;
         }
 
         /*
-         * Ensure the arch's mach-o isn't within the fat-header or the
-         * arch-headers.
+         * Make sure the arch doesn't overlap with any previous archs.
          */
-
-        if (arch_offset < total_headers_size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify each architecture is a valid mach-o by ensuring that it
-         * can hold at the least a mach_header.
-         */
-
-        if (arch_size < sizeof(struct mach_header)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
-        }
-
-        /*
-         * Verify that the architecture is not located beyond end of file.
-         */
-
-        if (arch_offset >= size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture is fully within the given size.
-         */
-
-        const uint64_t arch_end = arch_offset + arch_size;
-        if (arch_end > size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture can fully exist within the range of the
-         * provided file.
-         */
-
-        uint64_t real_arch_offset = start;
-        if (guard_overflow_add(&real_arch_offset, arch_offset)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        uint64_t real_arch_end = start;
-        if (guard_overflow_add(&real_arch_end, arch_end)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        const struct arch_info *arch_info = NULL;
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-            arch_info = arch_info_for_cputype(arch_cputype, arch_cpusubtype);
-            if (arch_info == NULL) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-            }
-
-            const struct arch_info *const arch_info_list = arch_info_get_list();
-
-            const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
-            const uint64_t arch_bit = 1ull << arch_index;
-
-            if (info_in->fields.archs & arch_bit) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-            }
-
-            info_in->fields.archs |= arch_bit;
-
-            /*
-             * To avoid re-lookup of arch-info, we store the pointer within the
-             * cputype and cpusubtype fields.
-             */
-
-            memcpy(&arch->cputype, &arch_info, sizeof(arch_info));
-        }
-
-        const struct range arch_range = {
-            .begin = arch_offset,
-            .end = arch_end
-        };
 
         for (uint32_t j = 0; j != i; j++) {
-            struct fat_arch inner = archs[j];
+            struct fat_arch inner = arch_list[j];
             const struct range inner_range = {
                 .begin = inner.offset,
                 .end = inner.offset + inner.size
             };
 
             if (ranges_overlap(arch_range, inner_range)) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
             }
         }
@@ -414,17 +348,17 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 
     bool parsed_one_arch = false;
     for (uint32_t i = 0; i != nfat_arch; i++) {
-        const struct fat_arch arch = archs[i];
+        const struct fat_arch arch = arch_list[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
-            free(archs);
+            free(arch_list);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
 
         struct mach_header header = {};
         if (our_read(fd, &header, sizeof(header)) < 0) {
-            free(archs);
+            free(arch_list);
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
@@ -433,7 +367,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
          */
 
         const bool arch_is_big_endian =
-            header.magic == MH_CIGAM || header.magic == MH_CIGAM_64;
+            (header.magic == MH_CIGAM || header.magic == MH_CIGAM_64);
 
         if (arch_is_big_endian) {
             header.cputype = swap_int32(header.cputype);
@@ -445,7 +379,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             header.flags = swap_uint32(header.flags);
         } else if (!thin_magic_is_valid(header.magic)) {
             if (!(options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES)) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
         }
@@ -455,25 +389,15 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
          */
 
         const struct arch_info *arch_info = NULL;
-        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS) {
-            if (header.cputype != arch.cputype) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
-
-            if (header.cpusubtype != arch.cpusubtype) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
-        } else {
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
             arch_info = *(const struct arch_info **)&arch.cputype;
             if (header.cputype != arch_info->cputype) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
 
             if (header.cpusubtype != arch_info->cpusubtype) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
         }
@@ -490,17 +414,133 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                             options);
 
         if (handle_arch_result != E_MACHO_FILE_PARSE_OK) {
-            free(archs);
+            free(arch_list);
             return handle_arch_result;
         }
 
         parsed_one_arch = true;
     }
 
-    free(archs);
+    free(arch_list);
 
     if (!parsed_one_arch) {
         return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+static enum macho_file_parse_result
+verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
+                   struct fat_arch_64 *__notnull const arch,
+                   const uint64_t start,
+                   const uint64_t size,
+                   const uint64_t total_headers_size,
+                   const bool is_big_endian,
+                   const uint64_t tbd_options,
+                   struct range *const range_out)
+{
+    cpu_type_t arch_cputype = arch->cputype;
+    cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+
+    uint64_t arch_offset = arch->offset;
+    uint64_t arch_size = arch->size;
+
+    if (is_big_endian) {
+        arch_cputype = swap_int32(arch_cputype);
+        arch_cpusubtype = swap_int32(arch_cpusubtype);
+
+        arch_offset = swap_uint64(arch_offset);
+        arch_size = swap_uint64(arch_size);
+
+        arch->cputype = arch_cputype;
+        arch->cpusubtype = arch_cpusubtype;
+
+        arch->offset = arch_offset;
+        arch->size = arch_size;
+    }
+
+    /*
+     * Ensure the arch's mach-o isn't within the fat-header or the
+     * arch-headers.
+     */
+
+    if (arch_offset < total_headers_size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is not located beyond end of file.
+     */
+
+    if (arch_offset > size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * We consider an architecture to be a valid mach-o if it is large
+     * enough to contain a mach_header.
+     */
+
+    if (arch_size < sizeof(struct mach_header)) {
+        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
+    }
+
+    /*
+     * Verify that no overflow occurs when finding arch's end.
+     */
+
+    uint64_t arch_end = arch_offset;
+    if (guard_overflow_add(&arch_end, arch_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture is fully within the given size.
+     */
+
+    if (arch_end > size) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    /*
+     * Verify that the architecture can fully exist within the range of the
+     * provided file.
+     */
+
+    uint64_t real_arch_offset = start;
+    if (guard_overflow_add(&real_arch_offset, arch_offset)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t real_arch_end = start;
+    if (guard_overflow_add(&real_arch_end, arch_end)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
+        const struct arch_info *const arch_info =
+            arch_info_for_cputype(arch_cputype, arch_cpusubtype);
+
+        if (arch_info == NULL) {
+            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+        }
+
+        const struct arch_info *const arch_info_list = arch_info_get_list();
+
+        const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
+        const uint64_t arch_bit = 1ull << arch_index;
+
+        if (info_in->fields.archs & arch_bit) {
+            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
+        }
+
+        info_in->fields.archs |= arch_bit;
+    }
+
+    if (range_out != NULL) {
+        range_out->begin = arch_offset;
+        range_out->end = arch_end;
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -534,13 +574,13 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES;
     }
 
-    struct fat_arch_64 *const archs = malloc(archs_size);
-    if (archs == NULL) {
+    struct fat_arch_64 *const arch_list = malloc(archs_size);
+    if (arch_list == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (our_read(fd, archs, archs_size) < 0) {
-        free(archs);
+    if (our_read(fd, arch_list, archs_size) < 0) {
+        free(arch_list);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
@@ -549,120 +589,20 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
      * basic verification to ensure no architectures overflow.
      */
 
-    struct fat_arch_64 *const first_arch = archs;
+    struct fat_arch_64 *const first_arch = arch_list;
+    const enum macho_file_parse_result verify_first_arch_result =
+        verify_fat_64_arch(info_in,
+                           first_arch,
+                           start,
+                           size,
+                           total_headers_size,
+                           is_big_endian,
+                           tbd_options,
+                           NULL);
 
-    cpu_type_t first_arch_cputype = first_arch->cputype;
-    cpu_subtype_t first_arch_cpusubtype = first_arch->cpusubtype;
-
-    uint64_t first_arch_offset = first_arch->offset;
-    uint64_t first_arch_size = first_arch->size;
-
-    if (is_big_endian) {
-        first_arch_cputype = swap_int32(first_arch_cputype);
-        first_arch_cpusubtype = swap_int32(first_arch_cpusubtype);
-
-        first_arch_offset = swap_uint64(first_arch_offset);
-        first_arch_size = swap_uint64(first_arch_size);
-
-        first_arch->cputype = first_arch_cputype;
-        first_arch->cpusubtype = first_arch_cpusubtype;
-
-        first_arch->offset = first_arch_offset;
-        first_arch->size = first_arch_size;
-    }
-
-    /*
-     * Ensure the arch's mach-o isn't within the fat-header or the
-     * arch-headers.
-     */
-
-    if (first_arch_offset < total_headers_size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture is not located beyond end of file.
-     */
-
-    if (first_arch_offset > size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify each architecture is a valid mach-o by ensuring that it
-     * can hold at the least a mach_header.
-     */
-
-    if (first_arch_size < sizeof(struct mach_header)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
-    }
-
-    /*
-     * Verify that no overflow occurs when finding arch's end.
-     */
-
-    uint64_t first_arch_end = first_arch_offset;
-    if (guard_overflow_add(&first_arch_end, first_arch_size)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture is fully within the given size.
-     */
-
-    if (first_arch_end > size) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    /*
-     * Verify that the architecture can fully exist within the range of the
-     * provided file.
-     */
-
-    uint64_t first_real_arch_offset = start;
-    if (guard_overflow_add(&first_real_arch_offset, first_arch_offset)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    uint64_t first_real_arch_end = start;
-    if (guard_overflow_add(&first_real_arch_end, first_arch_end)) {
-        free(archs);
-        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-        const struct arch_info *const first_arch_info =
-            arch_info_for_cputype(first_arch->cputype, first_arch->cpusubtype);
-
-        if (first_arch_info == NULL) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-        }
-
-        const struct arch_info *const arch_info_list = arch_info_get_list();
-        const uint64_t first_arch_index =
-            (uint64_t)(first_arch_info - arch_info_list);
-
-        const uint64_t first_arch_bit = 1ull << first_arch_index;
-        if (info_in->fields.archs & first_arch_bit) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-        }
-
-        info_in->fields.archs |= first_arch_bit;
-
-        /*
-         * To avoid re-lookup of arch-info, we store the pointer within the
-         * cputype and cpusubtype fields.
-         */
-
-        memcpy(&first_arch->cputype, &first_arch_info, sizeof(first_arch_info));
+    if (verify_first_arch_result != E_MACHO_FILE_PARSE_OK) {
+        free(arch_list);
+        return verify_first_arch_result;
     }
 
     /*
@@ -670,129 +610,33 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
      */
 
     for (uint32_t i = 1; i != nfat_arch; i++) {
-        struct fat_arch_64 *const arch = archs + i;
+        struct fat_arch_64 *const arch = arch_list + i;
+        struct range arch_range = {};
 
-        cpu_type_t arch_cputype = arch->cputype;
-        cpu_subtype_t arch_cpusubtype = arch->cpusubtype;
+        const enum macho_file_parse_result verify_arch_result =
+            verify_fat_64_arch(info_in,
+                               arch,
+                               start,
+                               size,
+                               total_headers_size,
+                               is_big_endian,
+                               tbd_options,
+                               &arch_range);
 
-        uint64_t arch_offset = arch->offset;
-        uint64_t arch_size = arch->size;
-
-        if (is_big_endian) {
-            arch_cputype = swap_int32(arch_cputype);
-            arch_cpusubtype = swap_int32(arch_cpusubtype);
-
-            arch_offset = swap_uint64(arch_offset);
-            arch_size = swap_uint64(arch_size);
-
-            arch->cputype = arch_cputype;
-            arch->cpusubtype = arch_cpusubtype;
-
-            arch->offset = arch_offset;
-            arch->size = arch_size;
+        if (verify_arch_result != E_MACHO_FILE_PARSE_OK) {
+            free(arch_list);
+            return verify_arch_result;
         }
-
-        /*
-         * Ensure the arch's mach-o isn't within the fat-header or the
-         * arch-headers.
-         */
-
-        if (arch_offset < total_headers_size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture is not located beyond end of file.
-         */
-
-        if (arch_offset > size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * We consider an architecture to be a valid mach-o if it is large
-         * enough to contain a mach_header.
-         */
-
-        if (arch_size < sizeof(struct mach_header)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_SIZE_TOO_SMALL;
-        }
-
-        /*
-         * Verify that no overflow occurs when finding arch's end.
-         */
-
-        uint64_t arch_end = arch_offset;
-        if (guard_overflow_add(&arch_end, arch_size)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture is fully within the given size.
-         */
-
-        if (arch_end > size) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        /*
-         * Verify that the architecture can fully exist within the range of the
-         * provided file.
-         */
-
-        uint64_t real_arch_offset = start;
-        if (guard_overflow_add(&real_arch_offset, arch_offset)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        uint64_t real_arch_end = start;
-        if (guard_overflow_add(&real_arch_end, arch_end)) {
-            free(archs);
-            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-        }
-
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-            const struct arch_info *const arch_info =
-                arch_info_for_cputype(arch_cputype, arch_cpusubtype);
-
-            if (arch_info == NULL) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-            }
-
-            const struct arch_info *const arch_info_list = arch_info_get_list();
-
-            const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
-            const uint64_t arch_bit = 1ull << arch_index;
-
-            if (info_in->fields.archs & arch_bit) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-            }
-
-            info_in->fields.archs |= arch_bit;
-        }
-
-        const struct range arch_range = {
-            .begin = arch_offset,
-            .end = arch_end
-        };
 
         for (uint32_t j = 0; j != i; j++) {
-            struct fat_arch_64 inner = archs[j];
+            struct fat_arch_64 inner = arch_list[j];
             const struct range inner_range = {
                 .begin = inner.offset,
                 .end = inner.offset + inner.size
             };
 
             if (ranges_overlap(arch_range, inner_range)) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES;
             }
         }
@@ -800,17 +644,17 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
     bool parsed_one_arch = false;
     for (uint32_t i = 0; i != nfat_arch; i++) {
-        const struct fat_arch_64 arch = archs[i];
+        const struct fat_arch_64 arch = arch_list[i];
         const off_t arch_offset = (off_t)(start + arch.offset);
 
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
-            free(archs);
+            free(arch_list);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
 
         struct mach_header header = {};
         if (our_read(fd, &header, sizeof(header)) < 0) {
-            free(archs);
+            free(arch_list);
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
@@ -835,7 +679,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                 continue;
             }
 
-            free(archs);
+            free(arch_list);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
@@ -844,25 +688,15 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
          */
 
         const struct arch_info *arch_info = NULL;
-        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS) {
-            if (header.cputype != arch.cputype) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
-
-            if (header.cpusubtype != arch.cpusubtype) {
-                free(archs);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
-            }
-        } else {
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
             arch_info = *(const struct arch_info **)&arch.cputype;
             if (header.cputype != arch_info->cputype) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
 
             if (header.cpusubtype != arch_info->cpusubtype) {
-                free(archs);
+                free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
         }
@@ -879,14 +713,14 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                             options);
 
         if (handle_arch_result != E_MACHO_FILE_PARSE_OK) {
-            free(archs);
+            free(arch_list);
             return handle_arch_result;
         }
 
         parsed_one_arch = true;
     }
 
-    free(archs);
+    free(arch_list);
 
     if (!parsed_one_arch) {
         return E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES;
@@ -933,7 +767,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_FSTAT_FAIL;
         }
 
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
             info_in->fields.archs_count = nfat_arch;
         }
 
@@ -970,11 +804,12 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             }
         }
 
-        if (!(tbd_options & O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS)) {
-            /*
-             * Finally sort the exports array.
-             */
+        /*
+         * If the exports were created with a full arch-set, they are already
+         * sorted.
+         */
 
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
             tbd_export_info_quick_sort(info_in->fields.exports.data,
                                        info_in->fields.exports.item_count);
         } else {
@@ -1020,21 +855,21 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             header.flags = swap_uint32(header.flags);
         }
 
-        const struct arch_info *const arch =
-            arch_info_for_cputype(header.cputype, header.cpusubtype);
+        const struct arch_info *arch = NULL;
+        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
+            arch = arch_info_for_cputype(header.cputype, header.cpusubtype);
+            if (arch == NULL) {
+                return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
+            }
 
-        if (arch == NULL) {
-            return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-        }
+            const struct arch_info *const arch_info_list = arch_info_get_list();
 
-        const struct arch_info *const arch_info_list = arch_info_get_list();
+            const uint64_t arch_index = (uint64_t)(arch - arch_info_list);
+            const uint64_t arch_bit = 1ull << arch_index;
 
-        const uint64_t arch_index = (uint64_t)(arch - arch_info_list);
-        const uint64_t arch_bit = 1ull << arch_index;
-
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS)) {
-            info_in->fields.archs |= arch_bit;
+            info_in->fields.archs = arch_bit;
             info_in->fields.archs_count = 1;
+
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }
 

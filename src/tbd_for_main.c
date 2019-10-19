@@ -234,9 +234,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                                      argv,
                                      &tbd->info.fields.archs_count);
 
-        tbd->parse_options |= O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_UUIDS;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
     } else if (strcmp(option, "replace-flags") == 0) {
         index += 1;

@@ -21,7 +21,7 @@
  */
 
 enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_ARCHS                 = 1ull << 0,
+    O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS       = 1ull << 0,
     O_TBD_PARSE_IGNORE_CLIENTS               = 1ull << 1,
     O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1ull << 2,
     O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1ull << 3,
@@ -33,24 +33,21 @@ enum tbd_parse_options {
     O_TBD_PARSE_IGNORE_REEXPORTS             = 1ull << 9,
     O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1ull << 10,
     O_TBD_PARSE_IGNORE_SYMBOLS               = 1ull << 11,
-    O_TBD_PARSE_IGNORE_UUIDS                 = 1ull << 12,
 
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 14,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 15,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 12,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 13,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 14,
 
-    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1ull << 16,
-    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1ull << 17,
-    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1ull << 18,
-    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1ull << 19,
-    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1ull << 20,
-
-    O_TBD_PARSE_EXPORTS_HAVE_FULL_ARCHS = 1ull << 21
+    O_TBD_PARSE_IGNORE_MISSING_EXPORTS        = 1ull << 15,
+    O_TBD_PARSE_IGNORE_MISSING_IDENTIFICATION = 1ull << 16,
+    O_TBD_PARSE_IGNORE_MISSING_PLATFORM       = 1ull << 17,
+    O_TBD_PARSE_IGNORE_MISSING_UUIDS          = 1ull << 18,
+    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS       = 1ull << 19
 };
 
 enum tbd_flags {
