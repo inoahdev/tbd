@@ -21,7 +21,7 @@
  */
 
 static const cpu_subtype_t CPU_SUBTYPE_X86_64_ALL_LIB64 =
-    CPU_SUBTYPE_X86_64_ALL | CPU_SUBTYPE_LIB64;
+    (CPU_SUBTYPE_X86_64_ALL | CPU_SUBTYPE_LIB64);
 
 /*
  * To support the use of fake-arrays, we don't const our arch-info table.
@@ -296,7 +296,7 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
     }
 
     const struct array_slice slice = {
-        .front = info->front,
+        .front = info_front_index,
         .back = info->back
     };
 
@@ -317,12 +317,12 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
 
 const struct arch_info *arch_info_for_name(const char *__notnull const name) {
     const struct arch_info *arch = arch_info_list;
-    for (; arch->name != NULL; arch++) {
-        if (strcmp(arch->name, name) != 0) {
-            continue;
-        }
+    const char *arch_name = arch->name;
 
-        return arch;
+    for (; arch_name != NULL; arch_name = (++arch)->name) {
+        if (strcmp(arch_name, name) == 0) {
+            return arch;
+        }
     }
 
     return NULL;
