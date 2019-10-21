@@ -7,7 +7,9 @@
 //
 
 #include <sys/stat.h>
+
 #include <errno.h>
+#include <fcntl.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +19,7 @@
 #include "macho_file.h"
 #include "our_io.h"
 #include "parse_macho_for_main.h"
+#include "recursive.h"
 
 static void
 clear_create_info(struct tbd_create_info *__notnull const info_in,
@@ -48,93 +51,6 @@ read_magic(void *__notnull const magic_in,
     return 0;
 }
 
-static void
-handle_write_result(const struct tbd_for_main *__notnull const tbd,
-                    const char *__notnull const path,
-                    const char *__notnull const write_path,
-                    const enum tbd_for_main_write_to_path_result result,
-                    const bool print_paths)
-{
-    switch (result) {
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_OK:
-            break;
-
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS:
-            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                return;
-            }
-
-            if (print_paths) {
-                fprintf(stderr,
-                        "Skipping over file (at path %s) as a file at its "
-                        "write-path (%s) already exists\n",
-                        path,
-                        write_path);
-            } else {
-                fputs("Skipping over file at provided-path as a file at its "
-                      "provided write-path already exists\n", stderr);
-            }
-
-            break;
-
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to write to output-file (at path %s)\n",
-                        write_path);
-            } else {
-                fputs("Failed to write to provided output-file\n", stderr);
-            }
-
-            break;
-    }
-}
-
-static void
-handle_write_result_while_recursing(
-    const struct tbd_for_main *__notnull const tbd,
-    const char *__notnull const dir_path,
-    const char *__notnull const name,
-    const char *__notnull const write_path,
-    const enum tbd_for_main_write_to_path_result result,
-    const bool print_paths)
-{
-    switch (result) {
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_OK:
-            break;
-
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS:
-            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                return;
-            }
-
-            if (print_paths) {
-                fprintf(stderr,
-                        "Skipping over file (at path %s/%s) as a file at its "
-                        "write-path (%s) already exists\n",
-                        dir_path,
-                        name,
-                        write_path);
-            } else {
-                fputs("Skipping over file at provided-path as a file at its "
-                      "provided write-path already exists\n", stderr);
-            }
-
-            break;
-
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to write to output-file (at path %s)\n",
-                        write_path);
-            } else {
-                fputs("Failed to write to provided output-file\n", stderr);
-            }
-
-            break;
-    }
-}
-
 static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
@@ -145,14 +61,9 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     if (stat(write_path, &sbuf) < 0) {
         /*
          * The write-file doesn't have to exist.
-         *
-         * Note:
-         * ENOTDIR is returned when a directory in the hierarchy of the
-         * path is not a directory at all, which means that an object doesn't
-         * exist at the provided path.
          */
 
-        if (errno != ENOENT && errno != ENOTDIR) {
+        if (errno != ENOENT) {
             fprintf(stderr,
                     "Failed to get information on object at the provided "
                     "write-path (%s), error: %s\n",
@@ -167,12 +78,231 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
 
     if (!S_ISREG(sbuf.st_mode)) {
         fprintf(stderr,
-                "Writing to a regular file while parsing mach-o file (at path "
-                "%s) is not supported",
+                "Writing to a regular file while parsing a mach-o file "
+                "(at path %s) is not supported",
                 tbd->parse_path);
 
         exit(1);
     }
+}
+
+static FILE *
+open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
+                   char *__notnull const write_path,
+                   const uint64_t write_path_length,
+                   char **__notnull const terminator_out)
+{
+    char *terminator = NULL;
+
+    const struct tbd_for_main *const tbd = args->tbd;
+    const uint64_t options = tbd->flags;
+
+    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int write_fd =
+        open_r(write_path,
+               write_path_length,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               0755,
+               &terminator);
+
+    if (write_fd < 0) {
+        /*
+         * Although getting the file descriptor failed, its likely open_r still
+         * created the directory hierarchy, and if so the terminator shouldn't
+         * be NULL.
+         */
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+
+            remove_file_r(write_path, write_path_length, terminator);
+        }
+
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             *
+             * Note:
+             * EEXIST is only returned when O_EXCL was set, which is only
+             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
+             */
+
+            if (errno == EEXIST) {
+                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                    return NULL;
+                }
+
+                if (args->print_paths) {
+                    fprintf(stderr,
+                            "Skipping over file (at path %s) as a file "
+                            "at its write-path (%s) already exists\n",
+                            args->dir_path,
+                            write_path);
+                } else {
+                    fputs("Skipping over file at provided-path as a file "
+                            "at its provided write-path already exists\n",
+                            stderr);
+                }
+
+                return NULL;
+            }
+
+            if (args->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s), error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file, error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return NULL;
+    }
+
+    FILE *const file = fdopen(write_fd, "w");
+    if (file == NULL) {
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (args->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s) as FILE, "
+                        "error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file as FILE, "
+                        "error: %s\n",
+                        strerror(errno));
+            }
+        }
+    }
+
+    *terminator_out = terminator;
+    return file;
+}
+
+static FILE *
+open_file_for_path_while_recursing(
+    struct parse_macho_for_main_args *const args,
+    char *__notnull const write_path,
+    const uint64_t write_path_length,
+    char **__notnull const terminator_out)
+{
+    FILE *file = args->combine_file;
+    if (file != NULL) {
+        return file;
+    }
+
+    char *terminator = NULL;
+
+    const struct tbd_for_main *const tbd = args->tbd;
+    const uint64_t options = tbd->flags;
+
+    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int write_fd =
+        open_r(write_path,
+               write_path_length,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               0755,
+               &terminator);
+
+    if (write_fd < 0) {
+        /*
+         * Although getting the file descriptor failed, its likely open_r still
+         * created the directory hierarchy, and if so the terminator shouldn't
+         * be NULL.
+         */
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+
+            remove_file_r(write_path, write_path_length, terminator);
+        }
+
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             *
+             * Note:
+             * EEXIST is only returned when O_EXCL was set, which is only
+             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
+             */
+
+            if (errno == EEXIST) {
+                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                    return NULL;
+                }
+
+                if (args->print_paths) {
+                    fprintf(stderr,
+                            "Skipping over file (at path %s/%s) as a file "
+                            "at its write-path (%s) already exists\n",
+                            args->dir_path,
+                            args->name,
+                            write_path);
+                } else {
+                    fputs("Skipping over file at provided-path as a file "
+                            "at its provided write-path already exists\n",
+                            stderr);
+                }
+
+                return NULL;
+            }
+
+            if (args->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s), error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file, error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return NULL;
+    }
+
+    file = fdopen(write_fd, "w");
+    if (file == NULL) {
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (args->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s) as a "
+                        "file-stream, error: %s\n",
+                        write_path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file as a "
+                        "file-stream, error: %s\n",
+                        strerror(errno));
+            }
+        }
+    }
+
+    if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+        args->combine_file = file;
+    }
+
+    *terminator_out = terminator;
+    return file;
 }
 
 enum parse_macho_for_main_result
@@ -256,21 +386,31 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         verify_write_path(args.tbd);
     }
 
-    char *write_path = args.tbd->write_path;
-    if (write_path != NULL) {
-        const enum tbd_for_main_write_to_path_result write_to_path_result =
-            tbd_for_main_write_to_path(args.tbd,
-                                       write_path,
-                                       args.tbd->write_path_length,
-                                       args.print_paths);
+    char *const write_path = args.tbd->write_path;
+    const uint64_t write_path_length = args.tbd->write_path_length;
 
-        if (write_to_path_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-            handle_write_result(args.tbd,
-                                args.dir_path,
-                                write_path,
-                                write_to_path_result,
-                                args.print_paths);
+    FILE *file = NULL;
+    char *terminator = NULL;
+
+    if (write_path != NULL) {
+        file = open_file_for_path(&args,
+                                  write_path,
+                                  write_path_length,
+                                  &terminator);
+
+        if (file == NULL) {
+            clear_create_info(create_info, &original_info);
+            return E_PARSE_MACHO_FOR_MAIN_OK;
         }
+
+        tbd_for_main_write_to_file(args.tbd,
+                                   write_path,
+                                   write_path_length,
+                                   terminator,
+                                   file,
+                                   args.print_paths);
+
+        fclose(file);
     } else {
         tbd_for_main_write_to_stdout(args.tbd, args.dir_path, true);
     }
@@ -281,8 +421,9 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
 
 enum parse_macho_for_main_result
 parse_macho_file_for_main_while_recursing(
-    const struct parse_macho_for_main_args args)
+    struct parse_macho_for_main_args *__notnull const args_ptr)
 {
+    const struct parse_macho_for_main_args args = *args_ptr;
     if (read_magic(args.magic_in, args.magic_in_size_in, args.fd)) {
         if (errno == EOVERFLOW) {
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
@@ -365,38 +506,61 @@ parse_macho_file_for_main_while_recursing(
     }
 
     uint64_t write_path_length = 0;
-    char *const write_path =
-        tbd_for_main_create_write_path_for_recursing(args.tbd,
-                                                     args.dir_path,
-                                                     args.dir_path_length,
-                                                     args.name,
-                                                     args.name_length,
-                                                     "tbd",
-                                                     3,
-                                                     &write_path_length);
 
-    if (write_path == NULL) {
-        fputs("Failed to allocate memory\n", stderr);
-        exit(1);
+    char *write_path = NULL;
+    const bool should_combine =
+        (args.tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
+
+    if (!should_combine) {
+        write_path =
+            tbd_for_main_create_write_path_for_recursing(args.tbd,
+                                                         args.dir_path,
+                                                         args.dir_path_length,
+                                                         args.name,
+                                                         args.name_length,
+                                                         "tbd",
+                                                         3,
+                                                         &write_path_length);
+
+        if (write_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+    } else {
+        write_path = args.tbd->write_path;
+        write_path_length = args.tbd->write_path_length;
+
+        args.tbd->write_options |= O_TBD_CREATE_IGNORE_FOOTER;
     }
 
-    const enum tbd_for_main_write_to_path_result write_to_path_result =
-        tbd_for_main_write_to_path(args.tbd,
-                                   write_path,
-                                   write_path_length,
-                                   true);
+    char *terminator = NULL;
+    FILE *const file =
+        open_file_for_path_while_recursing(args_ptr,
+                                           write_path,
+                                           write_path_length,
+                                           &terminator);
 
-    if (write_to_path_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-        handle_write_result_while_recursing(args.tbd,
-                                            args.dir_path,
-                                            args.name,
-                                            write_path,
-                                            write_to_path_result,
-                                            args.print_paths);
+    if (file == NULL) {
+        if (!should_combine) {
+            free(write_path);
+        }
+        
+        clear_create_info(create_info, &original_info);
+        return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
+    }
+
+    tbd_for_main_write_to_file(args.tbd,
+                               write_path,
+                               write_path_length,
+                               terminator,
+                               file,
+                               args.print_paths);
+
+    if (!should_combine) {
+        fclose(file);
+        free(write_path);
     }
 
     clear_create_info(create_info, &original_info);
-    free(write_path);
-
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }

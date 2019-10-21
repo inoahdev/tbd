@@ -213,11 +213,12 @@ enum tbd_create_options {
     O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1ull << 1,
     O_TBD_CREATE_IGNORE_EXPORTS               = 1ull << 2,
     O_TBD_CREATE_IGNORE_FLAGS                 = 1ull << 3,
-    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 4,
-    O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1ull << 5,
-    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 6,
-    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 7,
-    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 8
+    O_TBD_CREATE_IGNORE_FOOTER                = 1ull << 4,
+    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 5,
+    O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1ull << 6,
+    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 7,
+    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 8,
+    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 9
 };
 
 enum tbd_create_result

@@ -29,11 +29,18 @@ struct parse_macho_for_main_args {
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
 
+    /*
+     * When not recursing, name will be NULL and dir_path will store the entire
+     * path.
+     */
+
     const char *dir_path;
     uint64_t dir_path_length;
 
     const char *name;
     uint64_t name_length;
+
+    FILE *combine_file;
 
     bool dont_handle_non_macho_error;
     bool print_paths;
@@ -52,6 +59,6 @@ parse_macho_file_for_main(struct parse_macho_for_main_args args);
 
 enum parse_macho_for_main_result
 parse_macho_file_for_main_while_recursing(
-    struct parse_macho_for_main_args args);
+    struct parse_macho_for_main_args *__notnull args_ptr);
 
 #endif /* PARSE_MACHO_FOR_MAIN_H */

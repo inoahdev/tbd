@@ -18,7 +18,8 @@
 enum parse_dsc_for_main_result {
     E_PARSE_DSC_FOR_MAIN_OK,
     E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE,
-    E_PARSE_DSC_FOR_MAIN_OTHER_ERROR
+    E_PARSE_DSC_FOR_MAIN_OTHER_ERROR,
+    E_PARSE_DSC_FOR_MAIN_CLOSE_COMBINE_FILE_FAIL
 };
 
 enum parse_dsc_for_main_options {
@@ -41,6 +42,8 @@ struct parse_dsc_for_main_args {
     const char *dsc_name;
     uint64_t dsc_name_length;
 
+    FILE *combine_file;
+
     bool dont_handle_non_dsc_error;
     bool print_paths;
 
@@ -51,7 +54,8 @@ enum parse_dsc_for_main_result
 parse_dsc_for_main(struct parse_dsc_for_main_args args);
 
 enum parse_dsc_for_main_result
-parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args);
+parse_dsc_for_main_while_recursing(
+    struct parse_dsc_for_main_args *__notnull args);
 
 void print_list_of_dsc_images(int fd);
 void print_list_of_dsc_images_ordered(int fd);

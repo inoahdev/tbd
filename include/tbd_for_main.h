@@ -68,16 +68,17 @@ enum tbd_for_main_flags {
 
     F_TBD_FOR_MAIN_NO_OVERWRITE           = 1ull << 4,
     F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1ull << 5,
+    F_TBD_FOR_MAIN_COMBINE_TBDS           = 1ull << 6,
 
-    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 6,
-    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 7,
+    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 7,
+    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 8,
 
     /*
-     * dyld_shared_cache extractions can be stored in either a file or a
-     * directory. (Depending on the configuration)
+     * dyld_shared_cache extractions can be stored in either a file.
+     * (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 8
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9
 };
 
 enum tbd_for_main_filetype {
@@ -183,17 +184,12 @@ void
 tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull dst,
                                 const struct tbd_for_main *__notnull src);
 
-enum tbd_for_main_write_to_path_result {
-    E_TBD_FOR_MAIN_WRITE_TO_PATH_OK,
-
-    E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS,
-    E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL
-};
-
-enum tbd_for_main_write_to_path_result
-tbd_for_main_write_to_path(const struct tbd_for_main *__notnull tbd,
+void
+tbd_for_main_write_to_file(const struct tbd_for_main *__notnull tbd,
                            char *__notnull write_path,
                            uint64_t write_path_length,
+                           char *terminator,
+                           FILE *__notnull file,
                            bool print_paths);
 
 void

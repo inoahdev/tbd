@@ -7,7 +7,9 @@
 //
 
 #include <sys/stat.h>
+
 #include <errno.h>
+#include <fcntl.h>
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -29,12 +31,8 @@
 #include "path.h"
 
 #include "recursive.h"
+#include "tbd_write.h"
 #include "unused.h"
-
-struct image_error {
-    const char *path;
-    enum dsc_image_parse_result result;
-};
 
 struct dsc_iterate_images_info {
     struct dyld_shared_cache_info *dsc_info;
@@ -47,6 +45,9 @@ struct dsc_iterate_images_info {
     const char *dsc_dir_path;
     const char *dsc_name;
 
+    const char *image_path;
+    uint64_t image_path_length;
+
     char *write_path;
     uint64_t write_path_length;
 
@@ -55,6 +56,8 @@ struct dsc_iterate_images_info {
 
     struct array images;
     uint64_t *retained_info;
+
+    FILE *combine_file;
 
     bool print_paths;
     bool parse_all_images;
@@ -85,11 +88,18 @@ print_messages_header(
     }
 
     if (iterate_info->print_paths) {
-        fprintf(stderr,
-                "Parsing dyld_shared_cache file (at path %s/%s) resulted "
-                "in the following warnings and errors:\n",
-                iterate_info->dsc_dir_path,
-                iterate_info->dsc_name);
+        if (iterate_info->dsc_name != NULL) {
+            fprintf(stderr,
+                    "Parsing dyld_shared_cache file (at path %s/%s) resulted "
+                    "in the following warnings and errors:\n",
+                    iterate_info->dsc_dir_path,
+                    iterate_info->dsc_name);
+        } else {
+            fprintf(stderr,
+                    "Parsing dyld_shared_cache file (at path %s) resulted in "
+                    "in the following warnings and errors:\n",
+                    iterate_info->dsc_dir_path);
+        }
     } else {
         fputs("Parsing the provided dyld_shared_cache file resulted in the "
               "following warnings and errors:\n",
@@ -121,19 +131,25 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
     print_messages_header(iterate_info);
 
     fputc('\t', stderr);
-    print_dsc_image_parse_error(tbd, image_path, result);
+    print_dsc_image_parse_error(image_path, result);
 }
 
+enum write_to_path_result {
+    E_WRITE_TO_PATH_OK,
+    E_WRITE_TO_PATH_ALREADY_EXISTS,
+    E_WRITE_TO_PATH_WRITE_FAIL
+};
+
 static void
-print_write_to_path_result(struct tbd_for_main *__notnull const tbd,
+print_write_to_path_result(const struct tbd_for_main *__notnull const tbd,
                            const char *__notnull const image_path,
-                           const enum tbd_for_main_write_to_path_result result)
+                           const enum write_to_path_result result)
 {
     switch (result) {
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_OK:
+        case E_WRITE_TO_PATH_OK:
             break;
 
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS:
+        case E_WRITE_TO_PATH_ALREADY_EXISTS:
             if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
                 break;
             }
@@ -146,7 +162,7 @@ print_write_to_path_result(struct tbd_for_main *__notnull const tbd,
 
             break;
 
-        case E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL:
+        case E_WRITE_TO_PATH_WRITE_FAIL:
             fprintf(stderr,
                     "\tImage (with path %s) could not be parsed and written "
                     "out due to a write fail\n",
@@ -158,16 +174,152 @@ print_write_to_path_result(struct tbd_for_main *__notnull const tbd,
 
 static void
 print_write_error(struct dsc_iterate_images_info *__notnull const iterate_info,
-                  struct tbd_for_main *__notnull const tbd,
-                  const char *__notnull const image_path,
-                  const enum tbd_for_main_write_to_path_result result)
+                  const struct tbd_for_main *__notnull const tbd,
+                  const enum write_to_path_result result)
 {
     print_messages_header(iterate_info);
-    print_write_to_path_result(tbd, image_path, result);
+    print_write_to_path_result(tbd, iterate_info->image_path, result);
 }
 
-static enum tbd_for_main_write_to_path_result
+static FILE *
+open_file_for_path(struct dsc_iterate_images_info *__notnull const info,
+                   const struct tbd_for_main *__notnull const tbd,
+                   char *__notnull const path,
+                   const uint64_t path_length,
+                   const bool should_combine,
+                   char **__notnull const terminator_out)
+{
+    FILE *file = info->combine_file;
+    if (file != NULL) {
+        return file;
+    }
+
+    char *terminator = NULL;
+    const uint64_t options = tbd->flags;
+
+    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int write_fd =
+        open_r(path,
+               path_length,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               0755,
+               &terminator);
+
+    if (write_fd < 0) {
+        /*
+         * Although getting the file descriptor failed, its likely open_r still
+         * created the directory hierarchy, and if so the terminator shouldn't
+         * be NULL.
+         */
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+
+            remove_file_r(path, path_length, terminator);
+        }
+
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             *
+             * Note:
+             * EEXIST is only returned when O_EXCL was set, which is only set
+             * for F_TBD_FOR_MAIN_NO_OVERWRITE.
+             */
+
+            if (errno == EEXIST) {
+                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                    return NULL;
+                }
+
+                print_write_error(info, tbd, E_WRITE_TO_PATH_ALREADY_EXISTS);
+                return NULL;
+            }
+
+            if (info->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s), error: %s\n",
+                        path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file, error: %s\n",
+                        strerror(errno));
+            }
+        }
+
+        return NULL;
+    }
+
+    file = fdopen(write_fd, "w");
+    if (file == NULL) {
+        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (info->print_paths) {
+                fprintf(stderr,
+                        "Failed to open write-file (for path: %s) as FILE, "
+                        "error: %s\n",
+                        path,
+                        strerror(errno));
+            } else {
+                fprintf(stderr,
+                        "Failed to open the provided write-file as FILE, "
+                        "error: %s\n",
+                        strerror(errno));
+            }
+        }
+    }
+
+    if (should_combine) {
+        info->combine_file = file;
+    }
+    
+    *terminator_out = terminator;
+    return file;
+}
+
+static void
+write_to_path(
+    struct dsc_iterate_images_info *__notnull const iterate_info,
+    const struct tbd_for_main *__notnull const tbd,
+    char *__notnull const write_path,
+    const uint64_t write_path_length)
+{
+    char *terminator = NULL;
+    const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
+
+    FILE *const file =
+        open_file_for_path(iterate_info,
+                           tbd,
+                           write_path,
+                           write_path_length,
+                           should_combine,
+                           &terminator);
+
+    if (file == NULL) {
+        return;
+    }
+
+    tbd_for_main_write_to_file(tbd,
+                               write_path,
+                               write_path_length,
+                               terminator,
+                               file,
+                               iterate_info->print_paths);
+
+    if (!should_combine) {
+        fclose(file);
+    }
+}
+
+static void
 write_out_tbd_info_for_filter_dir(
+    struct dsc_iterate_images_info *__notnull const iterate_info,
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const filter_dir,
     const char *__notnull const image_path,
@@ -187,20 +339,13 @@ write_out_tbd_info_for_filter_dir(
                                                  3,
                                                  &length);
 
-    const enum tbd_for_main_write_to_path_result result =
-        tbd_for_main_write_to_path(tbd, write_path, length, true);
-
+    write_to_path(iterate_info, tbd, write_path, length);
     free(write_path);
-
-    if (result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-        return result;
-    }
-
-    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
-static enum tbd_for_main_write_to_path_result
+void
 write_out_tbd_info_for_filter_filename(
+    struct dsc_iterate_images_info *const iterate_info,
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const filter_filename,
     const uint64_t filter_length)
@@ -216,21 +361,13 @@ write_out_tbd_info_for_filter_filename(
                                                  3,
                                                  &length);
 
-    const enum tbd_for_main_write_to_path_result write_result =
-        tbd_for_main_write_to_path(tbd, write_path, length, true);
-
+    write_to_path(iterate_info, tbd, write_path, length);
     free(write_path);
-
-    if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-        return write_result;
-    }
-
-    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
-static enum tbd_for_main_write_to_path_result
+static void
 write_out_tbd_info_for_image_path(
-    const struct dsc_iterate_images_info *const iterate_info,
+    struct dsc_iterate_images_info *const iterate_info,
     const struct tbd_for_main *__notnull const tbd,
     const char *__notnull const image_path,
     const uint64_t image_path_length)
@@ -247,60 +384,49 @@ write_out_tbd_info_for_image_path(
             3,
             &length);
 
-    const enum tbd_for_main_write_to_path_result write_result =
-        tbd_for_main_write_to_path(tbd, write_path, length, true);
-
+    write_to_path(iterate_info, tbd, write_path, length);
     free(write_path);
-
-    if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-        return write_result;
-    }
-
-    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
-static enum tbd_for_main_write_to_path_result
+static void
 write_out_tbd_info_for_filter(
-    const struct dsc_iterate_images_info *__notnull const info,
+    struct dsc_iterate_images_info *__notnull const info,
     const struct tbd_for_main_dsc_image_filter *__notnull const filter,
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const image_path,
     const uint64_t image_path_length)
 {
-    enum tbd_for_main_write_to_path_result result =
-        E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
-
     switch (filter->type) {
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH:
-            result = write_out_tbd_info_for_image_path(info,
-                                                       tbd,
-                                                       image_path,
-                                                       image_path_length);
+            write_out_tbd_info_for_image_path(info,
+                                              tbd,
+                                              image_path,
+                                              image_path_length);
 
             break;
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
-            result = write_out_tbd_info_for_filter_dir(tbd,
-                                                       filter->tmp_ptr,
-                                                       image_path,
-                                                       image_path_length);
+            write_out_tbd_info_for_filter_dir(info,
+                                              tbd,
+                                              filter->tmp_ptr,
+                                              image_path,
+                                              image_path_length);
 
             break;
 
         case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
-            result = write_out_tbd_info_for_filter_filename(tbd,
-                                                            filter->tmp_ptr,
-                                                            filter->length);
+            write_out_tbd_info_for_filter_filename(info,
+                                                   tbd,
+                                                   filter->tmp_ptr,
+                                                   filter->length);
 
             break;
     }
-
-    return result;
 }
 
 static void
 write_out_tbd_info_for_filter_list(
-    struct dsc_iterate_images_info *const info,
+    struct dsc_iterate_images_info *__notnull const info,
     struct tbd_for_main *__notnull const tbd,
     const char *__notnull const image_path,
     const uint64_t length)
@@ -315,16 +441,11 @@ write_out_tbd_info_for_filter_list(
             continue;
         }
 
-        const enum tbd_for_main_write_to_path_result write_result =
-            write_out_tbd_info_for_filter(info,
-                                          filter,
-                                          tbd,
-                                          image_path,
-                                          length);
-
-        if (write_result != E_TBD_FOR_MAIN_WRITE_TO_PATH_OK) {
-            print_write_error(info, tbd, image_path, write_result);
-        }
+        write_out_tbd_info_for_filter(info,
+                                      filter,
+                                      tbd,
+                                      image_path,
+                                      length);
 
         filter->status = TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_OK;
     }
@@ -336,6 +457,11 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
                    const char *__notnull const path,
                    const uint64_t path_length)
 {
+    if (tbd->flags & F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE) {
+        write_to_path(info, tbd, tbd->write_path, tbd->write_path_length);
+        return;
+    }
+
     if (info->parse_all_images) {
         write_out_tbd_info_for_image_path(info, tbd, path, path_length);
         return;
@@ -350,9 +476,6 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
 
         const char *const dsc_path = info->dsc_dir_path;
         tbd_for_main_write_to_stdout_for_dsc_image(tbd, dsc_path, path, true);
-    } else if (tbd->flags & F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE) {
-        const uint64_t length = info->write_path_length;
-        tbd_for_main_write_to_path(tbd, write_path, length, true);
     }
 
     write_out_tbd_info_for_filter_list(info, tbd, path, path_length);
@@ -360,7 +483,7 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
 
 static int
 actually_parse_image(
-    uint64_t *__notnull const image_path_length_in,
+    struct dsc_iterate_images_info *__notnull const info,
     struct dyld_cache_image_info *__notnull const image,
     const char *const image_path,
     struct dsc_iterate_images_info *__notnull const iterate_info)
@@ -396,10 +519,10 @@ actually_parse_image(
         return 1;
     }
 
-    uint64_t image_path_length = *image_path_length_in;
+    uint64_t image_path_length = info->image_path_length;
     if (image_path_length == 0) {
         image_path_length = strlen(image_path);
-        *image_path_length_in = image_path_length;
+        info->image_path_length = image_path_length;
     }
 
     write_out_tbd_info(iterate_info, tbd, image_path, image_path_length);
@@ -410,7 +533,7 @@ actually_parse_image(
 
 static bool
 image_path_passes_through_filter(
-    uint64_t *__notnull const path_length_in,
+    struct dsc_iterate_images_info *__notnull const info,
     const char *__notnull const path,
     struct tbd_for_main_dsc_image_filter *__notnull const filter)
 {
@@ -418,11 +541,11 @@ image_path_passes_through_filter(
     const uint64_t length = filter->length;
 
     const char **const ptr = &filter->tmp_ptr;
-    uint64_t path_len = *path_length_in;
+    uint64_t path_len = info->image_path_length;
 
     if (path_len == 0) {
         path_len = strlen(path);
-        *path_length_in = path_len;
+        info->image_path_length = path_len;
     }
 
     switch (filter->type) {
@@ -451,7 +574,7 @@ filter_was_parsed(
 }
 
 static bool
-should_parse_image(uint64_t *__notnull const path_length_in,
+should_parse_image(struct dsc_iterate_images_info *__notnull const info,
                    const struct array *__notnull const list,
                    const char *__notnull const path)
 {
@@ -474,7 +597,7 @@ should_parse_image(uint64_t *__notnull const path_length_in,
             }
         }
 
-        if (image_path_passes_through_filter(path_length_in, path, filter)) {
+        if (image_path_passes_through_filter(info, path, filter)) {
             if (!parsed_filter) {
                 filter->status = TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_HAPPENING;
             }
@@ -653,19 +776,21 @@ dsc_iterate_images(
             continue;
         }
 
+        info->image_path = image_path;
+        info->image_path_length = 0;
+
         /*
          * If we're not parsing all images, we need to verify that our image
          * passes through either a name-filter or a path-filter.
          */
 
-        uint64_t length = 0;
         if (!info->parse_all_images) {
-            if (!should_parse_image(&length, filters, image_path)) {
+            if (!should_parse_image(info, filters, image_path)) {
                 continue;
             }
         }
 
-        if (actually_parse_image(&length, image, image_path, info)) {
+        if (actually_parse_image(info, image, image_path, info)) {
             /*
              * actually_parse_image() would usually unmark the happening status
              * flag through write_out_tbd_info(), but the function was never
@@ -774,18 +899,32 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
             exit(1);
         }
 
+        if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+            tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+            tbd->write_options |= O_TBD_CREATE_IGNORE_FOOTER;
+        }
+
         return;
     }
 
     if (S_ISREG(sbuf.st_mode)) {
         /*
          * We allow writing to regular files only with the following conditions:
-         *     (1) No filters have been provided. This is because we can't tell
+         *     (1) We are combining all created tbds into one .tbd file.
+         *
+         *     (2) No filters have been provided. This is because we can't tell
          *         before iterating how many images will pass the filter.
          *
-         *     (2) Either only one image-number, or only one image-path has been
+         *     (3) Either only one image-number, or only one image-path has been
          *         provided.
          */
+
+        if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+            tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+            tbd->write_options |= O_TBD_CREATE_IGNORE_FOOTER;
+
+            return;
+        }
 
         const struct array *const filters = &tbd->dsc_image_filters;
         if (filters->item_count == 0) {
@@ -845,7 +984,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     }
 
     const uint64_t dsc_options =
-        O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | args.tbd->dsc_options;
+        (O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS | args.tbd->dsc_options);
 
     struct dyld_shared_cache_info dsc_info = {};
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
@@ -874,7 +1013,11 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
     if (args.options & O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH) {
         verify_write_path(args.tbd);
+    } else if (args.tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+        args.tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
     }
+
+    args.tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
 
     struct dsc_iterate_images_info iterate_info = {
         .dsc_info = &dsc_info,
@@ -885,6 +1028,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         .write_path = args.tbd->write_path,
         .write_path_length = args.tbd->write_path_length,
         .retained_info = args.retained_info_in,
+        .combine_file = args.combine_file,
         .print_paths = args.print_paths,
         .parse_all_images = true
     };
@@ -933,9 +1077,8 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
-            uint64_t image_path_length = 0;
             const int parse_result =
-                actually_parse_image(&image_path_length,
+                actually_parse_image(&iterate_info,
                                      image,
                                      image_path,
                                      &iterate_info);
@@ -982,11 +1125,45 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     dsc_iterate_images(&dsc_info, &iterate_info);
     dyld_shared_cache_info_destroy(&dsc_info);
 
+    /*
+     * After iterating over all our images, we need to cleanup after
+     * combine_file.
+     *
+     * Specifically, we need to do two things:
+     *     (1) First, we need to write the tbd-footer, which is written last
+     *         after writing out all the tbds.
+     *
+     *     (2) Second, finally close the combine-file.
+     */
+
+    FILE *const combine_file = iterate_info.combine_file;
+    if (combine_file != NULL) {
+        if (tbd_write_footer(combine_file)) {
+            if (args.print_paths) {
+                fprintf(stderr,
+                        "Failed to write footer for combined .tbd file "
+                        "for files from directory (at path %s)\n",
+                        args.dsc_dir_path);
+            } else {
+                fputs("Failed to write footer for combined .tbd file "
+                        "for files from directory at the provided path\n",
+                        stderr);
+            }
+
+            return E_PARSE_DSC_FOR_MAIN_CLOSE_COMBINE_FILE_FAIL;
+        }
+
+        fclose(combine_file);
+    }
+
     return E_PARSE_DSC_FOR_MAIN_OK;
 }
 
 enum parse_dsc_for_main_result
-parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
+parse_dsc_for_main_while_recursing(
+    struct parse_dsc_for_main_args *__notnull const args_ptr)
+{
+    const struct parse_dsc_for_main_args args = *args_ptr;
     const enum read_magic_result read_magic_result =
         read_magic(args.magic_in, args.magic_in_size_in, args.fd);
 
@@ -1043,6 +1220,18 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
+    uint64_t tbd_flags = args.tbd->flags;
+    uint64_t write_options = O_TBD_CREATE_IGNORE_UUIDS;
+
+    if (tbd_flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+        tbd_flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
+        write_options |= O_TBD_CREATE_IGNORE_FOOTER;
+
+        args.tbd->flags = tbd_flags;
+    }
+
+    args.tbd->write_options |= write_options;
+
     /*
      * dyld_shared_cache tbds are always stored in a separate directory when
      * recursing.
@@ -1071,6 +1260,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
         .write_path = write_path,
         .write_path_length = write_path_length,
         .retained_info = args.retained_info_in,
+        .combine_file = args.combine_file,
         .print_paths = args.print_paths,
         .parse_all_images = true
     };
@@ -1123,8 +1313,7 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
-            uint64_t image_path_length = 0;
-            actually_parse_image(&image_path_length,
+            actually_parse_image(&iterate_info,
                                  image,
                                  image_path,
                                  &iterate_info);
@@ -1169,8 +1358,15 @@ parse_dsc_for_main_while_recursing(struct parse_dsc_for_main_args args) {
     dsc_iterate_images(&dsc_info, &iterate_info);
     dyld_shared_cache_info_destroy(&dsc_info);
 
-    free(write_path);
+    /*
+     * We may have opened combine_file, which we should turn over to the caller.
+     */
 
+    if (iterate_info.combine_file != NULL) {
+        args_ptr->combine_file = iterate_info.combine_file;
+    }
+
+    free(write_path);
     return E_PARSE_DSC_FOR_MAIN_OK;
 }
 

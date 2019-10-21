@@ -379,14 +379,14 @@ handle_dsc_image_parse_result(
 
         case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
             const bool request_result =
-                request_install_name(args.global,
-                                     args.tbd,
-                                     args.retained_info_in,
-                                     true,
-                                     stderr,
-                                     "\tImage (with path %s) has an invalid "
-                                     "platform\n",
-                                     args.image_path);
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
+                                 true,
+                                 stderr,
+                                 "\tImage (with path %s) has an invalid "
+                                 "platform\n",
+                                 args.image_path);
 
             if (!request_result) {
                 return false;
@@ -431,6 +431,101 @@ handle_dsc_image_parse_result(
 
             break;
         }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION:
+            fprintf(stderr,
+                    "\tImage (with path %s) has conflicting information for "
+                    "its identification: (install-name, current-version, "
+                    "compatibility-version\n",
+                    args.image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT: {
+            const bool request_result =
+                request_objc_constraint(args.global,
+                                        args.tbd,
+                                        args.retained_info_in,
+                                        true,
+                                        stderr,
+                                        "\tImage (with path %s) has "
+                                        "conflicting values for its "
+                                        "objc-constraint\n",
+                                        args.image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA:{
+            const bool request_result =
+                request_parent_umbrella(args.global,
+                                        args.tbd,
+                                        args.retained_info_in,
+                                        true,
+                                        stderr,
+                                        "\tImage (with path %s) has "
+                                        "conflicting values for its "
+                                        "parent-umbrella\n",
+                                        args.image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM: {
+            const bool request_result =
+                request_platform(args.global,
+                                 args.tbd,
+                                 args.retained_info_in,
+                                 true,
+                                 stderr,
+                                 "\tImage (with path %s) has conflicting "
+                                 "values for its platform\n",
+                                 args.image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION: {
+            const bool request_result =
+                request_swift_version(args.global,
+                                      args.tbd,
+                                      args.retained_info_in,
+                                      true,
+                                      stderr,
+                                      "\tImage (with path %s) has conflicting "
+                                      "values for its swift-version\n",
+                                      args.image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+        }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "uuid\n",
+                    args.image_path);
+
+            return false;
 
         default:
             return false;
@@ -477,8 +572,7 @@ handle_dsc_image_parse_result(
 }
 
 void
-print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
-                            const char *__notnull const image_path,
+print_dsc_image_parse_error(const char *__notnull const image_path,
                             const enum dsc_image_parse_result parse_error)
 {
     switch (parse_error) {
@@ -650,20 +744,52 @@ print_dsc_image_parse_error(const struct tbd_for_main *__notnull const tbd,
             break;
 
         case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
-            if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                fprintf(stderr,
-                        "Image (with path %s) has no exported clients, "
-                        "re-exports, or symbols to be written out\n",
-                        image_path);
-            } else {
-                fprintf(stderr,
-                        "Image (with path %s) has no exported clients, "
-                        "re-exports, or symbols to be written out\n",
-                        image_path);
-            }
+            fprintf(stderr,
+                    "Image (with path %s) has no exported clients, "
+                    "re-exports, or symbols to be written out\n",
+                    image_path);
 
             break;
         }
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "objc-constraint\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "parent-umbrella\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "platform\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "swift-version\n",
+                    image_path);
+            break;
+
+        case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
+            fprintf(stderr,
+                    "Image (with path %s) has conflicting values for its "
+                    "uuid\n",
+                    image_path);
+
+            break;
 
         default:
             break;

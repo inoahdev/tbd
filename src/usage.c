@@ -28,18 +28,20 @@ void print_usage(void) {
     fputs("                       all,  Recurse both the top-level directory and over all sub-directories\n", stdout);
 
     fputc('\n', stdout);
-    fputs("Outputting options:\n", stdout);
+    fputs("Write options:\n", stdout);
     fputs("Usage: tbd -o [options] path\n", stdout);
     fputs("        --preserve-subdirs,       Preserve the sub-directories of where files were found\n", stdout);
     fputs("                                  when recursing in relation to the actual provided recurse-path\n", stdout);
     fputs("        --no-overwrite,           Prevent overwriting of files when writing out\n", stdout);
     fputs("        --replace-path-extension, Replace the path-extension(s) of provided file(s) when\n", stdout);
     fputs("                                  writing out (Instead of simply appending .tbd)\n", stdout);
+    fputs("        --combine-tbds,           Combine all tbds created (when recursing or with a dyld-shared-cache) into a\n", stdout);
+    fputs("                                  single .tbd file\n", stdout);
 
     fputc('\n', stdout);
     fputs("Both local and global options:\n", stdout);
     fputs("        --macho,                         Specify that the file(s) provided should only be parsed\n", stdout);
-    fputs("                                         if the file is a mach-o file\n", stdout);
+    fputs("                                         if the file is a mach-o file.\n", stdout);
     fputs("                                         This option can be used to limit the filetypes parsed\n", stdout);
     fputs("                                         while recursing\n", stdout);
     fputs("        --dsc,                           Specify that the file(s) provided should only be parsed\n", stdout);

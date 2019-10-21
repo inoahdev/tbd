@@ -275,7 +275,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.objc_constraint = objc_constraint;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
         if (index == argc) {
@@ -552,113 +552,33 @@ tbd_for_main_create_dsc_folder_path(
     return write_path;
 }
 
-enum tbd_for_main_write_to_path_result
-tbd_for_main_write_to_path(const struct tbd_for_main *__notnull const tbd,
-                           char *const write_path,
+void
+tbd_for_main_write_to_file(const struct tbd_for_main *__notnull const tbd,
+                           char *__notnull const write_path,
                            const uint64_t write_path_length,
+                           char *const terminator,
+                           FILE *__notnull const file,
                            const bool print_paths)
 {
-    char *terminator = NULL;
-    const uint64_t options = tbd->flags;
-
-    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
-    const int write_fd =
-        open_r(write_path,
-               write_path_length,
-               O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
-               0755,
-               &terminator);
-
-    if (write_fd < 0) {
-        /*
-         * Although getting the file descriptor failed, its likely open_r still
-         * created the directory hierarchy, and if so the terminator shouldn't
-         * be NULL.
-         */
-
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
-
-            remove_file_r(write_path, write_path_length, terminator);
-        }
-
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note: EEXIST is only returned when O_EXCL was set, which is only
-             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
-             */
-
-            if (errno == EEXIST) {
-                return E_TBD_FOR_MAIN_WRITE_TO_PATH_ALREADY_EXISTS;
-            }
-
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s), error: %s\n",
-                        write_path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file, error: %s\n",
-                        strerror(errno));
-            }
-        }
-
-        return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
-    }
-
-    FILE *const write_file = fdopen(write_fd, "w");
-    if (write_file == NULL) {
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s) as FILE, "
-                        "error: %s\n",
-                        write_path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file as FILE, "
-                        "error: %s\n",
-                        strerror(errno));
-            }
-        }
-
-        return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
-    }
-
     const struct tbd_create_info *const create_info = &tbd->info;
     const enum tbd_create_result create_tbd_result =
-        tbd_create_with_info(create_info, write_file, tbd->write_options);
-
-    fclose(write_file);
+        tbd_create_with_info(create_info, file, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
+        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            if (print_paths) {
+                fprintf(stderr,
+                        "Failed to write to output-file (at path %s)\n",
+                        write_path);
+            } else {
+                fputs("Failed to write to provided output-file\n", stderr);
+            }
+        }
 
+        if (terminator != NULL) {
             remove_file_r(write_path, write_path_length, terminator);
         }
-
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            return E_TBD_FOR_MAIN_WRITE_TO_PATH_WRITE_FAIL;
-        }
-
     }
-
-    return E_TBD_FOR_MAIN_WRITE_TO_PATH_OK;
 }
 
 void

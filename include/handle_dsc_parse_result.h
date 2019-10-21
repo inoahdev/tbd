@@ -49,8 +49,7 @@ handle_dsc_image_parse_result_while_recursing(
 	struct handle_dsc_image_parse_result_args args);
 
 void
-print_dsc_image_parse_error(const struct tbd_for_main *__notnull tbd,
-                            const char *__notnull image_path,
+print_dsc_image_parse_error(const char *__notnull image_path,
                             enum dsc_image_parse_result parse_error);
 
 #endif /* HANDLE_DSC_PARSE_RESULT_H */

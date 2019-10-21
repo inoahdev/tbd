@@ -535,9 +535,9 @@ handle_macho_file_parse_result(
                       "\t(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
-        }
+            }
 
-        return false;
+            return false;
 
         case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT: {
             bool request_result = false;
@@ -1390,9 +1390,9 @@ handle_macho_file_parse_result_while_recursing(
                       "\t(install-name, current-version, and/or "
                       "comatibility-version)\n",
                       stderr);
-        }
+            }
 
-        return false;
+            return false;
 
         case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT: {
             bool request_result = false;

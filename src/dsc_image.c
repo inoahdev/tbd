@@ -28,8 +28,7 @@
  * However, not all macho_file_parse_result codes are translated.
  *
  * For example, because dsc-images are not fat mach-o files, we ignore the
- * fat-related error-codes, like errors relating to architectures and
- * conflicting information.
+ * fat-related error-codes, like errors relating to architectures.
  */
 
 static enum dsc_image_parse_result
@@ -69,7 +68,8 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         /*
          * Because we never call macho_file_parse_from_file(), the arch-info
-         * from the header woul never be checked.
+         * from the header would never be checked, so this error should not be
+         * returned.
          */
 
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
@@ -132,13 +132,25 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
         case E_MACHO_FILE_PARSE_CONFLICTING_FLAGS:
-        case E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION:
-        case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
-        case E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA:
-        case E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM:
-        case E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION:
-        case E_MACHO_FILE_PARSE_CONFLICTING_UUID:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_UUID:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_UUID;
+
+        case E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM:
+            return E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM;
 
         case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
             return E_DSC_IMAGE_PARSE_NO_IDENTIFICATION;
@@ -265,6 +277,13 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
+    const uint64_t arch_bit = dsc_info->arch_bit;
+
+    info_in->fields.archs = arch_bit;
+    info_in->fields.archs_count = 1;
+
+    info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
+
     /*
      * The symbol-table and string-table's file-offsets are relative to the
      * cache-base, not the mach-o header. However, all other mach-o information
@@ -274,7 +293,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      * string tables separately.
      */
 
-    const uint64_t arch_bit = dsc_info->arch_bit;
     const uint64_t lc_options =
         O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
@@ -359,10 +377,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
         }
     }
-
-    info_in->fields.archs = arch_bit;
-    info_in->fields.archs_count = 1;
-    info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
 
     return E_DSC_IMAGE_PARSE_OK;
 }

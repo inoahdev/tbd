@@ -269,8 +269,10 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
     }
 
-    if (tbd_write_footer(file)) {
-        return E_TBD_CREATE_WRITE_FAIL;
+    if (!(options & O_TBD_CREATE_IGNORE_FOOTER)) {
+        if (tbd_write_footer(file)) {
+            return E_TBD_CREATE_WRITE_FAIL;
+        }
     }
 
     return E_TBD_CREATE_OK;
