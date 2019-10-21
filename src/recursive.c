@@ -112,7 +112,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
         /*
          * errno is set to ENONENT when a previous path-component doesn't exist.
          *
-         * Any other error however is beyond our scope, and we just error-return
+         * Any other error is beyond our scope and we should just error-return
          * immediately.
          */
 
@@ -122,8 +122,8 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
     }
 
     /*
-     * We store a pointer to the final slash we need to terminate to finish the
-     * entire task.
+     * final_slash is a pointer to the last slash we call terminate_c_str() on
+     * in the do {} while loop below.
      */
 
     char *const final_slash =
@@ -148,8 +148,12 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
      */
 
     last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
+    char *prev_last_slash = NULL;
+
     while (last_slash != path) {
+        prev_last_slash = last_slash;
         last_slash = find_last_slash_before_end(path, last_slash);
+
         if (unlikely(last_slash == NULL)) {
             return 1;
         }
@@ -173,12 +177,12 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
 
         if (ret < 0) {
             /*
-             * If the directory already exists, we are done, as all the previous
-             * mkdir calls should have gone through.
+             * If the directory already exists, all the previous mkdir calls
+             * should have gone through.
              */
 
             if (errno == EEXIST) {
-                return 0;
+                break;
             }
 
             /*
@@ -190,6 +194,10 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
             */
 
             if (unlikely(errno != ENOENT)) {
+                if (first_terminator_out != NULL) {
+                    *first_terminator_out = prev_last_slash;
+                }
+
                 return 1;
             }
         }
@@ -263,7 +271,7 @@ open_r(char *__notnull const path,
 
     /*
      * The only error supported is ENOENT (when a directory in the hierarchy
-     * doesn't exist, which is the whole point of this function).
+     * doesn't exist - which is the whole point of this function).
      *
      * Other errors are beyond the scope of this function, and so we error out
      * immediately.
