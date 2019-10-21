@@ -1158,11 +1158,11 @@ int main(const int argc, const char *const argv[]) {
             if (recurse_info.files_parsed == 0) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "No supported files were found while recursing "
+                            "No new .tbd files were created while parsing "
                             "directory (at path %s)\n",
                             tbd->parse_path);
                 } else {
-                    fputs("No supported files were found while recursing "
+                    fputs("No new .tbd files were created while parsing "
                           "directory at the provided path\n",
                           stderr);
                 }
