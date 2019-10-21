@@ -543,6 +543,14 @@ array_copy(struct array *const array, struct array *__notnull const array_out) {
     return E_ARRAY_OK;
 }
 
+void
+array_sort_with_comparator(struct array *__notnull const array,
+                           const size_t item_size,
+                           __notnull const array_item_comparator comparator)
+{
+    qsort(array->data, array->item_count, item_size, comparator);
+}
+
 void array_clear(struct array *__notnull const array) {
     array->data_end = array->data;
     array->item_count = 0;

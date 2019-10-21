@@ -16,12 +16,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SORT_NAME dsc_image_path
-#define SORT_TYPE char *
-#define SORT_CMP(x,y) strcmp(x, y)
-
-#include "deps/sort/sort.h"
-
 #include "handle_dsc_parse_result.h"
 #include "parse_dsc_for_main.h"
 
@@ -234,11 +228,12 @@ open_file_for_path(struct dsc_iterate_images_info *__notnull const info,
              */
 
             if (errno == EEXIST) {
-                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                    return NULL;
+                if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+                    print_write_error(info,
+                                      tbd,
+                                      E_WRITE_TO_PATH_ALREADY_EXISTS);
                 }
 
-                print_write_error(info, tbd, E_WRITE_TO_PATH_ALREADY_EXISTS);
                 return NULL;
             }
 
@@ -1444,7 +1439,9 @@ void print_list_of_dsc_images_ordered(const int fd) {
         *image_paths_ptr = image_path;
     }
 
-    dsc_image_path_quick_sort(image_paths.data, dsc_info.images_count);
+    array_sort_with_comparator(&image_paths,
+                               sizeof(const char *),
+                               (array_item_comparator)strcmp);
 
     fprintf(stdout,
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",

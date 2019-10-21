@@ -127,9 +127,8 @@ struct tbd_export_info {
 };
 
 int
-tbd_export_info_compare(
-    const struct tbd_export_info *__notnull const array_item,
-    const struct tbd_export_info *__notnull const item);
+tbd_export_info_comparator(const void *__notnull array_item,
+                           const void *__notnull item);
 
 int
 tbd_export_info_no_archs_comparator(const void *__notnull array_item,

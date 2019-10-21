@@ -13,31 +13,33 @@
 #include "tbd.h"
 #include "tbd_write.h"
 
-/*
- * Have the symbols array be sorted first into groups of matching arch-lists.
- *
- * The arch-lists themselves are sorted to where arch-lists with more archs are
- * "greater", than those without. Arch-lists with the same number of archs are
- * just compared numberically.
- *
- * Within each arch-list group, the symbols are then organized by their types.
- * Within each type group, the symbols are then finally organized
- * alphabetically.
- *
- * This is done to make the creation of export-groups later on easier, as no the
- * symbols are already organized by their arch-lists, and then their types,
- * all alphabetically.
- */
-
 int
-tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
-                                    const void *__notnull const item)
+tbd_export_info_comparator(const void *__notnull const array_item,
+                           const void *__notnull const item)
 {
     const struct tbd_export_info *const array_info =
         (const struct tbd_export_info *)array_item;
 
     const struct tbd_export_info *const info =
         (const struct tbd_export_info *)item;
+
+    const uint64_t array_archs_count = array_info->archs_count;
+    const uint64_t archs_count = info->archs_count;
+
+    if (array_archs_count > archs_count) {
+        return 1;
+    } else if (array_archs_count < archs_count) {
+        return -1;
+    }
+
+    const uint64_t array_archs = array_info->archs;
+    const uint64_t archs = info->archs;
+
+    if (array_archs > archs) {
+        return 1;
+    } else if (array_archs < archs) {
+        return -1;
+    }
 
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
@@ -79,28 +81,31 @@ tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
     return memcmp(array_string, string, length);
 }
 
+/*
+ * Have the symbols array be sorted first into groups of matching arch-lists.
+ *
+ * The arch-lists themselves are sorted to where arch-lists with more archs are
+ * "greater", than those without. Arch-lists with the same number of archs are
+ * just compared numberically.
+ *
+ * Within each arch-list group, the symbols are then organized by their types.
+ * Within each type group, the symbols are then finally organized
+ * alphabetically.
+ *
+ * This is done to make the creation of export-groups later on easier, as no the
+ * symbols are already organized by their arch-lists, and then their types,
+ * all alphabetically.
+ */
+
 int
-tbd_export_info_compare(
-    const struct tbd_export_info *__notnull const array_info,
-    const struct tbd_export_info *__notnull const info)
+tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
+                                    const void *__notnull const item)
 {
-    const uint64_t array_archs_count = array_info->archs_count;
-    const uint64_t archs_count = info->archs_count;
+    const struct tbd_export_info *const array_info =
+        (const struct tbd_export_info *)array_item;
 
-    if (array_archs_count > archs_count) {
-        return 1;
-    } else if (array_archs_count < archs_count) {
-        return -1;
-    }
-
-    const uint64_t array_archs = array_info->archs;
-    const uint64_t archs = info->archs;
-
-    if (array_archs > archs) {
-        return 1;
-    } else if (array_archs < archs) {
-        return -1;
-    }
+    const struct tbd_export_info *const info =
+        (const struct tbd_export_info *)item;
 
     const enum tbd_export_type array_type = array_info->type;
     const enum tbd_export_type type = info->type;
@@ -337,13 +342,13 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
         free((char *)info->fields.parent_umbrella);
     }
 
-    info->version = 0;
+    info->version = TBD_VERSION_NONE;
 
     info->fields.archs = 0;
     info->fields.flags = 0;
 
-    info->fields.platform = 0;
-    info->fields.objc_constraint = 0;
+    info->fields.platform = TBD_PLATFORM_NONE;
+    info->fields.objc_constraint = TBD_OBJC_CONSTRAINT_NO_VALUE;
 
     info->fields.install_name = NULL;
     info->fields.parent_umbrella = NULL;

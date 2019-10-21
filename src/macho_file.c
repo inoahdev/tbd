@@ -26,12 +26,6 @@
 #include "range.h"
 #include "swap.h"
 
-#define SORT_NAME tbd_export_info
-#define SORT_TYPE struct tbd_export_info
-#define SORT_CMP(x,y) tbd_export_info_compare(&x, &y)
-
-#include "deps/sort/sort.h"
-
 static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const int fd,
@@ -176,8 +170,8 @@ verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * Verify each architecture is a valid mach-o by ensuring that it
-     * can hold at the least a mach_header.
+     * Verify each architecture is a valid mach-o by ensuring that it can hold
+     * a mach_header.
      */
 
     if (arch_size < sizeof(struct mach_header)) {
@@ -461,8 +455,7 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * Ensure the arch's mach-o isn't within the fat-header or the
-     * arch-headers.
+     * Ensure the arch's mach-o isn't within the fat-header or the arch-headers.
      */
 
     if (arch_offset < total_headers_size) {
@@ -478,8 +471,8 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * We consider an architecture to be a valid mach-o if it is large
-     * enough to contain a mach_header.
+     * We consider an architecture to be a valid mach-o if it is large enough to
+     * contain a mach_header.
      */
 
     if (arch_size < sizeof(struct mach_header)) {
@@ -810,8 +803,9 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
          */
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
-            tbd_export_info_quick_sort(info_in->fields.exports.data,
-                                       info_in->fields.exports.item_count);
+            array_sort_with_comparator(&info_in->fields.exports,
+                                       sizeof(struct tbd_export_info),
+                                       tbd_export_info_comparator);
         } else {
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }

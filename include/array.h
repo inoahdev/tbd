@@ -145,6 +145,11 @@ array_add_item_with_cached_index_info(struct array *array,
 enum array_result
 array_copy(struct array *__notnull array, struct array *__notnull array_out);
 
+void
+array_sort_with_comparator(struct array *__notnull array,
+                           size_t item_size,
+                           __notnull array_item_comparator comparator);
+
 void array_clear(struct array *__notnull array);
 enum array_result array_destroy(struct array *__notnull array);
 
