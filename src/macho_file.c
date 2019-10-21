@@ -965,10 +965,13 @@ void macho_file_print_archs(const int fd) {
 
             if (arch_info == NULL) {
                 fprintf(stdout,
-                        "\t%" PRIu32 ". (Unsupported architecture)\n",
+                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
                         i + 1);
             } else {
-                fprintf(stdout, "\t%" PRIu32 ". %s\n", i + 1, arch_info->name);
+                fprintf(stdout,
+                        "\t%" PRIu32 ". %s\r\n",
+                        i + 1,
+                        arch_info->name);
             }
         }
 
@@ -1031,10 +1034,13 @@ void macho_file_print_archs(const int fd) {
 
             if (arch_info == NULL) {
                 fprintf(stdout,
-                        "\t%" PRIu32 ". (Unsupported architecture)\n",
+                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
                         i + 1);
             } else {
-                fprintf(stdout, "\t%" PRIu32 ". %s\n", i + 1, arch_info->name);
+                fprintf(stdout,
+                        "\t%" PRIu32 ". %s\r\n",
+                        i + 1,
+                        arch_info->name);
             }
         }
 

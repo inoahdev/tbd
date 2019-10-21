@@ -367,7 +367,7 @@ handle_dsc_image_parse_result(
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has an invalid "
-                                     "install-name\n",
+                                     "install-name\r\n",
                                      args.image_path);
 
             if (!request_result) {
@@ -385,7 +385,7 @@ handle_dsc_image_parse_result(
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has an invalid "
-                                 "platform\n",
+                                 "platform\r\n",
                                  args.image_path);
 
             if (!request_result) {
@@ -403,7 +403,7 @@ handle_dsc_image_parse_result(
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has an invalid "
-                                        "parent-umbrella\n",
+                                        "parent-umbrella\r\n",
                                         args.image_path);
 
             if (!request_result) {
@@ -421,7 +421,7 @@ handle_dsc_image_parse_result(
                                  true,
                                  stderr,
                                  "\tImage (with path %s) doesn't have a "
-                                 "platform\n",
+                                 "platform\r\n",
                                  args.image_path);
 
 
@@ -436,7 +436,7 @@ handle_dsc_image_parse_result(
             fprintf(stderr,
                     "\tImage (with path %s) has conflicting information for "
                     "its identification: (install-name, current-version, "
-                    "compatibility-version\n",
+                    "compatibility-version\r\n",
                     args.image_path);
 
             break;
@@ -450,7 +450,7 @@ handle_dsc_image_parse_result(
                                         stderr,
                                         "\tImage (with path %s) has "
                                         "conflicting values for its "
-                                        "objc-constraint\n",
+                                        "objc-constraint\r\n",
                                         args.image_path);
 
 
@@ -470,7 +470,7 @@ handle_dsc_image_parse_result(
                                         stderr,
                                         "\tImage (with path %s) has "
                                         "conflicting values for its "
-                                        "parent-umbrella\n",
+                                        "parent-umbrella\r\n",
                                         args.image_path);
 
 
@@ -489,7 +489,7 @@ handle_dsc_image_parse_result(
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has conflicting "
-                                 "values for its platform\n",
+                                 "values for its platform\r\n",
                                  args.image_path);
 
 
@@ -508,7 +508,7 @@ handle_dsc_image_parse_result(
                                       true,
                                       stderr,
                                       "\tImage (with path %s) has conflicting "
-                                      "values for its swift-version\n",
+                                      "values for its swift-version\r\n",
                                       args.image_path);
 
 
@@ -522,7 +522,7 @@ handle_dsc_image_parse_result(
         case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "uuid\n",
+                    "uuid\r\n",
                     args.image_path);
 
             return false;
@@ -545,7 +545,7 @@ handle_dsc_image_parse_result(
                                  true,
                                  stderr,
                                  "\tImage (with path %s) doesn't have an "
-                                 "install-name\n",
+                                 "install-name\r\n",
                                  args.image_path);
 
         if (!request_result) {
@@ -560,7 +560,8 @@ handle_dsc_image_parse_result(
                              args.retained_info_in,
                              true,
                              stderr,
-                             "\tImage (with path %s) doesn't have a platform\n",
+                             "\tImage (with path %s) doesn't have a "
+                             "platform\r\n",
                              args.image_path);
 
         if (!request_result) {
@@ -581,7 +582,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
         case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
             fprintf(stderr,
-                    "Image (at path %s) is not a valid mach-o image\n",
+                    "Image (at path %s) is not a valid mach-o image\r\n",
                     image_path);
 
             break;
@@ -590,21 +591,22 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_READ_FAIL:
             fprintf(stderr,
                     "Image (with path %s) could not be parsed due to a read "
-                    "failure\n",
+                    "failure\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_NO_MAPPING:
             fprintf(stderr,
-                    "Image (with path %s) has no corresponding mapping\n",
+                    "Image (with path %s) has no corresponding mapping\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED:
             fprintf(stderr,
-                    "Image (with path %s) is an unsupported mach-o fat image\n",
+                    "Image (with path %s) is an unsupported mach-o fat "
+                    "image\r\n",
                     image_path);
 
             break;
@@ -612,14 +614,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
             fprintf(stderr,
                     "Image (with path %s) is too small to be a valid mach-o "
-                    "image\n",
+                    "image\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_RANGE:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid range\n",
+                    "Image (with path %s) has an invalid range\r\n",
                     image_path);
 
             break;
@@ -627,7 +629,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
             fprintf(stderr,
                     "Image (with path %s) could not be parsed due to a memory "
-                    "allocation failure\n",
+                    "allocation failure\r\n",
                     image_path);
 
             break;
@@ -635,14 +637,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_ARRAY_FAIL:
             fprintf(stderr,
                     "Image (with path %s) could not be parsed due to an array "
-                    "failure\n",
+                    "failure\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS:
             fprintf(stderr,
-                    "Image (with path %s) has no mach-o load-commands\n",
+                    "Image (with path %s) has no mach-o load-commands\r\n",
                     image_path);
 
             break;
@@ -650,7 +652,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS:
             fprintf(stderr,
                     "Image (with path %s) has too many mach-o load-commands "
-                    "for its size\n",
+                    "for its size\r\n",
                     image_path);
 
             break;
@@ -658,14 +660,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
             fprintf(stderr,
                     "Image (with path %s) has a load-commands area too small "
-                    "to store all of its mach-o load-commands\n",
+                    "to store all of its mach-o load-commands\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid load-command\n",
+                    "Image (with path %s) has an invalid load-command\r\n",
                     image_path);
 
             break;
@@ -673,7 +675,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
             fprintf(stderr,
                     "Image (with path %s) has a mach-o segment with too many "
-                    "sections for its size\n",
+                    "sections for its size\r\n",
                     image_path);
 
             break;
@@ -681,42 +683,42 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_INVALID_SECTION:
             fprintf(stderr,
                     "Image (with path %s) has a mach-o segment with an invalid "
-                    "section\n",
+                    "section\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_CLIENT:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid client\n",
+                    "Image (with path %s) has an invalid client\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid re-export\n",
+                    "Image (with path %s) has an invalid re-export\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid symbol-table\n",
+                    "Image (with path %s) has an invalid symbol-table\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid string-table\n",
+                    "Image (with path %s) has an invalid string-table\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_INVALID_UUID:
             fprintf(stderr,
-                    "Image (with path %s) has an invalid uuid\n",
+                    "Image (with path %s) has an invalid uuid\r\n",
                     image_path);
 
             break;
@@ -724,29 +726,29 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_NO_IDENTIFICATION:
             fprintf(stderr,
                     "Image (with path %s) has no identification mach-o "
-                    "load-command\n",
+                    "load-command\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
             fprintf(stderr,
-                    "Image (with path %s) has no symbol-table\n",
+                    "Image (with path %s) has no symbol-table\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_NO_UUID:
             fprintf(stderr,
-                    "Image (with path %s) has no uuid\n",
+                    "Image (with path %s) has no uuid\r\n",
                     image_path);
 
             break;
 
         case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
             fprintf(stderr,
-                    "Image (with path %s) has no exported clients, "
-                    "re-exports, or symbols to be written out\n",
+                    "Image (with path %s) has no exported clients, re-exports, "
+                    "or symbols to be written out\r\n",
                     image_path);
 
             break;
@@ -755,7 +757,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "objc-constraint\n",
+                    "objc-constraint\r\n",
                     image_path);
 
             break;
@@ -763,7 +765,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "parent-umbrella\n",
+                    "parent-umbrella\r\n",
                     image_path);
 
             break;
@@ -771,7 +773,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "platform\n",
+                    "platform\r\n",
                     image_path);
 
             break;
@@ -779,14 +781,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "swift-version\n",
+                    "swift-version\r\n",
                     image_path);
             break;
 
         case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
             fprintf(stderr,
                     "Image (with path %s) has conflicting values for its "
-                    "uuid\n",
+                    "uuid\r\n",
                     image_path);
 
             break;

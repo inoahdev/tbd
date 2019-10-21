@@ -55,6 +55,7 @@ request_choice(const char *__notnull const prompt,
             exit(1);
         }
 
+        fputc('\r', stdout);
         uint64_t index = 0;
 
         iter = choices;
@@ -94,6 +95,8 @@ request_input(const char *__notnull const prompt, const bool indent) {
 
         exit(1);
     }
+
+    fputc('\r', stdout);
 
     /*
      * We need to remove the delimiter getline() returns back to us.

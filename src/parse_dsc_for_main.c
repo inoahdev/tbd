@@ -157,7 +157,7 @@ print_write_to_path_result(const struct tbd_for_main *__notnull const tbd,
             fprintf(stderr,
                     "\tImage (with path %s) already has an existing file at "
                     "(one of) its write-paths that could not be overwritten. "
-                    "Skipping\n",
+                    "Skipping\r\n",
                     image_path);
 
             break;
@@ -165,7 +165,7 @@ print_write_to_path_result(const struct tbd_for_main *__notnull const tbd,
         case E_WRITE_TO_PATH_WRITE_FAIL:
             fprintf(stderr,
                     "\tImage (with path %s) could not be parsed and written "
-                    "out due to a write fail\n",
+                    "out due to a write fail\r\n",
                     image_path);
 
             break;
@@ -649,7 +649,7 @@ print_missing_filter(
                 case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE:
                     fprintf(stderr,
                             "\tNo images were found that passed the provided "
-                            "filter (a file named: %s)\n",
+                            "filter (a file named: %s)\r\n",
                             filter->string);
 
                     break;
@@ -657,7 +657,7 @@ print_missing_filter(
                 case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_DIRECTORY:
                     fprintf(stderr,
                             "\tNo images were found that passed the provided "
-                            "filter (a directory named: %s)\n",
+                            "filter (a directory named: %s)\r\n",
                             filter->string);
 
                     break;
@@ -665,7 +665,7 @@ print_missing_filter(
                 case TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH:
                     fprintf(stderr,
                             "\tNo images were found with the provided "
-                            "path (%s)\n",
+                            "path (%s)\r\n",
                             filter->string);
 
                     break;
@@ -679,7 +679,7 @@ print_missing_filter(
                     fprintf(stderr,
                             "\tAt least one image that passed the provided "
                             "filter (a file named: %s) was not successfully "
-                            "parsed\n",
+                            "parsed\r\n",
                             filter->string);
 
                     break;
@@ -688,7 +688,7 @@ print_missing_filter(
                     fprintf(stderr,
                             "\tAt least one image that passed the provided "
                             "filter (a directory named: %s) was not "
-                            "successfully parsed\n",
+                            "successfully parsed\r\n",
                             filter->string);
 
                     break;
@@ -1398,7 +1398,7 @@ void print_list_of_dsc_images(const int fd) {
         const char *const image_path =
             (const char *)(dsc_info.map + image->pathFileOffset);
 
-        fprintf(stdout, "\t%" PRIu64 ". %s\n", i + 1, image_path);
+        fprintf(stdout, "\t%" PRIu64 ". %s\r\n", i + 1, image_path);
     }
 }
 
@@ -1452,7 +1452,7 @@ void print_list_of_dsc_images_ordered(const int fd) {
 
     image_paths_ptr = image_paths.data;
     for (uint64_t i = 0; i != dsc_info.images_count; i++, image_paths_ptr++) {
-        fprintf(stdout, "\t%" PRIu64 ". %s\n", i + 1, *image_paths_ptr);
+        fprintf(stdout, "\t%" PRIu64 ". %s\r\n", i + 1, *image_paths_ptr);
     }
 
     array_destroy(&image_paths);

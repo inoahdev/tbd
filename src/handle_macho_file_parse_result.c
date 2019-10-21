@@ -527,13 +527,13 @@ handle_macho_file_parse_result(
                         "Mach-o file (at path %s) has architectures with "
                         "conflicting information for its identification:\n"
                         "\t(install-name, current-version, and/or "
-                        "comatibility-version)\n",
+                        "comatibility-version)\r\n",
                         args.dir_path);
             } else {
                 fputs("The provided mach-o file has architectures with "
                       "conflicting information for its identification:\n"
                       "\t(install-name, current-version, and/or "
-                      "comatibility-version)\n",
+                      "comatibility-version)\r\n",
                       stderr);
             }
 
@@ -1192,7 +1192,7 @@ handle_macho_file_parse_result_while_recursing(
             }
 
             if (!request_result) {
-               return false;
+                return false;
             }
 
             break;
@@ -1381,14 +1381,14 @@ handle_macho_file_parse_result_while_recursing(
                         "Mach-o file (at path %s/%s) has architectures with "
                         "conflicting information for its identification:\n"
                         "\t(install-name, current-version, and/or "
-                        "comatibility-version)\n",
+                        "comatibility-version)\r\n",
                         args.dir_path,
                         args.name);
             } else {
                 fputs("The provided mach-o file has architectures with "
                       "conflicting information for its identification:\n"
                       "\t(install-name, current-version, and/or "
-                      "comatibility-version)\n",
+                      "comatibility-version)\r\n",
                       stderr);
             }
 
