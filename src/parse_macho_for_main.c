@@ -92,67 +92,21 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
                    const uint64_t write_path_length,
                    char **__notnull const terminator_out)
 {
-    char *terminator = NULL;
+    FILE *file = NULL;
 
     const struct tbd_for_main *const tbd = args->tbd;
-    const uint64_t options = tbd->flags;
+    const enum tbd_for_main_open_write_file_result open_file_result =
+        tbd_for_main_open_write_file_for_path(tbd,
+                                              write_path,
+                                              write_path_length,
+                                              &file,
+                                              terminator_out);
 
-    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
-    const int write_fd =
-        open_r(write_path,
-               write_path_length,
-               O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
-               0755,
-               &terminator);
+    switch (open_file_result) {
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK:
+            break;
 
-    if (write_fd < 0) {
-        /*
-         * Although getting the file descriptor failed, its likely open_r still
-         * created the directory hierarchy, and if so the terminator shouldn't
-         * be NULL.
-         */
-
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
-
-            remove_file_r(write_path, write_path_length, terminator);
-        }
-
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note:
-             * EEXIST is only returned when O_EXCL was set, which is only
-             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
-             */
-
-            if (errno == EEXIST) {
-                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                    return NULL;
-                }
-
-                if (args->print_paths) {
-                    fprintf(stderr,
-                            "Skipping over file (at path %s) as a file "
-                            "at its write-path (%s) already exists\n",
-                            args->dir_path,
-                            write_path);
-                } else {
-                    fputs("Skipping over file at provided-path as a file "
-                            "at its provided write-path already exists\n",
-                            stderr);
-                }
-
-                return NULL;
-            }
-
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED:
             if (args->print_paths) {
                 fprintf(stderr,
                         "Failed to open write-file (for path: %s), error: %s\n",
@@ -163,30 +117,29 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
                         "Failed to open the provided write-file, error: %s\n",
                         strerror(errno));
             }
-        }
 
-        return NULL;
-    }
+            break;
 
-    FILE *const file = fdopen(write_fd, "w");
-    if (file == NULL) {
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
+            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+                break;
+            }
+
             if (args->print_paths) {
                 fprintf(stderr,
-                        "Failed to open write-file (for path: %s) as FILE, "
-                        "error: %s\n",
-                        write_path,
-                        strerror(errno));
+                        "File (at path %s) has an object at its "
+                        "write-path: %s\n",
+                        args->dir_path,
+                        write_path);
             } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file as FILE, "
-                        "error: %s\n",
-                        strerror(errno));
+                fputs("File at the provided path has an object at its "
+                      "write-path\n",
+                      stderr);
             }
-        }
+
+            break;
     }
 
-    *terminator_out = terminator;
     return file;
 }
 
@@ -202,106 +155,45 @@ open_file_for_path_while_recursing(
         return file;
     }
 
-    char *terminator = NULL;
-
     const struct tbd_for_main *const tbd = args->tbd;
-    const uint64_t options = tbd->flags;
+    const enum tbd_for_main_open_write_file_result open_file_result =
+        tbd_for_main_open_write_file_for_path(tbd,
+                                              write_path,
+                                              write_path_length,
+                                              &file,
+                                              terminator_out);
 
-    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
-    const int write_fd =
-        open_r(write_path,
-               write_path_length,
-               O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
-               0755,
-               &terminator);
+    switch (open_file_result) {
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK:
+            break;
 
-    if (write_fd < 0) {
-        /*
-         * Although getting the file descriptor failed, its likely open_r still
-         * created the directory hierarchy, and if so the terminator shouldn't
-         * be NULL.
-         */
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED:
+            fprintf(stderr,
+                    "Failed to open write-file (at path: %s), error: %s\n",
+                    write_path,
+                    strerror(errno));
 
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
+            return NULL;
 
-            remove_file_r(write_path, write_path_length, terminator);
-        }
-
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note:
-             * EEXIST is only returned when O_EXCL was set, which is only
-             * set for F_TBD_FOR_MAIN_NO_OVERWRITE.
-             */
-
-            if (errno == EEXIST) {
-                if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                    return NULL;
-                }
-
-                if (args->print_paths) {
-                    fprintf(stderr,
-                            "Skipping over file (at path %s/%s) as a file "
-                            "at its write-path (%s) already exists\n",
-                            args->dir_path,
-                            args->name,
-                            write_path);
-                } else {
-                    fputs("Skipping over file at provided-path as a file "
-                            "at its provided write-path already exists\n",
-                            stderr);
-                }
-
+        case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
+            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
                 return NULL;
             }
 
-            if (args->print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s), error: %s\n",
-                        write_path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file, error: %s\n",
-                        strerror(errno));
-            }
-        }
+            fprintf(stderr,
+                    "Skipping over file (at path %s/%s) as a file "
+                    "at its write-path (%s) already exists\n",
+                    args->dir_path,
+                    args->name,
+                    write_path);
 
-        return NULL;
-    }
-
-    file = fdopen(write_fd, "w");
-    if (file == NULL) {
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (args->print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s) as a "
-                        "file-stream, error: %s\n",
-                        write_path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file as a "
-                        "file-stream, error: %s\n",
-                        strerror(errno));
-            }
-        }
+            return NULL;
     }
 
     if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
         args->combine_file = file;
     }
 
-    *terminator_out = terminator;
     return file;
 }
 
@@ -505,12 +397,10 @@ parse_macho_file_for_main_while_recursing(
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
+    char *write_path = NULL;
     uint64_t write_path_length = 0;
 
-    char *write_path = NULL;
-    const bool should_combine =
-        (args.tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
-
+    const bool should_combine = (args.tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
     if (!should_combine) {
         write_path =
             tbd_for_main_create_write_path_for_recursing(args.tbd,

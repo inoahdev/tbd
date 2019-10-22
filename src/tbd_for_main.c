@@ -552,6 +552,72 @@ tbd_for_main_create_dsc_folder_path(
     return write_path;
 }
 
+enum tbd_for_main_open_write_file_result
+tbd_for_main_open_write_file_for_path(
+    const struct tbd_for_main *__notnull const tbd,
+    char *__notnull const path,
+    const uint64_t path_length,
+    FILE **__notnull const file_out,
+    char **__notnull const terminator_out)
+{
+    char *terminator = NULL;
+    const uint64_t tbd_flags = tbd->flags;
+
+    const int flags = (tbd_flags & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int write_fd =
+        open_r(path,
+               path_length,
+               O_WRONLY | O_TRUNC | flags,
+               DEFFILEMODE,
+               0755,
+               &terminator);
+
+    if (write_fd < 0) {
+        /*
+         * Although getting the file descriptor failed, its likely open_r still
+         * created the directory hierarchy, and if so the terminator shouldn't
+         * be NULL.
+         */
+
+        if (terminator != NULL) {
+            /*
+             * Ignore the return value as we cannot be sure if the remove failed
+             * as the directories we created (that are pointed to by terminator)
+             * may now be populated with other files.
+             */
+
+            remove_file_r(path, path_length, terminator);
+        }
+
+        if (!(tbd_flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+            /*
+             * If the file already exists, we should just skip over to prevent
+             * overwriting.
+             *
+             * Note:
+             * EEXIST is only returned when O_EXCL was set, which is only set
+             * for F_TBD_FOR_MAIN_NO_OVERWRITE.
+             */
+
+            if (errno == EEXIST) {
+                return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS;
+            }
+        }
+
+        return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED;
+    }
+
+    FILE *const file = fdopen(write_fd, "w");
+    if (file == NULL) {
+        return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED;
+    }
+
+    *file_out = file;
+    *terminator_out = terminator;
+
+    return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK;
+}
+
 void
 tbd_for_main_write_to_file(const struct tbd_for_main *__notnull const tbd,
                            char *__notnull const write_path,
@@ -568,10 +634,10 @@ tbd_for_main_write_to_file(const struct tbd_for_main *__notnull const tbd,
         if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
             if (print_paths) {
                 fprintf(stderr,
-                        "Failed to write to output-file (at path %s)\n",
+                        "Failed to write to write-file (at path %s)\n",
                         write_path);
             } else {
-                fputs("Failed to write to provided output-file\n", stderr);
+                fputs("Failed to write to provided write-file\n", stderr);
             }
         }
 

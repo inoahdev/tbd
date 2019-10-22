@@ -184,6 +184,19 @@ void
 tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull dst,
                                 const struct tbd_for_main *__notnull src);
 
+enum tbd_for_main_open_write_file_result {
+    E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK,
+    E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED,
+    E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS,
+};
+
+enum tbd_for_main_open_write_file_result
+tbd_for_main_open_write_file_for_path(const struct tbd_for_main *__notnull tbd,
+                                      char *__notnull path,
+                                      uint64_t path_length,
+                                      FILE **__notnull file_out,
+                                      char **__notnull terminator_out);
+
 void
 tbd_for_main_write_to_file(const struct tbd_for_main *__notnull tbd,
                            char *__notnull write_path,

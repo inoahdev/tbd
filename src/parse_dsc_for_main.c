@@ -91,7 +91,7 @@ print_messages_header(
         } else {
             fprintf(stderr,
                     "Parsing dyld_shared_cache file (at path %s) resulted in "
-                    "in the following warnings and errors:\n",
+                    "the following warnings and errors:\n",
                     iterate_info->dsc_dir_path);
         }
     } else {
@@ -135,9 +135,9 @@ enum write_to_path_result {
 };
 
 static void
-print_write_to_path_result(const struct tbd_for_main *__notnull const tbd,
-                           const char *__notnull const image_path,
-                           const enum write_to_path_result result)
+print_write_file_result(const struct tbd_for_main *__notnull const tbd,
+                        const char *__notnull const image_path,
+                        const enum tbd_for_main_open_write_file_result result)
 {
     switch (result) {
         case E_WRITE_TO_PATH_OK:
@@ -169,10 +169,10 @@ print_write_to_path_result(const struct tbd_for_main *__notnull const tbd,
 static void
 print_write_error(struct dsc_iterate_images_info *__notnull const iterate_info,
                   const struct tbd_for_main *__notnull const tbd,
-                  const enum write_to_path_result result)
+                  const enum tbd_for_main_open_write_file_result result)
 {
     print_messages_header(iterate_info);
-    print_write_to_path_result(tbd, iterate_info->image_path, result);
+    print_write_file_result(tbd, iterate_info->image_path, result);
 }
 
 static FILE *
@@ -188,93 +188,22 @@ open_file_for_path(struct dsc_iterate_images_info *__notnull const info,
         return file;
     }
 
-    char *terminator = NULL;
-    const uint64_t options = tbd->flags;
+    const enum tbd_for_main_open_write_file_result open_file_result =
+        tbd_for_main_open_write_file_for_path(tbd,
+                                              path,
+                                              path_length,
+                                              &file,
+                                              terminator_out);
 
-    const int flags = (options & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
-    const int write_fd =
-        open_r(path,
-               path_length,
-               O_WRONLY | O_TRUNC | flags,
-               DEFFILEMODE,
-               0755,
-               &terminator);
-
-    if (write_fd < 0) {
-        /*
-         * Although getting the file descriptor failed, its likely open_r still
-         * created the directory hierarchy, and if so the terminator shouldn't
-         * be NULL.
-         */
-
-        if (terminator != NULL) {
-            /*
-             * Ignore the return value as we cannot be sure if the remove failed
-             * as the directories we created (that are pointed to by terminator)
-             * may now be populated with other files.
-             */
-
-            remove_file_r(path, path_length, terminator);
-        }
-
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note:
-             * EEXIST is only returned when O_EXCL was set, which is only set
-             * for F_TBD_FOR_MAIN_NO_OVERWRITE.
-             */
-
-            if (errno == EEXIST) {
-                if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-                    print_write_error(info,
-                                      tbd,
-                                      E_WRITE_TO_PATH_ALREADY_EXISTS);
-                }
-
-                return NULL;
-            }
-
-            if (info->print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s), error: %s\n",
-                        path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file, error: %s\n",
-                        strerror(errno));
-            }
-        }
-
+    if (open_file_result != E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK) {
+        print_write_error(info, tbd, open_file_result);
         return NULL;
-    }
-
-    file = fdopen(write_fd, "w");
-    if (file == NULL) {
-        if (!(options & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            if (info->print_paths) {
-                fprintf(stderr,
-                        "Failed to open write-file (for path: %s) as FILE, "
-                        "error: %s\n",
-                        path,
-                        strerror(errno));
-            } else {
-                fprintf(stderr,
-                        "Failed to open the provided write-file as FILE, "
-                        "error: %s\n",
-                        strerror(errno));
-            }
-        }
     }
 
     if (should_combine) {
         info->combine_file = file;
     }
     
-    *terminator_out = terminator;
     return file;
 }
 
