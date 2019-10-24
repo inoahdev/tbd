@@ -72,7 +72,7 @@ array_add_item(struct array *__notnull array,
 
 typedef int
 (*array_item_comparator)(const void *__notnull array_item,
-                         const void *__notnull item);
+                         const void *item);
 
 void *
 array_find_item(const struct array *__notnull array,
@@ -145,10 +145,14 @@ array_add_item_with_cached_index_info(struct array *array,
 enum array_result
 array_copy(struct array *__notnull array, struct array *__notnull array_out);
 
+typedef int
+(*array_sort_comparator)(const void *__notnull left,
+                         const void *__notnull right);
+
 void
 array_sort_with_comparator(struct array *__notnull array,
                            size_t item_size,
-                           __notnull array_item_comparator comparator);
+                           __notnull array_sort_comparator comparator);
 
 void array_clear(struct array *__notnull array);
 enum array_result array_destroy(struct array *__notnull array);

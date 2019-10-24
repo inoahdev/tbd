@@ -546,7 +546,7 @@ array_copy(struct array *const array, struct array *__notnull const array_out) {
 void
 array_sort_with_comparator(struct array *__notnull const array,
                            const size_t item_size,
-                           __notnull const array_item_comparator comparator)
+                           __notnull const array_sort_comparator comparator)
 {
     qsort(array->data, array->item_count, item_size, comparator);
 }

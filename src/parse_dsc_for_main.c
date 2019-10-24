@@ -1326,6 +1326,16 @@ void print_list_of_dsc_images(const int fd) {
     }
 }
 
+static int
+image_paths_comparator(const void *__notnull const left,
+                       const void *__notnull const right)
+{
+    const char *const left_path = *(const char **)left;
+    const char *const right_path = *(const char **)right;
+
+    return strcmp(left_path, right_path);
+}
+
 void print_list_of_dsc_images_ordered(const int fd) {
     char magic[16] = {};
     if (our_read(fd, &magic, sizeof(magic)) < 0) {
@@ -1345,7 +1355,7 @@ void print_list_of_dsc_images_ordered(const int fd) {
         exit(1);
     }
 
-    struct array image_paths = {};
+    struct array image_paths = { .item_count = dsc_info.images_count };
     const enum array_result ensure_capacity_result =
         array_ensure_item_capacity(&image_paths,
                                    sizeof(const char *),
@@ -1370,7 +1380,7 @@ void print_list_of_dsc_images_ordered(const int fd) {
 
     array_sort_with_comparator(&image_paths,
                                sizeof(const char *),
-                               (array_item_comparator)strcmp);
+                               image_paths_comparator);
 
     fprintf(stdout,
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",
