@@ -785,7 +785,7 @@ static inline int end_written_export_array(FILE *__notnull const file) {
     return 0;
 }
 
-static uint32_t line_length_max = 105;
+static uint32_t line_length_max = 80;
 
 /*
  * Write either a comma or a newline depending on either the current or new
@@ -829,8 +829,8 @@ write_comma_or_newline(FILE *__notnull const file,
 
     /*
      * If writing the symbol (and it's corresponding comma + space) gets the
-     * line's length to beyond the limit, write a comma+newline to have the
-     * symbol written on the next line.
+     * current line to exceed the line-length limit, write a comma+newline to
+     * have the symbol written on the next line.
      */
 
     const uint64_t new_line_length = line_length + string_length + 2;
