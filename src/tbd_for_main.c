@@ -589,19 +589,8 @@ tbd_for_main_open_write_file_for_path(
             remove_file_r(path, path_length, terminator);
         }
 
-        if (!(tbd_flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
-            /*
-             * If the file already exists, we should just skip over to prevent
-             * overwriting.
-             *
-             * Note:
-             * EEXIST is only returned when O_EXCL was set, which is only set
-             * for F_TBD_FOR_MAIN_NO_OVERWRITE.
-             */
-
-            if (errno == EEXIST) {
-                return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS;
-            }
+        if (errno == EEXIST) {
+            return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS;
         }
 
         return E_TBD_FOR_MAIN_OPEN_WRITE_FILE_FAILED;
