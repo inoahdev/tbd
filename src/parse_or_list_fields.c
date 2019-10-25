@@ -60,7 +60,7 @@ parse_architectures_list(int *__notnull const index_in,
 
             if (archs == 0) {
                 fprintf(stderr,
-                        "Unrecognized architecture (with name %s) provided\n",
+                        "Unrecognized architecture (with name %s)\n",
                         arch);
 
                 exit(1);
