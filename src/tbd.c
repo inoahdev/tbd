@@ -74,11 +74,9 @@ tbd_export_info_comparator(const void *__notnull const array_item,
 
     if (array_length > length) {
         return memcmp(array_string, string, length + 1);
-    } else if (array_length < length) {
+    } else {
         return memcmp(array_string, string, array_length + 1);
     }
-
-    return memcmp(array_string, string, length);
 }
 
 /*
@@ -140,11 +138,9 @@ tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
 
     if (array_length > length) {
         return memcmp(array_string, string, length + 1);
-    } else if (array_length < length) {
+    } else {
         return memcmp(array_string, string, array_length + 1);
     }
-
-    return memcmp(array_string, string, length);
 }
 
 int
