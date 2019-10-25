@@ -32,6 +32,7 @@
 		C361A50422489453001BD07A /* yaml.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4EB22489453001BD07A /* yaml.c */; };
 		C361A50522489453001BD07A /* parse_dsc_for_main.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4EC22489453001BD07A /* parse_dsc_for_main.c */; };
 		C361A50622489453001BD07A /* tbd.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4ED22489453001BD07A /* tbd.c */; };
+		C367ACFA23621BD90059EF14 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = C367ACF923621BD90059EF14 /* util.c */; };
 		C39372B8235A78B6003F3CB7 /* our_io.c in Sources */ = {isa = PBXBuildFile; fileRef = C39372B7235A78B6003F3CB7 /* our_io.c */; };
 /* End PBXBuildFile section */
 
@@ -109,6 +110,8 @@
 		C361A527224894C0001BD07A /* LICENSE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = LICENSE.md; path = ../../LICENSE.md; sourceTree = "<group>"; };
 		C361A528224894C1001BD07A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
 		C361A529224894C1001BD07A /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../Makefile; sourceTree = "<group>"; };
+		C367ACF923621BD90059EF14 /* util.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = util.c; path = ../../src/util.c; sourceTree = "<group>"; };
+		C367ACFB23621BF30059EF14 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../../include/util.h; sourceTree = "<group>"; };
 		C392B60F2233686600419D2D /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C39372B7235A78B6003F3CB7 /* our_io.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = our_io.c; path = ../../src/our_io.c; sourceTree = "<group>"; };
 		C39372B9235A78CC003F3CB7 /* our_io.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = our_io.h; path = ../../include/our_io.h; sourceTree = "<group>"; };
@@ -187,6 +190,7 @@
 				C361A5102248946A001BD07A /* unused.h */,
 				C361A5192248946B001BD07A /* usage.h */,
 				C361A51E2248946B001BD07A /* yaml.h */,
+				C367ACFB23621BF30059EF14 /* util.h */,
 			);
 			name = include;
 			sourceTree = "<group>";
@@ -238,6 +242,7 @@
 				C361A4E822489453001BD07A /* tbd_for_main.c */,
 				C361A4D722489452001BD07A /* tbd_write.c */,
 				C361A4E022489453001BD07A /* usage.c */,
+				C367ACF923621BD90059EF14 /* util.c */,
 				C361A4EB22489453001BD07A /* yaml.c */,
 			);
 			name = src;
@@ -326,6 +331,7 @@
 				C361A4FE22489453001BD07A /* dyld_shared_cache.c in Sources */,
 				C361A50022489453001BD07A /* macho_file.c in Sources */,
 				C361A4F222489453001BD07A /* array.c in Sources */,
+				C367ACFA23621BD90059EF14 /* util.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

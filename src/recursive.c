@@ -19,18 +19,11 @@
 #include "likely.h"
 #include "our_io.h"
 
-#include "path.h"
 #include "recursive.h"
-
-static char *
-find_last_slash_before_end(char *__notnull const path,
-                           const char *__notnull const end)
-{
-    return (char *)path_find_last_row_of_slashes_before_end(path, end);
-}
+#include "util.h"
 
 static char *get_next_path_component_slash(char *__notnull const path) {
-    char *iter = (char *)path_get_end_of_row_of_slashes(path);
+    char *iter = (char *)get_end_of_slashes(path);
     if (iter == NULL) {
         return NULL;
     }
@@ -77,7 +70,9 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
                             const mode_t mode,
                             char **const first_terminator_out)
 {
-    char *last_slash = (char *)path_find_last_slash(path, path_length);
+    const char *const end = path + path_length;
+    char *last_slash = (char *)find_last_slash(path, end);
+
     const char possible_end = last_slash[1];
 
     /*
@@ -87,7 +82,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
      */
 
     if (unlikely(possible_end == '\0')) {
-        last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
+        last_slash = (char *)get_front_of_slashes(path, last_slash);
         last_slash = find_next_slash_reverse(path, last_slash);
     }
 
@@ -126,8 +121,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
      * in the do {} while loop below.
      */
 
-    char *const final_slash =
-        (char *)path_get_front_of_row_of_slashes(path, last_slash);
+    char *const final_slash = (char *)get_front_of_slashes(path, last_slash);
 
     /*
      * We move backwards trying to create the hierarchy. If we fail, we move
@@ -147,12 +141,12 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
      * iteration.
      */
 
-    last_slash = (char *)path_get_front_of_row_of_slashes(path, last_slash);
     char *prev_last_slash = NULL;
+    last_slash = (char *)get_front_of_slashes(path, last_slash);
 
     while (last_slash != path) {
         prev_last_slash = last_slash;
-        last_slash = find_last_slash_before_end(path, last_slash);
+        last_slash = (char *)find_last_row_of_slashes(path, last_slash);
 
         if (unlikely(last_slash == NULL)) {
             return 1;
@@ -347,11 +341,8 @@ remove_file_r(char *__notnull const path,
         return 1;
     }
 
-    const uint64_t range_delta = (uint64_t)(last - path);
-    const uint64_t range_length = length - range_delta;
-
-    char *last_slash =
-        (char *)path_find_last_row_of_slashes(last, range_length);
+    const char *const end = path + length;
+    char *last_slash = (char *)find_last_row_of_slashes(last, end);
 
     if (last_slash == NULL) {
         return 1;
@@ -366,7 +357,7 @@ remove_file_r(char *__notnull const path,
             return 1;
         }
 
-        last_slash = find_last_slash_before_end(last, last_slash);
+        last_slash = (char *)find_last_row_of_slashes(path, last_slash);
     } while (last_slash != NULL);
 
     return 0;

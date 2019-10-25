@@ -36,6 +36,7 @@
 
 #include "unused.h"
 #include "usage.h"
+#include "util.h"
 
 struct recurse_callback_info {
     struct tbd_for_main *global;
@@ -813,9 +814,7 @@ int main(const int argc, const char *const argv[]) {
                          */
 
                         full_path_length =
-                            path_get_length_by_removing_end_slashes(
-                                full_path,
-                                full_path_length);
+                            remove_end_slashes(full_path, full_path_length);
 
                         full_path = alloc_and_copy(full_path, full_path_length);
                         if (full_path == NULL) {

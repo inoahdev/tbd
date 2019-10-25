@@ -156,11 +156,11 @@ recurse_dir_fd(const int dir_fd,
 
                 uint64_t subdir_path_length = 0;
                 char *const subdir_path =
-                    path_append_component_with_len(dir_path,
-                                                   dir_path_length,
-                                                   name,
-                                                   name_length,
-                                                   &subdir_path_length);
+                    path_append_component(dir_path,
+                                          dir_path_length,
+                                          name,
+                                          name_length,
+                                          &subdir_path_length);
 
                 if (subdir_path == NULL) {
                     const bool should_continue =

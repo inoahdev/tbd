@@ -32,52 +32,31 @@ path_get_absolute_path(const char *__notnull path,
                        uint64_t *length_out);
 
 char *
-path_append_component_with_len(const char *__notnull path,
-                               uint64_t path_length,
-                               const char *__notnull component,
-                               uint64_t component_length,
-                               uint64_t *length_out);
+path_append_component(const char *__notnull path,
+                      uint64_t path_length,
+                      const char *__notnull component,
+                      uint64_t component_length,
+                      uint64_t *length_out);
 
 char *
-path_append_component_and_extension_with_len(const char *__notnull path,
-                                             uint64_t path_length,
-                                             const char *__notnull component,
-                                             uint64_t component_length,
-                                             const char *__notnull extension,
-                                             uint64_t extension_length,
-                                             uint64_t *length_out);
+path_append_comp_and_ext(const char *__notnull path,
+                         uint64_t path_length,
+                         const char *__notnull component,
+                         uint64_t component_length,
+                         const char *__notnull extension,
+                         uint64_t extension_length,
+                         uint64_t *length_out);
 
 char *
-path_append_two_components_and_extension_with_len(
-    const char *__notnull path,
-    uint64_t path_length,
-    const char *__notnull first_component,
-    uint64_t first_component_length,
-    const char *__notnull second_component,
-    uint64_t second_component_length,
-    const char *__notnull extension,
-    uint64_t extension_length,
-    uint64_t *length_out);
-
-const char *
-path_get_front_of_row_of_slashes(const char *__notnull path,
-                                 const char *__notnull iter);
-
-const char *path_get_end_of_row_of_slashes(const char *__notnull path);
-
-const char *
-path_find_last_row_of_slashes(const char *__notnull path, uint64_t path_length);
-
-const char *
-path_find_last_row_of_slashes_before_end(const char *__notnull path,
-                                         const char *__notnull end);
-
-const char *
-path_find_last_slash(const char *__notnull path, const uint64_t path_length);
-
-uint64_t
-path_get_length_by_removing_end_slashes(const char *__notnull const string,
-                                        const uint64_t length);
+path_append_two_comp_and_ext(const char *__notnull path,
+                             uint64_t path_length,
+                             const char *__notnull first_component,
+                             uint64_t first_component_length,
+                             const char *__notnull second_component,
+                             uint64_t second_component_length,
+                             const char *__notnull extension,
+                             uint64_t extension_length,
+                             uint64_t *length_out);
 
 bool
 path_has_dir_component(const char *__notnull path,

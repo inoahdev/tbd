@@ -370,7 +370,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
                                uint64_t *const length_out)
 {
     char *const write_path =
-        path_append_component_and_extension_with_len(tbd->write_path,
+        path_append_comp_and_ext(tbd->write_path,
                                                      tbd->write_path_length,
                                                      file_name,
                                                      file_name_length,
@@ -421,7 +421,7 @@ tbd_for_main_create_write_path_for_recursing(
         }
 
         write_path =
-            path_append_two_components_and_extension_with_len(
+            path_append_two_comp_and_ext(
                 tbd->write_path,
                 tbd->write_path_length,
                 subdirs_iter,
@@ -438,7 +438,7 @@ tbd_for_main_create_write_path_for_recursing(
         }
     } else {
         write_path =
-            path_append_component_and_extension_with_len(tbd->write_path,
+            path_append_comp_and_ext(tbd->write_path,
                                                          tbd->write_path_length,
                                                          file_name,
                                                          file_name_length,
@@ -474,7 +474,7 @@ tbd_for_main_create_dsc_image_write_path(
     }
 
     char *const image_write_path =
-        path_append_component_and_extension_with_len(write_path,
+        path_append_comp_and_ext(write_path,
                                                      write_path_length,
                                                      image_path,
                                                      new_image_path_length,
@@ -518,7 +518,7 @@ tbd_for_main_create_dsc_folder_path(
         const uint64_t subdirs_length = folder_path_length - parse_path_length;
 
         write_path =
-            path_append_two_components_and_extension_with_len(
+            path_append_two_comp_and_ext(
                 tbd->write_path,
                 tbd->write_path_length,
                 subdirs_iter,
@@ -535,7 +535,7 @@ tbd_for_main_create_dsc_folder_path(
         }
     } else {
         write_path =
-            path_append_component_and_extension_with_len(tbd->write_path,
+            path_append_comp_and_ext(tbd->write_path,
                                                          tbd->write_path_length,
                                                          file_name,
                                                          file_name_length,
