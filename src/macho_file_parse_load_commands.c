@@ -310,8 +310,8 @@ struct parse_load_command_info {
     uint64_t options;
 
     /*
-     * With the introduction of the iOSMac platform, we can now have multiple
-     * LC_VERSION_MIN_* load-commands in a single mach-o file.
+     * With the introduction of the maccatalyst platform, we can now have
+     * multiple LC_VERSION_MIN_* load-commands in a single mach-o file.
      *
      * To detect the actual platform and other build-related information,
      * Apple introduced the LC_BUILD_VERSION load-command.

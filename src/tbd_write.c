@@ -506,7 +506,7 @@ tbd_write_platform(FILE *__notnull const file, const enum tbd_platform platform)
 
             break;
 
-        case TBD_PLATFORM_IOSMAC:
+        case TBD_PLATFORM_MACCATALYST:
             if (fprintf(file, "platform:%-14siosmac\n", "") < 0) {
                 return 1;
             }

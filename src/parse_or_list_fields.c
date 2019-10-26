@@ -206,7 +206,7 @@ enum tbd_platform parse_platform(const char *__notnull const platform) {
     } else if (strcmp(platform, "bridgeos") == 0) {
         return TBD_PLATFORM_BRIDGEOS;
     } else if (strcmp(platform, "iosmac") == 0) {
-        return TBD_PLATFORM_IOSMAC;
+        return TBD_PLATFORM_MACCATALYST;
     } else if (strcmp(platform, "zippered") == 0) {
         return TBD_PLATFORM_ZIPPERED;
     }
@@ -248,7 +248,7 @@ void print_platform_list(void) {
           "watchos\n"
           "tvos\n"
           "bridgeos\n"
-          "iosmac (Not yet found in mach-o binaries, but supported)\n"
+          "iosmac\n"
           "zippered (Not yet found in mach-o binaries, but supported)\n",
           stdout);
 }
