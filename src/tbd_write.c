@@ -785,7 +785,7 @@ static inline int end_written_export_array(FILE *__notnull const file) {
     return 0;
 }
 
-static uint32_t line_length_initial = 24;
+static uint32_t line_length_initial = 26;
 static uint32_t line_length_max = 80;
 
 /*
@@ -966,7 +966,7 @@ tbd_write_exports(FILE *__notnull const file,
                  * array.
                  */
 
-                line_length = info->length;
+                line_length = line_length_initial + info->length;
                 type = inner_type;
 
                 continue;
@@ -1080,7 +1080,7 @@ tbd_write_exports_with_full_archs(
              * array.
              */
 
-            line_length = export->length;
+            line_length = line_length_initial + export->length;
             type = inner_type;
 
             continue;
