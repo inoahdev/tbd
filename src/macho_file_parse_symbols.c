@@ -82,6 +82,14 @@ is_objc_class_symbol(const char *__notnull const symbol,
             const char *const real_symbol = symbol + 13;
 
             /*
+             * Avoid returning "objc" symbols with no content.
+             */
+
+            if (unlikely(real_symbol[1] == '\0')) {
+                return false;
+            }
+
+            /*
              * Add one to real_symbol to avoid rechecking the underscore.
              */
 
@@ -132,6 +140,14 @@ is_objc_class_symbol(const char *__notnull const symbol,
             const char *const real_symbol = symbol + 17;
 
             /*
+             * Avoid returning "objc" symbols with no content.
+             */
+
+            if (unlikely(real_symbol[1] == '\0')) {
+                return false;
+            }
+
+            /*
              * Add one to real_symbol to avoid rechecking the underscore.
              */
 
@@ -175,6 +191,14 @@ is_objc_class_symbol(const char *__notnull const symbol,
              */
 
             const char *const real_symbol = symbol + 16;
+
+            /*
+             * Avoid returning "objc" symbols with no content.
+             */
+
+            if (unlikely(real_symbol[1] == '\0')) {
+                return false;
+            }
 
             /*
              * Add one to real_symbol to avoid rechecking the underscore.
@@ -242,6 +266,14 @@ bool is_objc_ehtype_symbol(const char *__notnull const symbol,
     }
 
     if (symbol[14] != '_') {
+        return false;
+    }
+
+    /*
+     * Avoid returning "objc" symbols with no content.
+     */
+
+    if (symbol[15] == '\0') {
         return false;
     }
 
