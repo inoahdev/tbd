@@ -371,12 +371,12 @@ tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
 {
     char *const write_path =
         path_append_comp_and_ext(tbd->write_path,
-                                                     tbd->write_path_length,
-                                                     file_name,
-                                                     file_name_length,
-                                                     extension,
-                                                     extension_length,
-                                                     length_out);
+                                 tbd->write_path_length,
+                                 file_name,
+                                 file_name_length,
+                                 extension,
+                                 extension_length,
+                                 length_out);
 
     if (write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
@@ -421,16 +421,15 @@ tbd_for_main_create_write_path_for_recursing(
         }
 
         write_path =
-            path_append_two_comp_and_ext(
-                tbd->write_path,
-                tbd->write_path_length,
-                subdirs_iter,
-                subdirs_length,
-                file_name,
-                new_file_name_length,
-                extension,
-                extension_length,
-                length_out);
+            path_append_two_comp_and_ext(tbd->write_path,
+                                         tbd->write_path_length,
+                                         subdirs_iter,
+                                         subdirs_length,
+                                         file_name,
+                                         new_file_name_length,
+                                         extension,
+                                         extension_length,
+                                         length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
@@ -439,12 +438,12 @@ tbd_for_main_create_write_path_for_recursing(
     } else {
         write_path =
             path_append_comp_and_ext(tbd->write_path,
-                                                         tbd->write_path_length,
-                                                         file_name,
-                                                         file_name_length,
-                                                         extension,
-                                                         extension_length,
-                                                         length_out);
+                                     tbd->write_path_length,
+                                     file_name,
+                                     file_name_length,
+                                     extension,
+                                     extension_length,
+                                     length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
@@ -475,12 +474,12 @@ tbd_for_main_create_dsc_image_write_path(
 
     char *const image_write_path =
         path_append_comp_and_ext(write_path,
-                                                     write_path_length,
-                                                     image_path,
-                                                     new_image_path_length,
-                                                     extension,
-                                                     extension_length,
-                                                     length_out);
+                                 write_path_length,
+                                 image_path,
+                                 new_image_path_length,
+                                 extension,
+                                 extension_length,
+                                 length_out);
 
     if (image_write_path == NULL) {
         fputs("Failed to allocate memory\n", stderr);
@@ -518,16 +517,15 @@ tbd_for_main_create_dsc_folder_path(
         const uint64_t subdirs_length = folder_path_length - parse_path_length;
 
         write_path =
-            path_append_two_comp_and_ext(
-                tbd->write_path,
-                tbd->write_path_length,
-                subdirs_iter,
-                subdirs_length,
-                file_name,
-                file_name_length,
-                extension,
-                extension_length,
-                length_out);
+            path_append_two_comp_and_ext(tbd->write_path,
+                                         tbd->write_path_length,
+                                         subdirs_iter,
+                                         subdirs_length,
+                                         file_name,
+                                         file_name_length,
+                                         extension,
+                                         extension_length,
+                                         length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
@@ -536,12 +534,12 @@ tbd_for_main_create_dsc_folder_path(
     } else {
         write_path =
             path_append_comp_and_ext(tbd->write_path,
-                                                         tbd->write_path_length,
-                                                         file_name,
-                                                         file_name_length,
-                                                         extension,
-                                                         extension_length,
-                                                         length_out);
+                                     tbd->write_path_length,
+                                     file_name,
+                                     file_name_length,
+                                     extension,
+                                     extension_length,
+                                     length_out);
 
         if (write_path == NULL) {
             fputs("Failed to allocate memory\n", stderr);
