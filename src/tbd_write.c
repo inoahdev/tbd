@@ -785,6 +785,7 @@ static inline int end_written_export_array(FILE *__notnull const file) {
     return 0;
 }
 
+static uint32_t line_length_initial = 24;
 static uint32_t line_length_max = 80;
 
 /*
@@ -886,7 +887,7 @@ tbd_write_exports(FILE *__notnull const file,
      * beginning spaces).
      */
 
-    uint32_t line_length = 0;
+    uint32_t line_length = line_length_initial;
 
     do {
         const uint64_t archs = info->archs;
@@ -988,7 +989,7 @@ tbd_write_exports(FILE *__notnull const file,
                     return 1;
 
                 case E_WRITE_COMMA_RESET_LINE_LENGTH:
-                    line_length = 0;
+                    line_length = line_length_initial;
                     break;
             }
 
@@ -1102,7 +1103,7 @@ tbd_write_exports_with_full_archs(
                 return 1;
 
             case E_WRITE_COMMA_RESET_LINE_LENGTH:
-                line_length = 0;
+                line_length = line_length_initial;
                 break;
         }
 
