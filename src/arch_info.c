@@ -130,8 +130,8 @@ static struct arch_info arch_info_list[] = {
      * Index starts at 48 and ends at 50.
      */
 
-    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL_LIB64, "x86_64",  6 },
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL,       "x86_64",  6 },
+    { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL_LIB64, "x86_64",  6 },
     { CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H,         "x86_64h", 7 },
 
     /*

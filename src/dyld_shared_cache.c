@@ -75,8 +75,8 @@ get_arch_info_from_magic(const char magic[16],
              * (CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_H).
              */
 
-            arch = arch_info_get_list() + 49;
-            arch_bit = 1ull << 49;
+            arch = arch_info_get_list() + 50;
+            arch_bit = 1ull << 50;
 
             break;
 
@@ -187,8 +187,8 @@ get_arch_info_from_magic(const char magic[16],
              * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM_64_ALL).
              */
 
-            arch = arch_info_get_list() + 50;
-            arch_bit = 1ull << 50;
+            arch = arch_info_get_list() + 51;
+            arch_bit = 1ull << 51;
 
             break;
 
@@ -201,8 +201,8 @@ get_arch_info_from_magic(const char magic[16],
              * (CPU_TYPE_ARM64, CPU_SUBTYPE_ARM64E).
              */
 
-            arch = arch_info_get_list() + 52;
-            arch_bit = 1ull << 52;
+            arch = arch_info_get_list() + 53;
+            arch_bit = 1ull << 53;
 
             break;
 
@@ -215,8 +215,8 @@ get_arch_info_from_magic(const char magic[16],
              * (CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM_64_ALL).
              */
 
-            arch = arch_info_get_list() + 55;
-            arch_bit = 1ull << 55;
+            arch = arch_info_get_list() + 56;
+            arch_bit = 1ull << 56;
 
             break;
 
