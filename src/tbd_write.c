@@ -752,7 +752,7 @@ write_export_type_key(FILE *__notnull const file,
             break;
 
         case TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL:
-            if (fprintf(file, "%-4sobjc-eh-types:%5s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4sobjc-eh-types:%6s[ ", "", "") < 0) {
                 return 1;
             }
 
