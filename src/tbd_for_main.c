@@ -223,8 +223,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         if (tbd->info.fields.archs != 0) {
-            fputs("Note: Option --replace-archs has been provided twice\nOlder "
-                  "option's list of architectures will be overriden\n",
+            fputs("Note: Option --replace-archs has been provided multiple "
+                  "times.\nOlder option's list of architectures will be "
+                  "overriden\n",
                   stderr);
         }
 
@@ -246,8 +247,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         if (tbd->info.fields.flags != 0) {
-            fputs("Note: Option --replace-flags has been provided twice\nOlder "
-                  "option's list of flags will be overriden\n",
+            fputs("Note: Option --replace-flags has been provided multiple "
+                  "times.\nOlder option's list of flags will be overriden\n",
                   stderr);
         }
 
@@ -258,6 +259,13 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         if (index == argc) {
             fputs("Please provide an objc-constraint value\n", stderr);
             exit(1);
+        }
+
+        if (tbd->info.fields.objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
+            fputs("Note: Option --replace-objc-constraint has been provided "
+                  "multiple times.\nOlder option's objc-constraint will be "
+                  "overriden\n",
+                  stderr);
         }
 
         const char *const argument = argv[index];
@@ -283,6 +291,12 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
+        if (tbd->info.fields.platform != TBD_PLATFORM_NONE) {
+            fputs("Note: Option --replace-platform has been provided multiple "
+                  "times.\nOlder option's platform will be overriden\n",
+                  stderr);
+        }
+
         const char *const argument = argv[index];
         const enum tbd_platform platform = parse_platform(argument);
 
@@ -302,6 +316,13 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         if (index == argc) {
             fputs("Please provide a swift-version\n", stderr);
             exit(1);
+        }
+
+        if (tbd->info.fields.swift_version != 0) {
+            fputs("Note: Option --replace-swift-version has been provided "
+                  "multiple times.\nOlder option's swift-version will be "
+                  "overriden\n",
+                  stderr);
         }
 
         const char *const argument = argv[index];
@@ -351,7 +372,7 @@ tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
     const uint64_t filetypes = tbd->filetypes;
 
     /*
-     * If we have no filetypes added, we by default support all filetypes.
+     * We support all filetypes if no filetypes were provided by the user.
      */
 
     if (filetypes == 0) {
