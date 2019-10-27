@@ -38,11 +38,6 @@ enum macho_file_options {
     O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE = 1ull << 4
 };
 
-struct macho_arch_group_specific_info {
-    uint64_t archs;
-    const char *info;
-};
-
 enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_OK,
 
