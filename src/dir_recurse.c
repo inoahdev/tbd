@@ -61,7 +61,11 @@ dir_recurse(const char *__notnull const path,
         }
 
         const char *const name = entry->d_name;
-        if (memcmp(name, ".", 2) == 0 || memcmp(name, "..", 3) == 0) {
+        if (memcmp(name, ".", sizeof(".")) == 0) {
+            continue;
+        }
+
+        if (memcmp(name, "..", sizeof("..")) == 0) {
             continue;
         }
 
@@ -144,7 +148,11 @@ recurse_dir_fd(const int dir_fd,
         }
 
         const char *const name = entry->d_name;
-        if (memcmp(name, ".", 2) == 0 || memcmp(name, "..", 3) == 0) {
+        if (memcmp(name, ".", sizeof(".")) == 0) {
+            continue;
+        }
+
+        if (memcmp(name, "..", sizeof("..")) == 0) {
             continue;
         }
 
