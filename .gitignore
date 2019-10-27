@@ -8,6 +8,7 @@
 .ccls-cache
 .vs/
 .vscode/
+.clangd/
 
 compile_commands.json
 
