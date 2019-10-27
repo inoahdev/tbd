@@ -61,8 +61,8 @@ get_arch_info_from_magic(const char magic[16],
              * (CPU_TYPE_X86_64, CPU_SUBTYPE_X86_64_ALL).
              */
 
-            arch = arch_info_get_list() + 48;
-            arch_bit = 1ull << 48;
+            arch = arch_info_get_list() + 49;
+            arch_bit = 1ull << 49;
 
             break;
 
