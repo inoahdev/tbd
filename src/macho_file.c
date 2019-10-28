@@ -529,6 +529,13 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
         }
 
         info_in->fields.archs |= arch_bit;
+        
+        /*
+         * To avoid re-lookup of arch-info, we store the pointer within the
+         * cputype and cpusubtype fields.
+         */
+
+        memcpy(&arch->cputype, &arch_info, sizeof(arch_info));
     }
 
     if (range_out != NULL) {
@@ -578,8 +585,8 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     }
 
     /*
-     * First loop over only to swap the arch-header's fields. We also do some
-     * basic verification to ensure no architectures overflow.
+     * Loop over the architectures once to verify its info, then loop over again
+     * to parse.
      */
 
     struct fat_arch_64 *const first_arch = arch_list;
