@@ -52,10 +52,10 @@ path_get_absolute_path(const char *__notnull const path,
 
     char *const combined =
         path_append_component(current_directory,
-                                       current_directory_length,
-                                       path,
-                                       path_length,
-                                       length_out);
+                              current_directory_length,
+                              path,
+                              path_length,
+                              length_out);
 
     return combined;
 }
@@ -649,9 +649,7 @@ path_has_filename(const char *__notnull const path,
 }
 
 uint64_t
-path_get_length_by_removing_extension(const char *__notnull path,
-                                      const uint64_t length)
-{
+path_remove_extension(const char *__notnull const path, const uint64_t length) {
     const char *const back = path + (length - 1);
     const char *iter = back;
 

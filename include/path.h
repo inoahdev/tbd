@@ -72,8 +72,6 @@ path_has_filename(const char *__notnull path,
                   uint64_t component_length,
                   const char **filename_out);
 
-uint64_t
-path_get_length_by_removing_extension(const char *__notnull path,
-                                      uint64_t length);
+uint64_t path_remove_extension(const char *__notnull path, uint64_t length);
 
 #endif /* PATH_H */

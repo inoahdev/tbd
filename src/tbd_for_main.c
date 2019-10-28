@@ -437,8 +437,7 @@ tbd_for_main_create_write_path_for_recursing(
 
         if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
             new_file_name_length =
-                path_get_length_by_removing_extension(file_name,
-                                                      file_name_length);
+                path_remove_extension(file_name, file_name_length);
         }
 
         write_path =
@@ -489,8 +488,7 @@ tbd_for_main_create_dsc_image_write_path(
     uint64_t new_image_path_length = image_path_length;
     if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
         new_image_path_length =
-            path_get_length_by_removing_extension(image_path,
-                                                  image_path_length);
+            path_remove_extension(image_path, image_path_length);
     }
 
     char *const image_write_path =
