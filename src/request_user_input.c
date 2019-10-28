@@ -138,10 +138,8 @@ request_install_name(struct tbd_for_main *__notnull const global,
             global->info.fields.install_name;
 
         if (global_install_name != NULL) {
-            if (global_install_name != NULL) {
-                tbd->info.fields.install_name = global_install_name;
-                tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
-            }
+            tbd->info.fields.install_name = global_install_name;
+            tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
 
             return true;
         }
@@ -199,7 +197,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         const enum tbd_objc_constraint global_objc_constraint =
             global->info.fields.objc_constraint;
 
-        if (global_objc_constraint != 0) {
+        if (global_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
             tbd->info.fields.objc_constraint = global_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
@@ -284,10 +282,8 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
             global->info.fields.parent_umbrella;
 
         if (global_parent_umbrella != NULL) {
-            if (global_parent_umbrella != NULL) {
-                tbd->info.fields.parent_umbrella = global_parent_umbrella;
-                tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
-            }
+            tbd->info.fields.parent_umbrella = global_parent_umbrella;
+            tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
             return true;
         }
@@ -342,7 +338,7 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
         const enum tbd_platform global_platform = global->info.fields.platform;
-        if (global_platform != 0) {
+        if (global_platform != TBD_PLATFORM_NONE) {
             tbd->info.fields.platform = global_platform;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
