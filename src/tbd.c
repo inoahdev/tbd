@@ -304,8 +304,8 @@ void tbd_create_info_clear(struct tbd_create_info *__notnull const info) {
     info->fields.archs = 0;
     info->fields.flags = 0;
 
-    info->fields.platform = 0;
-    info->fields.objc_constraint = 0;
+    info->fields.platform = TBD_PLATFORM_NONE;
+    info->fields.objc_constraint = TBD_OBJC_CONSTRAINT_NO_VALUE;
 
     info->fields.install_name = NULL;
     info->fields.parent_umbrella = NULL;
