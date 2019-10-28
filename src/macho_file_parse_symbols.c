@@ -82,19 +82,19 @@ is_objc_class_symbol(const char *__notnull const symbol,
             const char *const real_symbol = symbol + 13;
 
             /*
-             * Avoid returning "objc" symbols with no content.
-             */
-
-            if (unlikely(real_symbol[1] == '\0')) {
-                return false;
-            }
-
-            /*
              * Add one to real_symbol to avoid rechecking the underscore.
              */
 
             const uint32_t length =
                 (uint32_t)strnlen(real_symbol + 1, max_length - 14) + 1;
+
+            /*
+             * Avoid returning "objc" symbols with no content.
+             */
+
+            if (unlikely(length == 1)) {
+                return false;
+            }
 
             *symbol_out = real_symbol;
             *length_out = length;
@@ -140,19 +140,19 @@ is_objc_class_symbol(const char *__notnull const symbol,
             const char *const real_symbol = symbol + 17;
 
             /*
-             * Avoid returning "objc" symbols with no content.
-             */
-
-            if (unlikely(real_symbol[1] == '\0')) {
-                return false;
-            }
-
-            /*
              * Add one to real_symbol to avoid rechecking the underscore.
              */
 
             const uint32_t length =
                 (uint32_t)strnlen(real_symbol + 1, max_length - 18) + 1;
+
+            /*
+             * Avoid returning "objc" symbols with no content.
+             */
+            
+            if (unlikely(length == 1)) {
+                return false;
+            }
 
             *symbol_out = real_symbol;
             *length_out = length;
@@ -193,19 +193,15 @@ is_objc_class_symbol(const char *__notnull const symbol,
             const char *const real_symbol = symbol + 16;
 
             /*
-             * Avoid returning "objc" symbols with no content.
-             */
-
-            if (unlikely(real_symbol[1] == '\0')) {
-                return false;
-            }
-
-            /*
              * Add one to real_symbol to avoid rechecking the underscore.
              */
 
             const uint32_t length =
                 (uint32_t)strnlen(real_symbol + 1, max_length - 17) + 1;
+
+            if (unlikely(length == 1)) {
+                return false;
+            }
 
             *symbol_out = real_symbol;
             *length_out = length;
@@ -221,10 +217,11 @@ is_objc_class_symbol(const char *__notnull const symbol,
 }
 
 static inline
-bool is_objc_ehtype_symbol(const char *__notnull const symbol,
-                           const uint64_t first,
-                           const uint64_t max_len,
-                           const enum tbd_version version)
+bool is_objc_ehtype_sym(const char *__notnull const symbol,
+                        const uint64_t first,
+                        const uint64_t max_len,
+                        const enum tbd_version version,
+                        uint32_t *__notnull const length_out)
 {
     /*
      * The ObjC eh-type group was introduced in tbd-version v3, with objc-eh
@@ -269,20 +266,25 @@ bool is_objc_ehtype_symbol(const char *__notnull const symbol,
         return false;
     }
 
+    const uint32_t length = (uint32_t)strnlen(symbol + 15, max_len - 15);
+
     /*
      * Avoid returning "objc" symbols with no content.
      */
 
-    if (symbol[15] == '\0') {
+    if (unlikely(length == 0)) {
         return false;
     }
 
+    *length_out = length;
     return true;
 }
 
 static inline
 bool is_objc_ivar_symbol(const char *__notnull const symbol,
-                         const uint64_t first)
+                         const uint64_t first,
+                         const uint64_t max_len,
+                         uint32_t *const length_out)
 {
     /*
      * The check here is `if (first == "_OBJC_IV")`.
@@ -305,6 +307,17 @@ bool is_objc_ivar_symbol(const char *__notnull const symbol,
         return false;
     }
 
+    const uint32_t length = (uint32_t)strnlen(symbol + 13, max_len - 13) + 1;
+
+    /*
+     * Avoid returning "objc" symbols with no content.
+     */
+
+    if (unlikely(length == 1)) {
+        return false;
+    }
+
+    *length_out = length;
     return true;
 }
 
@@ -320,7 +333,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
               const uint64_t arch_bit,
               const uint32_t index,
               const uint32_t strsize,
-              const char *__notnull const symbol_string,
+              const char *__notnull string,
               const uint16_t n_desc,
               const uint8_t n_type,
               const uint64_t options)
@@ -346,10 +359,9 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
      * write-out later for the tbd-file.
      */
 
-    const char *string = symbol_string;
-    uint32_t max_len = strsize - index;
-
     enum tbd_export_type type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
+    const uint32_t max_len = strsize - index;
+
     uint32_t length = 0;
 
     if (likely(!(n_desc & N_WEAK_DEF))) {
@@ -359,7 +371,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
          */
 
         if (max_len > 13) {
-            const enum tbd_version version = info_in->version;
+            const enum tbd_version vers = info_in->version;
 
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
@@ -369,10 +381,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     if (!is_external_symbol(n_type)) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
-                }
-
-                if (unlikely(length == 0)) {
-                    return E_MACHO_FILE_PARSE_OK;
                 }
 
                 /*
@@ -386,12 +394,14 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
-            } else if (is_objc_ivar_symbol(str, first)) {
+            } else if (is_objc_ivar_symbol(str, first, max_len, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
                     if (!is_external_symbol(n_type)) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
                 }
+
+                string += 12;
 
                 /*
                  * Starting from tbd-version v3, the underscore at the front of
@@ -400,18 +410,11 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
                 if (info_in->version == TBD_VERSION_V3) {
                     string += 1;
-                    max_len -= 1;
+                    length -= 1;
                 }
-
-                string += 12;
 
                 type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
-                length = (uint32_t)strnlen(string, max_len - 12);
-
-                if (unlikely(length == 0)) {
-                    return E_MACHO_FILE_PARSE_OK;
-                }
-            } else if (is_objc_ehtype_symbol(str, first, max_len, version)) {
+            } else if (is_objc_ehtype_sym(str, first, max_len, vers, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
                 {
                     if (!is_external_symbol(n_type)) {
@@ -420,12 +423,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 string += 15;
-                length = (uint32_t)strnlen(string, max_len - 15);
-
-                if (unlikely(length == 0)) {
-                    return E_MACHO_FILE_PARSE_OK;
-                }
-
                 type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else {
                 if (!is_external_symbol(n_type)) {
@@ -453,7 +450,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         }
 
         type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
-        length = (uint32_t)strnlen(symbol_string, max_len);
+        length = (uint32_t)strnlen(string, max_len);
 
         if (unlikely(length == 0)) {
             return E_MACHO_FILE_PARSE_OK;
