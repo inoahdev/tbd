@@ -1441,10 +1441,14 @@ macho_file_parse_load_commands_from_file(
 
     if (symtab.cmd != LC_SYMTAB) {
         const uint64_t ignore_missing_flags =
-            O_TBD_PARSE_IGNORE_SYMBOLS |
-            O_TBD_PARSE_IGNORE_MISSING_EXPORTS;
+            (O_TBD_PARSE_IGNORE_SYMBOLS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
-        if ((tbd_options & ignore_missing_flags) == ignore_missing_flags) {
+        /*
+         * If we have either O_TBD_PARSE_IGNORE_SYMBOLS, or
+         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         */
+
+        if ((tbd_options & ignore_missing_flags) != 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
@@ -1986,7 +1990,12 @@ macho_file_parse_load_commands_from_map(
         const uint64_t ignore_missing_flags =
             (O_TBD_PARSE_IGNORE_SYMBOLS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
-        if ((tbd_options & ignore_missing_flags) != ignore_missing_flags) {
+        /*
+         * If we have either O_TBD_PARSE_IGNORE_SYMBOLS, or
+         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         */
+
+        if ((tbd_options & ignore_missing_flags) != 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
