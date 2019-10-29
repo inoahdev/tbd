@@ -1434,7 +1434,7 @@ macho_file_parse_load_commands_from_file(
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_PLATFORM)) {
-        if (info_in->fields.platform == 0) {
+        if (info_in->fields.platform == TBD_PLATFORM_NONE) {
             return E_MACHO_FILE_PARSE_NO_PLATFORM;
         }
     }

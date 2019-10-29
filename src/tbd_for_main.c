@@ -809,7 +809,7 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
         dst->info.fields.swift_version = src->info.fields.swift_version;
     }
 
-    if (dst->info.version == 0) {
+    if (dst->info.version == TBD_VERSION_NONE) {
         dst->info.version = src->info.version;
     }
 
