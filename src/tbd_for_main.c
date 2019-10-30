@@ -781,10 +781,6 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
         dst->info.fields.compatibility_version = comp_version;
     }
 
-    if (dst->flags_re == 0) {
-        dst->flags_re = src->flags_re;
-    }
-
     if (dst->info.fields.flags == 0) {
         dst->info.fields.flags = src->info.fields.flags;
     }

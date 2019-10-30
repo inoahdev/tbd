@@ -114,14 +114,6 @@ struct tbd_for_main {
     uint64_t parse_options;
     uint64_t write_options;
 
-    uint64_t add_archs;
-    uint64_t add_archs_count;
-
-    uint64_t remove_archs;
-    uint64_t remove_archs_count;
-
-    uint32_t flags_re;
-
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
 
