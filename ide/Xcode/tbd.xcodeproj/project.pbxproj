@@ -393,7 +393,10 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = "-Wsign-conversion";
+				OTHER_CFLAGS = (
+					"-Wsign-conversion",
+					"-Wshadow",
+				);
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -446,7 +449,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				OTHER_CFLAGS = "-Wsign-conversion";
+				OTHER_CFLAGS = (
+					"-Wsign-conversion",
+					"-Wshadow",
+				);
 				SDKROOT = macosx;
 			};
 			name = Release;
