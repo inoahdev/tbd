@@ -34,7 +34,6 @@ struct handle_dsc_image_parse_result_args {
     const char *dsc_name;
     const char *image_path;
     enum dsc_image_parse_result parse_result;
-    bool print_paths;
 };
 
 bool

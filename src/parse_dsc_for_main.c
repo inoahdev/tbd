@@ -432,7 +432,6 @@ actually_parse_image(
         .dsc_name = iterate_info->dsc_name,
         .image_path = image_path,
         .parse_result = parse_image_result,
-        .print_paths = iterate_info->print_paths
     };
 
     const bool should_continue = handle_dsc_image_parse_result(args);
