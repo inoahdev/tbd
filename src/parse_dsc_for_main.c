@@ -53,6 +53,9 @@ struct dsc_iterate_images_info {
 
     FILE *combine_file;
 
+    macho_file_parse_error_callback callback;
+    struct handle_dsc_image_parse_error_cb_info *callback_info;
+
     bool print_paths;
     bool parse_all_images;
     bool did_print_messages_header;
@@ -308,6 +311,8 @@ write_out_tbd_info_for_image_path(
             3,
             &length);
 
+
+
     write_to_path(iterate_info, tbd, write_path, length);
     free(write_path);
 }
@@ -415,26 +420,25 @@ actually_parse_image(
     struct tbd_for_main *const tbd = iterate_info->tbd;
     struct tbd_create_info *const create_info = &tbd->info;
 
+    struct handle_dsc_image_parse_error_cb_info *const cb_info =
+        iterate_info->callback_info;
+
+    cb_info->image_path = image_path;
+
     const struct tbd_create_info original_info = *create_info;
     const enum dsc_image_parse_result parse_image_result =
         dsc_image_parse(create_info,
                         iterate_info->dsc_info,
                         image,
+                        iterate_info->callback,
+                        cb_info,
                         tbd->macho_options,
                         tbd->parse_options,
                         0);
+    
+    const bool should_continue =
+        should_continue_for_dsc_image_parse_result(parse_image_result);
 
-    struct handle_dsc_image_parse_result_args args = {
-        .retained_info_in = iterate_info->retained_info,
-        .global = iterate_info->global,
-        .tbd = iterate_info->tbd,
-        .dsc_dir_path = iterate_info->dsc_dir_path,
-        .dsc_name = iterate_info->dsc_name,
-        .image_path = image_path,
-        .parse_result = parse_image_result,
-    };
-
-    const bool should_continue = handle_dsc_image_parse_result(args);
     if (!should_continue) {
         clear_create_info(create_info, &original_info);
         print_image_error(iterate_info, image_path, parse_image_result);
@@ -942,16 +946,33 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
     args.tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
 
+    struct handle_dsc_image_parse_error_cb_info cb_info = {
+        .retained_info_in = args.retained_info_in,
+
+        .global = args.global,
+        .tbd = args.tbd,
+
+        .dsc_dir_path = args.dsc_dir_path,
+        .dsc_name = args.dsc_name,
+    };
+
     struct dsc_iterate_images_info iterate_info = {
         .dsc_info = &dsc_info,
         .dsc_dir_path = args.dsc_dir_path,
         .dsc_name = args.dsc_name,
+
         .global = args.global,
         .tbd = args.tbd,
+
         .write_path = args.tbd->write_path,
         .write_path_length = args.tbd->write_path_length,
+
         .retained_info = args.retained_info_in,
         .combine_file = args.combine_file,
+
+        .callback = handle_dsc_image_parse_error_callback,
+        .callback_info = &cb_info,
+
         .print_paths = args.print_paths,
         .parse_all_images = true
     };

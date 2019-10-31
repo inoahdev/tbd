@@ -352,77 +352,189 @@ handle_dsc_file_parse_result_while_recursing(
 }
 
 bool
-handle_dsc_image_parse_result(
-    const struct handle_dsc_image_parse_result_args args)
+handle_dsc_image_parse_error_callback(
+    struct tbd_create_info *__unused __notnull const info_in,
+    const enum macho_file_parse_error error,
+    void *const callback_info)
 {
-    switch (args.parse_result) {
-        case E_DSC_IMAGE_PARSE_OK:
+    const struct handle_dsc_image_parse_error_cb_info *const cb_info =
+        (const struct handle_dsc_image_parse_error_cb_info *)callback_info;
+
+    bool request_result = true;
+    switch (error) {
+        case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
+        case ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT:
+        case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
+        case ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT:
+            request_result =
+                request_install_name(cb_info->global,
+                                     cb_info->tbd,
+                                     cb_info->retained_info_in,
+                                     true,
+                                     stderr,
+                                     "\tImage (with path %s) has multiple "
+                                     "install-names that conflict with one "
+                                     "another\r\n",
+                                     cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
             break;
 
-        case E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME: {
-            const bool request_result =
-                request_install_name(args.global,
-                                     args.tbd,
-                                     args.retained_info_in,
+        case ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT:
+            request_result =
+                request_objc_constraint(cb_info->global,
+                                        cb_info->tbd,
+                                        cb_info->retained_info_in,
+                                        true,
+                                        stderr,
+                                        "\tImage (with path %s) has multiple "
+                                        "objc-constraint that conflict with "
+                                        "one another\r\n",
+                                        cb_info->image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT:
+            request_result =
+                request_parent_umbrella(cb_info->global,
+                                        cb_info->tbd,
+                                        cb_info->retained_info_in,
+                                        true,
+                                        stderr,
+                                        "\tImage (with path %s) has multiple "
+                                        "parent-umbrellas that conflict with "
+                                        "one another\r\n",
+                                        cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT:
+            request_result =
+                request_platform(cb_info->global,
+                                 cb_info->tbd,
+                                 cb_info->retained_info_in,
+                                 true,
+                                 stderr,
+                                 "\tImage (with path %s) has multiple "
+                                 "platforms that conflict with one another\r\n",
+                                 cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT:
+            request_result =
+                request_swift_version(cb_info->global,
+                                      cb_info->tbd,
+                                      cb_info->retained_info_in,
+                                      true,
+                                      stderr,
+                                      "\tImage (with path %s) has multiple "
+                                      "swift-version that conflict with one "
+                                      "another\r\n",
+                                      cb_info->image_path);
+
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
+            fprintf(stderr,
+                    "\tImage (with path %s) has multiple uuids that conflict "
+                    "with one another\r\n",
+                    cb_info->image_path);
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
+            request_result =
+                request_install_name(cb_info->global,
+                                     cb_info->tbd,
+                                     cb_info->retained_info_in,
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has an invalid "
                                      "install-name\r\n",
-                                     args.image_path);
+                                     cb_info->image_path);
 
             if (!request_result) {
                 return false;
             }
 
             break;
-        }
 
-        case E_DSC_IMAGE_PARSE_INVALID_PLATFORM: {
-            const bool request_result =
-                request_platform(args.global,
-                                 args.tbd,
-                                 args.retained_info_in,
-                                 true,
-                                 stderr,
-                                 "\tImage (with path %s) has an invalid "
-                                 "platform\r\n",
-                                 args.image_path);
-
-            if (!request_result) {
-                return false;
-            }
-
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA: {
-            const bool request_result =
-                request_parent_umbrella(args.global,
-                                        args.tbd,
-                                        args.retained_info_in,
+        case ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA:
+            request_result =
+                request_parent_umbrella(cb_info->global,
+                                        cb_info->tbd,
+                                        cb_info->retained_info_in,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has an invalid "
                                         "parent-umbrella\r\n",
-                                        args.image_path);
+                                        cb_info->image_path);
 
             if (!request_result) {
                 return false;
             }
 
             break;
-        }
 
-        case E_DSC_IMAGE_PARSE_NO_PLATFORM: {
-            const bool request_result =
-                request_platform(args.global,
-                                 args.tbd,
-                                 args.retained_info_in,
+        case ERR_MACHO_FILE_PARSE_INVALID_PLATFORM:
+            request_result =
+                request_platform(cb_info->global,
+                                 cb_info->tbd,
+                                 cb_info->retained_info_in,
+                                 true,
+                                 stderr,
+                                 "\tImage (with path %s) has an invalid "
+                                 "platform\r\n",
+                                 cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_INVALID_UUID:
+        case ERR_MACHO_FILE_PARSE_NO_IDENTIFICATION:
+            fprintf(stderr,
+                    "\tImage (with path %s) has no identification:\r\n"
+                    "\t(install-name, current-version, "
+                    "compatibility-version\r\n",
+                    cb_info->image_path);
+
+            break;
+
+        case ERR_MACHO_FILE_PARSE_NO_PLATFORM:
+            request_result =
+                request_platform(cb_info->global,
+                                 cb_info->tbd,
+                                 cb_info->retained_info_in,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) doesn't have a "
                                  "platform\r\n",
-                                 args.image_path);
+                                 cb_info->image_path);
 
 
             if (!request_result) {
@@ -430,146 +542,52 @@ handle_dsc_image_parse_result(
             }
 
             break;
-        }
 
-        case E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION:
+        case ERR_MACHO_FILE_PARSE_NO_UUID:
             fprintf(stderr,
-                    "\tImage (with path %s) has conflicting information for "
-                    "its identification: (install-name, current-version, "
-                    "compatibility-version\r\n",
-                    args.image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT: {
-            const bool request_result =
-                request_objc_constraint(args.global,
-                                        args.tbd,
-                                        args.retained_info_in,
-                                        true,
-                                        stderr,
-                                        "\tImage (with path %s) has "
-                                        "conflicting values for its "
-                                        "objc-constraint\r\n",
-                                        args.image_path);
-
-
-            if (!request_result) {
-                return false;
-            }
-
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA:{
-            const bool request_result =
-                request_parent_umbrella(args.global,
-                                        args.tbd,
-                                        args.retained_info_in,
-                                        true,
-                                        stderr,
-                                        "\tImage (with path %s) has "
-                                        "conflicting values for its "
-                                        "parent-umbrella\r\n",
-                                        args.image_path);
-
-
-            if (!request_result) {
-                return false;
-            }
-
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM: {
-            const bool request_result =
-                request_platform(args.global,
-                                 args.tbd,
-                                 args.retained_info_in,
-                                 true,
-                                 stderr,
-                                 "\tImage (with path %s) has conflicting "
-                                 "values for its platform\r\n",
-                                 args.image_path);
-
-
-            if (!request_result) {
-                return false;
-            }
-
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION: {
-            const bool request_result =
-                request_swift_version(args.global,
-                                      args.tbd,
-                                      args.retained_info_in,
-                                      true,
-                                      stderr,
-                                      "\tImage (with path %s) has conflicting "
-                                      "values for its swift-version\r\n",
-                                      args.image_path);
-
-
-            if (!request_result) {
-                return false;
-            }
-
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "uuid\r\n",
-                    args.image_path);
+                    "\tImage (with path %s) has no uuid\r\n",
+                    cb_info->image_path);
 
             return false;
-
-        default:
-            return false;
-    }
-
-    /*
-     * Because the O_MACHO_FILE_IGNORE_INVALID_FIELDS option was passed in from
-     * parse_dsc_from_main(), we may have some incomplete, yet mandatory
-     * fields.
-     */
-
-    if (args.tbd->info.fields.install_name == NULL) {
-        const bool request_result =
-            request_install_name(args.global,
-                                 args.tbd,
-                                 args.retained_info_in,
-                                 true,
-                                 stderr,
-                                 "\tImage (with path %s) doesn't have an "
-                                 "install-name\r\n",
-                                 args.image_path);
-
-        if (!request_result) {
-            return false;
-        }
-    }
-
-    if (args.tbd->info.fields.platform == TBD_PLATFORM_NONE) {
-        const bool request_result =
-            request_platform(args.global,
-                             args.tbd,
-                             args.retained_info_in,
-                             true,
-                             stderr,
-                             "\tImage (with path %s) doesn't have a "
-                             "platform\r\n",
-                             args.image_path);
-
-        if (!request_result) {
-            return false;
-        }
     }
 
     return true;
+}
+
+bool
+should_continue_for_dsc_image_parse_result(
+    const enum dsc_image_parse_result result)
+{
+    switch (result) {
+        case E_DSC_IMAGE_PARSE_OK:
+            return true;
+
+        case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
+        case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
+        case E_DSC_IMAGE_PARSE_ARRAY_FAIL:
+        case E_DSC_IMAGE_PARSE_SEEK_FAIL:
+        case E_DSC_IMAGE_PARSE_READ_FAIL:
+        case E_DSC_IMAGE_PARSE_NO_MAPPING:
+        case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
+        case E_DSC_IMAGE_PARSE_INVALID_RANGE:
+        case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
+        case E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED:
+        case E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS:
+        case E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS:
+        case E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
+        case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
+        case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
+        case E_DSC_IMAGE_PARSE_INVALID_SECTION:
+        case E_DSC_IMAGE_PARSE_INVALID_CLIENT:
+        case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
+        case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
+        case E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE:
+        case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
+        case E_DSC_IMAGE_PARSE_NO_EXPORTS:
+            break;
+    }
+
+    return false;
 }
 
 void
@@ -578,6 +596,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 {
     switch (parse_error) {
         case E_DSC_IMAGE_PARSE_OK:
+        case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
             break;
 
         case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
@@ -716,21 +735,6 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
             break;
 
-        case E_DSC_IMAGE_PARSE_INVALID_UUID:
-            fprintf(stderr,
-                    "Image (with path %s) has an invalid uuid\r\n",
-                    image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_NO_IDENTIFICATION:
-            fprintf(stderr,
-                    "Image (with path %s) has no identification mach-o "
-                    "load-command\r\n",
-                    image_path);
-
-            break;
-
         case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
             fprintf(stderr,
                     "Image (with path %s) has no symbol-table\r\n",
@@ -738,62 +742,12 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
             break;
 
-        case E_DSC_IMAGE_PARSE_NO_UUID:
-            fprintf(stderr,
-                    "Image (with path %s) has no uuid\r\n",
-                    image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
+        case E_DSC_IMAGE_PARSE_NO_EXPORTS:
             fprintf(stderr,
                     "Image (with path %s) has no exported clients, re-exports, "
                     "or symbols to be written out\r\n",
                     image_path);
 
-            break;
-        }
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "objc-constraint\r\n",
-                    image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "parent-umbrella\r\n",
-                    image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "platform\r\n",
-                    image_path);
-
-            break;
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "swift-version\r\n",
-                    image_path);
-            break;
-
-        case E_DSC_IMAGE_PARSE_CONFLICTING_UUID:
-            fprintf(stderr,
-                    "Image (with path %s) has conflicting values for its "
-                    "uuid\r\n",
-                    image_path);
-
-            break;
-
-        default:
             break;
     }
 }

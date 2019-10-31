@@ -12,6 +12,7 @@
 #include "dsc_image.h"
 #include "dyld_shared_cache.h"
 
+#include "macho_file.h"
 #include "notnull.h"
 #include "tbd_for_main.h"
 
@@ -26,6 +27,22 @@ handle_dsc_file_parse_result_while_recursing(
     enum dyld_shared_cache_parse_result parse_result,
     bool print_paths);
 
+struct handle_dsc_image_parse_error_cb_info {
+    uint64_t *retained_info_in;
+
+    struct tbd_for_main *global;
+    struct tbd_for_main *tbd;
+
+    const char *dsc_dir_path;
+    const char *dsc_name;
+    const char *image_path;
+};
+
+bool
+handle_dsc_image_parse_error_callback(struct tbd_create_info *__notnull info_in,
+                                      enum macho_file_parse_error error,
+                                      void *callback_info);
+
 struct handle_dsc_image_parse_result_args {
     uint64_t *retained_info_in;
     struct tbd_for_main *global;
@@ -37,7 +54,7 @@ struct handle_dsc_image_parse_result_args {
 };
 
 bool
-handle_dsc_image_parse_result(struct handle_dsc_image_parse_result_args args);
+should_continue_for_dsc_image_parse_result(enum dsc_image_parse_result result);
 
 /*
  * full_path should be stored in args.dsc_dir_path.

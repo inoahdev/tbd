@@ -40,6 +40,7 @@ enum macho_file_options {
 
 enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_OK,
+    E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK,
 
     E_MACHO_FILE_PARSE_SEEK_FAIL,
     E_MACHO_FILE_PARSE_READ_FAIL,
@@ -74,35 +75,47 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_INVALID_SECTION,
 
     E_MACHO_FILE_PARSE_INVALID_CLIENT,
-    E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
-    E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
-    E_MACHO_FILE_PARSE_INVALID_PLATFORM,
     E_MACHO_FILE_PARSE_INVALID_REEXPORT,
     E_MACHO_FILE_PARSE_INVALID_STRING_TABLE,
     E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE,
-    E_MACHO_FILE_PARSE_INVALID_UUID,
 
     E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO,
-    E_MACHO_FILE_PARSE_CONFLICTING_FLAGS,
-    E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION,
-    E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT,
-    E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA,
-    E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM,
-    E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION,
-    E_MACHO_FILE_PARSE_CONFLICTING_UUID,
-
-    E_MACHO_FILE_PARSE_NO_IDENTIFICATION,
-    E_MACHO_FILE_PARSE_NO_PLATFORM,
     E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE,
-    E_MACHO_FILE_PARSE_NO_UUID,
-
     E_MACHO_FILE_PARSE_NO_EXPORTS
 };
+
+enum macho_file_parse_error {
+    ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT,
+    ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT,
+    ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
+    ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT,
+    ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT,
+    ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT,
+    ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+    ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT,
+    ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
+
+    ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
+    ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
+    ERR_MACHO_FILE_PARSE_INVALID_PLATFORM,
+    ERR_MACHO_FILE_PARSE_INVALID_UUID,
+
+    ERR_MACHO_FILE_PARSE_NO_IDENTIFICATION,
+    ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+    ERR_MACHO_FILE_PARSE_NO_UUID,
+};
+
+typedef bool
+(*macho_file_parse_error_callback)(struct tbd_create_info *__notnull info_in,
+                                   enum macho_file_parse_error error,
+                                   void *callback_info);
 
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull info_in,
                            int fd,
                            uint32_t magic,
+                           macho_file_parse_error_callback callback,
+                           void *callback_info,
                            uint64_t parse_options,
                            uint64_t options);
 
@@ -111,6 +124,8 @@ macho_file_parse_from_range(struct tbd_create_info *__notnull info_in,
                             int fd,
                             uint64_t start,
                             uint64_t end,
+                            macho_file_parse_error_callback callback,
+                            void *callback_info,
                             uint64_t parse_options,
                             uint64_t options);
 

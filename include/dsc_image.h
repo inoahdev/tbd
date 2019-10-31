@@ -11,11 +11,13 @@
 
 #include "dyld_shared_cache.h"
 #include "likely.h"
+#include "macho_file.h"
 #include "notnull.h"
 #include "tbd.h"
 
 enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_OK,
+    E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK,
 
     E_DSC_IMAGE_PARSE_ALLOC_FAIL,
     E_DSC_IMAGE_PARSE_ARRAY_FAIL,
@@ -41,26 +43,11 @@ enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_INVALID_SECTION,
 
     E_DSC_IMAGE_PARSE_INVALID_CLIENT,
-    E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME,
-    E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA,
-    E_DSC_IMAGE_PARSE_INVALID_PLATFORM,
     E_DSC_IMAGE_PARSE_INVALID_REEXPORT,
     E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE,
     E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE,
-    E_DSC_IMAGE_PARSE_INVALID_UUID,
 
-    E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION,
-    E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT,
-    E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA,
-    E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM,
-    E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION,
-    E_DSC_IMAGE_PARSE_CONFLICTING_UUID,
-
-    E_DSC_IMAGE_PARSE_NO_IDENTIFICATION,
-    E_DSC_IMAGE_PARSE_NO_PLATFORM,
     E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE,
-    E_DSC_IMAGE_PARSE_NO_UUID,
-
     E_DSC_IMAGE_PARSE_NO_EXPORTS
 };
 
@@ -68,6 +55,8 @@ enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *__notnull info_in,
                 struct dyld_shared_cache_info *__notnull dsc_info,
                 struct dyld_cache_image_info *__notnull image,
+                const macho_file_parse_error_callback callback,
+                void *const callback_info,
                 uint64_t macho_options,
                 uint64_t tbd_options,
                 uint64_t options);

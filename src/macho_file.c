@@ -34,6 +34,8 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const struct mach_header header,
                 const struct arch_info *const arch,
                 const bool is_big_endian,
+                const macho_file_parse_error_callback callback,
+                void *const cb_info,
                 const uint64_t tbd_options,
                 const uint64_t options)
 {
@@ -65,13 +67,27 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
     if (info_in->fields.flags != 0) {
         if (info_in->fields.flags & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
-                return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
+                const bool should_ignore =
+                    callback(info_in,
+                             ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
+                             cb_info);
+
+                if (!should_ignore) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
             }
         }
 
         if (info_in->fields.flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (header.flags & MH_APP_EXTENSION_SAFE) {
-                return E_MACHO_FILE_PARSE_CONFLICTING_FLAGS;
+                const bool should_ignore =
+                    callback(info_in,
+                             ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
+                             cb_info);
+
+                if (!should_ignore) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
             }
         }
     } else {
@@ -117,7 +133,11 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
     };
 
     const enum macho_file_parse_result parse_load_commands_result =
-        macho_file_parse_load_commands_from_file(info_in, &info, NULL);
+        macho_file_parse_load_commands_from_file(info_in,
+                                                 &info,
+                                                 callback,
+                                                 cb_info,
+                                                 NULL);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return parse_load_commands_result;
@@ -251,6 +271,8 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                    const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
+                   const macho_file_parse_error_callback callback,
+                   void *const callback_info,
                    const uint64_t tbd_options,
                    const uint64_t options)
 {
@@ -404,6 +426,8 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                             header,
                             arch_info,
                             arch_is_big_endian,
+                            callback,
+                            callback_info,
                             tbd_options,
                             options);
 
@@ -553,6 +577,8 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                    const uint32_t nfat_arch,
                    const uint64_t start,
                    const uint64_t size,
+                   const macho_file_parse_error_callback callback,
+                   void *const callback_info,
                    const uint64_t tbd_options,
                    const uint64_t options)
 {
@@ -709,6 +735,8 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                             header,
                             arch_info,
                             arch_is_big_endian,
+                            callback,
+                            callback_info,
                             tbd_options,
                             options);
 
@@ -733,6 +761,8 @@ enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                            const int fd,
                            const uint32_t magic,
+                           const macho_file_parse_error_callback callback,
+                           void *const callback_info,
                            const uint64_t tbd_options,
                            const uint64_t options)
 {
@@ -781,6 +811,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                                      nfat_arch,
                                      0,
                                      file_size,
+                                     callback,
+                                     callback_info,
                                      tbd_options,
                                      options);
         } else {
@@ -790,6 +822,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                                      nfat_arch,
                                      0,
                                      file_size,
+                                     callback,
+                                     callback_info,
                                      tbd_options,
                                      options);
         }
@@ -881,6 +915,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                               header,
                               arch,
                               is_big_endian,
+                              callback,
+                              callback_info,
                               tbd_options,
                               options);
 

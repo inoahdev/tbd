@@ -35,6 +35,7 @@ static enum dsc_image_parse_result
 translate_macho_file_parse_result(const enum macho_file_parse_result result) {
     switch (result) {
         case E_MACHO_FILE_PARSE_OK:
+        case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
             break;
 
         case E_MACHO_FILE_PARSE_ALLOC_FAIL:
@@ -104,15 +105,6 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_INVALID_CLIENT:
             return E_DSC_IMAGE_PARSE_INVALID_CLIENT;
 
-        case E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
-            return E_DSC_IMAGE_PARSE_INVALID_INSTALL_NAME;
-
-        case E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA:
-            return E_DSC_IMAGE_PARSE_INVALID_PARENT_UMBRELLA;
-
-        case E_MACHO_FILE_PARSE_INVALID_PLATFORM:
-            return E_DSC_IMAGE_PARSE_INVALID_PLATFORM;
-
         case E_MACHO_FILE_PARSE_INVALID_REEXPORT:
             return E_DSC_IMAGE_PARSE_INVALID_REEXPORT;
 
@@ -122,47 +114,16 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_INVALID_STRING_TABLE:
             return E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE;
 
-        case E_MACHO_FILE_PARSE_INVALID_UUID:
-            return E_DSC_IMAGE_PARSE_INVALID_UUID;
-
         /*
          * Because a dsc-image is never a fat mach-o, we will never receive the
          * following error-codes.
          */
 
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
-        case E_MACHO_FILE_PARSE_CONFLICTING_FLAGS:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_IDENTIFICATION;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_PARENT_UMBRELLA;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_SWIFT_VERSION;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_UUID:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_UUID;
-
-        case E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM:
-            return E_DSC_IMAGE_PARSE_CONFLICTING_PLATFORM;
-
-        case E_MACHO_FILE_PARSE_NO_IDENTIFICATION:
-            return E_DSC_IMAGE_PARSE_NO_IDENTIFICATION;
-
-        case E_MACHO_FILE_PARSE_NO_PLATFORM:
-            return E_DSC_IMAGE_PARSE_NO_PLATFORM;
 
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
             return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
-
-        case E_MACHO_FILE_PARSE_NO_UUID:
-            return E_DSC_IMAGE_PARSE_NO_UUID;
 
         case E_MACHO_FILE_PARSE_NO_EXPORTS:
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
@@ -223,6 +184,8 @@ enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 struct dyld_shared_cache_info *__notnull const dsc_info,
                 struct dyld_cache_image_info *__notnull const image,
+                const macho_file_parse_error_callback callback,
+                void *const callback_info,
                 const uint64_t macho_options,
                 const uint64_t tbd_options,
                 __unused const uint64_t options)
@@ -322,7 +285,11 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     };
 
     const enum macho_file_parse_result parse_load_commands_result =
-        macho_file_parse_load_commands_from_map(info_in, &info, &symtab);
+        macho_file_parse_load_commands_from_map(info_in,
+                                                &info,
+                                                callback,
+                                                callback_info,
+                                                &symtab);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(parse_load_commands_result);

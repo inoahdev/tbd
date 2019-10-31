@@ -136,6 +136,21 @@ static inline bool is_image_info_section(const char name[16]) {
     return false;
 }
 
+static bool
+call_callback(const macho_file_parse_error_callback callback,
+              struct tbd_create_info *__notnull const info_in,
+              const enum macho_file_parse_error error,
+              void *const cb_info)
+{
+    if (callback != NULL) {
+        if (callback(info_in, error, cb_info)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static enum macho_file_parse_result
 parse_section_from_file(struct tbd_create_info *__notnull const info_in,
                         uint32_t *__notnull const swift_version_in,
@@ -145,6 +160,8 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
                         const uint32_t sect_offset,
                         const uint64_t sect_size,
                         const off_t position,
+                        const macho_file_parse_error_callback callback,
+                        void *const cb_info,
                         const uint64_t options)
 {
     if (sect_size != sizeof(struct objc_image_info)) {
@@ -201,7 +218,15 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
 
     if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
         if (info_objc_constraint != objc_constraint) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
+            const bool should_ignore =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT,
+                              cb_info);
+
+            if (!should_ignore) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
     } else {
         info_in->fields.objc_constraint = objc_constraint;
@@ -214,7 +239,15 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
+            const bool should_ignore =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT,
+                              cb_info);
+
+            if (!should_ignore) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
     } else {
         *swift_version_in = image_swift_version;
@@ -330,7 +363,10 @@ struct parse_load_command_info {
 
 static inline
 enum macho_file_parse_result
-parse_load_command(const struct parse_load_command_info parse_info) {
+parse_load_command(const struct parse_load_command_info parse_info,
+                   const macho_file_parse_error_callback callback,
+                   void *const cb_info)
+{
     struct tbd_create_info *const info_in = parse_info.info_in;
     const struct load_command load_cmd = parse_info.load_cmd;
 
@@ -376,7 +412,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     break;
                 }
 
-                return E_MACHO_FILE_PARSE_INVALID_PLATFORM;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_PLATFORM,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                break;
             }
 
             /*
@@ -385,14 +431,23 @@ parse_load_command(const struct parse_load_command_info parse_info) {
              */
 
             const enum tbd_platform info_platform = info_in->fields.platform;
-            if (info_platform != TBD_PLATFORM_NONE &&
-                info_platform != platform)
+            if (info_platform != TBD_PLATFORM_NONE && info_platform != platform)
             {
                 const bool found_build_version =
                     *parse_info.found_build_version_in;
 
                 if (found_build_version) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             }
 
@@ -448,7 +503,15 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     break;
                 }
 
-                return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
             }
 
             /*
@@ -468,7 +531,15 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     break;
                 }
 
-                return E_MACHO_FILE_PARSE_INVALID_INSTALL_NAME;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
             }
 
             const struct dylib dylib = dylib_command->dylib;
@@ -490,7 +561,6 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                         }
 
-
                         info_in->fields.install_name = install_name;
                     } else {
                         info_in->fields.install_name = name;
@@ -508,20 +578,58 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                 }
             } else {
                 if (info_in->fields.current_version != dylib.current_version) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
                 }
 
                 const uint32_t compat_version = dylib.compatibility_version;
                 if (info_in->fields.compatibility_version != compat_version) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
                 }
 
                 if (info_in->fields.install_name_length != length) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
                 }
 
                 if (memcmp(info_in->fields.install_name, name, length) != 0) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_IDENTIFICATION;
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             }
 
@@ -715,7 +823,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     break;
                 }
 
-                return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                break;
             }
 
             const char *const umbrella =
@@ -734,7 +852,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     break;
                 }
 
-                return E_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                break;
             }
 
             if (info_in->fields.parent_umbrella == NULL) {
@@ -760,11 +888,37 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
                 info_in->fields.parent_umbrella_length = length;
             } else {
+                if (info_in->fields.parent_umbrella_length != length) {
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
+                }
+
                 const char *const parent_umbrella =
                     info_in->fields.parent_umbrella;
 
                 if (memcmp(parent_umbrella, umbrella, length) != 0) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PARENT_UMBRELLA;
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             }
 
@@ -804,7 +958,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             }
 
             if (load_cmd.cmdsize != sizeof(struct uuid_command)) {
-                return E_MACHO_FILE_PARSE_INVALID_UUID;
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_INVALID_UUID,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                break;
             }
 
             const bool found_uuid = *parse_info.found_uuid_in;
@@ -817,7 +981,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
                     (const char *)parse_info.uuid_info_in->uuid;
 
                 if (memcmp(uuid_str, uuid_cmd_uuid, 16) != 0) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             } else {
                 memcpy(parse_info.uuid_info_in->uuid, uuid_cmd->uuid, 16);
@@ -856,7 +1030,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
 
             if (info_in->fields.platform != TBD_PLATFORM_NONE) {
                 if (info_in->fields.platform != TBD_PLATFORM_MACOS) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             } else {
                 info_in->fields.platform = TBD_PLATFORM_MACOS;
@@ -895,7 +1079,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             const enum tbd_platform info_platform = info_in->fields.platform;
             if (info_platform != TBD_PLATFORM_NONE) {
                 if (info_platform != TBD_PLATFORM_IOS) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             } else {
                 info_in->fields.platform = TBD_PLATFORM_IOS;
@@ -934,7 +1128,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             const enum tbd_platform info_platform = info_in->fields.platform;
             if (info_platform != TBD_PLATFORM_NONE) {
                 if (info_platform != TBD_PLATFORM_WATCHOS) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             } else {
                 info_in->fields.platform = TBD_PLATFORM_WATCHOS;
@@ -973,7 +1177,17 @@ parse_load_command(const struct parse_load_command_info parse_info) {
             const enum tbd_platform info_platform = info_in->fields.platform;
             if (info_platform != TBD_PLATFORM_NONE) {
                 if (info_platform != TBD_PLATFORM_TVOS) {
-                    return E_MACHO_FILE_PARSE_CONFLICTING_PLATFORM;
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+                                      cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
             } else {
                 info_in->fields.platform = TBD_PLATFORM_TVOS;
@@ -993,6 +1207,8 @@ enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
     struct tbd_create_info *__notnull const info_in,
     const struct mf_parse_lc_from_file_info *__notnull const parse_info,
+    const macho_file_parse_error_callback callback,
+    void *const cb_info,
     struct symtab_command *const symtab_out)
 {
     const uint32_t ncmds = parse_info->ncmds;
@@ -1233,6 +1449,8 @@ macho_file_parse_load_commands_from_file(
                                                 sect_offset,
                                                 sect_size,
                                                 (off_t)lc_position,
+                                                callback,
+                                                cb_info,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1346,6 +1564,8 @@ macho_file_parse_load_commands_from_file(
                                                 sect_offset,
                                                 sect_size,
                                                 (off_t)lc_position,
+                                                callback,
+                                                cb_info,
                                                 options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1382,7 +1602,7 @@ macho_file_parse_load_commands_from_file(
                 };
 
                 const enum macho_file_parse_result parse_load_command_result =
-                    parse_load_command(parse_lc_info);
+                    parse_load_command(parse_lc_info, callback, cb_info);
 
                 if (parse_load_command_result != E_MACHO_FILE_PARSE_OK) {
                     free(load_cmd_buffer);
@@ -1399,12 +1619,30 @@ macho_file_parse_load_commands_from_file(
 
     free(load_cmd_buffer);
     if (!found_identification) {
-        return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
+        const bool should_continue =
+            call_callback(callback,
+                          info_in,
+                          ERR_MACHO_FILE_PARSE_NO_IDENTIFICATION,
+                          cb_info);
+
+        if (!should_continue) {
+            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+        }
+
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
         if (!found_uuid) {
-            return E_MACHO_FILE_PARSE_NO_UUID;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_NO_UUID,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+
         }
 
         /*
@@ -1419,7 +1657,15 @@ macho_file_parse_load_commands_from_file(
                             NULL);
 
         if (array_uuid != NULL) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
 
         const enum array_result add_uuid_info_result =
@@ -1435,7 +1681,15 @@ macho_file_parse_load_commands_from_file(
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_PLATFORM)) {
         if (info_in->fields.platform == TBD_PLATFORM_NONE) {
-            return E_MACHO_FILE_PARSE_NO_PLATFORM;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
     }
 
@@ -1512,6 +1766,8 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
                        const uint8_t *__notnull const macho,
                        const uint32_t sect_offset,
                        const uint64_t sect_size,
+                       const macho_file_parse_error_callback callback,
+                       void *const cb_info,
                        const uint64_t options)
 {
     if (sect_size != sizeof(struct objc_image_info)) {
@@ -1557,7 +1813,15 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
 
     if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
         if (info_objc_constraint != objc_constraint) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_OBJC_CONSTRAINT;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
     } else {
         info_in->fields.objc_constraint = objc_constraint;
@@ -1570,7 +1834,15 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
 
     if (existing_swift_version != 0) {
         if (existing_swift_version != image_swift_version) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_SWIFT_VERSION;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
     } else {
         *existing_swift_version_in = image_swift_version;
@@ -1583,6 +1855,8 @@ enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(
     struct tbd_create_info *__notnull const info_in,
     const struct mf_parse_lc_from_map_info *__notnull const parse_info,
+    const macho_file_parse_error_callback callback,
+    void *const cb_info,
     struct symtab_command *const symtab_out)
 {
     const uint32_t ncmds = parse_info->ncmds;
@@ -1795,6 +2069,8 @@ macho_file_parse_load_commands_from_map(
                                                macho,
                                                sect_offset,
                                                sect_size,
+                                               callback,
+                                               cb_info,
                                                options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1904,6 +2180,8 @@ macho_file_parse_load_commands_from_map(
                                                macho,
                                                sect_offset,
                                                sect_size,
+                                               callback,
+                                               cb_info,
                                                options);
 
                     if (parse_section_result != E_MACHO_FILE_PARSE_OK) {
@@ -1938,7 +2216,7 @@ macho_file_parse_load_commands_from_map(
                 };
 
                 const enum macho_file_parse_result parse_load_command_result =
-                    parse_load_command(parse_lc_info);
+                    parse_load_command(parse_lc_info, callback, cb_info);
 
                 if (parse_load_command_result != E_MACHO_FILE_PARSE_OK) {
                     return parse_load_command_result;
@@ -1952,12 +2230,28 @@ macho_file_parse_load_commands_from_map(
     }
 
     if (!found_identification) {
-        return E_MACHO_FILE_PARSE_NO_IDENTIFICATION;
+        const bool should_continue =
+            call_callback(callback,
+                          info_in,
+                          ERR_MACHO_FILE_PARSE_NO_IDENTIFICATION,
+                          cb_info);
+
+        if (!should_continue) {
+            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+        }
     }
 
     if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
         if (!found_uuid) {
-            return E_MACHO_FILE_PARSE_NO_UUID;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_NO_UUID,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
 
         /*
@@ -1972,7 +2266,15 @@ macho_file_parse_load_commands_from_map(
                             NULL);
 
         if (array_uuid != NULL) {
-            return E_MACHO_FILE_PARSE_CONFLICTING_UUID;
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
         }
 
         const enum array_result add_uuid_info_result =

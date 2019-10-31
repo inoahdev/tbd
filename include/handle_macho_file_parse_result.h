@@ -12,6 +12,24 @@
 #include "macho_file.h"
 #include "tbd_for_main.h"
 
+struct handle_macho_file_parse_error_cb_info {
+    uint64_t *retained_info_in;
+
+    struct tbd_for_main *global;
+    struct tbd_for_main *tbd;
+
+    const char *dir_path;
+    const char *name;
+
+    bool print_paths;
+};
+
+bool
+handle_macho_file_for_main_error_callback(
+    struct tbd_create_info *__notnull info_in,
+    enum macho_file_parse_error error,
+    void *cb_info);
+
 struct handle_macho_file_parse_result_args {
     uint64_t *retained_info_in;
     struct tbd_for_main *global;

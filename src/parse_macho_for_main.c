@@ -234,11 +234,25 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     struct tbd_create_info *const create_info = &args.tbd->info;
     struct tbd_create_info original_info = *create_info;
 
+    const struct handle_macho_file_parse_error_cb_info cb_info = {
+        .retained_info_in = args.retained_info_in,
+
+        .global = args.global,
+        .tbd = args.tbd,
+
+        .dir_path = args.dir_path,
+        .name = args.name,
+
+        .print_paths = args.print_paths
+    };
+
     const uint32_t magic = *(const uint32_t *)args.magic_in;
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(create_info,
                                    args.fd,
                                    magic,
+                                   handle_macho_file_for_main_error_callback,
+                                   (void *)&cb_info,
                                    args.tbd->parse_options,
                                    macho_options);
 
@@ -354,10 +368,24 @@ parse_macho_file_for_main_while_recursing(
     struct tbd_create_info *const create_info = &args.tbd->info;
     struct tbd_create_info original_info = *create_info;
 
+    const struct handle_macho_file_parse_error_cb_info cb_info = {
+        .retained_info_in = args.retained_info_in,
+
+        .global = args.global,
+        .tbd = args.tbd,
+
+        .dir_path = args.dir_path,
+        .name = args.name,
+
+        .print_paths = args.print_paths
+    };
+
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(create_info,
                                    args.fd,
                                    magic,
+                                   handle_macho_file_for_main_error_callback,
+                                   (void *)&cb_info,
                                    parse_options,
                                    macho_options);
 
@@ -411,11 +439,6 @@ parse_macho_file_for_main_while_recursing(
                                                          "tbd",
                                                          3,
                                                          &write_path_length);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
     } else {
         write_path = args.tbd->write_path;
         write_path_length = args.tbd->write_path_length;
