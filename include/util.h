@@ -27,12 +27,20 @@ get_front_of_slashes(const char *__notnull begin,
                      const char *__notnull iter);
 
 const char *get_end_of_slashes(const char *__notnull path);
+const char *
+get_end_of_slashes_with_end(const char *__notnull path,
+                            const char *__notnull end);
+
+const char *
+find_last_slash(const char *__notnull path, const char *__notnull end);
 
 const char *
 find_last_row_of_slashes(const char *__notnull path, const char *__notnull end);
 
 const char *
-find_last_slash(const char *__notnull path, const char *__notnull end);
+remove_front_slashes(const char *__notnull string,
+                     uint64_t length,
+                     uint64_t *length_out);
 
 uint64_t remove_end_slashes(const char *__notnull string, uint64_t length);
 

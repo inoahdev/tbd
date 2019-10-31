@@ -132,7 +132,7 @@ tbd_for_main_parse_option(int *__notnull const index_in,
                           const char *__notnull const *__notnull argv,
                           const char *__notnull option);
 
-char *
+char *__notnull
 tbd_for_main_create_write_path(const struct tbd_for_main *__notnull tbd,
                                const char *__notnull file_name,
                                uint64_t file_name_length,
@@ -140,7 +140,7 @@ tbd_for_main_create_write_path(const struct tbd_for_main *__notnull tbd,
                                uint64_t extension_length,
                                uint64_t *length_out);
 
-char *
+char *__notnull
 tbd_for_main_create_write_path_for_recursing(
     const struct tbd_for_main *__notnull tbd,
     const char *__notnull folder_path,
@@ -151,7 +151,7 @@ tbd_for_main_create_write_path_for_recursing(
     uint64_t extension_length,
     uint64_t *length_out);
 
-char *
+char *__notnull
 tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *__notnull tbd,
                                     const char *__notnull folder_path,
                                     uint64_t folder_path_length,
@@ -161,7 +161,7 @@ tbd_for_main_create_dsc_folder_path(const struct tbd_for_main *__notnull tbd,
                                     uint64_t extension_length,
                                     uint64_t *length_out);
 
-char *
+char *__notnull
 tbd_for_main_create_dsc_image_write_path(
     const struct tbd_for_main *__notnull tbd,
     const char *__notnull write_path,
