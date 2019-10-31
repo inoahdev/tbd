@@ -387,12 +387,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             arch_info = *(const struct arch_info **)&arch.cputype;
             if (header.cputype != arch_info->cputype) {
                 free(arch_list);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+                return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
             }
 
             if (header.cpusubtype != arch_info->cpusubtype) {
                 free(arch_list);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+                return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
             }
         }
 
@@ -692,12 +692,12 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             arch_info = *(const struct arch_info **)&arch.cputype;
             if (header.cputype != arch_info->cputype) {
                 free(arch_list);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+                return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
             }
 
             if (header.cpusubtype != arch_info->cpusubtype) {
                 free(arch_list);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+                return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
             }
         }
 
