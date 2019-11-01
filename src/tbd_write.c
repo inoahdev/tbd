@@ -57,13 +57,13 @@ tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
     } while (true);
 
     /*
-     * After writing the first arch, write the following archs with a
-     * preceding comma.
+     * After writing the first arch, write the following archs with a preceding
+     * comma.
      *
      * Count the amount of archs on one line, starting off with one as we just
      * wrote one before looping over the rest.
      *
-     * When the counter reaches 7, print a newline and reset the counter.
+     * Break lines for every seven archs written out.
      */
 
     uint64_t counter = 1;
@@ -152,8 +152,8 @@ write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
     } while (true);
 
     /*
-     * After writing the first arch, write the following archs with a
-     * preceding comma.
+     * After writing the first arch, write the following archs with a preceding
+     * comma.
      *
      * Count the amount of archs on one line, starting off with one as we just
      * wrote one before looping over the rest. When the counter reaches 7, print
@@ -793,7 +793,7 @@ static uint32_t line_length_max = 80;
  * line length, or the string-length.
  *
  * Requires:
- *     line_length != 0
+ *     line_length > line_length_initial
  *     string_length != 0
  *
  * Returns:
@@ -812,20 +812,17 @@ write_comma_or_newline(FILE *__notnull const file,
                        const uint32_t string_length)
 {
     /*
-     * If the string is longer than the max-line limit, bend the rules slightly
-     * to allow the symbol to fit, albeit on a seperate line.
+     * If the string is as long, or longer than the max-line limit, bend the
+     * rules slightly to allow the symbol to fit, albeit on a seperate line.
      */
 
-    if (string_length >= line_length_max) {
-        if (line_length != 0) {
-            if (fprintf(file, ",\n%-26s", "") < 0) {
-                return E_WRITE_COMMA_WRITE_FAIL;
-            }
-
-            return E_WRITE_COMMA_RESET_LINE_LENGTH;
+    const uint64_t max_string_length = line_length_max - line_length_initial;
+    if (string_length >= max_string_length) {
+        if (fprintf(file, ",\n%-26s", "") < 0) {
+            return E_WRITE_COMMA_WRITE_FAIL;
         }
 
-        return E_WRITE_COMMA_OK;
+        return E_WRITE_COMMA_RESET_LINE_LENGTH;
     }
 
     /*
@@ -887,7 +884,7 @@ tbd_write_exports(FILE *__notnull const file,
      * beginning spaces).
      */
 
-    uint32_t line_length = line_length_initial;
+    uint32_t line_length = 0;
 
     do {
         const uint64_t archs = info->archs;
@@ -904,7 +901,7 @@ tbd_write_exports(FILE *__notnull const file,
             return 1;
         }
 
-        line_length = info->length;
+        line_length = line_length_initial + info->length;
 
         /*
          * Iterate over the rest of the export-infos, writing all the
@@ -1037,7 +1034,7 @@ tbd_write_exports_with_full_archs(
         return 1;
     }
 
-    uint32_t line_length = export->length;
+    uint32_t line_length = line_length_initial + export->length;
 
     do {
         export++;
