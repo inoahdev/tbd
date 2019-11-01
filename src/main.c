@@ -663,16 +663,14 @@ int main(const int argc, const char *const argv[]) {
                          * default, we don't).
                          */
 
-                        const int specification_index = index + 1;
-                        if (specification_index < argc) {
-                            const char *const specification =
-                                argv[specification_index];
-
-                            if (strcmp(specification, "all") == 0) {
+                        const int spec_index = index + 1;
+                        if (spec_index < argc) {
+                            const char *const spec = argv[spec_index];
+                            if (strcmp(spec, "all") == 0) {
                                 index += 1;
                                 tbd.flags |=
                                     F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
-                            } else if (strcmp(specification, "once") == 0) {
+                            } else if (strcmp(spec, "once") == 0) {
                                 index += 1;
                             }
                         }
@@ -1092,7 +1090,7 @@ int main(const int argc, const char *const argv[]) {
 
     uint64_t retained_info = 0;
 
-    const bool should_print_paths = tbds.item_count != 1;
+    const bool should_print_paths = (tbds.item_count != 1);
     const struct tbd_for_main *const end = tbds.data_end;
 
     struct tbd_for_main *tbd = tbds.data;
@@ -1211,7 +1209,6 @@ int main(const int argc, const char *const argv[]) {
 
             char magic[16] = {};
             uint64_t magic_size = 0;
-            bool matched_filetype = false;
 
             if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
                 struct parse_macho_for_main_args args = {
@@ -1251,7 +1248,7 @@ int main(const int argc, const char *const argv[]) {
                     parse_macho_file_for_main(args);
 
                 if (parse_result != E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO) {
-                    matched_filetype = true;
+                    continue;
                 }
             }
 
@@ -1293,12 +1290,8 @@ int main(const int argc, const char *const argv[]) {
                     parse_dsc_for_main(args);
 
                 if (parse_result != E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE) {
-                    matched_filetype = true;
+                    continue;
                 }
-            }
-
-            if (matched_filetype) {
-                continue;
             }
 
             if (tbd->filetypes == 0) {
