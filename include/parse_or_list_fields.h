@@ -33,6 +33,8 @@ parse_objc_constraint(const char *__notnull constraint);
 enum tbd_platform parse_platform(const char *__notnull platform);
 enum tbd_version parse_tbd_version(const char *__notnull version);
 
+int64_t parse_packed_version(const char *__notnull const version);
+
 void print_arch_info_list(void);
 void print_objc_constraint_list(void);
 void print_platform_list(void);

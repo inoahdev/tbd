@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "arch_info.h"
+#include "guard_overflow.h"
 #include "macho_file.h"
 
 #include "parse_or_list_fields.h"
@@ -161,6 +162,10 @@ parse_objc_constraint(const char *__notnull const constraint) {
     return TBD_OBJC_CONSTRAINT_NO_VALUE;
 }
 
+static inline int get_digit_for_ch(const char ch) {
+    return (ch & 0xf);
+}
+
 uint32_t parse_swift_version(const char *__notnull const arg) {
     if (strcmp(arg, "1.2") == 0) {
         return 2;
@@ -174,7 +179,7 @@ uint32_t parse_swift_version(const char *__notnull const arg) {
             return 0;
         }
 
-        const uint32_t new_version = (version * 10) + (ch & 0xf);
+        const uint32_t new_version = (version * 10) + get_digit_for_ch(ch);
 
         /*
          * Check for any overflows when parsing out the number.
@@ -224,6 +229,79 @@ enum tbd_version parse_tbd_version(const char *__notnull const version) {
     }
 
     return TBD_VERSION_NONE;
+}
+
+static int
+parse_component_til_ch(const char *__notnull *__notnull iter_in,
+                       const char end_ch,
+                       const int max)
+{
+    int result = 0;
+
+    const char *iter = *iter_in;
+    char ch = *iter;
+
+    do {
+        if (ch == '\0') {
+            *iter_in = iter;
+            break;
+        }
+
+        if (ch == end_ch) {
+            *iter_in = (iter + 1);
+            break;
+        }
+
+        if (isdigit(ch)) {
+            const int new_result = (result * 10) + get_digit_for_ch(ch);
+
+            /*
+             * Don't go above max, and don't overflow.
+             */
+
+            if (new_result > max || new_result < result) {
+                return -1;
+            }
+
+            ch = *(++iter);
+            result = new_result;
+
+            continue;
+        }
+
+        return -1;
+    } while (true);
+
+    return result;
+}
+
+static inline uint32_t
+create_packed_version(const uint16_t major,
+                      const uint8_t minor,
+                      const uint8_t revision)
+{
+    return ((uint32_t)major << 16) | ((uint32_t)minor << 8) | revision;
+}
+
+int64_t parse_packed_version(const char *__notnull const version) {
+    const char *iter = version;
+    const int major = parse_component_til_ch(&iter, '.', UINT16_MAX);
+
+    if (major == -1) {
+        return -1;
+    }
+
+    const int minor = parse_component_til_ch(&iter, '.', UINT8_MAX);
+    if (minor == -1) {
+        return -1;
+    }
+
+    const int revision = parse_component_til_ch(&iter, '\0', UINT8_MAX);
+    if (revision == -1) {
+        return -1;
+    }
+
+    return create_packed_version(major, minor, revision);
 }
 
 void print_arch_info_list(void) {

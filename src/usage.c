@@ -90,6 +90,8 @@ void print_usage(void) {
     fputs("                                   A list of architectures can be found by using option --list-architectures.\n", stdout);
     fputs("                                   Replacing the list of architectures will automatically remove the uuids field.\n", stdout);
     fputs("                                   In addition, each exported symbol will have the replaced list of architectures\n", stdout);
+    fputs("        --replace-current-version, Provide a current-version to replace the one found in the provided input file(s)\n", stdout);
+    fputs("        --replace-compat-version,  Provide a compatibility-version to replace the one found in the provided input file(s)\n", stdout);
     fputs("        --replace-flags,           Provide flag(s) to replace flags found for .tbd files.\n", stdout);
     fputs("                                   A list of flags can be found by using option --list-tbd-flags\n", stdout);
     fputs("        --replace-objc-constraint, Provide an objc-constraint to replace the one found in the provided input file(s)\n", stdout);

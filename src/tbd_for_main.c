@@ -216,8 +216,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "replace-archs") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide a list of architectures to replace archs "
-                  "found in input files\n", stderr);
+            fputs("Please provide a list of architectures to replace the one "
+                  "found in the provided input file(s)\n",
+                  stderr);
 
             exit(1);
         }
@@ -237,11 +238,67 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
+    } else if (strcmp(option, "replace-current-version") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a current-version to replace the one found "
+                  "in the provided input file(s)\n",
+                  stderr);
+
+            exit(1);
+        }
+
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION) {
+            fputs("Note: Option --replace-current-version has been provided "
+                  "multiple times.\nOlder option's current-version will be "
+                  "overriden\n",
+                  stderr);
+        }
+
+        const char *const arg = argv[index];
+        const int64_t packed_version = parse_packed_version(arg);
+
+        if (packed_version == -1) {
+            fprintf(stderr, "%s is not a valid current-version\n", arg);
+            exit(1);
+        }
+
+        tbd->info.fields.current_version = (uint32_t)packed_version;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION;
+    } else if (strcmp(option, "replace-compat-version") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a compatibility-version to replace the one "
+                  "found in the provided input file(s)\n", stderr);
+
+            exit(1);
+        }
+
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION) {
+            fputs("Note: Option --replace-compat-version has been provided "
+                  "multiple times.\nOlder option's compatibility-version will "
+                  "be overriden\n",
+                  stderr);
+        }
+
+        const char *const arg = argv[index];
+        const int64_t packed_version = parse_packed_version(arg);
+
+        if (packed_version == -1) {
+            fprintf(stderr, "%s is not a valid compatibility-version\n", arg);
+            exit(1);
+        }
+
+        tbd->info.fields.compatibility_version = (uint32_t)packed_version;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION;
     } else if (strcmp(option, "replace-flags") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide a list of flags to replace ones found in "
-                  "input files\n", stderr);
+            fputs("Please provide a list of flags to replace ones found in the "
+                  "provided input file(s)\n",
+                  stderr);
 
             exit(1);
         }
@@ -257,7 +314,10 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide an objc-constraint value\n", stderr);
+            fputs("Please provide an objc-constraint to replace the one found "
+                  "in the provided input file(s)\n",
+                  stderr);
+
             exit(1);
         }
 
@@ -287,7 +347,10 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide an objc-constraint value\n", stderr);
+            fputs("Please provide a platform to replace the ones found in "
+                  "provided input file(s)\n",
+                  stderr);
+
             exit(1);
         }
 
@@ -314,7 +377,10 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "replace-swift-version") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide a swift-version\n", stderr);
+            fputs("Please provide a swift-version to replace the ones found in "
+                  "provided input file(s)\n",
+                  stderr);
+
             exit(1);
         }
 
@@ -772,11 +838,11 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
         dst->info.fields.archs_count = src->info.fields.archs_count;
     }
 
-    if (dst->info.fields.current_version == 0) {
+    if (!(dst->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION)) {
         dst->info.fields.current_version = src->info.fields.current_version;
     }
 
-    if (dst->info.fields.compatibility_version == 0) {
+    if (!(dst->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION)) {
         const uint32_t comp_version = src->info.fields.compatibility_version;
         dst->info.fields.compatibility_version = comp_version;
     }

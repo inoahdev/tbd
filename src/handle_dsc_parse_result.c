@@ -363,8 +363,60 @@ handle_dsc_image_parse_error_callback(
     bool request_result = true;
     switch (error) {
         case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
+            request_result =
+                request_current_version(cb_info->global,
+                                        cb_info->tbd,
+                                        cb_info->retained_info_in,
+                                        true,
+                                        stderr,
+                                        "\tImage (with path %s) has multiple "
+                                        "current-versions that conflict with "
+                                        "one another\r\n",
+                                        cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
         case ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT:
+            request_result =
+                request_compat_version(cb_info->global,
+                                       cb_info->tbd,
+                                       cb_info->retained_info_in,
+                                       true,
+                                       stderr,
+                                       "\tImage (with path %s) has multiple "
+                                       "compatibility-versions that conflict "
+                                       "with one another\r\n",
+                                       cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
+            request_result =
+                request_if_should_ignore_flags(cb_info->global,
+                                               cb_info->tbd,
+                                               cb_info->retained_info_in,
+                                               true,
+                                               stderr,
+                                               "\tImage (with path %s) has "
+                                               "multiple, differing set of "
+                                               "flags that conflict with one "
+                                               "another\r\n",
+                                               cb_info->image_path);
+
+            if (!request_result) {
+                return false;
+            }
+
+            break;
+
         case ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT:
             request_result =
                 request_install_name(cb_info->global,
@@ -516,7 +568,13 @@ handle_dsc_image_parse_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_UUID:
-        case ERR_MACHO_FILE_PARSE_NO_IDENTIFICATION:
+            fprintf(stderr,
+                    "\tImage (with path %s) has an invalid uuid\r\n",
+                    cb_info->image_path);
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_NOT_A_DYNAMIC_LIBRARY:
             fprintf(stderr,
                     "\tImage (with path %s) has no identification:\r\n"
                     "\t(install-name, current-version, "

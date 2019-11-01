@@ -63,22 +63,25 @@ enum tbd_for_main_flags {
     F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1ull << 0,
     F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1ull << 1,
 
-    F_TBD_FOR_MAIN_REMOVE_ARCHS               = 1ull << 2,
+    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION     = 1ull << 2,
     F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1ull << 3,
 
-    F_TBD_FOR_MAIN_NO_OVERWRITE           = 1ull << 4,
-    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION = 1ull << 5,
-    F_TBD_FOR_MAIN_COMBINE_TBDS           = 1ull << 6,
+    F_TBD_FOR_MAIN_REMOVE_ARCHS = 1ull << 4,
+    F_TBD_FOR_MAIN_NO_OVERWRITE = 1ull << 5,
+    F_TBD_FOR_MAIN_COMBINE_TBDS = 1ull << 6,
 
-    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 7,
-    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 8,
+    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 7,
+    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 8,
 
     /*
      * dyld_shared_cache extractions can be stored in either a file.
      * (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9
+    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9,
+
+    F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION = 1ull << 10,
+    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 11
 };
 
 enum tbd_for_main_filetype {

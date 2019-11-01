@@ -125,6 +125,148 @@ enum default_choice_index {
 };
 
 bool
+request_current_version(struct tbd_for_main *__notnull const global,
+                        struct tbd_for_main *__notnull const tbd,
+                        uint64_t *__notnull const info_in,
+                        const bool indent,
+                        FILE *__notnull file,
+                        const char *__notnull const prompt,
+                        ...)
+{
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
+        return false;
+    }
+
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS) {
+        return false;
+    }
+
+    if (global->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
+        const uint32_t global_current_version =
+            global->info.fields.current_version;
+
+        if (global_current_version != 0) {
+            tbd->info.fields.current_version = global_current_version;
+            tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+
+            return true;
+        }
+    }
+
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(file, prompt, args);
+    va_end(args);
+
+    const uint64_t choice_index =
+        request_choice("Replace current-version?", default_choices, indent);
+
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
+        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS;
+        return false;
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
+        return false;
+    }
+
+    int64_t current_version = 0;
+
+    do {
+        const char *const input =
+            request_input("Replacement current-version?", indent);
+
+        current_version = parse_packed_version(input);
+        if (current_version != -1) {
+            break;
+        }
+
+        fprintf(stderr, "%s is not a valid current-version\n", input);
+    } while (true);
+
+    tbd->info.fields.current_version = (uint32_t)current_version;
+    tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
+        global->info.fields.current_version = (uint32_t)current_version;
+        global->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+    }
+
+    return true;
+}
+
+bool
+request_compat_version(struct tbd_for_main *__notnull const global,
+                       struct tbd_for_main *__notnull const tbd,
+                       uint64_t *__notnull const info_in,
+                       const bool indent,
+                       FILE *__notnull const file,
+                       const char *__notnull const prompt,
+                       ...)
+{
+    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
+        return false;
+    }
+
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS) {
+        return false;
+    }
+
+    if (global->parse_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION) {
+        const uint32_t global_compat_version =
+            global->info.fields.compatibility_version;
+
+        if (global_compat_version != 0) {
+            tbd->info.fields.compatibility_version = global_compat_version;
+            tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+
+            return true;
+        }
+    }
+
+    va_list args;
+    va_start(args, prompt);
+
+    vfprintf(file, prompt, args);
+    va_end(args);
+
+    const uint64_t choice_index =
+        request_choice("Replace compatiblity-version?",
+                       default_choices,
+                       indent);
+
+    if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
+        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS;
+        return false;
+    } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
+        return false;
+    }
+
+    int64_t compat_version = 0;
+
+    do {
+        const char *const input =
+            request_input("Replacement compatibility-version?", indent);
+
+        compat_version = parse_packed_version(input);
+        if (compat_version != -1) {
+            break;
+        }
+
+        fprintf(stderr, "%s is not a valid compatibility-version\n", input);
+    } while (true);
+
+    tbd->info.fields.compatibility_version = (uint32_t)compat_version;
+    tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+
+    if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
+        global->info.fields.compatibility_version = (uint32_t)compat_version;
+        global->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+    }
+
+    return true;
+}
+
+bool
 request_install_name(struct tbd_for_main *__notnull const global,
                      struct tbd_for_main *__notnull const tbd,
                      uint64_t *__notnull const info_in,

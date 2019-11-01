@@ -19,17 +19,39 @@
 
 enum retained_user_input_info_flags {
     F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_FLAGS           = 1ull << 0,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME    = 1ull << 1,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_MISSING_UUIDS   = 1ull << 2,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_NON_UNIQUE_UUID = 1ull << 3,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT = 1ull << 4,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA = 1ull << 5,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM        = 1ull << 6,
-    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION   = 1ull << 7,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS    = 1ull << 1,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS     = 1ull << 2,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME    = 1ull << 3,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_MISSING_UUIDS   = 1ull << 4,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_NON_UNIQUE_UUID = 1ull << 5,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT = 1ull << 6,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA = 1ull << 7,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM        = 1ull << 8,
+    F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION   = 1ull << 9,
 
-    F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS            = 1ull << 8,
-    F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS = 1ull << 8,
+    F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS            = 1ull << 10,
+    F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS = 1ull << 11,
 };
+
+__printflike(6, 7)
+bool
+request_current_version(struct tbd_for_main *__notnull global,
+                        struct tbd_for_main *__notnull tbd,
+                        uint64_t *__notnull retained_info_in,
+                        bool indent,
+                        FILE *__notnull prompt_file,
+                        const char *__notnull prompt,
+                        ...);
+
+__printflike(6, 7)
+bool
+request_compat_version(struct tbd_for_main *__notnull global,
+                       struct tbd_for_main *__notnull tbd,
+                       uint64_t *__notnull retained_info_in,
+                       bool indent,
+                       FILE *__notnull prompt_file,
+                       const char *__notnull prompt,
+                       ...);
 
 __printflike(6, 7)
 bool
