@@ -46,6 +46,17 @@ request_choice(const char *__notnull const prompt,
         size_t input_size = 0;
         ssize_t input_length = getline(&input, &input_size, stdin);
 
+        fputc('\r', stdout);
+
+        /*
+         * We only have a newline-delimiter in our input-buffer if our length is
+         * one.
+         */
+
+        if (input_length == 1) {
+            continue;
+        }
+
         if (input_length < 0) {
             fprintf(stderr,
                     "\nInternal error: getline() failed while trying to "
@@ -55,7 +66,6 @@ request_choice(const char *__notnull const prompt,
             exit(1);
         }
 
-        fputc('\r', stdout);
         uint64_t index = 0;
 
         iter = choices;
@@ -189,7 +199,7 @@ request_current_version(struct tbd_for_main *__notnull const global,
 
     do {
         const char *const input =
-            request_input("Replacement current-version?", indent, NULL);
+            request_input("Replacement current-version", indent, NULL);
 
         current_version = parse_packed_version(input);
         if (current_version != -1) {
@@ -261,7 +271,7 @@ request_compat_version(struct tbd_for_main *__notnull const global,
 
     do {
         const char *const input =
-            request_input("Replacement compatibility-version?", indent, NULL);
+            request_input("Replacement compatibility-version", indent, NULL);
 
         compat_version = parse_packed_version(input);
         if (compat_version != -1) {
@@ -329,9 +339,7 @@ request_install_name(struct tbd_for_main *__notnull const global,
 
     uint32_t install_name_length = 0;
     const char *const install_name =
-        request_input("Replacement install-name?",
-                      indent,
-                      &install_name_length);
+        request_input("Replacement install-name", indent, &install_name_length);
 
     tbd->info.fields.install_name = install_name;
     tbd->info.fields.install_name_length = install_name_length;
@@ -481,7 +489,7 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
 
     uint32_t parent_umbrella_length = 0;
     const char *const parent_umbrella =
-        request_input("Replacement parent-umbrella?",
+        request_input("Replacement parent-umbrella",
                       indent,
                       &parent_umbrella_length);
 
@@ -629,7 +637,7 @@ request_swift_version(struct tbd_for_main *__notnull const global,
 
     do {
         char *const input =
-            request_input("Replacement swift-version?", indent, NULL);
+            request_input("Replacement swift-version", indent, NULL);
 
         swift_version = parse_swift_version(input);
         if (swift_version == 0) {
