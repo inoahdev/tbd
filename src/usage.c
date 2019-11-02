@@ -55,7 +55,11 @@ void print_usage(void) {
     fputs("                                         To get the paths of all available images, use the option --list-dsc-images\n", stdout);
     fputs("        -v, --version,                   Specify version of .tbd files to convert to (default is v2).\n", stdout);
     fputs("                                         This applies to all files where tbd-version was not explicitly set.\n", stdout);
-    fputs("                                         To get a list of all available versions, use the option --list-tbd-versions\n", stdout);
+    fputs("                                         To get a list of all available versions, look at the options below, or use\n", stdout);
+    fputs("                                         the option --list-tbd-versions\n", stdout);
+    fputs("        -v1,                             Set version of .tbd files to version v1.\n", stdout);
+    fputs("        -v2,                             Set version of .tbd files to version v2. (This is the default .tbd version)\n", stdout);
+    fputs("        -v3,                             Set version of .tbd files to version v3.\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);
@@ -76,12 +80,10 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);
-    fputs("        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-normal-symbols, Allow all non-external symbols (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)\n", stdout);
-    fputs("        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars\n", stdout);
+    fputs("        --allow-private-objc-symbols,   Allow all non-external objc-symbols (classes, ivars, and ehtypes)\n", stdout);
     fputs("        --allow-private-objc-classes,   Allow all non-external objc-classes\n", stdout);
-    fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes\n", stdout);
+    fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.\n", stdout);
+    fputs("                                        objc-ehtype symbols are only recognized for .tbd version v3\n", stdout);
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
 
     fputc('\n', stdout);

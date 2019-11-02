@@ -406,8 +406,18 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {
-            fputs("Please provide a tbd-version\n", stderr);
+            fputs("Please provide a .tbd version\nTo get a list of .tbd "
+                  "versions, run options --list-tbd-versions\n",
+                  stderr);
+
             exit(1);
+        }
+
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+            fprintf(stderr,
+                    "Note: Option %s has been provided multiple times.\nOlder "
+                    "option's .tbd version will be overriden\n",
+                    argv[index - 1]);
         }
 
         const char *const argument = argv[index];
@@ -415,14 +425,42 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         if (version == TBD_VERSION_NONE) {
             fprintf(stderr,
-                    "Unrecognized tbd-version: %s.\nRun --list-tbd-versions to "
-                    "see a list of valid tbd-versions\n",
+                    "Unrecognized .tbd version: %s.\nRun --list-tbd-versions "
+                    "to see a list of valid tbd-versions\n",
                     argument);
 
             exit(1);
         }
 
         tbd->info.version = version;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+    } else if (strcmp(option, "v1") == 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+            fputs("Note: Option -v has been provided multiple times.\nOlder "
+                  "option's .tbd version will be overriden\n",
+                  stderr);
+        }
+
+        tbd->info.version = TBD_VERSION_V1;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+    } else if (strcmp(option, "v2") == 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+            fputs("Note: Option -v has been provided multiple times.\nOlder "
+                  "option's .tbd version will be overriden\n",
+                  stderr);
+        }
+
+        tbd->info.version = TBD_VERSION_V2;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+    } else if (strcmp(option, "v3") == 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+            fputs("Note: Option -v has been provided multiple times.\nOlder "
+                  "option's .tbd version will be overriden\n",
+                  stderr);
+        }
+
+        tbd->info.version = TBD_VERSION_V3;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
     } else {
         return false;
     }

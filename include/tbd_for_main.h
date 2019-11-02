@@ -81,7 +81,9 @@ enum tbd_for_main_flags {
     F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9,
 
     F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION = 1ull << 10,
-    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 11
+    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 11,
+
+    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 12
 };
 
 enum tbd_for_main_filetype {

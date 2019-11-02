@@ -45,7 +45,11 @@ Both local and global options:
                                          To get the paths of all available images, use the option --list-dsc-images
         -v, --version,                   Specify version of .tbd files to convert to (default is v2).
                                          This applies to all files where tbd-version was not explicitly set.
-                                         To get a list of all available versions, use the option --list-tbd-versions
+                                         To get a list of all available versions, look at the options below, or use
+                                         the option --list-tbd-versions
+        -v1,                             Set version of .tbd files to version v1.
+        -v2,                             Set version of .tbd files to version v2. (This is the default .tbd version)
+        -v3,                             Set version of .tbd files to version v3.
 
 Ignore options:
         --ignore-clients,               Ignore clients field
@@ -63,12 +67,10 @@ General ignore options:
         --ignore-warnings,    Ignore any warnings (both a path and global option)
 
 Symbol options: (Both path and global options)
-        --allow-all-private-symbols,    Allow all non-external symbols (Not guaranteed to link at runtime)
-        --allow-private-normal-symbols, Allow all non-external symbols (Not guaranteed to link at runtime)
-        --allow-private-weak-symbols,   Allow all non-external weak symbols (Not guaranteed to link at runtime)
-        --allow-private-objc-symbols,   Allow all non-external objc-classes and ivars
+        --allow-private-objc-symbols,   Allow all non-external objc-symbols (classes, ivars, and ehtypes)
         --allow-private-objc-classes,   Allow all non-external objc-classes
-        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes
+        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.
+                                        objc-ehtype symbols are only recognized for .tbd version v3
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
 
 Field options: (Both path and global options)
@@ -76,6 +78,8 @@ Field options: (Both path and global options)
                                    A list of architectures can be found by using option --list-architectures.
                                    Replacing the list of architectures will automatically remove the uuids field.
                                    In addition, each exported symbol will have the replaced list of architectures
+        --replace-current-version, Provide a current-version to replace the one found in the provided input file(s)
+        --replace-compat-version,  Provide a compatibility-version to replace the one found in the provided input file(s)
         --replace-flags,           Provide flag(s) to replace flags found for .tbd files.
                                    A list of flags can be found by using option --list-tbd-flags
         --replace-objc-constraint, Provide an objc-constraint to replace the one found in the provided input file(s)
