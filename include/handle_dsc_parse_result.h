@@ -53,9 +53,6 @@ struct handle_dsc_image_parse_result_args {
     enum dsc_image_parse_result parse_result;
 };
 
-bool
-should_continue_for_dsc_image_parse_result(enum dsc_image_parse_result result);
-
 /*
  * full_path should be stored in args.dsc_dir_path.
  */

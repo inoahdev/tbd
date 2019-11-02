@@ -436,10 +436,7 @@ actually_parse_image(
                         tbd->parse_options,
                         0);
     
-    const bool should_continue =
-        should_continue_for_dsc_image_parse_result(parse_image_result);
-
-    if (!should_continue) {
+    if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
         clear_create_info(create_info, &original_info);
         print_image_error(iterate_info, image_path, parse_image_result);
 

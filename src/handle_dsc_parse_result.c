@@ -443,7 +443,7 @@ handle_dsc_image_parse_error_callback(
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
-                                        "objc-constraint that conflict with "
+                                        "objc-constraints that conflict with "
                                         "one another\r\n",
                                         cb_info->image_path);
 
@@ -497,7 +497,7 @@ handle_dsc_image_parse_error_callback(
                                       true,
                                       stderr,
                                       "\tImage (with path %s) has multiple "
-                                      "swift-version that conflict with one "
+                                      "swift-versions that conflict with one "
                                       "another\r\n",
                                       cb_info->image_path);
 
@@ -610,42 +610,6 @@ handle_dsc_image_parse_error_callback(
     }
 
     return true;
-}
-
-bool
-should_continue_for_dsc_image_parse_result(
-    const enum dsc_image_parse_result result)
-{
-    switch (result) {
-        case E_DSC_IMAGE_PARSE_OK:
-            return true;
-
-        case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
-        case E_DSC_IMAGE_PARSE_ALLOC_FAIL:
-        case E_DSC_IMAGE_PARSE_ARRAY_FAIL:
-        case E_DSC_IMAGE_PARSE_SEEK_FAIL:
-        case E_DSC_IMAGE_PARSE_READ_FAIL:
-        case E_DSC_IMAGE_PARSE_NO_MAPPING:
-        case E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL:
-        case E_DSC_IMAGE_PARSE_INVALID_RANGE:
-        case E_DSC_IMAGE_PARSE_NOT_A_MACHO:
-        case E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED:
-        case E_DSC_IMAGE_PARSE_NO_LOAD_COMMANDS:
-        case E_DSC_IMAGE_PARSE_TOO_MANY_LOAD_COMMANDS:
-        case E_DSC_IMAGE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
-        case E_DSC_IMAGE_PARSE_INVALID_LOAD_COMMAND:
-        case E_DSC_IMAGE_PARSE_TOO_MANY_SECTIONS:
-        case E_DSC_IMAGE_PARSE_INVALID_SECTION:
-        case E_DSC_IMAGE_PARSE_INVALID_CLIENT:
-        case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
-        case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
-        case E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE:
-        case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
-        case E_DSC_IMAGE_PARSE_NO_EXPORTS:
-            break;
-    }
-
-    return false;
 }
 
 void
