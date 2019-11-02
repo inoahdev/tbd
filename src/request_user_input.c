@@ -74,21 +74,30 @@ request_choice(const char *__notnull const prompt,
 }
 
 static char *
-request_input(const char *__notnull const prompt, const bool indent) {
-    if (indent) {
-        fputs("\t\t", stdout);
-    }
-
-    fprintf(stdout, "%s: ", prompt);
-    fflush(stdout);
-
+request_input(const char *__notnull const prompt,
+              const bool indent,
+              uint32_t *const length_out)
+{
     char *input = NULL;
 
     size_t input_size = 0;
-    ssize_t input_length = getline(&input, &input_size, stdin);
+    ssize_t input_length = 0;
 
     do {
-        if (input_length > 0) {
+        if (indent) {
+            fputs("\t\t", stdout);
+        }
+
+        fprintf(stdout, "%s: ", prompt);
+        fflush(stdout);
+
+        input_length = getline(&input, &input_size, stdin);
+
+        /*
+         * We have an empty user-input if we only have a new-line character.
+         */
+
+        if (input_length > 1) {
             break;
         }
 
@@ -100,17 +109,24 @@ request_input(const char *__notnull const prompt, const bool indent) {
 
             exit(1);
         }
-
-        input_length = getline(&input, &input_size, stdin);
     } while (true);
 
     fputc('\r', stdout);
 
     /*
+     * getline() returns to us a newline delimiter in our input-buffer.
+     */
+
+    uint32_t real_input_length = (uint32_t)input_length - 1;
+    if (length_out != NULL) {
+        *length_out = real_input_length;
+    }
+
+    /*
      * We need to remove the delimiter getline() returns back to us.
      */
 
-    input[input_length - 1] = '\0';
+    input[real_input_length] = '\0';
     return input;
 }
 
@@ -173,7 +189,7 @@ request_current_version(struct tbd_for_main *__notnull const global,
 
     do {
         const char *const input =
-            request_input("Replacement current-version?", indent);
+            request_input("Replacement current-version?", indent, NULL);
 
         current_version = parse_packed_version(input);
         if (current_version != -1) {
@@ -245,7 +261,7 @@ request_compat_version(struct tbd_for_main *__notnull const global,
 
     do {
         const char *const input =
-            request_input("Replacement compatibility-version?", indent);
+            request_input("Replacement compatibility-version?", indent, NULL);
 
         compat_version = parse_packed_version(input);
         if (compat_version != -1) {
@@ -311,16 +327,21 @@ request_install_name(struct tbd_for_main *__notnull const global,
         return false;
     }
 
+    uint32_t install_name_length = 0;
     const char *const install_name =
-        request_input("Replacement install-name?", indent);
+        request_input("Replacement install-name?",
+                      indent,
+                      &install_name_length);
 
     tbd->info.fields.install_name = install_name;
+    tbd->info.fields.install_name_length = install_name_length;
 
     tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.fields.install_name = install_name;
+        global->info.fields.install_name_length = install_name_length;
         global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
     }
 
@@ -379,7 +400,8 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         char *const input =
             request_input("Replacement objc-constraint? (Enter "
                           "--list-objc-constraint to list all objc-constraints",
-                          indent);
+                          indent,
+                          NULL);
 
         if (strcmp(input, "--list-objc_constraint") == 0) {
             print_objc_constraint_list();
@@ -457,16 +479,21 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         return false;
     }
 
+    uint32_t parent_umbrella_length = 0;
     const char *const parent_umbrella =
-        request_input("Replacement parent-umbrella?", indent);
+        request_input("Replacement parent-umbrella?",
+                      indent,
+                      &parent_umbrella_length);
 
     tbd->info.fields.parent_umbrella = parent_umbrella;
+    tbd->info.fields.parent_umbrella_length = parent_umbrella_length;
 
     tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         global->info.fields.parent_umbrella = parent_umbrella;
+        global->info.fields.parent_umbrella_length = parent_umbrella_length;
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
 
@@ -522,7 +549,8 @@ request_platform(struct tbd_for_main *__notnull const global,
         char *const input =
             request_input("Replacement platform? (Enter --list-platform to "
                           "list all platforms)",
-                          indent);
+                          indent,
+                          NULL);
 
         if (strcmp(input, "--list-platform") == 0) {
             print_platform_list();
@@ -600,9 +628,10 @@ request_swift_version(struct tbd_for_main *__notnull const global,
     uint32_t swift_version = 0;
 
     do {
-        char *const input = request_input("Replacement swift-version?", indent);
-        swift_version = parse_swift_version(input);
+        char *const input =
+            request_input("Replacement swift-version?", indent, NULL);
 
+        swift_version = parse_swift_version(input);
         if (swift_version == 0) {
             fprintf(stderr, "A swift-version of %s is invalid\n", input);
             free(input);
