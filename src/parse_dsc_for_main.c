@@ -1192,16 +1192,34 @@ parse_dsc_for_main_while_recursing(
                                             4,
                                             &write_path_length);
 
-    struct dsc_iterate_images_info iterate_info = {
-        .dsc_info = &dsc_info,
-        .dsc_dir_path = args.dsc_dir_path,
-        .dsc_name = args.dsc_name,
+    struct handle_dsc_image_parse_error_cb_info cb_info = {
+        .retained_info_in = args.retained_info_in,
+
         .global = args.global,
         .tbd = args.tbd,
+
+        .dsc_dir_path = args.dsc_dir_path,
+        .dsc_name = args.dsc_name,
+    };
+
+    struct dsc_iterate_images_info iterate_info = {
+        .dsc_info = &dsc_info,
+
+        .dsc_dir_path = args.dsc_dir_path,
+        .dsc_name = args.dsc_name,
+
+        .global = args.global,
+        .tbd = args.tbd,
+
         .write_path = write_path,
         .write_path_length = write_path_length,
+
         .retained_info = args.retained_info_in,
         .combine_file = args.combine_file,
+
+        .callback = handle_dsc_image_parse_error_callback,
+        .callback_info = &cb_info,
+
         .print_paths = args.print_paths,
         .parse_all_images = true
     };
