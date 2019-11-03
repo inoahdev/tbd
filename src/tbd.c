@@ -290,16 +290,17 @@ static void clear_exports_array(struct array *__notnull const list) {
     array_clear(list);
 }
 
-void tbd_create_info_clear(struct tbd_create_info *__notnull const info) {
+void
+tbd_create_info_clear_fields(struct tbd_create_info *__notnull const info) {
     if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
         free((char *)info->fields.install_name);
+        info->flags &= ~F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
     }
 
     if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
         free((char *)info->fields.parent_umbrella);
+        info->flags &= ~F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     }
-
-    info->version = 0;
 
     info->fields.archs = 0;
     info->fields.flags = 0;

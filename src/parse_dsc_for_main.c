@@ -66,17 +66,6 @@ enum dyld_cache_image_info_pad {
 };
 
 static void
-clear_create_info(struct tbd_create_info *__notnull const info_in,
-                  const struct tbd_create_info *__notnull const orig)
-{
-    tbd_create_info_clear(info_in);
-    const struct array exports = info_in->fields.exports;
-
-    *info_in = *orig;
-    info_in->fields.exports = exports;
-}
-
-static void
 print_messages_header(
     struct dsc_iterate_images_info *__notnull const iterate_info)
 {
@@ -425,7 +414,6 @@ actually_parse_image(
 
     cb_info->image_path = image_path;
 
-    const struct tbd_create_info original_info = *create_info;
     const enum dsc_image_parse_result parse_image_result =
         dsc_image_parse(create_info,
                         iterate_info->dsc_info,
@@ -437,7 +425,7 @@ actually_parse_image(
                         0);
     
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        clear_create_info(create_info, &original_info);
+        tbd_create_info_clear_fields(create_info);
         print_image_error(iterate_info, image_path, parse_image_result);
 
         return 1;
@@ -450,7 +438,7 @@ actually_parse_image(
     }
 
     write_out_tbd_info(iterate_info, tbd, image_path, image_path_length);
-    clear_create_info(create_info, &original_info);
+    tbd_create_info_clear_fields(create_info);
 
     return 0;
 }
