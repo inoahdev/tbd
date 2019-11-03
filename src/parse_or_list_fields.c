@@ -37,13 +37,13 @@ parse_architectures_list(int *__notnull const index_in,
 
     do {
         const char *const arch = argv[index];
+        const char arch_front = arch[0];
 
         /*
          * Quickly check whether our arch-string is either a path-string or
          * an option to avoid an unnecessary arch-info lookup.
          */
 
-        const char arch_front = arch[0];
         if (arch_front == '-' || arch_front == '/') {
             if (archs == 0) {
                 fputs("Please provide a list of architectures\n", stderr);
@@ -162,8 +162,9 @@ parse_objc_constraint(const char *__notnull const constraint) {
     return TBD_OBJC_CONSTRAINT_NO_VALUE;
 }
 
-static inline int get_digit_for_ch(const char ch) {
-    return (ch & 0xf);
+static inline
+uint32_t append_ch_to_number(const uint32_t number, const char ch) {
+    return ((number * 10) + (ch & 0xf));
 }
 
 uint32_t parse_swift_version(const char *__notnull const arg) {
@@ -179,7 +180,7 @@ uint32_t parse_swift_version(const char *__notnull const arg) {
             return 0;
         }
 
-        const uint32_t new_version = (version * 10) + get_digit_for_ch(ch);
+        const uint32_t new_version = append_ch_to_number(version, ch);
 
         /*
          * Check for any overflows when parsing out the number.
@@ -253,7 +254,7 @@ parse_component_til_ch(const char *__notnull *__notnull iter_in,
         }
 
         if (isdigit(ch)) {
-            const int new_result = (result * 10) + get_digit_for_ch(ch);
+            const int new_result = append_ch_to_number(result, ch);
 
             /*
              * Don't go above max, and don't overflow.
