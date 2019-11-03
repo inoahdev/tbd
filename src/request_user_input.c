@@ -54,6 +54,7 @@ request_choice(const char *__notnull const prompt,
          */
 
         if (input_length == 1) {
+            free(input);
             continue;
         }
 
@@ -198,15 +199,17 @@ request_current_version(struct tbd_for_main *__notnull const global,
     int64_t current_version = 0;
 
     do {
-        const char *const input =
+        char *const input =
             request_input("Replacement current-version", indent, NULL);
 
         current_version = parse_packed_version(input);
         if (current_version != -1) {
+            free(input);
             break;
         }
 
         fprintf(stderr, "%s is not a valid current-version\n", input);
+        free(input);
     } while (true);
 
     tbd->info.fields.current_version = (uint32_t)current_version;
@@ -270,15 +273,17 @@ request_compat_version(struct tbd_for_main *__notnull const global,
     int64_t compat_version = 0;
 
     do {
-        const char *const input =
+        char *const input =
             request_input("Replacement compatibility-version", indent, NULL);
 
         compat_version = parse_packed_version(input);
         if (compat_version != -1) {
+            free(input);
             break;
         }
 
         fprintf(stderr, "%s is not a valid compatibility-version\n", input);
+        free(input);
     } while (true);
 
     tbd->info.fields.compatibility_version = (uint32_t)compat_version;
