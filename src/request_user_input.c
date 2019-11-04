@@ -377,8 +377,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    const uint64_t info = *info_in;
-    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT) {
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT) {
         return false;
     }
 
@@ -462,8 +461,7 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    const uint64_t info = *info_in;
-    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA) {
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA) {
         return false;
     }
 
@@ -731,8 +729,7 @@ request_if_should_ignore_non_unique_uuids(
         return false;
     }
 
-    const uint64_t info = *info_in;
-    if (info & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS) {
+    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS) {
         return false;
     }
 

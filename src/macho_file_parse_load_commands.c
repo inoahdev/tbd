@@ -90,6 +90,8 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
             break;
         }
 
+        default:
+            break;
     }
 
     return false;
@@ -131,6 +133,9 @@ static inline bool is_image_info_section(const char name[16]) {
 
             break;
         }
+
+        default:
+            break;
     }
 
     return false;
@@ -438,10 +443,7 @@ parse_load_command(const struct parse_load_command_info parse_info,
             const enum tbd_platform info_platform = info_in->fields.platform;
             if (info_platform != TBD_PLATFORM_NONE && info_platform != platform)
             {
-                const bool found_build_version =
-                    *parse_info.found_build_version_in;
-
-                if (found_build_version) {
+                if (*parse_info.found_build_version_in) {
                     const bool should_continue =
                         call_callback(callback,
                                       info_in,
@@ -495,6 +497,15 @@ parse_load_command(const struct parse_load_command_info parse_info,
             }
 
             /*
+             * If our install-name is invalid, and our callback handles this for
+             * us, we have to ignore the install-name, but still parse out the
+             * current-version and compatibility-version.
+             */
+
+            bool ignore_install_name =
+                (tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME);
+
+            /*
              * The install-name should be fully contained within the
              * dylib-command, while not overlapping with the dylib-command's
              * basic information.
@@ -517,6 +528,8 @@ parse_load_command(const struct parse_load_command_info parse_info,
                 if (!should_continue) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                 }
+
+                ignore_install_name = true;
             }
 
             /*
@@ -558,7 +571,7 @@ parse_load_command(const struct parse_load_command_info parse_info,
                     info_in->fields.compatibility_version = compat_version;
                 }
 
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
+                if (!ignore_install_name) {
                     const char *install_name = name;
                     if (parse_info.copy_strings) {
                         install_name = alloc_and_copy(name, length);
@@ -613,7 +626,7 @@ parse_load_command(const struct parse_load_command_info parse_info,
                     }
                 }
 
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME)) {
+                if (!ignore_install_name) {
                     if (info_in->fields.install_name_length != length) {
                         const bool should_continue =
                             call_callback(
@@ -2068,12 +2081,9 @@ macho_file_parse_load_commands_from_map(
                      */
 
                     uint32_t sect_offset = sect->offset;
-                    if (sect_offset == 0) {
-                        continue;
-                    }
-
                     uint32_t sect_size = sect->size;
-                    if (sect_size == 0) {
+
+                    if (sect_offset == 0 || sect_size == 0) {
                         continue;
                     }
 
@@ -2180,12 +2190,9 @@ macho_file_parse_load_commands_from_map(
                      */
 
                     uint32_t sect_offset = sect->offset;
-                    if (sect_offset == 0) {
-                        continue;
-                    }
-
                     uint64_t sect_size = sect->size;
-                    if (sect_size == 0) {
+
+                    if (sect_offset == 0 || sect_size == 0) {
                         continue;
                     }
 

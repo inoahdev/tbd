@@ -653,8 +653,6 @@ path_remove_extension(const char *__notnull const path, const uint64_t length) {
         if (iter == path) {
             return length;
         }
-
-        iter -= 1;
     }
 
     const char *const rev_end = path - 1;

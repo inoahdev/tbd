@@ -45,11 +45,14 @@ handle_dsc_image_parse_error_callback(struct tbd_create_info *__notnull info_in,
 
 struct handle_dsc_image_parse_result_args {
     uint64_t *retained_info_in;
+
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+
     const char *dsc_dir_path;
     const char *dsc_name;
     const char *image_path;
+
     enum dsc_image_parse_result parse_result;
 };
 

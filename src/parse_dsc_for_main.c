@@ -300,8 +300,6 @@ write_out_tbd_info_for_image_path(
             3,
             &length);
 
-
-
     write_to_path(iterate_info, tbd, write_path, length);
     free(write_path);
 }

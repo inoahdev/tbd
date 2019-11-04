@@ -524,12 +524,9 @@ int main(const int argc, const char *const argv[]) {
 
                 struct stat info = {};
                 if (stat(full_path, &info) == 0) {
-                    const bool should_combine =
-                        (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
-
                     if (S_ISREG(info.st_mode)) {
                         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES &&
-                            !should_combine)
+                            !(tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS))
                         {
                             fputs("Writing to a regular file while recursing a "
                                   "directory is not supported.\nTo combine all "

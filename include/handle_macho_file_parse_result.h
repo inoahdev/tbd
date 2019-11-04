@@ -32,10 +32,13 @@ handle_macho_file_for_main_error_callback(
 
 struct handle_macho_file_parse_result_args {
     uint64_t *retained_info_in;
+
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+
     const char *dir_path;
     const char *name;
+
     enum macho_file_parse_result parse_result;
     bool print_paths;
 };
