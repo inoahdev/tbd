@@ -120,6 +120,9 @@ request_input(const char *__notnull const prompt,
 
             exit(1);
         }
+
+        free(input);
+        input = NULL;
     } while (true);
 
     fputc('\r', stdout);
