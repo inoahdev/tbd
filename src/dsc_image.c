@@ -35,9 +35,11 @@ static enum dsc_image_parse_result
 translate_macho_file_parse_result(const enum macho_file_parse_result result) {
     switch (result) {
         case E_MACHO_FILE_PARSE_OK:
-        case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
             break;
 
+        case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
+            return E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            
         case E_MACHO_FILE_PARSE_ALLOC_FAIL:
             return E_DSC_IMAGE_PARSE_ALLOC_FAIL;
 
