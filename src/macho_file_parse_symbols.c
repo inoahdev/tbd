@@ -501,14 +501,14 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    const bool needs_quotes = yaml_check_c_str(string, length);
-    if (needs_quotes) {
-        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
-    }
-
     export_info.string = alloc_and_copy(export_info.string, export_info.length);
     if (unlikely(export_info.string == NULL)) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+    }
+
+    const bool needs_quotes = yaml_check_c_str(string, length);
+    if (needs_quotes) {
+        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
     }
 
     const enum array_result add_export_info_result =
