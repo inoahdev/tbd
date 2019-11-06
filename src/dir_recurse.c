@@ -17,6 +17,7 @@
 #include "dir_recurse.h"
 #include "our_io.h"
 #include "path.h"
+#include "unused.h"
 
 enum dir_recurse_result
 dir_recurse(const char *__notnull const path,
@@ -96,6 +97,17 @@ dir_recurse(const char *__notnull const path,
     return E_DIR_RECURSE_OK;
 }
 
+static inline uint64_t
+get_name_length(struct dirent *__unused __notnull const entry,
+                const char *__unused __notnull const name)
+{
+#if defined(__APPLE__) || defined(_DIRENT_HAVE_D_NAMLEN)
+    return entry->d_namlen;
+#else
+    return strnlen(name, sizeof(entry->d_name));
+#endif
+}
+
 static enum dir_recurse_result
 recurse_dir_fd(const int dir_fd,
                const char *__notnull const dir_path,
@@ -147,15 +159,12 @@ recurse_dir_fd(const int dir_fd,
                     continue;
                 }
 
-                const uint64_t name_length =
-                    strnlen(name, sizeof(entry->d_name));
-
                 uint64_t subdir_path_length = 0;
                 char *const subdir_path =
                     path_append_component(dir_path,
                                           dir_path_length,
                                           name,
-                                          name_length,
+                                          get_name_length(entry, name),
                                           &subdir_path_length);
 
                 if (subdir_path == NULL) {
