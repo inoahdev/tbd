@@ -60,54 +60,36 @@ dir_recurse(const char *__notnull const path,
             return E_DIR_RECURSE_OK;
         }
 
-        const char *const name = entry->d_name;
-        if (memcmp(name, ".", sizeof(".")) == 0) {
+        if (entry->d_type != DT_REG) {
             continue;
         }
 
-        if (memcmp(name, "..", sizeof("..")) == 0) {
-            continue;
-        }
+        const int fd = our_openat(dir_fd, entry->d_name, open_flags);
+        if (fd < 0) {
+            const bool should_continue =
+                fail_callback(path,
+                              path_length,
+                              E_DIR_RECURSE_FAILED_TO_OPEN_FILE,
+                              entry,
+                              callback_info);
 
-        bool should_exit = false;
-        switch (entry->d_type) {
-            case DT_REG: {
-                const int fd = our_openat(dir_fd, name, open_flags);
-                if (fd < 0) {
-                    const bool should_continue =
-                        fail_callback(path,
-                                      path_length,
-                                      E_DIR_RECURSE_FAILED_TO_OPEN_FILE,
-                                      entry,
-                                      callback_info);
-
-                    if (!should_continue) {
-                        should_exit = true;
-                    }
-
-                    break;
-                }
-
-                if (!callback(path, path_length, fd, entry, callback_info)) {
-                    should_exit = true;
-                }
-
-                /*
-                 * We need to reset errno as we don't know what happened while
-                 * in callback().
-                 */
-
-                errno = 0;
+            if (!should_continue) {
                 break;
             }
 
-            default:
-                continue;
-        }
-
-        if (should_exit) {
             break;
         }
+
+        if (!callback(path, path_length, fd, entry, callback_info)) {
+            break;
+        }
+
+        /*
+         * We need to reset errno as we don't know what happened while
+         * in callback().
+         */
+
+        errno = 0;
     } while (true);
 
     closedir(dir);
@@ -129,6 +111,9 @@ recurse_dir_fd(const int dir_fd,
         return E_DIR_RECURSE_FAILED_TO_OPEN;
     }
 
+    bool found_dot = false;
+    bool found_two_dot = false;
+
     errno = 0;
 
     do {
@@ -148,17 +133,20 @@ recurse_dir_fd(const int dir_fd,
         }
 
         const char *const name = entry->d_name;
-        if (memcmp(name, ".", sizeof(".")) == 0) {
-            continue;
-        }
-
-        if (memcmp(name, "..", sizeof("..")) == 0) {
-            continue;
-        }
-
         bool should_exit = false;
+
         switch (entry->d_type) {
             case DT_DIR: {
+                if (!found_dot && memcmp(name, ".", sizeof(".")) == 0) {
+                    found_dot = true;
+                    continue;
+                }
+
+                if (!found_two_dot && memcmp(name, "..", sizeof("..")) == 0) {
+                    found_two_dot = true;
+                    continue;
+                }
+
                 const uint64_t name_length =
                     strnlen(name, sizeof(entry->d_name));
 
@@ -258,6 +246,9 @@ recurse_dir_fd(const int dir_fd,
                 errno = 0;
                 break;
             }
+
+            default:
+                continue;
         }
 
         if (should_exit) {
