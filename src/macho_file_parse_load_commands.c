@@ -371,8 +371,7 @@ struct parse_load_command_info {
     struct symtab_command *symtab_out;
 };
 
-static inline
-enum macho_file_parse_result
+static enum macho_file_parse_result
 parse_load_command(const struct parse_load_command_info parse_info,
                    const macho_file_parse_error_callback callback,
                    void *const cb_info)
