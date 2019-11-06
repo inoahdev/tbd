@@ -39,7 +39,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
             return E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK;
-            
+
         case E_MACHO_FILE_PARSE_ALLOC_FAIL:
             return E_DSC_IMAGE_PARSE_ALLOC_FAIL;
 

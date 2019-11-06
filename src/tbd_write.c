@@ -467,7 +467,7 @@ tbd_write_platform(FILE *__notnull const file, const enum tbd_platform platform)
     switch (platform) {
         case TBD_PLATFORM_NONE:
             return 1;
-            
+
         case TBD_PLATFORM_MACOS:
             if (fprintf(file, "platform:%-14smacosx\n", "") < 0) {
                 return 1;

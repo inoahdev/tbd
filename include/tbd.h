@@ -146,7 +146,7 @@ tbd_uuid_info_is_unique_comparator(const void *__notnull array_item,
 
 enum tbd_version {
     TBD_VERSION_NONE,
-    
+
     TBD_VERSION_V1,
     TBD_VERSION_V2,
     TBD_VERSION_V3

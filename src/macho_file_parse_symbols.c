@@ -149,7 +149,7 @@ is_objc_class_symbol(const char *__notnull const symbol,
             /*
              * Avoid returning "objc" symbols with no content.
              */
-            
+
             if (unlikely(length == 1)) {
                 return false;
             }

@@ -492,7 +492,7 @@ path_has_dir_component(const char *__notnull const path,
             if (ch_is_slash(*component)) {
                 const char *const end =
                     get_end_of_slashes_with_end(path, path_end);
-                
+
                 if (end == NULL) {
                     return true;
                 }

@@ -442,7 +442,7 @@ parse_macho_file_for_main_while_recursing(
         if (!should_combine) {
             free(write_path);
         }
-        
+
         tbd_create_info_clear_fields(create_info);
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }

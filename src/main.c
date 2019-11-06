@@ -1174,7 +1174,7 @@ int main(const int argc, const char *const argv[]) {
                               "for files from directory at the provided path\n",
                               stderr);
                     }
-                    
+
                     return 1;
                 }
 

@@ -193,7 +193,7 @@ open_file_for_path(struct dsc_iterate_images_info *__notnull const info,
     if (should_combine) {
         info->combine_file = file;
     }
-    
+
     return file;
 }
 
@@ -419,7 +419,7 @@ actually_parse_image(
                         tbd->macho_options,
                         tbd->parse_options,
                         0);
-    
+
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
         tbd_create_info_clear_fields(create_info);
         print_image_error(iterate_info, image_path, parse_image_result);

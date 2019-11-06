@@ -553,7 +553,7 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
         }
 
         info_in->fields.archs |= arch_bit;
-        
+
         /*
          * To avoid re-lookup of arch-info, we store the pointer within the
          * cputype and cpusubtype fields.
