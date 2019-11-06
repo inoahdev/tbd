@@ -343,7 +343,8 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
      * flags for private-symbols were provided.
      */
 
-    if (!is_external_symbol(n_type)) {
+    const bool is_external = is_external_symbol(n_type);
+    if (!is_external) {
         const uint64_t allow_priv_symbols_flags =
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS |
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS |
@@ -359,10 +360,10 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
      * write-out later for the tbd-file.
      */
 
+    uint32_t length = 0;
+
     enum tbd_export_type type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
     const uint32_t max_len = strsize - index;
-
-    uint32_t length = 0;
 
     if (likely(!(n_desc & N_WEAK_DEF))) {
         /*
@@ -378,7 +379,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
             if (is_objc_class_symbol(str, first, max_len, &string, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS)) {
-                    if (!is_external_symbol(n_type)) {
+                    if (!is_external) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
                 }
@@ -396,7 +397,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
             } else if (is_objc_ivar_symbol(str, first, max_len, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
-                    if (!is_external_symbol(n_type)) {
+                    if (!is_external) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
                 }
@@ -417,7 +418,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             } else if (is_objc_ehtype_sym(str, first, max_len, vers, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
                 {
-                    if (!is_external_symbol(n_type)) {
+                    if (!is_external) {
                         return E_MACHO_FILE_PARSE_OK;
                     }
                 }
@@ -425,7 +426,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 string += 15;
                 type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
             } else {
-                if (!is_external_symbol(n_type)) {
+                if (!is_external) {
                     return E_MACHO_FILE_PARSE_OK;
                 }
 
@@ -435,7 +436,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
             }
         } else {
-            if (!is_external_symbol(n_type)) {
+            if (!is_external) {
                 return E_MACHO_FILE_PARSE_OK;
             }
 
@@ -445,7 +446,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             }
         }
     } else {
-        if (!is_external_symbol(n_type)) {
+        if (!is_external) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
