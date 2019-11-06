@@ -66,7 +66,8 @@ handle_dsc_image_parse_result_while_recursing(
 
 void
 print_dsc_image_parse_error(const char *__notnull image_path,
-                            enum dsc_image_parse_result parse_error);
+                            enum dsc_image_parse_result parse_error,
+                            bool indent);
 
 #endif /* HANDLE_DSC_PARSE_RESULT_H */
 

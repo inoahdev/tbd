@@ -115,9 +115,7 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
     }
 
     print_messages_header(iterate_info);
-
-    fputc('\t', stderr);
-    print_dsc_image_parse_error(image_path, result);
+    print_dsc_image_parse_error(image_path, result, true);
 }
 
 enum write_to_path_result {

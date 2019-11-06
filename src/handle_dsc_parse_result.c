@@ -614,8 +614,19 @@ handle_dsc_image_parse_error_callback(
 
 void
 print_dsc_image_parse_error(const char *__notnull const image_path,
-                            const enum dsc_image_parse_result parse_error)
+                            const enum dsc_image_parse_result parse_error,
+                            const bool indent)
 {
+    if (parse_error == E_DSC_IMAGE_PARSE_OK ||
+        parse_error == E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK)
+    {
+        return;
+    }
+
+    if (indent) {
+        fputc('\t', stderr);
+    }
+
     switch (parse_error) {
         case E_DSC_IMAGE_PARSE_OK:
         case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
