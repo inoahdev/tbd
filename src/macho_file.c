@@ -67,6 +67,10 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
     if (info_in->fields.flags != 0) {
         if (info_in->fields.flags & TBD_FLAG_FLAT_NAMESPACE) {
             if (!(header.flags & MH_TWOLEVEL)) {
+                if (callback == NULL) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
                 const bool should_ignore =
                     callback(info_in,
                              ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
@@ -80,6 +84,10 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 
         if (info_in->fields.flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (header.flags & MH_APP_EXTENSION_SAFE) {
+                if (callback == NULL) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
                 const bool should_ignore =
                     callback(info_in,
                              ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
