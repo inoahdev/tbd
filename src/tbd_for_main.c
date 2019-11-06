@@ -554,11 +554,6 @@ tbd_for_main_create_write_path_for_recursing(
                                          extension,
                                          extension_length,
                                          length_out);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
     } else {
         write_path =
             path_append_comp_and_ext(tbd->write_path,
@@ -568,11 +563,11 @@ tbd_for_main_create_write_path_for_recursing(
                                      extension,
                                      extension_length,
                                      length_out);
+    }
 
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
+    if (write_path == NULL) {
+        fputs("Failed to allocate memory\n", stderr);
+        exit(1);
     }
 
     return write_path;
@@ -649,11 +644,6 @@ tbd_for_main_create_dsc_folder_path(
                                          extension,
                                          extension_length,
                                          length_out);
-
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
     } else {
         write_path =
             path_append_comp_and_ext(tbd->write_path,
@@ -663,11 +653,11 @@ tbd_for_main_create_dsc_folder_path(
                                      extension,
                                      extension_length,
                                      length_out);
+    }
 
-        if (write_path == NULL) {
-            fputs("Failed to allocate memory\n", stderr);
-            exit(1);
-        }
+    if (write_path == NULL) {
+        fputs("Failed to allocate memory\n", stderr);
+        exit(1);
     }
 
     return write_path;
