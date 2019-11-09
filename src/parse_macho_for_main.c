@@ -54,8 +54,8 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
 
         if (errno != ENOENT) {
             fprintf(stderr,
-                    "Failed to get information on object at the provided "
-                    "write-path (%s), error: %s\n",
+                    "Failed to get information on object at the provided write-"
+                    "path (%s), error: %s\n",
                     write_path,
                     strerror(errno));
 
@@ -67,8 +67,8 @@ static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
 
     if (!S_ISREG(sbuf.st_mode)) {
         fprintf(stderr,
-                "Writing to a regular file while parsing a mach-o file "
-                "(at path %s) is not supported",
+                "Writing to a regular file while parsing a mach-o file (at "
+                "path %s) is not supported",
                 tbd->parse_path);
 
         exit(1);
@@ -116,8 +116,8 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
 
             if (args->print_paths) {
                 fprintf(stderr,
-                        "File (at path %s) has an object at its "
-                        "write-path: %s\n",
+                        "File (at path %s) has an object at its write-path: %s"
+                        "\n",
                         args->dir_path,
                         write_path);
             } else {
@@ -170,8 +170,8 @@ open_file_for_path_while_recursing(
             }
 
             fprintf(stderr,
-                    "Skipping over file (at path %s/%s) as a file "
-                    "at its write-path (%s) already exists\n",
+                    "Skipping over file (at path %s/%s) as a file at its "
+                    "write-path (%s) already exists\n",
                     args->dir_path,
                     args->name,
                     write_path);

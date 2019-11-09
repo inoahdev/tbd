@@ -198,11 +198,10 @@ open_file_for_path(struct dsc_iterate_images_info *__notnull const info,
 }
 
 static void
-write_to_path(
-    struct dsc_iterate_images_info *__notnull const iterate_info,
-    const struct tbd_for_main *__notnull const tbd,
-    char *__notnull const write_path,
-    const uint64_t write_path_length)
+write_to_path(struct dsc_iterate_images_info *__notnull const iterate_info,
+              const struct tbd_for_main *__notnull const tbd,
+              char *__notnull const write_path,
+              const uint64_t write_path_length)
 {
     char *terminator = NULL;
     const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
@@ -1066,13 +1065,13 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         if (tbd_write_footer(combine_file)) {
             if (args.print_paths) {
                 fprintf(stderr,
-                        "Failed to write footer for combined .tbd file "
-                        "for files from directory (at path %s)\n",
+                        "Failed to write footer for combined .tbd file for "
+                        "files from directory (at path %s)\n",
                         args.dsc_dir_path);
             } else {
-                fputs("Failed to write footer for combined .tbd file "
-                        "for files from directory at the provided path\n",
-                        stderr);
+                fputs("Failed to write footer for combined .tbd file for files "
+                      "from directory at the provided path\n",
+                      stderr);
             }
 
             return E_PARSE_DSC_FOR_MAIN_CLOSE_COMBINE_FILE_FAIL;

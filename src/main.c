@@ -324,7 +324,7 @@ int main(const int argc, const char *const argv[]) {
 
         if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
             if (index != 1 || argc != 2) {
-                fputs("--help needs to be run by itself\n", stderr);
+                fprintf(stderr, "%s needs to be run by itself\n", argument);
                 return 1;
             }
 
@@ -391,9 +391,7 @@ int main(const int argc, const char *const argv[]) {
                     } else if (strcmp(in_opt, "combine-tbds") == 0) {
                         tbd->flags |= F_TBD_FOR_MAIN_COMBINE_TBDS;
                     } else {
-                        fprintf(stderr,
-                                "Unrecognized option: %s\n",
-                                in_arg);
+                        fprintf(stderr, "Unrecognized option: %s\n", in_arg);
 
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
@@ -694,7 +692,27 @@ int main(const int argc, const char *const argv[]) {
                     continue;
                 }
 
+                /*
+                 * Check for any conflicts in the provided options.
+                 */
+
                 const char *const path = inner_arg;
+                if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
+                    if (tbd.info.fields.flags != 0) {
+                        fprintf(stderr,
+                                "Both modifying tbd-flags, and removing the "
+                                "field entirely, for file(s) at path (%s), is "
+                                "not supported.\nPlease select only one "
+                                "option\n",
+                                path);
+
+                        tbd_for_main_destroy(&global);
+                        destroy_tbds_array(&tbds);
+
+                        return 1;
+                    }
+                }
+
                 if (strcmp(path, "stdin") != 0) {
                     /*
                      * We may have been provided with a path relative to the
@@ -834,27 +852,6 @@ int main(const int argc, const char *const argv[]) {
                         tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
-                        return 1;
-                    }
-                }
-
-                /*
-                 * Check for any conflicts in the provided options.
-                 */
-
-                if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
-                    if (tbd.info.fields.flags != 0) {
-                        fprintf(stderr,
-                                "Both modifying tbd-flags, and removing the "
-                                "field entirely, for file(s) at path (%s), is "
-                                "not supported.\nPlease select only one "
-                                "option\n",
-                                path);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        free(tbd.parse_path);
                         return 1;
                     }
                 }

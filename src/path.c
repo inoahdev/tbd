@@ -173,7 +173,8 @@ path_append_comp_and_ext(const char *__notnull const path,
                                  &comp_copy_length);
     }
 
-    if (ch_is_slash(comp_iter[comp_copy_length - 1])) {
+    const char comp_back = comp_iter[comp_copy_length - 1];
+    if (ch_is_slash(comp_back)) {
         /*
          * Remove any back-slashes we have.
          */
@@ -313,14 +314,10 @@ path_append_two_comp_and_ext(const char *__notnull const path,
             if (second_comp_copy_len == 0) {
                 return NULL;
             }
-            result =
-                alloc_and_copy(second_comp_iter, second_comp_copy_len);
-
+            result = alloc_and_copy(second_comp_iter, second_comp_copy_len);
             *length_out = second_comp_copy_len;
         } else if (second_comp_copy_len == 0) {
-            result =
-                alloc_and_copy(first_comp_iter, first_comp_copy_len);
-
+            result = alloc_and_copy(first_comp_iter, first_comp_copy_len);
             *length_out = first_comp_copy_len;
         }
 
@@ -414,13 +411,8 @@ path_append_two_comp_and_ext(const char *__notnull const path,
     second_combi_comp_iter += 1;
 
     memcpy(combined, path, path_copy_length);
-    memcpy(first_combi_comp_iter,
-           first_comp_iter,
-           first_comp_copy_len);
-
-    memcpy(second_combi_comp_iter,
-           second_comp_iter,
-           second_comp_copy_len);
+    memcpy(first_combi_comp_iter, first_comp_iter, first_comp_copy_len);
+    memcpy(second_combi_comp_iter, second_comp_iter, second_comp_copy_len);
 
     if (extension_copy_length != 0) {
         char *const combi_ext_iter =
@@ -430,10 +422,7 @@ path_append_two_comp_and_ext(const char *__notnull const path,
          * Add one for the extension-dot.
          */
 
-        memcpy(combi_ext_iter + 1,
-               extension_copy_iter,
-               extension_copy_length);
-
+        memcpy(combi_ext_iter + 1, extension_copy_iter, extension_copy_length);
         *combi_ext_iter = '.';
     }
 
@@ -523,7 +512,6 @@ path_has_dir_component(const char *__notnull const path,
             }
 
             iter = get_end_of_slashes_with_end(iter_end, path_end);
-
             if (iter == NULL) {
                 return false;
             }

@@ -29,7 +29,7 @@ bool range_contains_other(const struct range left, const struct range right) {
     return true;
 }
 
-bool ranges_overlap(struct range left, struct range right) {
+bool ranges_overlap(const struct range left, const struct range right) {
     /*
      * right's begin is inside left's range.
      */
