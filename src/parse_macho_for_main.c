@@ -133,11 +133,10 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
 }
 
 static FILE *
-open_file_for_path_while_recursing(
-    struct parse_macho_for_main_args *const args,
-    char *__notnull const write_path,
-    const uint64_t write_path_length,
-    char **__notnull const terminator_out)
+open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
+                                   char *__notnull const write_path,
+                                   const uint64_t write_path_length,
+                                   char **__notnull const terminator_out)
 {
     FILE *file = args->combine_file;
     if (file != NULL) {

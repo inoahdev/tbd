@@ -49,9 +49,9 @@ struct dsc_iterate_images_info {
     struct tbd_for_main *tbd;
 
     struct array images;
-    uint64_t *retained_info;
 
     FILE *combine_file;
+    uint64_t *retained_info;
 
     macho_file_parse_error_callback callback;
     struct handle_dsc_image_parse_error_cb_info *callback_info;

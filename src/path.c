@@ -76,22 +76,22 @@ path_append_component(const char *__notnull const path,
     const char *comp_iter = component;
     uint64_t comp_copy_length = component_length;
 
-    if (ch_is_slash(comp_iter[0])) {
-        /*
-         * We prefer to add the slash ourselves.
-         */
+    /*
+     * We prefer adding the slash ourselves.
+     */
 
+    if (ch_is_slash(comp_iter[0])) {
         comp_iter =
             remove_front_slashes(comp_iter,
                                  comp_copy_length,
                                  &comp_copy_length);
     }
 
-    if (ch_is_slash(comp_iter[comp_copy_length - 1])) {
-        /*
-         * Remove any back-slashes we have.
-         */
+    /*
+     * Remove any back-slashes if we have any.
+     */
 
+    if (ch_is_slash(comp_iter[comp_copy_length - 1])) {
         comp_copy_length = remove_end_slashes(comp_iter, comp_copy_length);
     }
 
@@ -159,14 +159,14 @@ path_append_comp_and_ext(const char *__notnull const path,
 
     const uint64_t path_copy_length = remove_end_slashes(path, path_length);
 
+    /*
+     * We prefer adding the slash ourselves.
+     */
+
     const char *comp_iter = component;
     uint64_t comp_copy_length = component_length;
 
     if (ch_is_slash(comp_iter[0])) {
-        /*
-         * We prefer to add the slash ourselves.
-         */
-
         comp_iter =
             remove_front_slashes(comp_iter,
                                  comp_copy_length,
@@ -191,10 +191,9 @@ path_append_comp_and_ext(const char *__notnull const path,
      * needs to be accounted for.
      */
 
-    const char *ext_copy_iter = ext;
+    const char *ext_copy_iter = go_to_end_of_dots(ext);
     uint64_t ext_copy_length = 0;
 
-    ext_copy_iter = go_to_end_of_dots(ext);
     if (ext_copy_iter != NULL) {
         const uint64_t drift = (uint64_t)(ext_copy_iter - ext);
         ext_copy_length = ext_length - drift;
@@ -243,10 +242,7 @@ path_append_comp_and_ext(const char *__notnull const path,
          * Add one for the extension-dot.
          */
 
-        memcpy(combined_extension_iter + 1,
-               ext_copy_iter,
-               ext_copy_length);
-
+        memcpy(combined_extension_iter + 1, ext_copy_iter, ext_copy_length);
         *combined_extension_iter = '.';
     }
 
@@ -278,22 +274,22 @@ path_append_two_comp_and_ext(const char *__notnull const path,
     const char *first_comp_iter = first_comp;
     uint64_t first_comp_copy_len = first_comp_len;
 
-    if (ch_is_slash(first_comp[0])) {
-        /*
-         * We prefer to add the slash ourselves.
-         */
+    /*
+     * We prefer adding the slash ourselves.
+     */
 
+    if (ch_is_slash(first_comp[0])) {
         first_comp_iter =
             remove_front_slashes(first_comp_iter,
                                  first_comp_copy_len,
                                  &first_comp_copy_len);
     }
 
-    if (ch_is_slash(first_comp_iter[first_comp_copy_len - 1])) {
-        /*
-         * Remove any back-slashes we have.
-         */
+    /*
+      * Remove any back-slashes if we have any.
+      */
 
+    if (ch_is_slash(first_comp_iter[first_comp_copy_len - 1])) {
         first_comp_copy_len =
             remove_end_slashes(first_comp_iter, first_comp_copy_len);
     }
@@ -314,6 +310,7 @@ path_append_two_comp_and_ext(const char *__notnull const path,
             if (second_comp_copy_len == 0) {
                 return NULL;
             }
+            
             result = alloc_and_copy(second_comp_iter, second_comp_copy_len);
             *length_out = second_comp_copy_len;
         } else if (second_comp_copy_len == 0) {
@@ -359,7 +356,7 @@ path_append_two_comp_and_ext(const char *__notnull const path,
     uint64_t extension_copy_length = 0;
 
     /*
-     * We prefer to add the dot ourselves.
+     * We prefer adding the dot ourselves.
      */
 
     extension_copy_iter = go_to_end_of_dots(ext);
@@ -380,7 +377,7 @@ path_append_two_comp_and_ext(const char *__notnull const path,
         2;
 
     /*
-     * Add one for the path-extension dot, which we prefer to add ourselves.
+     * Add one for the path-extension dot we prefer adding ourselves.
      */
 
     if (extension_copy_length != 0) {
