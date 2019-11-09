@@ -1264,20 +1264,18 @@ macho_file_parse_load_commands_from_file(
      * Ensure that sizeofcmds doesn't go past mach-o's size.
      */
 
-    const struct range full_range = parse_info->full_range;
+    const struct range macho_range = parse_info->macho_range;
     const struct range available_range = parse_info->available_range;
 
-    const uint64_t macho_size = full_range.end - full_range.begin;
-    const uint32_t max_sizeofcmds =
-        (uint32_t)(available_range.end - available_range.begin);
+    const uint64_t macho_size = range_get_size(macho_range);
+    const uint64_t max_sizeofcmds = range_get_size(available_range);
 
     if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
-    const uint64_t header_size = available_range.begin - full_range.begin;
     const struct range relative_range = {
-        .begin = header_size,
+        .begin = parse_info->header_size,
         .end = macho_size
     };
 
@@ -1470,7 +1468,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                full_range,
+                                                macho_range,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -1586,7 +1584,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                full_range,
+                                                macho_range,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -1757,7 +1755,7 @@ macho_file_parse_load_commands_from_file(
     const struct macho_file_parse_symbols_args args = {
         .info_in = info_in,
 
-        .full_range = full_range,
+        .macho_range = macho_range,
         .available_range = available_range,
 
         .arch_bit = arch_bit,

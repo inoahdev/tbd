@@ -24,7 +24,7 @@ struct mf_parse_lc_from_file_info {
     const struct arch_info *arch;
     uint64_t arch_bit;
 
-    struct range full_range;
+    struct range macho_range;
     struct range available_range;
 
     bool is_64;
@@ -32,6 +32,7 @@ struct mf_parse_lc_from_file_info {
 
     uint32_t ncmds;
     uint32_t sizeofcmds;
+    uint32_t header_size;
 
     uint64_t tbd_options;
     uint64_t options;

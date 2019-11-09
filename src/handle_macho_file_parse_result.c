@@ -1182,8 +1182,8 @@ handle_macho_file_parse_result_while_recursing(
                         args.dir_path,
                         args.name);
             } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has no symbol-table\n",
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has no symbol-table\n",
                       stderr);
             }
 

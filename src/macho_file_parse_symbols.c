@@ -546,7 +546,7 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)args.full_range.begin;
+    uint32_t absolute_symoff = (uint32_t)args.macho_range.begin;
     if (guard_overflow_add(&absolute_symoff, args.symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -570,7 +570,7 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)args.full_range.begin;
+    uint32_t absolute_stroff = (uint32_t)args.macho_range.begin;
     if (guard_overflow_add(&absolute_stroff, args.stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
@@ -752,7 +752,7 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)args.full_range.begin;
+    uint32_t absolute_symoff = (uint32_t)args.macho_range.begin;
     if (guard_overflow_add(&absolute_symoff, args.symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
@@ -776,7 +776,7 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)args.full_range.begin;
+    uint32_t absolute_stroff = (uint32_t)args.macho_range.begin;
     if (guard_overflow_add(&absolute_stroff, args.stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }

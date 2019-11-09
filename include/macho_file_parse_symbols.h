@@ -19,10 +19,10 @@ struct macho_file_parse_symbols_args {
     struct tbd_create_info *info_in;
 
     /*
-     * Note: macho_file_parse_symbols_[64_]from_map() does not use full_range.
+     * Note: macho_file_parse_symbols_[64_]from_map() does not use macho_range.
      */
 
-    struct range full_range;
+    struct range macho_range;
     struct range available_range;
 
     uint64_t arch_bit;
