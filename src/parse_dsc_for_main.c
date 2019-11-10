@@ -370,18 +370,17 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
                    const char *__notnull const path,
                    const uint64_t path_length)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE) {
-        write_to_path(info, tbd, tbd->write_path, tbd->write_path_length);
-        return;
-    }
-
     if (info->parse_all_images) {
         write_out_tbd_info_for_image_path(info, tbd, path, path_length);
         return;
     }
 
-    char *const write_path = info->write_path;
-    if (write_path == NULL) {
+    if (tbd->flags & F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE) {
+        write_to_path(info, tbd, tbd->write_path, tbd->write_path_length);
+        return;
+    }
+
+    if (tbd->write_path == NULL) {
         /*
          * Since write_path won't be NULL while recursing, we can be sure
          * dsc_dir_path points to a full-path.
@@ -389,6 +388,8 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
 
         const char *const dsc_path = info->dsc_dir_path;
         tbd_for_main_write_to_stdout_for_dsc_image(tbd, dsc_path, path, true);
+
+        return;
     }
 
     write_out_tbd_info_for_filter_list(info, tbd, path, path_length);
