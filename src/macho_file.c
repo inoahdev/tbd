@@ -178,6 +178,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 static enum macho_file_parse_result
 verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
                    struct fat_arch *__notnull const arch,
+                   const uint64_t macho_base,
                    const struct range available_range,
                    const bool is_big_endian,
                    const uint64_t tbd_options,
@@ -217,9 +218,19 @@ verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
+    uint64_t full_arch_offset = macho_base;
+    if (guard_overflow_add(&full_arch_offset, arch_offset)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t full_arch_end = macho_base;
+    if (guard_overflow_add(&full_arch_end, arch_end)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
     const struct range arch_range = {
-        .begin = arch_offset,
-        .end = arch_end
+        .begin = full_arch_offset,
+        .end = full_arch_end
     };
 
     if (!range_contains_other(available_range, arch_range)) {
@@ -344,6 +355,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
     const enum macho_file_parse_result verify_first_arch_result =
         verify_fat_32_arch(info_in,
                            first_arch,
+                           macho_range.begin,
                            available_range,
                            is_big_endian,
                            tbd_options,
@@ -361,6 +373,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         const enum macho_file_parse_result verify_arch_result =
             verify_fat_32_arch(info_in,
                                arch,
+                               macho_range.begin,
                                available_range,
                                is_big_endian,
                                tbd_options,
@@ -480,6 +493,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 static enum macho_file_parse_result
 verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
                    struct fat_arch_64 *__notnull const arch,
+                   const uint64_t macho_base,
                    const struct range available_range,
                    const bool is_big_endian,
                    const uint64_t tbd_options,
@@ -523,9 +537,19 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
     }
 
+    uint64_t full_arch_offset = macho_base;
+    if (guard_overflow_add(&full_arch_offset, arch_offset)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
+    uint64_t full_arch_end = macho_base;
+    if (guard_overflow_add(&full_arch_end, arch_end)) {
+        return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+    }
+
     const struct range arch_range = {
-        .begin = arch_offset,
-        .end = arch_end
+        .begin = full_arch_offset,
+        .end = full_arch_end
     };
 
     if (!range_contains_other(available_range, arch_range)) {
@@ -625,6 +649,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     const enum macho_file_parse_result verify_first_arch_result =
         verify_fat_64_arch(info_in,
                            first_arch,
+                           macho_range.begin,
                            available_range,
                            is_big_endian,
                            tbd_options,
@@ -646,6 +671,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         const enum macho_file_parse_result verify_arch_result =
             verify_fat_64_arch(info_in,
                                arch,
+                               macho_range.begin,
                                available_range,
                                is_big_endian,
                                tbd_options,
