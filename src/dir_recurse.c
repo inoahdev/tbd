@@ -19,6 +19,17 @@
 #include "path.h"
 #include "unused.h"
 
+static inline uint64_t
+get_name_length(struct dirent *__unused __notnull const entry,
+                const char *__unused __notnull const name)
+{
+#if defined(__APPLE__) || defined(_DIRENT_HAVE_D_NAMLEN)
+    return entry->d_namlen;
+#else
+    return strnlen(name, sizeof(entry->d_name));
+#endif
+}
+
 enum dir_recurse_result
 dir_recurse(const char *__notnull const path,
             const uint64_t path_length,
@@ -65,7 +76,9 @@ dir_recurse(const char *__notnull const path,
             continue;
         }
 
-        const int fd = our_openat(dir_fd, entry->d_name, open_flags);
+        const char *const entry_name = entry->d_name;
+        const int fd = our_openat(dir_fd, entry_name, open_flags);
+
         if (fd < 0) {
             const bool should_continue =
                 fail_callback(path,
@@ -81,7 +94,8 @@ dir_recurse(const char *__notnull const path,
             break;
         }
 
-        if (!callback(path, path_length, fd, entry, callback_info)) {
+        const uint64_t name_len = get_name_length(entry, entry_name);
+        if (!callback(path, path_length, fd, entry, name_len, callback_info)) {
             break;
         }
 
@@ -95,17 +109,6 @@ dir_recurse(const char *__notnull const path,
 
     closedir(dir);
     return E_DIR_RECURSE_OK;
-}
-
-static inline uint64_t
-get_name_length(struct dirent *__unused __notnull const entry,
-                const char *__unused __notnull const name)
-{
-#if defined(__APPLE__) || defined(_DIRENT_HAVE_D_NAMLEN)
-    return entry->d_namlen;
-#else
-    return strnlen(name, sizeof(entry->d_name));
-#endif
 }
 
 static enum dir_recurse_result
@@ -144,11 +147,10 @@ recurse_dir_fd(const int dir_fd,
             return E_DIR_RECURSE_OK;
         }
 
-        const char *const name = entry->d_name;
         bool should_exit = false;
-
         switch (entry->d_type) {
             case DT_DIR: {
+                const char *const name = entry->d_name;
                 if (!found_dot && memcmp(name, ".", sizeof(".")) == 0) {
                     found_dot = true;
                     continue;
@@ -160,11 +162,13 @@ recurse_dir_fd(const int dir_fd,
                 }
 
                 uint64_t subdir_path_length = 0;
+
+                const uint64_t name_length = get_name_length(entry, name);
                 char *const subdir_path =
                     path_append_component(dir_path,
                                           dir_path_length,
                                           name,
-                                          get_name_length(entry, name),
+                                          name_length,
                                           &subdir_path_length);
 
                 if (subdir_path == NULL) {
@@ -220,7 +224,9 @@ recurse_dir_fd(const int dir_fd,
             }
 
             case DT_REG: {
+                const char *const name = entry->d_name;
                 const int fd = our_openat(dir_fd, name, file_open_flags);
+
                 if (fd < 0) {
                     const bool should_continue =
                         fail_callback(dir_path,
@@ -236,11 +242,13 @@ recurse_dir_fd(const int dir_fd,
                     break;
                 }
 
+                const uint64_t name_length = get_name_length(entry, name);
                 const bool callback_result =
                     callback(dir_path,
                              dir_path_length,
                              fd,
                              entry,
+                             name_length,
                              callback_info);
 
                 if (!callback_result) {

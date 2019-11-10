@@ -36,6 +36,7 @@ typedef bool
                         uint64_t dir_path_length,
                         int fd,
                         struct dirent *__notnull dirent,
+                        uint64_t name_length,
                         void *info);
 
 /*

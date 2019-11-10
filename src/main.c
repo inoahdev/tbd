@@ -53,6 +53,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
                            const uint64_t dir_path_length,
                            const int fd,
                            struct dirent *const dirent,
+                           const uint64_t name_length,
                            void *__notnull const callback_info)
 {
     struct recurse_callback_info *const recurse_info =
@@ -72,7 +73,6 @@ recurse_directory_callback(const char *__notnull const dir_path,
     uint64_t magic_size = 0;
 
     const char *const name = dirent->d_name;
-    const uint64_t name_length = strnlen(name, sizeof(dirent->d_name));
     const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
 
     if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
