@@ -525,7 +525,9 @@ array_add_item_with_cached_index_info(
 }
 
 enum array_result
-array_copy(struct array *const array, struct array *__notnull const array_out) {
+array_copy(struct array *__notnull const array,
+           struct array *__notnull const array_out)
+{
     const uint64_t used_size = array_get_used_size(array);
     void *const data = malloc(used_size);
 
