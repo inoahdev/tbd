@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -315,6 +316,12 @@ tbd_create_info_clear_fields(struct tbd_create_info *__notnull const info) {
     info->fields.compatibility_version = 0;
     info->fields.swift_version = 0;
 
+    const uint64_t remove_flags =
+        ~(F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES |
+          F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED);
+
+    info->flags &= remove_flags;
+
     clear_exports_array(&info->fields.exports);
     array_clear(&info->fields.uuids);
 }
@@ -353,6 +360,8 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     info->fields.current_version = 0;
     info->fields.compatibility_version = 0;
     info->fields.swift_version = 0;
+
+    info->flags = 0;
 
     destroy_exports_array(&info->fields.exports);
     array_destroy(&info->fields.uuids);
