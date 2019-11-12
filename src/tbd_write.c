@@ -13,8 +13,11 @@
 #include "yaml.h"
 
 int
-tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
-    if (archs == 0) {
+tbd_write_archs_for_header(FILE *__notnull const file,
+                           const uint64_t archs,
+                           const uint64_t archs_count)
+{
+    if (archs_count == 0) {
         return 1;
     }
 
@@ -42,8 +45,8 @@ tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
         archs_iter >>= 1;
         if (archs_iter == 0) {
             /*
-             * If we're already at the end, simply write the end bracket for the
-             * arch-info list and return.
+             * If we're already at the end, simply write the end bracket for
+             * the arch-info list and return.
              */
 
             if (fputs(" ]\n", file) < 0) {
@@ -67,8 +70,7 @@ tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
      */
 
     uint64_t counter = 1;
-
-    do {
+    for (uint64_t i = 1; i != archs_count; i++) {
         index += 1;
 
         if (archs_iter & 1) {
@@ -92,10 +94,7 @@ tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
         }
 
         archs_iter >>= 1;
-        if (archs_iter == 0) {
-            break;
-        }
-    } while (true);
+    }
 
     /*
      * Write the end bracket for the arch-info list and return.
@@ -109,8 +108,11 @@ tbd_write_archs_for_header(FILE *__notnull const file, const uint64_t archs) {
 }
 
 static int
-write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
-    if (archs == 0) {
+write_archs_for_exports(FILE *__notnull const file,
+                        const uint64_t archs,
+                        const uint64_t archs_count)
+{
+    if (archs_count == 0) {
         return 1;
     }
 
@@ -161,8 +163,7 @@ write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
      */
 
     uint64_t counter = 1;
-
-    do {
+    for (uint64_t i = 1; i != archs_count; i++) {
         index += 1;
 
         if (archs_iter & 1) {
@@ -186,10 +187,7 @@ write_archs_for_exports(FILE *__notnull const file, const uint64_t archs) {
         }
 
         archs_iter >>= 1;
-        if (archs_iter == 0) {
-            break;
-        }
-    } while (true);
+    }
 
     /*
      * Write the end bracket for the arch-info list and return.
@@ -888,7 +886,9 @@ tbd_write_exports(FILE *__notnull const file,
 
     do {
         const uint64_t archs = info->archs;
-        if (write_archs_for_exports(file, archs)) {
+        const uint64_t archs_count = info->archs_count;
+
+        if (write_archs_for_exports(file, archs, archs_count)) {
             return 1;
         }
 
@@ -1019,7 +1019,7 @@ tbd_write_exports_with_full_archs(
         return 1;
     }
 
-    if (write_archs_for_exports(file, export->archs)) {
+    if (write_archs_for_exports(file, export->archs, export->archs_count)) {
         return 1;
     }
 

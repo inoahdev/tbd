@@ -192,7 +192,10 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    if (tbd_write_archs_for_header(file, info->fields.archs)) {
+    const uint64_t archs = info->fields.archs;
+    const uint64_t archs_count = info->fields.archs_count;
+
+    if (tbd_write_archs_for_header(file, archs, archs_count)) {
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
