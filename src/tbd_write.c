@@ -70,7 +70,9 @@ tbd_write_archs_for_header(FILE *__notnull const file,
      */
 
     uint64_t counter = 1;
-    for (uint64_t i = 1; i != archs_count; i++) {
+    uint64_t i = 1;
+
+    while (i != archs_count) {
         index += 1;
 
         if (archs_iter & 1) {
@@ -83,7 +85,9 @@ tbd_write_archs_for_header(FILE *__notnull const file,
              * Break lines for every seven archs written out.
              */
 
+            i++;
             counter++;
+
             if (counter == 7) {
                 if (fprintf(file, "\n%-19s", "") < 0) {
                     return 1;
@@ -163,7 +167,9 @@ write_archs_for_exports(FILE *__notnull const file,
      */
 
     uint64_t counter = 1;
-    for (uint64_t i = 1; i != archs_count; i++) {
+    uint64_t i = 1;
+
+    while (i != archs_count) {
         index += 1;
 
         if (archs_iter & 1) {
@@ -176,7 +182,9 @@ write_archs_for_exports(FILE *__notnull const file,
              * Break lines for every seven archs written out.
              */
 
+            i++;
             counter++;
+
             if (counter == 7) {
                 if (fprintf(file, "\n%-19s", "") < 0) {
                     return 1;
