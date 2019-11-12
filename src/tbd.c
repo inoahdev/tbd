@@ -15,14 +15,14 @@
 #include "tbd_write.h"
 
 int
-tbd_export_info_comparator(const void *__notnull const array_item,
+tbd_symbol_info_comparator(const void *__notnull const array_item,
                            const void *__notnull const item)
 {
-    const struct tbd_export_info *const array_info =
-        (const struct tbd_export_info *)array_item;
+    const struct tbd_symbol_info *const array_info =
+        (const struct tbd_symbol_info *)array_item;
 
-    const struct tbd_export_info *const info =
-        (const struct tbd_export_info *)item;
+    const struct tbd_symbol_info *const info =
+        (const struct tbd_symbol_info *)item;
 
     const uint64_t array_archs_count = array_info->archs_count;
     const uint64_t archs_count = info->archs_count;
@@ -42,8 +42,8 @@ tbd_export_info_comparator(const void *__notnull const array_item,
         return -1;
     }
 
-    const enum tbd_export_type array_type = array_info->type;
-    const enum tbd_export_type type = info->type;
+    const enum tbd_symbol_type array_type = array_info->type;
+    const enum tbd_symbol_type type = info->type;
 
     if (array_type > type) {
         return 1;
@@ -97,17 +97,17 @@ tbd_export_info_comparator(const void *__notnull const array_item,
  */
 
 int
-tbd_export_info_no_archs_comparator(const void *__notnull const array_item,
+tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
                                     const void *__notnull const item)
 {
-    const struct tbd_export_info *const array_info =
-        (const struct tbd_export_info *)array_item;
+    const struct tbd_symbol_info *const array_info =
+        (const struct tbd_symbol_info *)array_item;
 
-    const struct tbd_export_info *const info =
-        (const struct tbd_export_info *)item;
+    const struct tbd_symbol_info *const info =
+        (const struct tbd_symbol_info *)item;
 
-    const enum tbd_export_type array_type = array_info->type;
-    const enum tbd_export_type type = info->type;
+    const enum tbd_symbol_type array_type = array_info->type;
+    const enum tbd_symbol_type type = info->type;
 
     if (array_type > type) {
         return 1;
@@ -263,13 +263,29 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (!(options & O_TBD_CREATE_IGNORE_EXPORTS)) {
+        const struct array *const exports = &info->fields.exports;
         if (info->flags & F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS) {
-            if (tbd_write_exports_with_full_archs(info, file)) {
+            if (tbd_write_exports_with_full_archs(info, exports, file)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
         } else {
-            if (tbd_write_exports(file, &info->fields.exports, version)) {
+            if (tbd_write_exports(file, exports, version)) {
                 return E_TBD_CREATE_WRITE_FAIL;
+            }
+        }
+    }
+
+    if (version != TBD_VERSION_V1) {
+        if (!(options & O_TBD_CREATE_IGNORE_UNDEFINEDS)) {
+            const struct array *const list = &info->fields.undefineds;
+            if (info->flags & F_TBD_CREATE_INFO_UNDEFINEDS_HAVE_FULL_ARCHS) {
+                if (tbd_write_undefineds_with_full_archs(info, list, file)) {
+                    return E_TBD_CREATE_WRITE_FAIL;
+                }
+            } else {
+                if (tbd_write_undefineds(file, list, version)) {
+                    return E_TBD_CREATE_WRITE_FAIL;
+                }
             }
         }
     }
@@ -283,9 +299,9 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     return E_TBD_CREATE_OK;
 }
 
-static void clear_exports_array(struct array *__notnull const list) {
-    struct tbd_export_info *info = list->data;
-    const struct tbd_export_info *const end = list->data_end;
+static void clear_symbols_array(struct array *__notnull const list) {
+    struct tbd_symbol_info *info = list->data;
+    const struct tbd_symbol_info *const end = list->data_end;
 
     for (; info != end; info++) {
         free(info->string);
@@ -325,13 +341,15 @@ tbd_create_info_clear_fields(struct tbd_create_info *__notnull const info) {
 
     info->flags &= remove_flags;
 
-    clear_exports_array(&info->fields.exports);
+    clear_symbols_array(&info->fields.exports);
+    clear_symbols_array(&info->fields.undefineds);
+
     array_clear(&info->fields.uuids);
 }
 
-static void destroy_exports_array(struct array *__notnull const list) {
-    struct tbd_export_info *info = list->data;
-    const struct tbd_export_info *const end = list->data_end;
+static void destroy_symbols_array(struct array *__notnull const list) {
+    struct tbd_symbol_info *info = list->data;
+    const struct tbd_symbol_info *const end = list->data_end;
 
     for (; info != end; info++) {
         free(info->string);
@@ -366,6 +384,8 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
 
     info->flags = 0;
 
-    destroy_exports_array(&info->fields.exports);
+    destroy_symbols_array(&info->fields.exports);
+    destroy_symbols_array(&info->fields.undefineds);
+
     array_destroy(&info->fields.uuids);
 }

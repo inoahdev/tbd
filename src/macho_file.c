@@ -887,14 +887,18 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         /*
-         * If the exports were created with a full arch-set, they are already
-         * sorted.
+         * If exports and undefineds were created with a full arch-set, they are
+         * already sorted.
          */
 
         if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {
             array_sort_with_comparator(&info_in->fields.exports,
-                                       sizeof(struct tbd_export_info),
-                                       tbd_export_info_comparator);
+                                       sizeof(struct tbd_symbol_info),
+                                       tbd_symbol_info_comparator);
+
+            array_sort_with_comparator(&info_in->fields.undefineds,
+                                       sizeof(struct tbd_symbol_info),
+                                       tbd_symbol_info_comparator);
         } else {
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
         }

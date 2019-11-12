@@ -96,39 +96,39 @@ enum tbd_platform {
     TBD_PLATFORM_ZIPPERED
 };
 
-enum tbd_export_type {
-    TBD_EXPORT_TYPE_NONE,
+enum tbd_symbol_type {
+    TBD_SYMBOL_TYPE_NONE,
 
-    TBD_EXPORT_TYPE_CLIENT,
-    TBD_EXPORT_TYPE_REEXPORT,
-    TBD_EXPORT_TYPE_NORMAL_SYMBOL,
-    TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL,
-    TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL,
-    TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL,
-    TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL
+    TBD_SYMBOL_TYPE_CLIENT,
+    TBD_SYMBOL_TYPE_REEXPORT,
+    TBD_SYMBOL_TYPE_NORMAL,
+    TBD_SYMBOL_TYPE_OBJC_CLASS,
+    TBD_SYMBOL_TYPE_OBJC_EHTYPE,
+    TBD_SYMBOL_TYPE_OBJC_IVAR,
+    TBD_SYMBOL_TYPE_WEAK_DEF
 };
 
-enum tbd_export_info_flags {
-    F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES = 1ull << 0
+enum tbd_symbol_info_flags {
+    F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES = 1ull << 0
 };
 
-struct tbd_export_info {
+struct tbd_symbol_info {
     uint64_t archs;
     uint64_t archs_count;
 
     char *string;
-    enum tbd_export_type type;
+    enum tbd_symbol_type type;
 
     uint32_t length;
     uint64_t flags;
 };
 
 int
-tbd_export_info_comparator(const void *__notnull array_item,
+tbd_symbol_info_comparator(const void *__notnull array_item,
                            const void *__notnull item);
 
 int
-tbd_export_info_no_archs_comparator(const void *__notnull array_item,
+tbd_symbol_info_no_archs_comparator(const void *__notnull array_item,
                                     const void *__notnull item);
 
 struct tbd_uuid_info {
@@ -166,7 +166,8 @@ enum tbd_create_info_flags {
      * does not check for archs.
      */
 
-    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS = 1ull << 4
+    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS    = 1ull << 4,
+    F_TBD_CREATE_INFO_UNDEFINEDS_HAVE_FULL_ARCHS = 1ull << 5
 };
 
 struct tbd_create_info_fields {
@@ -189,6 +190,7 @@ struct tbd_create_info_fields {
     uint32_t swift_version;
 
     struct array exports;
+    struct array undefineds;
     struct array uuids;
 };
 
@@ -213,8 +215,9 @@ enum tbd_create_options {
     O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 5,
     O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1ull << 6,
     O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 7,
-    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 8,
-    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 9
+    O_TBD_CREATE_IGNORE_UNDEFINEDS            = 1ull << 8,
+    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 9,
+    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 10
 };
 
 enum tbd_create_result

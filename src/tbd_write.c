@@ -112,9 +112,9 @@ tbd_write_archs_for_header(FILE *__notnull const file,
 }
 
 static int
-write_archs_for_exports(FILE *__notnull const file,
-                        const uint64_t archs,
-                        const uint64_t archs_count)
+write_archs_for_symbol_arrays(FILE *__notnull const file,
+                              const uint64_t archs,
+                              const uint64_t archs_count)
 {
     if (archs_count == 0) {
         return 1;
@@ -714,15 +714,16 @@ tbd_write_uuids(FILE *__notnull const file,
 }
 
 static int
-write_export_type_key(FILE *__notnull const file,
-                      const enum tbd_export_type type,
-                      const enum tbd_version version)
+write_symbol_type_key(FILE *__notnull const file,
+                      const enum tbd_symbol_type type,
+                      const enum tbd_version version,
+                      const bool is_export)
 {
     switch (type) {
-        case TBD_EXPORT_TYPE_NONE:
+        case TBD_SYMBOL_TYPE_NONE:
             return 1;
 
-        case TBD_EXPORT_TYPE_CLIENT: {
+        case TBD_SYMBOL_TYPE_CLIENT: {
             if (version == TBD_VERSION_V1) {
                 if (fprintf(file, "%-4sallowed-clients:%-4s[ ", "", "") < 0) {
                     return 1;
@@ -736,44 +737,50 @@ write_export_type_key(FILE *__notnull const file,
             break;
         }
 
-        case TBD_EXPORT_TYPE_REEXPORT:
+        case TBD_SYMBOL_TYPE_REEXPORT:
             if (fprintf(file, "%-4sre-exports:%9s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_EXPORT_TYPE_NORMAL_SYMBOL:
+        case TBD_SYMBOL_TYPE_NORMAL:
             if (fprintf(file, "%-4ssymbols:%12s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL:
+        case TBD_SYMBOL_TYPE_OBJC_CLASS:
             if (fprintf(file, "%-4sobjc-classes:%7s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL:
+        case TBD_SYMBOL_TYPE_OBJC_EHTYPE:
             if (fprintf(file, "%-4sobjc-eh-types:%6s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL:
+        case TBD_SYMBOL_TYPE_OBJC_IVAR:
             if (fprintf(file, "%-4sobjc-ivars:%9s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
-        case TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL:
-            if (fprintf(file, "%-4sweak-def-symbols:%3s[ ", "", "") < 0) {
-                return 1;
+        case TBD_SYMBOL_TYPE_WEAK_DEF:
+            if (is_export) {
+                if (fprintf(file, "%-4sweak-def-symbols:%3s[ ", "", "") < 0) {
+                    return 1;
+                }
+            } else {
+                if (fprintf(file, "%-4sweak-ref-symbols:%3s[ ", "", "") < 0) {
+                    return 1;
+                }
             }
 
             break;
@@ -782,7 +789,7 @@ write_export_type_key(FILE *__notnull const file,
     return 0;
 }
 
-static inline int end_written_export_array(FILE *__notnull const file) {
+static inline int end_written_symbol_array(FILE *__notnull const file) {
     static const char *const end = " ]\n";
     if (fwrite(end, 3, 1, file) != 1) {
         return 1;
@@ -860,11 +867,11 @@ write_comma_or_newline(FILE *__notnull const file,
 }
 
 static inline int
-write_export_info(FILE *__notnull const file,
-                  const struct tbd_export_info *__notnull const info)
+write_symbol_info(FILE *__notnull const file,
+                  const struct tbd_symbol_info *__notnull const info)
 {
     const bool needs_quotes =
-        (info->flags & F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES);
+        (info->flags & F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES);
 
     return write_yaml_string(file, info->string, info->length, needs_quotes);
 }
@@ -874,8 +881,8 @@ tbd_write_exports(FILE *__notnull const file,
                   const struct array *__notnull const exports,
                   const enum tbd_version version)
 {
-    const struct tbd_export_info *info = exports->data;
-    const struct tbd_export_info *const end = exports->data_end;
+    const struct tbd_symbol_info *info = exports->data;
+    const struct tbd_symbol_info *const end = exports->data_end;
 
     if (info == end) {
         return 0;
@@ -896,24 +903,24 @@ tbd_write_exports(FILE *__notnull const file,
         const uint64_t archs = info->archs;
         const uint64_t archs_count = info->archs_count;
 
-        if (write_archs_for_exports(file, archs, archs_count)) {
+        if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
             return 1;
         }
 
-        enum tbd_export_type type = info->type;
-        if (write_export_type_key(file, type, version)) {
+        enum tbd_symbol_type type = info->type;
+        if (write_symbol_type_key(file, type, version, true)) {
             return 1;
         }
 
-        if (write_export_info(file, info)) {
+        if (write_symbol_info(file, info)) {
             return 1;
         }
 
         line_length = line_length_initial + info->length;
 
         /*
-         * Iterate over the rest of the export-infos, writing all the
-         * export-type arrays until we reach different archs.
+         * Iterate over the rest of the symbol-infos, writing all the
+         * symbol-type arrays until we reach different archs.
          */
 
         do {
@@ -921,11 +928,11 @@ tbd_write_exports(FILE *__notnull const file,
 
             /*
              * If we've written out all exports, simply end the current
-             * export-type array and return.
+             * symbol-type array and return.
              */
 
             if (info == end) {
-                if (end_written_export_array(file)) {
+                if (end_written_symbol_array(file)) {
                     return 1;
                 }
 
@@ -933,13 +940,13 @@ tbd_write_exports(FILE *__notnull const file,
             }
 
             /*
-             * If the current export-info doesn't have matching archs to the
-             * previous ones, end the current export-type array and break out.
+             * If the current symbol-info doesn't have matching archs to the
+             * previous ones, end the current symbol-type array and break out.
              */
 
             const uint64_t inner_archs = info->archs;
             if (inner_archs != archs) {
-                if (end_written_export_array(file)) {
+                if (end_written_symbol_array(file)) {
                     return 1;
                 }
 
@@ -947,27 +954,27 @@ tbd_write_exports(FILE *__notnull const file,
             }
 
             /*
-             * If the current export-info has a different type from the previous
-             * ones written out, end the current-export-info array and create
-             * the new one of the current export-info.
+             * If the current symbol-info has a different type from the previous
+             * ones written out, end the current-symbol-info array and create
+             * the new one of the current symbol-info.
              */
 
-            const enum tbd_export_type inner_type = info->type;
+            const enum tbd_symbol_type inner_type = info->type;
             if (inner_type != type) {
-                if (end_written_export_array(file)) {
+                if (end_written_symbol_array(file)) {
                     return 1;
                 }
 
-                if (write_export_type_key(file, inner_type, version)) {
+                if (write_symbol_type_key(file, inner_type, version, true)) {
                     return 1;
                 }
 
-                if (write_export_info(file, info)) {
+                if (write_symbol_info(file, info)) {
                     return 1;
                 }
 
                 /*
-                 * Reset the line-length after ending the previous export-type
+                 * Reset the line-length after ending the previous symbol-type
                  * array.
                  */
 
@@ -998,7 +1005,7 @@ tbd_write_exports(FILE *__notnull const file,
                     break;
             }
 
-            if (write_export_info(file, info)) {
+            if (write_symbol_info(file, info)) {
                 return 1;
             }
 
@@ -1012,12 +1019,11 @@ tbd_write_exports(FILE *__notnull const file,
 int
 tbd_write_exports_with_full_archs(
     const struct tbd_create_info *__notnull const info,
+    const struct array *__notnull const exports,
     FILE *__notnull const file)
 {
-    const struct array *const exports = &info->fields.exports;
-
-    const struct tbd_export_info *export = exports->data;
-    const struct tbd_export_info *const end = exports->data_end;
+    const struct tbd_symbol_info *export = exports->data;
+    const struct tbd_symbol_info *const end = exports->data_end;
 
     if (export == end) {
         return 0;
@@ -1027,18 +1033,21 @@ tbd_write_exports_with_full_archs(
         return 1;
     }
 
-    if (write_archs_for_exports(file, export->archs, export->archs_count)) {
+    const uint64_t archs = export->archs;
+    const uint64_t archs_count = export->archs_count;
+
+    if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
         return 1;
     }
 
     const enum tbd_version version = info->version;
-    enum tbd_export_type type = export->type;
+    enum tbd_symbol_type type = export->type;
 
-    if (write_export_type_key(file, type, version)) {
+    if (write_symbol_type_key(file, type, version, true)) {
         return 1;
     }
 
-    if (write_export_info(file, export)) {
+    if (write_symbol_info(file, export)) {
         return 1;
     }
 
@@ -1048,12 +1057,12 @@ tbd_write_exports_with_full_archs(
         export++;
 
         /*
-         * If we've written out all exports, simply end the current export-type
+         * If we've written out all exports, simply end the current symbol-type
          * array and return.
          */
 
         if (export == end) {
-            if (end_written_export_array(file)) {
+            if (end_written_symbol_array(file)) {
                 return 1;
             }
 
@@ -1061,27 +1070,27 @@ tbd_write_exports_with_full_archs(
         }
 
         /*
-         * If the current export-info has a different type from the previous
-         * ones written out, end the current-export-info array and create the
-         * new one of the current export-info.
+         * If the current symbol-info has a different type from the previous
+         * ones written out, end the current-symbol-info array and create the
+         * new one of the current symbol-info.
          */
 
-        const enum tbd_export_type inner_type = export->type;
+        const enum tbd_symbol_type inner_type = export->type;
         if (inner_type != type) {
-            if (end_written_export_array(file)) {
+            if (end_written_symbol_array(file)) {
                 return 1;
             }
 
-            if (write_export_type_key(file, inner_type, version)) {
+            if (write_symbol_type_key(file, inner_type, version, true)) {
                 return 1;
             }
 
-            if (write_export_info(file, export)) {
+            if (write_symbol_info(file, export)) {
                 return 1;
             }
 
             /*
-             * Reset the line-length after ending the previous export-type
+             * Reset the line-length after ending the previous symbol-type
              * array.
              */
 
@@ -1112,7 +1121,262 @@ tbd_write_exports_with_full_archs(
                 break;
         }
 
-        if (write_export_info(file, export)) {
+        if (write_symbol_info(file, export)) {
+            return 1;
+        }
+
+        line_length += length;
+    } while (true);
+
+    return 0;
+}
+
+int
+tbd_write_undefineds(FILE *__notnull const file,
+                     const struct array *__notnull const undefineds,
+                     const enum tbd_version version)
+{
+    const struct tbd_symbol_info *info = undefineds->data;
+    const struct tbd_symbol_info *const end = undefineds->data_end;
+
+    if (info == end) {
+        return 0;
+    }
+
+    if (fputs("undefineds:\n", file) < 0) {
+        return 1;
+    }
+
+    /*
+     * Store the length of the current-line written out (excluding the
+     * beginning spaces).
+     */
+
+    uint32_t line_length = 0;
+
+    do {
+        const uint64_t archs = info->archs;
+        const uint64_t archs_count = info->archs_count;
+
+        if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
+            return 1;
+        }
+
+        enum tbd_symbol_type type = info->type;
+        if (write_symbol_type_key(file, type, version, false)) {
+            return 1;
+        }
+
+        if (write_symbol_info(file, info)) {
+            return 1;
+        }
+
+        line_length = line_length_initial + info->length;
+
+        /*
+         * Iterate over the rest of the symbol-infos, writing all the
+         * symbol-type arrays until we reach different archs.
+         */
+
+        do {
+            info++;
+
+            /*
+             * If we've written out all exports, simply end the current
+             * symbol-type array and return.
+             */
+
+            if (info == end) {
+                if (end_written_symbol_array(file)) {
+                    return 1;
+                }
+
+                return 0;
+            }
+
+            /*
+             * If the current symbol-info doesn't have matching archs to the
+             * previous ones, end the current symbol-type array and break out.
+             */
+
+            const uint64_t inner_archs = info->archs;
+            if (inner_archs != archs) {
+                if (end_written_symbol_array(file)) {
+                    return 1;
+                }
+
+                break;
+            }
+
+            /*
+             * If the current symbol-info has a different type from the previous
+             * ones written out, end the current-symbol-info array and create
+             * the new one of the current symbol-info.
+             */
+
+            const enum tbd_symbol_type inner_type = info->type;
+            if (inner_type != type) {
+                if (end_written_symbol_array(file)) {
+                    return 1;
+                }
+
+                if (write_symbol_type_key(file, inner_type, version, false)) {
+                    return 1;
+                }
+
+                if (write_symbol_info(file, info)) {
+                    return 1;
+                }
+
+                /*
+                 * Reset the line-length after ending the previous symbol-type
+                 * array.
+                 */
+
+                line_length = line_length_initial + info->length;
+                type = inner_type;
+
+                continue;
+            }
+
+            /*
+             * Write either a comma or a newline before writing the next export
+             * to preserve a limit on line-lengths.
+             */
+
+            const uint32_t length = info->length;
+            const enum write_comma_result write_comma_result =
+                write_comma_or_newline(file, line_length, length);
+
+            switch (write_comma_result) {
+                case E_WRITE_COMMA_OK:
+                    break;
+
+                case E_WRITE_COMMA_WRITE_FAIL:
+                    return 1;
+
+                case E_WRITE_COMMA_RESET_LINE_LENGTH:
+                    line_length = line_length_initial;
+                    break;
+            }
+
+            if (write_symbol_info(file, info)) {
+                return 1;
+            }
+
+            line_length += length;
+        } while (true);
+    } while (info != end);
+
+    return 0;
+}
+
+int
+tbd_write_undefineds_with_full_archs(
+    const struct tbd_create_info *__notnull const info,
+    const struct array *__notnull const undefineds,
+    FILE *__notnull const file)
+{
+    const struct tbd_symbol_info *undefined = undefineds->data;
+    const struct tbd_symbol_info *const end = undefineds->data_end;
+
+    if (undefined == end) {
+        return 0;
+    }
+
+    if (fputs("exports:\n", file) < 0) {
+        return 1;
+    }
+
+    const uint64_t archs = undefined->archs;
+    const uint64_t archs_count = undefined->archs_count;
+
+    if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
+        return 1;
+    }
+
+    const enum tbd_version version = info->version;
+    enum tbd_symbol_type type = undefined->type;
+
+    if (write_symbol_type_key(file, type, version, false)) {
+        return 1;
+    }
+
+    if (write_symbol_info(file, undefined)) {
+        return 1;
+    }
+
+    uint32_t line_length = line_length_initial + undefined->length;
+
+    do {
+        undefined++;
+
+        /*
+         * If we've written out all exports, simply end the current symbol-type
+         * array and return.
+         */
+
+        if (undefined == end) {
+            if (end_written_symbol_array(file)) {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        /*
+         * If the current symbol-info has a different type from the previous
+         * ones written out, end the current-symbol-info array and create the
+         * new one of the current symbol-info.
+         */
+
+        const enum tbd_symbol_type inner_type = undefined->type;
+        if (inner_type != type) {
+            if (end_written_symbol_array(file)) {
+                return 1;
+            }
+
+            if (write_symbol_type_key(file, inner_type, version, false)) {
+                return 1;
+            }
+
+            if (write_symbol_info(file, undefined)) {
+                return 1;
+            }
+
+            /*
+             * Reset the line-length after ending the previous symbol-type
+             * array.
+             */
+
+            line_length = line_length_initial + undefined->length;
+            type = inner_type;
+
+            continue;
+        }
+
+        /*
+         * Write either a comma or a newline before writing the next export to
+         * preserve a limit on line-lengths.
+         */
+
+        const uint32_t length = undefined->length;
+        const enum write_comma_result write_comma_result =
+            write_comma_or_newline(file, line_length, length);
+
+        switch (write_comma_result) {
+            case E_WRITE_COMMA_OK:
+                break;
+
+            case E_WRITE_COMMA_WRITE_FAIL:
+                return 1;
+
+            case E_WRITE_COMMA_RESET_LINE_LENGTH:
+                line_length = line_length_initial;
+                break;
+        }
+
+        if (write_symbol_info(file, undefined)) {
             return 1;
         }
 

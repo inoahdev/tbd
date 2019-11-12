@@ -269,12 +269,12 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
 static enum macho_file_parse_result
 add_export_to_info(struct tbd_create_info *__notnull const info_in,
                    const uint64_t arch_bit,
-                   const enum tbd_export_type type,
+                   const enum tbd_symbol_type type,
                    const char *__notnull const string,
                    const uint32_t length,
                    const uint64_t tbd_options)
 {
-    struct tbd_export_info export_info = {
+    struct tbd_symbol_info export_info = {
         .archs = arch_bit,
         .archs_count = 1,
         .length = length,
@@ -290,11 +290,11 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
     struct array *const exports = &info_in->fields.exports;
     struct array_cached_index_info cached_info = {};
 
-    struct tbd_export_info *const existing_info =
+    struct tbd_symbol_info *const existing_info =
         array_find_item_in_sorted(exports,
                                   sizeof(export_info),
                                   &export_info,
-                                  tbd_export_info_no_archs_comparator,
+                                  tbd_symbol_info_no_archs_comparator,
                                   &cached_info);
 
     if (existing_info != NULL) {
@@ -320,7 +320,7 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
         yaml_check_c_str(export_info.string, export_info.length);
 
     if (needs_quotes) {
-        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+        export_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
     }
 
     const enum array_result add_export_info_result =
@@ -719,7 +719,7 @@ parse_load_command(const struct parse_load_command_info parse_info,
             const enum macho_file_parse_result add_reexport_result =
                 add_export_to_info(info_in,
                                    parse_info.arch_bit,
-                                   TBD_EXPORT_TYPE_REEXPORT,
+                                   TBD_SYMBOL_TYPE_REEXPORT,
                                    string,
                                    length,
                                    tbd_options);
@@ -799,7 +799,7 @@ parse_load_command(const struct parse_load_command_info parse_info,
             const enum macho_file_parse_result add_client_result =
                 add_export_to_info(info_in,
                                    parse_info.arch_bit,
-                                   TBD_EXPORT_TYPE_CLIENT,
+                                   TBD_SYMBOL_TYPE_CLIENT,
                                    string,
                                    length,
                                    tbd_options);

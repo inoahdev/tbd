@@ -19,6 +19,7 @@
 #include "guard_overflow.h"
 #include "likely.h"
 
+#include "macho_file.h"
 #include "macho_file_parse_symbols.h"
 #include "our_io.h"
 
@@ -321,11 +322,13 @@ bool is_objc_ivar_symbol(const char *__notnull const symbol,
     return true;
 }
 
-static inline bool is_external_symbol(const uint8_t n_type) {
-    const bool is_external = ((n_type & N_EXT) != 0);
-    const bool is_sym_debug_entry = ((n_type & N_STAB) != 0);
+static inline bool is_weak_symbol(const uint16_t n_desc) {
+    return ((n_desc & (N_WEAK_DEF | N_WEAK_REF)) != 0);
+}
 
-    return (is_external && !is_sym_debug_entry);
+static inline bool is_external_symbol(const uint8_t n_type) {
+    const uint64_t check_flags = (N_EXT | N_STAB);
+    return ((n_type & check_flags) == N_EXT);
 }
 
 static enum macho_file_parse_result
@@ -336,6 +339,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
               const char *__notnull string,
               const uint16_t n_desc,
               const uint8_t n_type,
+              const bool is_undef,
               const uint64_t options)
 {
     /*
@@ -345,6 +349,10 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
     const bool is_external = is_external_symbol(n_type);
     if (!is_external) {
+        if (is_undef) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
+
         const uint64_t allow_priv_symbols_flags =
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS |
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS |
@@ -362,10 +370,11 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
     uint32_t length = 0;
 
-    enum tbd_export_type type = TBD_EXPORT_TYPE_NORMAL_SYMBOL;
+    struct array *list = &info_in->fields.exports;
+    enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
     const uint32_t max_len = strsize - index;
 
-    if (likely(!(n_desc & N_WEAK_DEF))) {
+    if (likely(!is_weak_symbol(n_desc))) {
         /*
          * We can skip calls to is_objc_*_symbol if the symbol's max-length
          * disqualifies the symbol from being an objc symbol.
@@ -373,7 +382,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 
         if (max_len > 13) {
             const enum tbd_version vers = info_in->version;
-
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
 
@@ -394,7 +402,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     length -= 1;
                 }
 
-                type = TBD_EXPORT_TYPE_OBJC_CLASS_SYMBOL;
+                type = TBD_SYMBOL_TYPE_OBJC_CLASS;
             } else if (is_objc_ivar_symbol(str, first, max_len, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS)) {
                     if (!is_external) {
@@ -414,7 +422,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                     length -= 1;
                 }
 
-                type = TBD_EXPORT_TYPE_OBJC_IVAR_SYMBOL;
+                type = TBD_SYMBOL_TYPE_OBJC_IVAR;
             } else if (is_objc_ehtype_sym(str, first, max_len, vers, &length)) {
                 if (!(options & O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS))
                 {
@@ -424,7 +432,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                 }
 
                 string += 15;
-                type = TBD_EXPORT_TYPE_OBJC_EHTYPE_SYMBOL;
+                type = TBD_SYMBOL_TYPE_OBJC_EHTYPE;
             } else {
                 if (!is_external) {
                     return E_MACHO_FILE_PARSE_OK;
@@ -450,15 +458,19 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_OK;
         }
 
-        type = TBD_EXPORT_TYPE_WEAK_DEF_SYMBOL;
         length = (uint32_t)strnlen(string, max_len);
-
         if (unlikely(length == 0)) {
             return E_MACHO_FILE_PARSE_OK;
         }
+
+        type = TBD_SYMBOL_TYPE_WEAK_DEF;
     }
 
-    struct tbd_export_info export_info = {
+    if (is_undef) {
+        list = &info_in->fields.undefineds;
+    }
+
+    struct tbd_symbol_info symbol_info = {
         .archs = arch_bit,
         .archs_count = 1,
         .length = length,
@@ -467,18 +479,16 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     };
 
     if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-        export_info.archs = info_in->fields.archs;
-        export_info.archs_count = info_in->fields.archs_count;
+        symbol_info.archs = info_in->fields.archs;
+        symbol_info.archs_count = info_in->fields.archs_count;
     }
 
-    struct array *const exports = &info_in->fields.exports;
     struct array_cached_index_info cached_info = {};
-
-    struct tbd_export_info *const existing_info =
-        array_find_item_in_sorted(exports,
-                                  sizeof(export_info),
-                                  &export_info,
-                                  tbd_export_info_no_archs_comparator,
+    struct tbd_symbol_info *const existing_info =
+        array_find_item_in_sorted(list,
+                                  sizeof(symbol_info),
+                                  &symbol_info,
+                                  tbd_symbol_info_no_archs_comparator,
                                   &cached_info);
 
     if (existing_info != NULL) {
@@ -502,29 +512,34 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    export_info.string = alloc_and_copy(export_info.string, export_info.length);
-    if (unlikely(export_info.string == NULL)) {
+    symbol_info.string = alloc_and_copy(symbol_info.string, symbol_info.length);
+    if (unlikely(symbol_info.string == NULL)) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
     const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
-        export_info.flags |= F_TBD_EXPORT_INFO_STRING_NEEDS_QUOTES;
+        symbol_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
     }
 
     const enum array_result add_export_info_result =
-        array_add_item_with_cached_index_info(exports,
-                                              sizeof(export_info),
-                                              &export_info,
+        array_add_item_with_cached_index_info(list,
+                                              sizeof(symbol_info),
+                                              &symbol_info,
                                               &cached_info,
                                               NULL);
 
     if (unlikely(add_export_info_result != E_ARRAY_OK)) {
-        free(export_info.string);
+        free(symbol_info.string);
         return E_MACHO_FILE_PARSE_ARRAY_FAIL;
     }
 
     return E_MACHO_FILE_PARSE_OK;
+}
+
+static inline bool
+should_parse_undef(const enum tbd_version version, const uint64_t n_value) {
+    return ((version != TBD_VERSION_V1) && (n_value == 0));
 }
 
 enum macho_file_parse_result
@@ -630,23 +645,39 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
+    const enum tbd_version version = args.info_in->version;
+
     const struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + args.nsyms;
 
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -660,8 +691,8 @@ macho_file_parse_symbols_from_file(
             }
 
             const int16_t n_desc = swap_int16(nlist->n_desc);
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -670,6 +701,7 @@ macho_file_parse_symbols_from_file(
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -682,17 +714,31 @@ macho_file_parse_symbols_from_file(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -705,9 +751,9 @@ macho_file_parse_symbols_from_file(
                 continue;
             }
 
-            const int16_t n_desc = swap_int16(nlist->n_desc);
-
+            const int16_t n_desc = nlist->n_desc;
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -716,6 +762,7 @@ macho_file_parse_symbols_from_file(
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -836,23 +883,39 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
+    const enum tbd_version version = args.info_in->version;
+
     const struct nlist_64 *nlist = symbol_table;
     const struct nlist_64 *const end = symbol_table + args.nsyms;
 
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -866,8 +929,8 @@ macho_file_parse_symbols_64_from_file(
             }
 
             const uint16_t n_desc = swap_uint16(nlist->n_desc);
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -876,6 +939,7 @@ macho_file_parse_symbols_64_from_file(
                               symbol_string,
                               n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -888,17 +952,31 @@ macho_file_parse_symbols_64_from_file(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -912,8 +990,8 @@ macho_file_parse_symbols_64_from_file(
             }
 
             const uint16_t n_desc = nlist->n_desc;
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -922,6 +1000,7 @@ macho_file_parse_symbols_64_from_file(
                               symbol_string,
                               n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -990,6 +1069,7 @@ macho_file_parse_symbols_from_map(
     }
 
     const char *const string_table = (const char *)(map + args.stroff);
+    const enum tbd_version version = args.info_in->version;
 
     const struct nlist *nlist = (const struct nlist *)(map + args.symoff);
     const struct nlist *const end = nlist + args.nsyms;
@@ -997,17 +1077,31 @@ macho_file_parse_symbols_from_map(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -1021,8 +1115,8 @@ macho_file_parse_symbols_from_map(
             }
 
             const int16_t n_desc = swap_int16(nlist->n_desc);
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -1031,6 +1125,7 @@ macho_file_parse_symbols_from_map(
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -1040,17 +1135,31 @@ macho_file_parse_symbols_from_map(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -1064,8 +1173,8 @@ macho_file_parse_symbols_from_map(
             }
 
             const int16_t n_desc = nlist->n_desc;
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -1074,6 +1183,7 @@ macho_file_parse_symbols_from_map(
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -1136,6 +1246,7 @@ macho_file_parse_symbols_64_from_map(
     }
 
     const char *const string_table = (const char *)(map + args.stroff);
+    const enum tbd_version version = args.info_in->version;
 
     const struct nlist_64 *nlist = (const struct nlist_64 *)(map + args.symoff);
     const struct nlist_64 *const end = nlist + args.nsyms;
@@ -1143,17 +1254,31 @@ macho_file_parse_symbols_64_from_map(
     if (args.is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -1167,8 +1292,8 @@ macho_file_parse_symbols_64_from_map(
             }
 
             const uint16_t n_desc = swap_uint16(nlist->n_desc);
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -1177,6 +1302,7 @@ macho_file_parse_symbols_64_from_map(
                               symbol_string,
                               n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
@@ -1186,17 +1312,31 @@ macho_file_parse_symbols_64_from_map(
     } else {
         for (; nlist != end; nlist++) {
             /*
-             * Ensure that each symbol is either an indirect symbol, or that the
-             * symbol's n_value points back to the __TEXT segment.
+             * Ensure that either each symbol is an indirect symbol, each
+             * symbol's n_value points back to the __TEXT segment, or that each
+             * symbol is an undefined symbol with a n_value of 0.
              */
 
             const uint8_t n_type = nlist->n_type;
             const uint8_t type = n_type & N_TYPE;
 
-            if (type != N_SECT) {
-                if (type != N_INDR) {
+            bool is_undef = false;
+            switch (type) {
+                case N_SECT:
+                case N_INDR:
+                    break;
+
+                case N_UNDF: {
+                    const uint64_t n_value = nlist->n_value;
+                    if ((is_undef = should_parse_undef(version, n_value))) {
+                        break;
+                    }
+
                     continue;
                 }
+
+                default:
+                    continue;
             }
 
             /*
@@ -1210,8 +1350,8 @@ macho_file_parse_symbols_64_from_map(
             }
 
             const uint16_t n_desc = nlist->n_desc;
-
             const char *const symbol_string = string_table + index;
+
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(args.info_in,
                               args.arch_bit,
@@ -1220,6 +1360,7 @@ macho_file_parse_symbols_64_from_map(
                               symbol_string,
                               n_desc,
                               n_type,
+                              is_undef,
                               args.tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
