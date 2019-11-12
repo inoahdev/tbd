@@ -24,15 +24,15 @@
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(int *__notnull const index_in,
+parse_architectures_list(int index,
                          const int argc,
                          const char *const *__notnull const argv,
-                         uint64_t *__notnull const count_out)
+                         uint64_t *__notnull const count_out,
+                         int *__notnull const index_out)
 {
     uint64_t archs = 0;
     uint64_t count = 0;
 
-    int index = *index_in;
     const struct arch_info *const arch_info_list = arch_info_get_list();
 
     do {
@@ -90,19 +90,18 @@ parse_architectures_list(int *__notnull const index_in,
      */
 
     *count_out = count;
-    *index_in = index - 1;
+    *index_out = index - 1;
 
     return archs;
 }
 
 uint32_t
-parse_flags_list(int *__notnull const index_in,
+parse_flags_list(int index,
                  const int argc,
-                 const char *const *__notnull const argv)
+                 const char *const *__notnull const argv,
+                 int *__notnull const index_out)
 {
-    int index = *index_in;
     uint32_t flags = 0;
-
     for (; index != argc; index++) {
         const char *const arg = argv[index];
         if (strcmp(arg, "flat_namespace") == 0) {
@@ -141,7 +140,7 @@ parse_flags_list(int *__notnull const index_in,
      * to the last argument.
      */
 
-    *index_in = index - 1;
+    *index_out = index - 1;
     return flags;
 }
 
@@ -233,23 +232,21 @@ enum tbd_version parse_tbd_version(const char *__notnull const version) {
 }
 
 static int
-parse_component_til_ch(const char *__notnull *__notnull iter_in,
+parse_component_til_ch(const char *__notnull iter,
                        const char end_ch,
-                       const int max)
+                       const int max,
+                       const char **__notnull iter_out)
 {
     int result = 0;
-
-    const char *iter = *iter_in;
     char ch = *iter;
 
     do {
         if (ch == '\0') {
-            *iter_in = iter;
             break;
         }
 
         if (ch == end_ch) {
-            *iter_in = (iter + 1);
+            iter++;
             break;
         }
 
@@ -273,6 +270,7 @@ parse_component_til_ch(const char *__notnull *__notnull iter_in,
         return -1;
     } while (true);
 
+    *iter_out = iter;
     return result;
 }
 
@@ -286,18 +284,18 @@ create_packed_version(const uint16_t major,
 
 int64_t parse_packed_version(const char *__notnull const version) {
     const char *iter = version;
-    const int major = parse_component_til_ch(&iter, '.', UINT16_MAX);
+    const int major = parse_component_til_ch(iter, '.', UINT16_MAX, &iter);
 
     if (major == -1) {
         return -1;
     }
 
-    const int minor = parse_component_til_ch(&iter, '.', UINT8_MAX);
+    const int minor = parse_component_til_ch(iter, '.', UINT8_MAX, &iter);
     if (minor == -1) {
         return -1;
     }
 
-    const int revision = parse_component_til_ch(&iter, '\0', UINT8_MAX);
+    const int revision = parse_component_til_ch(iter, '\0', UINT8_MAX, &iter);
     if (revision == -1) {
         return -1;
     }

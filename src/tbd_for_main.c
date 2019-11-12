@@ -231,10 +231,11 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.archs =
-            parse_architectures_list(&index,
+            parse_architectures_list(index,
                                      argc,
                                      argv,
-                                     &tbd->info.fields.archs_count);
+                                     &tbd->info.fields.archs_count,
+                                     &index);
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
@@ -309,7 +310,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                   stderr);
         }
 
-        tbd->info.fields.flags = parse_flags_list(&index, argc, argv);
+        tbd->info.fields.flags = parse_flags_list(index, argc, argv, &index);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;

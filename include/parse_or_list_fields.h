@@ -15,15 +15,17 @@
 #include "tbd.h"
 
 uint64_t
-parse_architectures_list(int *__notnull index_in,
+parse_architectures_list(int index,
                          int argc,
                          const char *const *__notnull argv,
-                         uint64_t *__notnull count_out);
+                         uint64_t *__notnull count_out,
+                         int *__notnull index_out);
 
 uint32_t
-parse_flags_list(int *__notnull index_in,
+parse_flags_list(int index,
                  int argc,
-                 const char *const *__notnull argv);
+                 const char *const *__notnull argv,
+                 int *__notnull index_out);
 
 uint32_t parse_swift_version(const char *__notnull const arg);
 
