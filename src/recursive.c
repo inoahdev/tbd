@@ -44,10 +44,9 @@ static char *
 find_next_slash_reverse(char *__notnull const path,
                         char *__notnull const last_slash)
 {
-    char *iter = last_slash;
     const char *const rev_end = path - 1;
-
-    for (char ch = *(--iter); iter != rev_end; ch = *(--iter)) {
+    for (char *iter = (last_slash - 1); iter != rev_end; --iter) {
+        const char ch = *iter;
         if (ch == '/') {
             return iter;
         }

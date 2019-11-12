@@ -635,18 +635,16 @@ path_remove_extension(const char *__notnull const path, const uint64_t length) {
     char ch = *iter;
     if (ch_is_slash(ch)) {
         iter = get_front_of_slashes(path, iter);
-        if (iter == path) {
-            return length;
-        }
     }
 
     const char *const rev_end = path - 1;
-    for (ch = *(--iter); iter != rev_end; ch = *(--iter)) {
+    for (--iter; iter != rev_end; --iter) {
         /*
          * If we hit a path-slash, we are about to leave the range of the last
          * path-component without a dot.
          */
 
+        ch = *iter;
         if (ch_is_slash(ch)) {
             break;
         }
