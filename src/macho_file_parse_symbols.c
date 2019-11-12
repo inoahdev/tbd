@@ -350,7 +350,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS |
             O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
 
-        if ((options & allow_priv_symbols_flags) == allow_priv_symbols_flags) {
+        if ((options & allow_priv_symbols_flags) == 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
     }
