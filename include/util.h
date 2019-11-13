@@ -18,13 +18,8 @@
  * Maybe one day, add support for Windows paths.
  */
 
-static inline bool ch_is_slash(const char ch) {
-    return (ch == '/');
-}
-
 const char *
-get_front_of_slashes(const char *__notnull begin,
-                     const char *__notnull iter);
+get_front_of_slashes(const char *__notnull begin, const char *__notnull iter);
 
 const char *get_end_of_slashes(const char *__notnull path);
 const char *

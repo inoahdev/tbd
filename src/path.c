@@ -24,6 +24,10 @@
 static const char *current_directory = NULL;
 static size_t current_directory_length = 0;
 
+static inline bool ch_is_slash(const char ch) {
+    return (ch == '/');
+}
+
 char *
 path_get_absolute_path(const char *__notnull const path,
                        uint64_t path_length,
@@ -310,7 +314,7 @@ path_append_two_comp_and_ext(const char *__notnull const path,
             if (second_comp_copy_len == 0) {
                 return NULL;
             }
-            
+
             result = alloc_and_copy(second_comp_iter, second_comp_copy_len);
             *length_out = second_comp_copy_len;
         } else if (second_comp_copy_len == 0) {

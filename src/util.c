@@ -1,5 +1,5 @@
 //
-//  util.c
+//  src/util.c
 //  tbd
 //
 //  Created by inoahdev on 10/24/19.
@@ -8,6 +8,10 @@
 
 #include <stdlib.h>
 #include "util.h"
+
+static inline bool ch_is_slash(const char ch) {
+    return (ch == '/');
+}
 
 const char *
 get_front_of_slashes(const char *__notnull const begin,

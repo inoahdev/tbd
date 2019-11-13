@@ -17,9 +17,7 @@ struct range {
     uint64_t end;
 };
 
-static inline uint64_t range_get_size(struct range range) {
-    return (range.end - range.begin);
-}
+uint64_t range_get_size(struct range range);
 
 bool range_contains_location(struct range range, uint64_t location);
 bool range_contains_end(struct range range, uint64_t end);

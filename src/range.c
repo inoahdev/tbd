@@ -7,6 +7,11 @@
 //
 
 #include "range.h"
+#include <stdint.h>
+
+uint64_t range_get_size(const struct range range) {
+    return (range.end - range.begin);
+}
 
 bool
 range_contains_location(const struct range range, const uint64_t location) {
@@ -52,3 +57,4 @@ bool ranges_overlap(const struct range left, const struct range right) {
 
     return (right.begin < left.begin && right.end > left.end);
 }
+
