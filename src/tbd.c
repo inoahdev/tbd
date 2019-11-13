@@ -311,40 +311,33 @@ static void clear_symbols_array(struct array *__notnull const list) {
 }
 
 void
-tbd_create_info_clear_fields(struct tbd_create_info *__notnull const info) {
-    if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
-        free((char *)info->fields.install_name);
-        info->flags &= ~F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
+tbd_create_info_clear_fields_and_create_from(
+    struct tbd_create_info *__notnull const dst,
+    const struct tbd_create_info *__notnull const src)
+{
+    const uint64_t flags = dst->flags;
+    if (flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
+        free((char *)dst->fields.install_name);
     }
 
-    if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
-        free((char *)info->fields.parent_umbrella);
-        info->flags &= ~F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
+    if (flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
+        free((char *)dst->fields.parent_umbrella);
     }
 
-    info->fields.archs = 0;
-    info->fields.flags = 0;
+    clear_symbols_array(&dst->fields.exports);
+    clear_symbols_array(&dst->fields.undefineds);
+    array_clear(&dst->fields.uuids);
 
-    info->fields.platform = TBD_PLATFORM_NONE;
-    info->fields.objc_constraint = TBD_OBJC_CONSTRAINT_NO_VALUE;
+    const struct array exports = dst->fields.exports;
+    const struct array undefineds = dst->fields.undefineds;
+    const struct array uuids = dst->fields.uuids;
 
-    info->fields.install_name = NULL;
-    info->fields.parent_umbrella = NULL;
+    memcpy(&dst->fields, &src->fields, sizeof(dst->fields));
+    dst->flags = src->flags;
 
-    info->fields.current_version = 0;
-    info->fields.compatibility_version = 0;
-    info->fields.swift_version = 0;
-
-    const uint64_t remove_flags =
-        ~(F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES |
-          F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED);
-
-    info->flags &= remove_flags;
-
-    clear_symbols_array(&info->fields.exports);
-    clear_symbols_array(&info->fields.undefineds);
-
-    array_clear(&info->fields.uuids);
+    dst->fields.exports = exports;
+    dst->fields.undefineds = undefineds;
+    dst->fields.uuids = uuids;
 }
 
 static void destroy_symbols_array(struct array *__notnull const list) {
@@ -359,33 +352,27 @@ static void destroy_symbols_array(struct array *__notnull const list) {
 }
 
 void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
-    if (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
+    const uint64_t flags = info->flags;
+    if (flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
         free((char *)info->fields.install_name);
     }
 
-    if (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
+    if (flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED) {
         free((char *)info->fields.parent_umbrella);
     }
 
-    info->version = TBD_VERSION_NONE;
-
-    info->fields.archs = 0;
-    info->fields.flags = 0;
-
-    info->fields.platform = TBD_PLATFORM_NONE;
-    info->fields.objc_constraint = TBD_OBJC_CONSTRAINT_NO_VALUE;
-
-    info->fields.install_name = NULL;
-    info->fields.parent_umbrella = NULL;
-
-    info->fields.current_version = 0;
-    info->fields.compatibility_version = 0;
-    info->fields.swift_version = 0;
-
-    info->flags = 0;
-
     destroy_symbols_array(&info->fields.exports);
     destroy_symbols_array(&info->fields.undefineds);
-
     array_destroy(&info->fields.uuids);
+
+    const struct array exports = info->fields.exports;
+    const struct array undefineds = info->fields.undefineds;
+    const struct array uuids = info->fields.uuids;
+
+    memset(&info->fields, 0, sizeof(info->fields));
+
+    info->flags = 0;
+    info->fields.exports = exports;
+    info->fields.undefineds = undefineds;
+    info->fields.uuids = uuids;
 }

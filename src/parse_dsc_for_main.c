@@ -397,13 +397,14 @@ write_out_tbd_info(struct dsc_iterate_images_info *__notnull const info,
 
 static int
 actually_parse_image(
-    struct dsc_iterate_images_info *__notnull const info,
+    struct dsc_iterate_images_info *__notnull const iterate_info,
     struct dyld_cache_image_info *__notnull const image,
-    const char *const image_path,
-    struct dsc_iterate_images_info *__notnull const iterate_info)
+    const char *const image_path)
 {
     struct tbd_for_main *const tbd = iterate_info->tbd;
-    struct tbd_create_info *const create_info = &tbd->info;
+
+    struct tbd_create_info *const g_info = &iterate_info->global->info;
+    struct tbd_create_info *const info = &tbd->info;
 
     struct handle_dsc_image_parse_error_cb_info *const cb_info =
         iterate_info->callback_info;
@@ -411,7 +412,7 @@ actually_parse_image(
     cb_info->image_path = image_path;
 
     const enum dsc_image_parse_result parse_image_result =
-        dsc_image_parse(create_info,
+        dsc_image_parse(info,
                         iterate_info->dsc_info,
                         image,
                         iterate_info->callback,
@@ -421,20 +422,20 @@ actually_parse_image(
                         0);
 
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        tbd_create_info_clear_fields(create_info);
+        tbd_create_info_clear_fields_and_create_from(info, g_info);
         print_image_error(iterate_info, image_path, parse_image_result);
 
         return 1;
     }
 
-    uint64_t image_path_length = info->image_path_length;
+    uint64_t image_path_length = iterate_info->image_path_length;
     if (image_path_length == 0) {
         image_path_length = strlen(image_path);
-        info->image_path_length = image_path_length;
+        iterate_info->image_path_length = image_path_length;
     }
 
     write_out_tbd_info(iterate_info, tbd, image_path, image_path_length);
-    tbd_create_info_clear_fields(create_info);
+    tbd_create_info_clear_fields_and_create_from(info, g_info);
 
     return 0;
 }
@@ -698,7 +699,7 @@ dsc_iterate_images(
             }
         }
 
-        if (actually_parse_image(info, image, image_path, info)) {
+        if (actually_parse_image(info, image, image_path)) {
             /*
              * actually_parse_image() would usually unmark the happening status
              * flag through write_out_tbd_info(), but the function was never
@@ -1003,10 +1004,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
                 (const char *)(dsc_info.map + path_offset);
 
             const int parse_result =
-                actually_parse_image(&iterate_info,
-                                     image,
-                                     image_path,
-                                     &iterate_info);
+                actually_parse_image(&iterate_info, image, image_path);
 
             if (parse_result == 0) {
                 image->pad |= F_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
@@ -1253,10 +1251,7 @@ parse_dsc_for_main_while_recursing(
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
-            actually_parse_image(&iterate_info,
-                                 image,
-                                 image_path,
-                                 &iterate_info);
+            actually_parse_image(&iterate_info, image, image_path);
         }
 
         /*

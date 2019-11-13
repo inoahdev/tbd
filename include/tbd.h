@@ -225,7 +225,11 @@ tbd_create_with_info(const struct tbd_create_info *__notnull info,
                      FILE *__notnull file,
                      uint64_t options);
 
-void tbd_create_info_clear_fields(struct tbd_create_info *__notnull info);
+void
+tbd_create_info_clear_fields_and_create_from(
+    struct tbd_create_info *__notnull dst,
+    const struct tbd_create_info *__notnull src);
+
 void tbd_create_info_destroy(struct tbd_create_info *__notnull info);
 
 #endif /* TBD_H */
