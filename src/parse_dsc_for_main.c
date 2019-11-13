@@ -1106,8 +1106,7 @@ parse_dsc_for_main_while_recursing(
             handle_dsc_file_parse_result_while_recursing(
                 args.dsc_dir_path,
                 args.dsc_name,
-                E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
-                args.print_paths);
+                E_DYLD_SHARED_CACHE_PARSE_READ_FAIL);
 
             return true;
 
@@ -1129,8 +1128,7 @@ parse_dsc_for_main_while_recursing(
         if (!args.dont_handle_non_dsc_error) {
             handle_dsc_file_parse_result_while_recursing(args.dsc_dir_path,
                                                          args.dsc_name,
-                                                         parse_dsc_file_result,
-                                                         args.print_paths);
+                                                         parse_dsc_file_result);
         }
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
@@ -1139,8 +1137,7 @@ parse_dsc_for_main_while_recursing(
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result_while_recursing(args.dsc_dir_path,
                                                      args.dsc_name,
-                                                     parse_dsc_file_result,
-                                                     args.print_paths);
+                                                     parse_dsc_file_result);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }

@@ -770,9 +770,17 @@ handle_macho_file_parse_result(
             return false;
 
         case E_MACHO_FILE_PARSE_NO_EXPORTS:
-            fputs("The provided mach-o file has no exported clients, "
-                  "re-exports, or symbols to be written out\n",
-                  stderr);
+            if (args.print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has no exported clients, re-exports, "
+                        "or symbols to be written out\n",
+                        args.dir_path);
+            } else {
+                fputs("The provided mach-o file has no exported clients, "
+                      "re-exports, or symbols to be written out\n",
+                      stderr);
+            }
 
             return false;
     }
@@ -792,400 +800,241 @@ handle_macho_file_parse_result_while_recursing(
             return false;
 
         case E_MACHO_FILE_PARSE_NOT_A_MACHO:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "File (at path %s/%s) is not a valid mach-o file\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("File at provided path is not a valid mach-o file\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "File (at path %s/%s) is not a valid mach-o file\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
         case E_MACHO_FILE_PARSE_READ_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to read data while parsing mach-o file (at "
-                        "path: %s/%s)\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Failed to read data while parsing mach-o file at the "
-                      "provided path\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Failed to read data while parsing mach-o file (at "
+                    "path: %s/%s)\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_FSTAT_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to get information on mach-o file "
-                        "(at path: %s/%s)\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Failed to get information on mach-o file at the "
-                      "provided path\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Failed to get information on mach-o file "
+                    "(at path: %s/%s)\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_SIZE_TOO_SMALL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, is too small to be a valid "
-                        "mach-o file\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "is too small to be a valid mach-o file\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, is too small to be a valid "
+                    "mach-o file\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_RANGE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid range\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid range\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid range\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an unsupported cpu-type\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has an unsupported cpu-type\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an unsupported cpu-type\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_NO_ARCHITECTURES:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has no architectures\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has no architectures\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has no architectures\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has too many "
-                        "architectures to fit inside a mach-o file\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has too many "
-                      "architectures to fit inside a mach-o file\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has too many "
+                    "architectures to fit inside a mach-o file\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has an invalid "
-                        "architecture\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has an invalid "
-                      "architecture\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has an invalid "
+                    "architecture\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has overlapping "
-                        "architectures\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has overlapping "
-                      "architectures\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has overlapping "
+                    "architectures\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has multiple "
-                        "architectures for the same cpu-type\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has multiple "
-                      "architectures for the same cpu-type\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has multiple "
+                    "architectures for the same cpu-type\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has no valid "
-                        "architectures that can be parsed\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Mach-o file at the provided path has no valid "
-                      "architectures that can be parsed\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has no valid "
+                    "architectures that can be parsed\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_ALLOC_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to allocate data while parsing mach-o file (at "
-                        "path %s/%s)\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Failed to allocate data while parsing the provided "
-                      "mach-o file\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Failed to allocate data while parsing mach-o file (at "
+                    "path %s/%s)\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_ARRAY_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to add items to an array while parsing mach-o "
-                        "file (at path %s/%s)\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("Failed to add items to an array while parsing the "
-                      "provided mach-o file\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Failed to add items to an array while parsing mach-o "
+                    "file (at path %s/%s)\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_NO_LOAD_COMMANDS:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has no load-commands. "
-                        "Subsequently, no information was extracted\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has no load-commands. Subsequently, no information was "
-                      "extracted\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has no load-commands. "
+                    "Subsequently, no information was extracted\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has too many load-commands for its "
-                        "size\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has too many load-commands for its "
-                      "size\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has too many load-commands for its "
+                    "size\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has too small an area to store all "
-                        "of its load-commands\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has too small an area to store all "
-                      "of its load-commands\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has too small an area to store all "
+                    "of its load-commands\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid load-command\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid load-command\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid load-command\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_TOO_MANY_SECTIONS:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has a segment with too many "
-                        "sections for its size\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has a segment with too many sections "
-                      "for its size\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has a segment with too many "
+                    "sections for its size\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_SECTION:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has a segment with an invalid "
-                        "section\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its "
-                      "architectures, has a segment with an invalid "
-                      "section\n",
-                       stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has a segment with an invalid "
+                    "section\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_CLIENT:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid client-string\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid client-string\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid client-string\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_REEXPORT:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid re-export\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid re-export\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid re-export\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_STRING_TABLE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid string-table\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid string-table\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid string-table\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has an invalid symbol-table\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has an invalid symbol-table\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has an invalid symbol-table\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has architectures with "
-                        "conflicting cpu-types\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file has architectures with "
-                      "conflicting cpu-types\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has architectures with "
+                    "conflicting cpu-types\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its "
-                        "architectures, has no symbol-table\n",
-                        args.dir_path,
-                        args.name);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has no symbol-table\n",
-                      stderr);
-            }
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s), or one of its "
+                    "architectures, has no symbol-table\n",
+                    args.dir_path,
+                    args.name);
 
             return false;
 

@@ -24,8 +24,7 @@ void
 handle_dsc_file_parse_result_while_recursing(
     const char *__notnull dir_path,
     const char *__notnull name,
-    enum dyld_shared_cache_parse_result parse_result,
-    bool print_paths);
+    enum dyld_shared_cache_parse_result parse_result);
 
 struct handle_dsc_image_parse_error_cb_info {
     uint64_t *retained_info_in;
