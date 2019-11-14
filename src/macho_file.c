@@ -42,6 +42,31 @@ static inline bool magic_is_64_bit(const uint32_t magic) {
     }
 }
 
+static inline bool is_invalid_filetype(const uint32_t filetype) {
+    switch (filetype) {
+        case MH_BUNDLE:
+        case MH_DYLIB:
+        case MH_DYLIB_STUB:
+            return false;
+
+        default:
+            return true;
+    }
+}
+
+static inline bool
+call_callback(struct tbd_create_info *__notnull const info_in,
+              const enum macho_file_parse_error error,
+              const macho_file_parse_error_callback callback,
+              void *const cb_info)
+{
+    if (callback == NULL) {
+        return false;
+    }
+
+    return (callback(info_in, error, cb_info));
+}
+
 static enum macho_file_parse_result
 parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const int fd,
@@ -56,6 +81,9 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 {
     const uint32_t magic = header->magic;
     const bool is_64 = magic_is_64_bit(magic);
+
+    uint64_t lc_flags = 0;
+    uint32_t header_size = sizeof(struct mach_header);
 
     if (is_64) {
         const uint64_t container_size = range_get_size(container_range);
@@ -74,26 +102,26 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         if (our_lseek(fd, offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
-    } else {
-        if (!is_big_endian) {
-            if (magic != MH_MAGIC) {
-                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
-            }
-        }
+
+        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_64;
+        header_size = sizeof(struct mach_header_64);
     }
 
-    const uint64_t mh_flags = header->flags;
-    if (info_in->fields.flags != 0) {
-        if (info_in->fields.flags & TBD_FLAG_FLAT_NAMESPACE) {
-            if (!(mh_flags & MH_TWOLEVEL)) {
-                if (callback == NULL) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
+    if (is_big_endian) {
+        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
+    }
 
+    const uint64_t info_flags = info_in->fields.flags;
+    const uint64_t mh_flags = header->flags;
+
+    if (info_flags != 0) {
+        if (info_flags & TBD_FLAG_FLAT_NAMESPACE) {
+            if (!(mh_flags & MH_TWOLEVEL)) {
                 const bool should_ignore =
-                    callback(info_in,
-                             ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
-                             cb_info);
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
+                                  callback,
+                                  cb_info);
 
                 if (!should_ignore) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
@@ -101,16 +129,13 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
             }
         }
 
-        if (info_in->fields.flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (info_flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
             if (mh_flags & MH_APP_EXTENSION_SAFE) {
-                if (callback == NULL) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
-
                 const bool should_ignore =
-                    callback(info_in,
-                             ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
-                             cb_info);
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
+                                  callback,
+                                  cb_info);
 
                 if (!should_ignore) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
@@ -125,18 +150,6 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         if (!(mh_flags & MH_APP_EXTENSION_SAFE)) {
             info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
         }
-    }
-
-    uint64_t lc_flags = 0;
-    uint32_t header_size = sizeof(struct mach_header);
-
-    if (is_64) {
-        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_64;
-        header_size = sizeof(struct mach_header_64);
-    }
-
-    if (is_big_endian) {
-        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
     }
 
     const struct range lc_available_range = {
@@ -409,7 +422,9 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
+    uint32_t filetype = 0;
     bool parsed_one_arch = false;
+
     for (uint32_t i = 0; i != nfat_arch; i++) {
         const struct fat_arch arch = arch_list[i];
         const off_t arch_offset = (off_t)(macho_range.begin + arch.offset);
@@ -437,12 +452,43 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             header.ncmds = swap_uint32(header.ncmds);
             header.sizeofcmds = swap_uint32(header.sizeofcmds);
 
+            header.filetype = swap_uint32(header.filetype);
             header.flags = swap_uint32(header.flags);
         } else if (!magic_is_thin(header.magic)) {
             if (!(options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES)) {
                 free(arch_list);
                 return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
             }
+        }
+
+        if (filetype != 0) {
+            if (header.filetype != filetype) {
+                const bool should_continue =
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
+                                  callback,
+                                  callback_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+            }
+        } else {
+            if (is_invalid_filetype(header.filetype)) {
+                const bool should_continue =
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                                  callback,
+                                  callback_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                header.filetype = MH_DYLIB;
+            }
+
+            filetype = header.filetype;
         }
 
         /*
@@ -704,6 +750,8 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     }
 
     bool parsed_one_arch = false;
+    uint32_t filetype = 0;
+
     for (uint32_t i = 0; i != nfat_arch; i++) {
         const struct fat_arch_64 arch = arch_list[i];
         const off_t arch_offset = (off_t)(macho_range.begin + arch.offset);
@@ -732,6 +780,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             header.ncmds = swap_uint32(header.ncmds);
             header.sizeofcmds = swap_uint32(header.sizeofcmds);
 
+            header.filetype = swap_uint32(header.filetype);
             header.flags = swap_uint32(header.flags);
         } else if (!magic_is_thin(header.magic)) {
             if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
@@ -740,6 +789,36 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
             free(arch_list);
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+        }
+
+        if (filetype != 0) {
+            if (header.filetype != filetype) {
+                const bool should_continue =
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
+                                  callback,
+                                  callback_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+            }
+        } else {
+            if (is_invalid_filetype(header.filetype)) {
+                const bool should_continue =
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                                  callback,
+                                  callback_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                header.filetype = MH_DYLIB;
+            }
+
+            filetype = header.filetype;
         }
 
         /*
@@ -922,13 +1001,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_READ_FAIL;
         }
 
-        struct stat sbuf = {};
-        if (fstat(fd, &sbuf) < 0) {
-            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
-        }
-
-        macho_range.end = sbuf.st_size;
-
         /*
          * Swap the mach_header's fields if big-endian.
          */
@@ -941,8 +1013,30 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             header.ncmds = swap_uint32(header.ncmds);
             header.sizeofcmds = swap_uint32(header.sizeofcmds);
 
+            header.filetype = swap_uint32(header.filetype);
             header.flags = swap_uint32(header.flags);
         }
+
+        if (is_invalid_filetype(header.filetype)) {
+            const bool should_continue =
+                call_callback(info_in,
+                              ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                              callback,
+                              callback_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+
+            header.filetype = MH_DYLIB;
+        }
+
+        struct stat sbuf = {};
+        if (fstat(fd, &sbuf) < 0) {
+            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
+        }
+
+        macho_range.end = sbuf.st_size;
 
         const struct arch_info *arch = NULL;
         if (!(tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS)) {

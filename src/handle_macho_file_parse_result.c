@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "handle_macho_file_parse_result.h"
+#include "macho_file.h"
 #include "request_user_input.h"
 
 bool
@@ -69,6 +70,29 @@ handle_macho_file_for_main_error_callback(
 
             return false;
 
+        case ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has architectures with "
+                        "multiple mach-o filetypes that conflict with one "
+                        "another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s) has architectures with "
+                        "multiple mach-o filetypes that conflict with one "
+                        "another\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file has architectures with "
+                      "multiple mach-o filetypes that conflict with one "
+                      "another\n",
+                      stderr);
+            }
+
+            return false;
+
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
             if (cb_info->is_recursing) {
                 request_result =
@@ -119,47 +143,28 @@ handle_macho_file_for_main_error_callback(
 
             break;
 
-        case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
+        case ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT:
             if (cb_info->is_recursing) {
-                request_result =
-                    request_install_name(cb_info->global,
-                                         cb_info->tbd,
-                                         cb_info->retained_info_in,
-                                         false,
-                                         stderr,
-                                         "Mach-o file (at path %s/%s), or one "
-                                         "of its architectures, has an invalid "
-                                         "install-name\n",
-                                         cb_info->dir_path,
-                                         cb_info->name);
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has architectures with "
+                        "multiple install-names that conflict with one "
+                        "another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
             } else if (cb_info->print_paths) {
-                request_result =
-                    request_install_name(cb_info->global,
-                                         cb_info->tbd,
-                                         cb_info->retained_info_in,
-                                         false,
-                                         stderr,
-                                         "Mach-o file (at path %s), or one of "
-                                         "its architectures, has an invalid "
-                                         "install-name\n",
-                                         cb_info->dir_path);
+                fprintf(stderr,
+                        "Mach-o file (at path %s) has architectures with "
+                        "multiple install-names that conflict with one "
+                        "another\n",
+                        cb_info->dir_path);
             } else {
-                request_result =
-                    request_install_name(cb_info->global,
-                                         cb_info->tbd,
-                                         cb_info->retained_info_in,
-                                         false,
-                                         stderr,
-                                         "The provided mach-o file, or one of "
-                                         "its architectures, has an invalid "
-                                         "install-name\n");
+                fputs("The provided mach-o file has architectures with "
+                      "multiple install-names that conflict with one "
+                      "another\n",
+                      stderr);
             }
 
-            if (!request_result) {
-               return false;
-            }
-
-            break;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_INVALID_PLATFORM:
             if (cb_info->is_recursing) {
@@ -449,6 +454,71 @@ handle_macho_file_for_main_error_callback(
 
             return false;
 
+        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
+            /*
+             * We simply ignore any mach-o non-dynamic-library files while
+             * recursing.
+             */
+
+            if (cb_info->is_recursing) {
+                return false;
+            }
+
+            if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has the wrong mach-o filetype\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has the wrong mach-o filetype\n",
+                      stderr);
+            }
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_install_name(cb_info->global,
+                                         cb_info->tbd,
+                                         cb_info->retained_info_in,
+                                         false,
+                                         stderr,
+                                         "Mach-o file (at path %s/%s), or one "
+                                         "of its architectures, has an invalid "
+                                         "install-name\n",
+                                         cb_info->dir_path,
+                                         cb_info->name);
+            } else if (cb_info->print_paths) {
+                request_result =
+                    request_install_name(cb_info->global,
+                                         cb_info->tbd,
+                                         cb_info->retained_info_in,
+                                         false,
+                                         stderr,
+                                         "Mach-o file (at path %s), or one of "
+                                         "its architectures, has an invalid "
+                                         "install-name\n",
+                                         cb_info->dir_path);
+            } else {
+                request_result =
+                    request_install_name(cb_info->global,
+                                         cb_info->tbd,
+                                         cb_info->retained_info_in,
+                                         false,
+                                         stderr,
+                                         "The provided mach-o file, or one of "
+                                         "its architectures, has an invalid "
+                                         "install-name\n");
+            }
+
+            if (!request_result) {
+               return false;
+            }
+
+            break;
+
         case ERR_MACHO_FILE_PARSE_NOT_A_DYNAMIC_LIBRARY:
             /*
              * We simply ignore any mach-o non-dynamic-library files while
@@ -509,8 +579,25 @@ handle_macho_file_for_main_error_callback(
 
             break;
 
-        default:
-            break;
+        case ERR_MACHO_FILE_PARSE_NO_UUID:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s), or one of its "
+                        "architectures, does not have a uuid\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures does not have a uuid\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "does not have a uuid\n ",
+                      stderr);
+            }
+
+            return false;
     }
 
     return true;

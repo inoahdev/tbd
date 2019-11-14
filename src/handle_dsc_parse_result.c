@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "handle_dsc_parse_result.h"
+#include "macho_file.h"
 #include "request_user_input.h"
 
 void
@@ -316,6 +317,14 @@ handle_dsc_image_parse_error_callback(
 
             break;
 
+        case ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT:
+            fprintf(stderr,
+                    "\tImage (with path %s) has multiple mach-o filetypes that "
+                    "conflict with one another\r\n",
+                    cb_info->image_path);
+
+            break;
+
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
             request_result =
                 request_if_should_ignore_flags(cb_info->global,
@@ -433,6 +442,13 @@ handle_dsc_image_parse_error_callback(
                     cb_info->image_path);
 
             return false;
+
+        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
+            fprintf(stderr,
+                    "\tImage (with path %s) has the wrong mach-o filetype\r\n",
+                    cb_info->image_path);
+
+            break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
             request_result =
