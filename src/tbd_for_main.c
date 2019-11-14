@@ -202,6 +202,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_UNDEFINEDS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->flags |= F_TBD_FOR_MAIN_IGNORE_WARNINGS;
+    } else if (strcmp(option, "ignore-wrong-filetype") == 0) {
+        tbd->macho_options |= O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE;
     } else if (strcmp(option, "filter-image-directory") == 0) {
         add_image_filter(&index, tbd, argc, argv, true);
     } else if (strcmp(option, "filter-image-filename") == 0) {

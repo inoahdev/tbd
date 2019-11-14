@@ -75,8 +75,10 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("General ignore options:\n", stdout);
-    fputs("        --ignore-requests,    Ignore any and all user requests (both a path and global option)\n", stdout);
-    fputs("        --ignore-warnings,    Ignore any warnings (both a path and global option)\n", stdout);
+    fputs("        --ignore-requests,          Ignore any and all user requests (both a path and global option)\n", stdout);
+    fputs("        --ignore-warnings,          Ignore any warnings (both a path and global option)\n", stdout);
+    fputs("        --ignore-wrong-filetype,    Ignore any warnings about a mach-o file having the wrong\n", stdout);
+    fputs("                                    filetype (both a path and global option)\n", stdout);
 
     fputc('\n', stdout);
     fputs("Symbol options: (Both path and global options)\n", stdout);

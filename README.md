@@ -64,8 +64,10 @@ Ignore options:
         --ignore-uuids,                 Ignore uuids field
 
 General ignore options:
-        --ignore-requests,    Ignore any and all user requests (both a path and global option)
-        --ignore-warnings,    Ignore any warnings (both a path and global option)
+        --ignore-requests,          Ignore any and all user requests (both a path and global option)
+        --ignore-warnings,          Ignore any warnings (both a path and global option)
+        --ignore-wrong-filetype,    Ignore any warnings about a mach-o file having the wrong
+                                    filetype (both a path and global option)
 
 Symbol options: (Both path and global options)
         --allow-private-objc-symbols,   Allow all non-external objc-symbols (classes, ivars, and ehtypes)

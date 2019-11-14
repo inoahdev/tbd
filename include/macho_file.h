@@ -35,7 +35,8 @@ enum macho_file_options {
      * Treat a section's offset as absolute.
      */
 
-    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE = 1ull << 4
+    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE     = 1ull << 4,
+    O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE = 1ull << 5
 };
 
 enum macho_file_parse_result {

@@ -42,18 +42,6 @@ static inline bool magic_is_64_bit(const uint32_t magic) {
     }
 }
 
-static inline bool is_invalid_filetype(const uint32_t filetype) {
-    switch (filetype) {
-        case MH_BUNDLE:
-        case MH_DYLIB:
-        case MH_DYLIB_STUB:
-            return false;
-
-        default:
-            return true;
-    }
-}
-
 static inline bool
 call_callback(struct tbd_create_info *__notnull const info_in,
               const enum macho_file_parse_error error,
@@ -317,6 +305,18 @@ static bool magic_is_big_endian(const uint32_t magic) {
     }
 }
 
+static inline bool is_invalid_filetype(const uint32_t filetype) {
+    switch (filetype) {
+        case MH_BUNDLE:
+        case MH_DYLIB:
+        case MH_DYLIB_STUB:
+            return false;
+
+        default:
+            return true;
+    }
+}
+
 static enum macho_file_parse_result
 handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                    const int fd,
@@ -423,6 +423,8 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
     }
 
     uint32_t filetype = 0;
+
+    bool ignore_filetype = false;
     bool parsed_one_arch = false;
 
     for (uint32_t i = 0; i != nfat_arch; i++) {
@@ -461,34 +463,36 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             }
         }
 
-        if (filetype != 0) {
-            if (header.filetype != filetype) {
-                const bool should_continue =
-                    call_callback(info_in,
-                                  ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
-                                  callback,
-                                  callback_info);
+        if (!ignore_filetype) {
+            if (filetype != 0) {
+                if (header.filetype != filetype) {
+                    const bool should_continue =
+                        call_callback(info_in,
+                                      ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
+                                      callback,
+                                      callback_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
                 }
-            }
-        } else {
-            if (is_invalid_filetype(header.filetype)) {
-                const bool should_continue =
-                    call_callback(info_in,
-                                  ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
-                                  callback,
-                                  callback_info);
+            } else if (is_invalid_filetype(header.filetype)) {
+                if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
+                    const bool should_continue =
+                        call_callback(info_in,
+                                      ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                                      callback,
+                                      callback_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    ignore_filetype = true;
                 }
-
-                header.filetype = MH_DYLIB;
+            } else {
+                filetype = header.filetype;
             }
-
-            filetype = header.filetype;
         }
 
         /*
@@ -749,8 +753,10 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    bool parsed_one_arch = false;
     uint32_t filetype = 0;
+
+    bool parsed_one_arch = false;
+    bool ignore_filetype = false;
 
     for (uint32_t i = 0; i != nfat_arch; i++) {
         const struct fat_arch_64 arch = arch_list[i];
@@ -791,34 +797,36 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
-        if (filetype != 0) {
-            if (header.filetype != filetype) {
-                const bool should_continue =
-                    call_callback(info_in,
-                                  ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
-                                  callback,
-                                  callback_info);
+        if (!ignore_filetype) {
+            if (filetype != 0) {
+                if (header.filetype != filetype) {
+                    const bool should_continue =
+                        call_callback(info_in,
+                                      ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
+                                      callback,
+                                      callback_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
                 }
-            }
-        } else {
-            if (is_invalid_filetype(header.filetype)) {
-                const bool should_continue =
-                    call_callback(info_in,
-                                  ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
-                                  callback,
-                                  callback_info);
+            } else if (is_invalid_filetype(header.filetype)) {
+                if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
+                    const bool should_continue =
+                        call_callback(info_in,
+                                      ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                                      callback,
+                                      callback_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    ignore_filetype = true;
                 }
-
-                header.filetype = MH_DYLIB;
+            } else {
+                filetype = header.filetype;
             }
-
-            filetype = header.filetype;
         }
 
         /*
@@ -1018,17 +1026,19 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (is_invalid_filetype(header.filetype)) {
-            const bool should_continue =
-                call_callback(info_in,
-                              ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
-                              callback,
-                              callback_info);
+            if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
+                const bool should_continue =
+                    call_callback(info_in,
+                                  ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+                                  callback,
+                                  callback_info);
 
-            if (!should_continue) {
-                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+
+                header.filetype = MH_DYLIB;
             }
-
-            header.filetype = MH_DYLIB;
         }
 
         struct stat sbuf = {};
