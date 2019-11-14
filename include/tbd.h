@@ -25,27 +25,28 @@ enum tbd_parse_options {
     O_TBD_PARSE_IGNORE_CLIENTS               = 1ull << 1,
     O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1ull << 2,
     O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1ull << 3,
-    O_TBD_PARSE_IGNORE_FLAGS                 = 1ull << 4,
-    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1ull << 5,
-    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1ull << 6,
-    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1ull << 7,
-    O_TBD_PARSE_IGNORE_PLATFORM              = 1ull << 8,
-    O_TBD_PARSE_IGNORE_REEXPORTS             = 1ull << 9,
-    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1ull << 10,
-    O_TBD_PARSE_IGNORE_SYMBOLS               = 1ull << 11,
+    O_TBD_PARSE_IGNORE_EXPORTS               = 1ull << 4,
+    O_TBD_PARSE_IGNORE_FLAGS                 = 1ull << 5,
+    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1ull << 6,
+    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1ull << 7,
+    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1ull << 8,
+    O_TBD_PARSE_IGNORE_PLATFORM              = 1ull << 9,
+    O_TBD_PARSE_IGNORE_REEXPORTS             = 1ull << 10,
+    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1ull << 11,
+    O_TBD_PARSE_IGNORE_UNDEFINEDS            = 1ull << 12,
 
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 12,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 14,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 13,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 14,
+    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 15,
 
-    O_TBD_PARSE_IGNORE_MISSING_EXPORTS  = 1ull << 15,
-    O_TBD_PARSE_IGNORE_MISSING_UUIDS    = 1ull << 16,
-    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS = 1ull << 17
+    O_TBD_PARSE_IGNORE_MISSING_EXPORTS  = 1ull << 16,
+    O_TBD_PARSE_IGNORE_MISSING_UUIDS    = 1ull << 17,
+    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS = 1ull << 18
 };
 
 enum tbd_flags {

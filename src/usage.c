@@ -66,11 +66,11 @@ void print_usage(void) {
     fputs("        --ignore-clients,               Ignore clients field\n", stdout);
     fputs("        --ignore-compatibility-version, Ignore compatibility-version field\n", stdout);
     fputs("        --ignore-current-version,       Ignore current-version field\n", stdout);
-    fputs("        --ignore-exports,               Ignore exports field\n", stdout);
     fputs("        --ignore-objc-constraint,       Ignore objc-constraint field\n", stdout);
     fputs("        --ignore-parent-umbrella        Ignore parent-umbrella field\n", stdout);
     fputs("        --ignore-reexports,             Ignore re-expotrs field\n", stdout);
     fputs("        --ignore-swift-version,         Ignore swift-version field\n", stdout);
+    fputs("        --ignore-undefineds,            Ignore undefineds field\n", stdout);
     fputs("        --ignore-uuids,                 Ignore uuids field\n", stdout);
 
     fputc('\n', stdout);

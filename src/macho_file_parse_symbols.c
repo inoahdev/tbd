@@ -538,8 +538,23 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 }
 
 static inline bool
-should_parse_undef(const enum tbd_version version, const uint64_t n_value) {
-    return ((version != TBD_VERSION_V1) && (n_value == 0));
+should_parse_undef(const enum tbd_version version,
+                   const uint64_t n_value,
+                   const uint64_t tbd_options)
+{
+    if (tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
+        return false;
+    }
+
+    if (version != TBD_VERSION_V1) {
+        return false;
+    }
+
+    if (n_value != 0) {
+        return false;
+    }
+
+    return true;
 }
 
 enum macho_file_parse_result
@@ -659,7 +674,7 @@ macho_file_parse_symbols_from_file(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_options = args->tbd_options;
+    const uint64_t tbd_opt = args->tbd_options;
 
     const struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + nsyms;
@@ -679,15 +694,20 @@ macho_file_parse_symbols_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = swap_uint32(nlist->n_value);
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -716,7 +736,7 @@ macho_file_parse_symbols_from_file(
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -740,15 +760,20 @@ macho_file_parse_symbols_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -777,7 +802,7 @@ macho_file_parse_symbols_from_file(
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -911,7 +936,7 @@ macho_file_parse_symbols_64_from_file(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_options = args->tbd_options;
+    const uint64_t tbd_opt = args->tbd_options;
 
     const struct nlist_64 *nlist = symbol_table;
     const struct nlist_64 *const end = symbol_table + nsyms;
@@ -931,15 +956,20 @@ macho_file_parse_symbols_64_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = swap_uint64(nlist->n_value);
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -968,7 +998,7 @@ macho_file_parse_symbols_64_from_file(
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -992,15 +1022,20 @@ macho_file_parse_symbols_64_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -1029,7 +1064,7 @@ macho_file_parse_symbols_64_from_file(
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -1105,7 +1140,7 @@ macho_file_parse_symbols_from_map(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_options = args->tbd_options;
+    const uint64_t tbd_opt = args->tbd_options;
 
     const char *const string_table =
         (const char *)(map + string_table_range.begin);
@@ -1128,15 +1163,20 @@ macho_file_parse_symbols_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = swap_uint32(nlist->n_value);
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -1165,7 +1205,7 @@ macho_file_parse_symbols_from_map(
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1186,15 +1226,20 @@ macho_file_parse_symbols_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -1223,7 +1268,7 @@ macho_file_parse_symbols_from_map(
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1293,7 +1338,7 @@ macho_file_parse_symbols_64_from_map(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_options = args->tbd_options;
+    const uint64_t tbd_opt = args->tbd_options;
 
     const char *const string_table =
         (const char *)(map + string_table_range.begin);
@@ -1316,15 +1361,20 @@ macho_file_parse_symbols_64_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = swap_uint64(nlist->n_value);
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -1353,7 +1403,7 @@ macho_file_parse_symbols_64_from_map(
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1374,15 +1424,20 @@ macho_file_parse_symbols_64_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
+                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        continue;
+                    }
+
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if ((is_undef = should_parse_undef(version, n_value))) {
-                        break;
+                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                        continue;
                     }
 
-                    continue;
+                    is_undef = true;
+                    break;
                 }
 
                 default:
@@ -1411,7 +1466,7 @@ macho_file_parse_symbols_64_from_map(
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              tbd_opt);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;

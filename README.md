@@ -1,4 +1,5 @@
 # tbd
+
 Convert Mach-O Libraries &amp; Frameworks to .tbd
 
 ```
@@ -55,11 +56,11 @@ Ignore options:
         --ignore-clients,               Ignore clients field
         --ignore-compatibility-version, Ignore compatibility-version field
         --ignore-current-version,       Ignore current-version field
-        --ignore-exports,               Ignore exports field
         --ignore-objc-constraint,       Ignore objc-constraint field
         --ignore-parent-umbrella        Ignore parent-umbrella field
         --ignore-reexports,             Ignore re-expotrs field
         --ignore-swift-version,         Ignore swift-version field
+        --ignore-undefineds,            Ignore undefineds field
         --ignore-uuids,                 Ignore uuids field
 
 General ignore options:

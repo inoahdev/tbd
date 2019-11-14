@@ -29,6 +29,7 @@
 #include "our_io.h"
 #include "range.h"
 #include "swap.h"
+#include "tbd.h"
 
 static inline bool magic_is_64_bit(const uint32_t magic) {
     switch (magic) {
@@ -886,7 +887,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+        const bool ignore_missing_exports_flags =
+            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+
+        if (!(tbd_options & ignore_missing_exports_flags)) {
             if (info_in->fields.exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
@@ -1157,9 +1161,7 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        const bool is_big_endian =
-            (magic == MH_CIGAM || magic == MH_CIGAM_64);
-
+        const bool is_big_endian = magic_is_big_endian(magic);
         if (is_big_endian) {
             header.cputype = swap_int32(header.cputype);
             header.cpusubtype = swap_int32(header.cpusubtype);

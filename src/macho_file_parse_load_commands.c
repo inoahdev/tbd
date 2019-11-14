@@ -16,6 +16,7 @@
 #include "copy.h"
 
 #include "guard_overflow.h"
+#include "macho_file.h"
 #include "objc.h"
 
 #include "macho_file_parse_load_commands.h"
@@ -25,6 +26,7 @@
 #include "path.h"
 #include "swap.h"
 
+#include "tbd.h"
 #include "yaml.h"
 
 static inline bool segment_has_image_info_sect(const char name[16]) {
@@ -964,7 +966,10 @@ parse_load_command(
              * If symbols aren't needed, skip the unnecessary parsing.
              */
 
-            if (tbd_options & O_TBD_PARSE_IGNORE_SYMBOLS) {
+            const uint64_t ignore_flags =
+                (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_UNDEFINEDS);
+
+            if ((tbd_options & ignore_flags) == ignore_flags) {
                 break;
             }
 
@@ -1743,15 +1748,14 @@ macho_file_parse_load_commands_from_file(
     }
 
     if (symtab.cmd != LC_SYMTAB) {
-        const uint64_t ignore_missing_flags =
-            (O_TBD_PARSE_IGNORE_SYMBOLS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+        const uint64_t ignore_symtab_flags =
+            (O_TBD_CREATE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_UNDEFINEDS);
 
-        /*
-         * If we have either O_TBD_PARSE_IGNORE_SYMBOLS, or
-         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
-         */
+        if ((tbd_options & ignore_symtab_flags)) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
 
-        if ((tbd_options & ignore_missing_flags) != 0) {
+        if ((tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
@@ -2347,15 +2351,14 @@ macho_file_parse_load_commands_from_map(
     }
 
     if (symtab.cmd != LC_SYMTAB) {
-        const uint64_t ignore_missing_flags =
-            (O_TBD_PARSE_IGNORE_SYMBOLS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+        const uint64_t ignore_symtab_flags =
+            (O_TBD_CREATE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_UNDEFINEDS);
 
-        /*
-         * If we have either O_TBD_PARSE_IGNORE_SYMBOLS, or
-         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
-         */
+        if ((tbd_options & ignore_symtab_flags)) {
+            return E_MACHO_FILE_PARSE_OK;
+        }
 
-        if ((tbd_options & ignore_missing_flags) != 0) {
+        if ((tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
             return E_MACHO_FILE_PARSE_OK;
         }
 

@@ -20,6 +20,7 @@
 
 #include "path.h"
 #include "recursive.h"
+#include "tbd.h"
 #include "tbd_for_main.h"
 
 static void
@@ -193,10 +194,12 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     } else if (strcmp(option, "ignore-reexports") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_REEXPORTS;
-    } else if (strcmp(option, "ignore-swift-version") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "ignore-requests") == 0) {
         tbd->flags |= F_TBD_FOR_MAIN_NO_REQUESTS;
+    } else if (strcmp(option, "ignore-swift-version") == 0) {
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+    } else if (strcmp(option, "ignore-undefineds") == 0) {
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_UNDEFINEDS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->flags |= F_TBD_FOR_MAIN_IGNORE_WARNINGS;
     } else if (strcmp(option, "filter-image-directory") == 0) {
