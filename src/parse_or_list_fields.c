@@ -161,6 +161,10 @@ parse_objc_constraint(const char *__notnull const constraint) {
     return TBD_OBJC_CONSTRAINT_NO_VALUE;
 }
 
+static inline bool ch_is_digit(const char ch) {
+    return ((uint8_t)(ch - '0') < 10);
+}
+
 static inline
 uint32_t append_ch_to_number(const uint32_t number, const char ch) {
     return ((number * 10) + (ch & 0xf));
@@ -175,7 +179,7 @@ uint32_t parse_swift_version(const char *__notnull const arg) {
     const char *iter = arg;
 
     for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
-        if (isdigit(ch) == 0) {
+        if (!ch_is_digit(ch)) {
             return 0;
         }
 
@@ -250,7 +254,7 @@ parse_component_til_ch(const char *__notnull iter,
             break;
         }
 
-        if (isdigit(ch)) {
+        if (ch_is_digit(ch)) {
             const int new_result = append_ch_to_number(result, ch);
 
             /*
