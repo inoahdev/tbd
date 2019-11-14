@@ -231,7 +231,8 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         .dir_path = args.dir_path,
         .name = args.name,
 
-        .print_paths = args.print_paths
+        .print_paths = args.print_paths,
+        .is_recursing = false
     };
 
     const uint32_t magic = *(const uint32_t *)args.magic_in;
@@ -365,7 +366,8 @@ parse_macho_file_for_main_while_recursing(
         .dir_path = args.dir_path,
         .name = args.name,
 
-        .print_paths = args.print_paths
+        .print_paths = args.print_paths,
+        .is_recursing = true
     };
 
     const enum macho_file_parse_result parse_result =

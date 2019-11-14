@@ -24,7 +24,14 @@ handle_macho_file_for_main_error_callback(
     bool request_result = false;
     switch (error) {
         case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has architectures with "
+                        "multiple current-versions that conflict with one "
+                        "another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s) has architectures with "
                         "multiple current-versions that conflict with one "
@@ -40,7 +47,14 @@ handle_macho_file_for_main_error_callback(
             return false;
 
         case ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has architectures with "
+                        "multiple compatibility-versions that conflict with "
+                        "one another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s) has architectures with "
                         "multiple compatibility-versions that conflict with "
@@ -56,7 +70,23 @@ handle_macho_file_for_main_error_callback(
             return false;
 
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_if_should_ignore_flags(cb_info->global,
+                                                   cb_info->tbd,
+                                                   cb_info->retained_info_in,
+                                                   false,
+                                                   stderr,
+                                                   "Mach-o file (at "
+                                                   "path %s/%s) has "
+                                                   "architectures with "
+                                                   "multiple, differing, set "
+                                                   "of flags that conflict "
+                                                   "with one another\n",
+                                                   cb_info->dir_path,
+                                                   cb_info->name);
+
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_if_should_ignore_flags(cb_info->global,
                                                    cb_info->tbd,
@@ -90,7 +120,19 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_install_name(cb_info->global,
+                                         cb_info->tbd,
+                                         cb_info->retained_info_in,
+                                         false,
+                                         stderr,
+                                         "Mach-o file (at path %s/%s), or one "
+                                         "of its architectures, has an invalid "
+                                         "install-name\n",
+                                         cb_info->dir_path,
+                                         cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_install_name(cb_info->global,
                                          cb_info->tbd,
@@ -120,7 +162,20 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_PLATFORM:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_platform(cb_info->global,
+                                     cb_info->tbd,
+                                     cb_info->retained_info_in,
+                                     false,
+                                     stderr,
+                                     "Mach-o file (at path %s/%s), or one of "
+                                     "its architectures, has an invalid "
+                                     "platform\n",
+                                     cb_info->dir_path,
+                                     cb_info->name);
+
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
@@ -149,7 +204,19 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_parent_umbrella(cb_info->global,
+                                            cb_info->tbd,
+                                            cb_info->retained_info_in,
+                                            false,
+                                            stderr,
+                                            "Mach-o file (at path %s/%s), or "
+                                            "one of its architectures, has an "
+                                            "invalid parent-umbrella\n",
+                                            cb_info->dir_path,
+                                            cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
@@ -157,7 +224,7 @@ handle_macho_file_for_main_error_callback(
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s), or one "
-                                            "oof its architectures, has an "
+                                            "of its architectures, has an "
                                             "invalid parent-umbrella\n",
                                             cb_info->dir_path);
             } else {
@@ -179,10 +246,16 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_INVALID_UUID:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
                 fprintf(stderr,
-                        "Mach-o file (at path %s), or one of its architecture, "
-                        "has an invalid uuid\n",
+                        "Mach-o file (at path %s/%s), or one of its "
+                        "architectures, has an invalid uuid\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has an invalid uuid\n",
                         cb_info->dir_path);
             } else {
                 fputs("The provided mach-o file, or one of its architectures, "
@@ -193,7 +266,20 @@ handle_macho_file_for_main_error_callback(
             return false;
 
         case ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_objc_constraint(cb_info->global,
+                                            cb_info->tbd,
+                                            cb_info->retained_info_in,
+                                            false,
+                                            stderr,
+                                            "Mach-o file (at path %s/%s) has "
+                                            "architectures with multiple "
+                                            "objc-constraints that conflict "
+                                            "with one another\n",
+                                            cb_info->dir_path,
+                                            cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_objc_constraint(cb_info->global,
                                             cb_info->tbd,
@@ -257,7 +343,19 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_platform(cb_info->global,
+                                     cb_info->tbd,
+                                     cb_info->retained_info_in,
+                                     false,
+                                     stderr,
+                                     "Mach-o file (at path %s/%s) has "
+                                     "architectures with multiple platforms "
+                                     "that conflict with one another\n",
+                                     cb_info->dir_path,
+                                     cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
@@ -287,7 +385,20 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_swift_version(cb_info->global,
+                                          cb_info->tbd,
+                                          cb_info->retained_info_in,
+                                          false,
+                                          stderr,
+                                          "Mach-o file (at path %s/%s) has "
+                                          "architectures with multiple "
+                                          "swift-versions that conflict with "
+                                          "one another\n",
+                                          cb_info->dir_path,
+                                          cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_swift_version(cb_info->global,
                                           cb_info->tbd,
@@ -319,7 +430,13 @@ handle_macho_file_for_main_error_callback(
             break;
 
         case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has multiple "
+                        "architectures with the same uuid\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
                 fprintf(stderr,
                         "Mach-o file (at path %s) has multiple architectures "
                         "with the same uuid\n",
@@ -338,7 +455,7 @@ handle_macho_file_for_main_error_callback(
              * recursing.
              */
 
-            if (cb_info->tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+            if (cb_info->is_recursing) {
                 return false;
             }
 
@@ -354,7 +471,18 @@ handle_macho_file_for_main_error_callback(
             return false;
 
         case ERR_MACHO_FILE_PARSE_NO_PLATFORM:
-            if (cb_info->print_paths) {
+            if (cb_info->is_recursing) {
+                request_result =
+                    request_platform(cb_info->global,
+                                     cb_info->tbd,
+                                     cb_info->retained_info_in,
+                                     false,
+                                     stderr,
+                                     "Mach-o file (at path %s/%s), does not "
+                                     "have a platform\n",
+                                     cb_info->dir_path,
+                                     cb_info->name);
+            } else if (cb_info->print_paths) {
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,

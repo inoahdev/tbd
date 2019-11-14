@@ -22,6 +22,7 @@ struct handle_macho_file_parse_error_cb_info {
     const char *name;
 
     bool print_paths;
+    bool is_recursing;
 };
 
 bool
