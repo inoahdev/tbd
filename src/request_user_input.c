@@ -163,11 +163,15 @@ request_current_version(struct tbd_for_main *__notnull const global,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -235,11 +239,15 @@ request_compat_version(struct tbd_for_main *__notnull const global,
                        const char *__notnull const prompt,
                        ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -309,11 +317,15 @@ request_install_name(struct tbd_for_main *__notnull const global,
                      const char *__notnull const prompt,
                      ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -373,11 +385,15 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -457,11 +473,15 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -523,11 +543,15 @@ request_platform(struct tbd_for_main *__notnull const global,
                  const char *__notnull const prompt,
                  ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -605,11 +629,15 @@ request_swift_version(struct tbd_for_main *__notnull const global,
                       const char *__notnull const prompt,
                       ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -678,11 +706,15 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const global,
                                const char *__notnull const prompt,
                                ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
@@ -725,11 +757,15 @@ request_if_should_ignore_non_unique_uuids(
     const char *__notnull const prompt,
     ...)
 {
-    if (tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) {
-        return false;
-    }
+    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
+        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS))
+    {
+        va_list args;
+        va_start(args, prompt);
 
-    if (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS) {
+        vfprintf(file, prompt, args);
+        va_end(args);
+
         return false;
     }
 
