@@ -457,10 +457,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
             header.filetype = swap_uint32(header.filetype);
             header.flags = swap_uint32(header.flags);
         } else if (!magic_is_thin(header.magic)) {
-            if (!(options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES)) {
-                free(arch_list);
-                return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
+            if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
+                continue;
             }
+
+            free(arch_list);
+            return E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE;
         }
 
         if (!ignore_filetype) {
@@ -977,7 +979,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         const bool ignore_missing_exports_flags =
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
-        if (!(tbd_options & ignore_missing_exports_flags)) {
+        if ((tbd_options & ignore_missing_exports_flags) == 0) {
             if (info_in->fields.exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
