@@ -81,10 +81,10 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    const uint64_t flags = header->flags;
+    const uint64_t mh_flags = header->flags;
     if (info_in->fields.flags != 0) {
         if (info_in->fields.flags & TBD_FLAG_FLAT_NAMESPACE) {
-            if (!(flags & MH_TWOLEVEL)) {
+            if (!(mh_flags & MH_TWOLEVEL)) {
                 if (callback == NULL) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                 }
@@ -101,7 +101,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         }
 
         if (info_in->fields.flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
-            if (flags & MH_APP_EXTENSION_SAFE) {
+            if (mh_flags & MH_APP_EXTENSION_SAFE) {
                 if (callback == NULL) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                 }
@@ -117,19 +117,26 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
             }
         }
     } else {
-        if (flags & MH_TWOLEVEL) {
+        if (mh_flags & MH_TWOLEVEL) {
             info_in->fields.flags |= TBD_FLAG_FLAT_NAMESPACE;
         }
 
-        if (!(flags & MH_APP_EXTENSION_SAFE)) {
+        if (!(mh_flags & MH_APP_EXTENSION_SAFE)) {
             info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
         }
     }
 
-    const uint32_t header_size =
-        (is_64) ?
-            sizeof(struct mach_header_64) :
-            sizeof(struct mach_header);
+    uint64_t lc_flags = 0;
+    uint32_t header_size = sizeof(struct mach_header);
+
+    if (is_64) {
+        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_64;
+        header_size = sizeof(struct mach_header_64);
+    }
+
+    if (is_big_endian) {
+        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
+    }
 
     const struct range lc_available_range = {
         .begin = container_range.begin + header_size,
@@ -150,15 +157,14 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         .macho_range = container_range,
         .available_range = lc_available_range,
 
-        .is_64 = is_64,
-        .is_big_endian = is_big_endian,
-
         .ncmds = header->ncmds,
         .sizeofcmds = header->sizeofcmds,
         .header_size = header_size,
 
         .tbd_options = tbd_options,
-        .options = options
+        .options = options,
+
+        .flags = lc_flags
     };
 
     const enum macho_file_parse_result parse_load_commands_result =

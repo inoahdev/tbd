@@ -37,19 +37,23 @@ struct macho_file_parse_symbols_args {
 };
 
 enum macho_file_parse_result
-macho_file_parse_symbols_from_file(struct macho_file_parse_symbols_args args,
-                                   int fd);
+macho_file_parse_symbols_from_file(
+    const struct macho_file_parse_symbols_args *__notnull args,
+    int fd);
 
 enum macho_file_parse_result
-macho_file_parse_symbols_64_from_file(struct macho_file_parse_symbols_args args,
-                                      int fd);
+macho_file_parse_symbols_64_from_file(
+    const struct macho_file_parse_symbols_args *__notnull args,
+    int fd);
 
 enum macho_file_parse_result
-macho_file_parse_symbols_from_map(struct macho_file_parse_symbols_args args,
-                                  const uint8_t *__notnull map);
+macho_file_parse_symbols_from_map(
+    const struct macho_file_parse_symbols_args *__notnull args,
+    const uint8_t *__notnull map);
 
 enum macho_file_parse_result
-macho_file_parse_symbols_64_from_map(struct macho_file_parse_symbols_args args,
-                                     const uint8_t *__notnull map);
+macho_file_parse_symbols_64_from_map(
+    const struct macho_file_parse_symbols_args *__notnull args,
+    const uint8_t *__notnull map);
 
 #endif /* MACHO_FILE_PARSE_SYMBOLS_H */

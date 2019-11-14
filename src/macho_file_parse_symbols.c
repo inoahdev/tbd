@@ -544,10 +544,11 @@ should_parse_undef(const enum tbd_version version, const uint64_t n_value) {
 
 enum macho_file_parse_result
 macho_file_parse_symbols_from_file(
-    const struct macho_file_parse_symbols_args args,
+    const struct macho_file_parse_symbols_args *__notnull const args,
     const int fd)
 {
-    if (unlikely(args.nsyms == 0)) {
+    const uint64_t nsyms = args->nsyms;
+    if (unlikely(nsyms == 0)) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
@@ -557,12 +558,14 @@ macho_file_parse_symbols_from_file(
      */
 
     uint32_t symbol_table_size = sizeof(struct nlist);
-    if (guard_overflow_mul(&symbol_table_size, args.nsyms)) {
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)args.macho_range.begin;
-    if (guard_overflow_add(&absolute_symoff, args.symoff)) {
+    const uint64_t macho_begin = args->macho_range.begin;
+    uint64_t absolute_symoff = macho_begin;
+
+    if (guard_overflow_add(&absolute_symoff, args->symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -581,16 +584,23 @@ macho_file_parse_symbols_from_file(
      * available-range.
      */
 
-    if (!range_contains_other(args.available_range, symbol_table_range)) {
+    const struct range available_range = args->available_range;
+    if (!range_contains_other(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)args.macho_range.begin;
-    if (guard_overflow_add(&absolute_stroff, args.stroff)) {
+    uint64_t absolute_stroff = macho_begin;
+    if (guard_overflow_add(&absolute_stroff, args->stroff)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
-    const uint64_t string_table_end = absolute_stroff + args.strsize;
+    const uint32_t strsize = args->strsize;
+
+    uint64_t string_table_end = absolute_stroff;
+    if (guard_overflow_add(&string_table_end, strsize)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
     const struct range string_table_range = {
         .begin = absolute_stroff,
         .end = string_table_end
@@ -601,7 +611,7 @@ macho_file_parse_symbols_from_file(
      * available-range.
      */
 
-    if (!range_contains_other(args.available_range, string_table_range)) {
+    if (!range_contains_other(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -632,25 +642,29 @@ macho_file_parse_symbols_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    char *const string_table = malloc(args.strsize);
+    char *const string_table = malloc(strsize);
     if (string_table == NULL) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    if (our_read(fd, string_table, args.strsize) < 0) {
+    if (our_read(fd, string_table, strsize) < 0) {
         free(symbol_table);
         free(string_table);
 
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const enum tbd_version version = args.info_in->version;
+    struct tbd_create_info *const info_in = args->info_in;
+    const enum tbd_version version = info_in->version;
+
+    const uint64_t arch_bit = args->arch_bit;
+    const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist *nlist = symbol_table;
-    const struct nlist *const end = symbol_table + args.nsyms;
+    const struct nlist *const end = symbol_table + nsyms;
 
-    if (args.is_big_endian) {
+    if (args->is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
              * Ensure that either each symbol is an indirect symbol, each
@@ -659,7 +673,7 @@ macho_file_parse_symbols_from_file(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -668,7 +682,7 @@ macho_file_parse_symbols_from_file(
                     break;
 
                 case N_UNDF: {
-                    const uint64_t n_value = nlist->n_value;
+                    const uint64_t n_value = swap_uint32(nlist->n_value);
                     if ((is_undef = should_parse_undef(version, n_value))) {
                         break;
                     }
@@ -686,7 +700,7 @@ macho_file_parse_symbols_from_file(
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -694,15 +708,15 @@ macho_file_parse_symbols_from_file(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -720,7 +734,7 @@ macho_file_parse_symbols_from_file(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -747,7 +761,7 @@ macho_file_parse_symbols_from_file(
              */
 
             const uint32_t index = nlist->n_un.n_strx;
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -755,15 +769,15 @@ macho_file_parse_symbols_from_file(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -782,10 +796,11 @@ macho_file_parse_symbols_from_file(
 
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_file(
-    const struct macho_file_parse_symbols_args args,
+    const struct macho_file_parse_symbols_args *__notnull const args,
     const int fd)
 {
-    if (unlikely(args.nsyms == 0)) {
+    const uint64_t nsyms = args->nsyms;
+    if (unlikely(nsyms == 0)) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
@@ -795,12 +810,14 @@ macho_file_parse_symbols_64_from_file(
      */
 
     uint64_t symbol_table_size = sizeof(struct nlist_64);
-    if (guard_overflow_mul(&symbol_table_size, args.nsyms)) {
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_symoff = (uint32_t)args.macho_range.begin;
-    if (guard_overflow_add(&absolute_symoff, args.symoff)) {
+    const uint64_t macho_begin = args->macho_range.begin;
+    uint64_t absolute_symoff = macho_begin;
+
+    if (guard_overflow_add(&absolute_symoff, args->symoff)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -819,16 +836,23 @@ macho_file_parse_symbols_64_from_file(
      * available-range.
      */
 
-    if (!range_contains_other(args.available_range, symbol_table_range)) {
+    const struct range available_range = args->available_range;
+    if (!range_contains_other(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint32_t absolute_stroff = (uint32_t)args.macho_range.begin;
-    if (guard_overflow_add(&absolute_stroff, args.stroff)) {
-        return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
+    uint64_t absolute_stroff = macho_begin;
+    if (guard_overflow_add(&absolute_stroff, args->stroff)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
-    const uint64_t string_table_end = absolute_stroff + args.strsize;
+    const uint32_t strsize = args->strsize;
+
+    uint64_t string_table_end = absolute_stroff;
+    if (guard_overflow_add(&string_table_end, strsize)) {
+        return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
+    }
+
     const struct range string_table_range = {
         .begin = absolute_stroff,
         .end = string_table_end
@@ -839,7 +863,7 @@ macho_file_parse_symbols_64_from_file(
      * available-range.
      */
 
-    if (!range_contains_other(args.available_range, string_table_range)) {
+    if (!range_contains_other(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -870,25 +894,29 @@ macho_file_parse_symbols_64_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    char *const string_table = malloc(args.strsize);
+    char *const string_table = malloc(strsize);
     if (string_table == NULL) {
         free(symbol_table);
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    if (our_read(fd, string_table, args.strsize) < 0) {
+    if (our_read(fd, string_table, strsize) < 0) {
         free(symbol_table);
         free(string_table);
 
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const enum tbd_version version = args.info_in->version;
+    struct tbd_create_info *const info_in = args->info_in;
+    const enum tbd_version version = info_in->version;
+
+    const uint64_t arch_bit = args->arch_bit;
+    const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist_64 *nlist = symbol_table;
-    const struct nlist_64 *const end = symbol_table + args.nsyms;
+    const struct nlist_64 *const end = symbol_table + nsyms;
 
-    if (args.is_big_endian) {
+    if (args->is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
              * Ensure that either each symbol is an indirect symbol, each
@@ -897,7 +925,7 @@ macho_file_parse_symbols_64_from_file(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -906,7 +934,7 @@ macho_file_parse_symbols_64_from_file(
                     break;
 
                 case N_UNDF: {
-                    const uint64_t n_value = nlist->n_value;
+                    const uint64_t n_value = swap_uint64(nlist->n_value);
                     if ((is_undef = should_parse_undef(version, n_value))) {
                         break;
                     }
@@ -924,7 +952,7 @@ macho_file_parse_symbols_64_from_file(
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -932,15 +960,15 @@ macho_file_parse_symbols_64_from_file(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -958,7 +986,7 @@ macho_file_parse_symbols_64_from_file(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -985,7 +1013,7 @@ macho_file_parse_symbols_64_from_file(
              */
 
             const uint32_t index = nlist->n_un.n_strx;
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -993,15 +1021,15 @@ macho_file_parse_symbols_64_from_file(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -1020,19 +1048,22 @@ macho_file_parse_symbols_64_from_file(
 
 enum macho_file_parse_result
 macho_file_parse_symbols_from_map(
-    const struct macho_file_parse_symbols_args args,
+    const struct macho_file_parse_symbols_args *__notnull const args,
     const uint8_t *__notnull const map)
 {
-    if (unlikely(args.nsyms == 0)) {
+    const uint64_t nsyms = args->nsyms;
+    if (unlikely(nsyms == 0)) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    const uint32_t strsize = args->strsize;
     const struct range string_table_range = {
-        .begin = args.stroff,
-        .end = args.stroff + args.strsize
+        .begin = args->stroff,
+        .end = string_table_range.begin + strsize
     };
 
-    if (!range_contains_other(args.available_range, string_table_range)) {
+    const struct range available_range = args->available_range;
+    if (!range_contains_other(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -1042,21 +1073,23 @@ macho_file_parse_symbols_from_map(
      */
 
     uint64_t symbol_table_size = sizeof(struct nlist);
-    if (guard_overflow_mul(&symbol_table_size, args.nsyms)) {
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint64_t symbol_table_end = args.symoff;
+    const uint64_t symoff = args->symoff;
+    uint64_t symbol_table_end = symoff;
+
     if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     const struct range symbol_table_range = {
-        .begin = args.symoff,
+        .begin = symoff,
         .end = symbol_table_end
     };
 
-    if (!range_contains_other(args.available_range, symbol_table_range)) {
+    if (!range_contains_other(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -1068,13 +1101,19 @@ macho_file_parse_symbols_from_map(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const char *const string_table = (const char *)(map + args.stroff);
-    const enum tbd_version version = args.info_in->version;
+    struct tbd_create_info *const info_in = args->info_in;
+    const enum tbd_version version = info_in->version;
 
-    const struct nlist *nlist = (const struct nlist *)(map + args.symoff);
-    const struct nlist *const end = nlist + args.nsyms;
+    const uint64_t arch_bit = args->arch_bit;
+    const uint64_t tbd_options = args->tbd_options;
 
-    if (args.is_big_endian) {
+    const char *const string_table =
+        (const char *)(map + string_table_range.begin);
+
+    const struct nlist *nlist = (const struct nlist *)(map + symoff);
+    const struct nlist *const end = nlist + nsyms;
+
+    if (args->is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
              * Ensure that either each symbol is an indirect symbol, each
@@ -1083,7 +1122,7 @@ macho_file_parse_symbols_from_map(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -1092,7 +1131,7 @@ macho_file_parse_symbols_from_map(
                     break;
 
                 case N_UNDF: {
-                    const uint64_t n_value = nlist->n_value;
+                    const uint64_t n_value = swap_uint32(nlist->n_value);
                     if ((is_undef = should_parse_undef(version, n_value))) {
                         break;
                     }
@@ -1110,7 +1149,7 @@ macho_file_parse_symbols_from_map(
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -1118,15 +1157,15 @@ macho_file_parse_symbols_from_map(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1141,7 +1180,7 @@ macho_file_parse_symbols_from_map(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -1168,7 +1207,7 @@ macho_file_parse_symbols_from_map(
              */
 
             const uint32_t index = nlist->n_un.n_strx;
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -1176,15 +1215,15 @@ macho_file_parse_symbols_from_map(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1197,19 +1236,22 @@ macho_file_parse_symbols_from_map(
 
 enum macho_file_parse_result
 macho_file_parse_symbols_64_from_map(
-    const struct macho_file_parse_symbols_args args,
+    const struct macho_file_parse_symbols_args *__notnull const args,
     const uint8_t *__notnull const map)
 {
-    if (unlikely(args.nsyms == 0)) {
+    const uint64_t nsyms = args->nsyms;
+    if (unlikely(nsyms == 0)) {
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    const uint32_t strsize = args->strsize;
     const struct range string_table_range = {
-        .begin = args.stroff,
-        .end = args.stroff + args.strsize
+        .begin = args->stroff,
+        .end = string_table_range.begin + strsize
     };
 
-    if (!range_contains_other(args.available_range, string_table_range)) {
+    const struct range available_range = args->available_range;
+    if (!range_contains_other(available_range, string_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_STRING_TABLE;
     }
 
@@ -1219,21 +1261,23 @@ macho_file_parse_symbols_64_from_map(
      */
 
     uint64_t symbol_table_size = sizeof(struct nlist_64);
-    if (guard_overflow_mul(&symbol_table_size, args.nsyms)) {
+    if (guard_overflow_mul(&symbol_table_size, nsyms)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    uint64_t symbol_table_end = args.symoff;
+    const uint64_t symoff = args->symoff;
+    uint64_t symbol_table_end = symoff;
+
     if (guard_overflow_add(&symbol_table_end, symbol_table_size)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
     const struct range symbol_table_range = {
-        .begin = args.symoff,
+        .begin = symoff,
         .end = symbol_table_end
     };
 
-    if (!range_contains_other(args.available_range, symbol_table_range)) {
+    if (!range_contains_other(available_range, symbol_table_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
@@ -1245,13 +1289,19 @@ macho_file_parse_symbols_64_from_map(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const char *const string_table = (const char *)(map + args.stroff);
-    const enum tbd_version version = args.info_in->version;
+    struct tbd_create_info *const info_in = args->info_in;
+    const enum tbd_version version = info_in->version;
 
-    const struct nlist_64 *nlist = (const struct nlist_64 *)(map + args.symoff);
-    const struct nlist_64 *const end = nlist + args.nsyms;
+    const uint64_t arch_bit = args->arch_bit;
+    const uint64_t tbd_options = args->tbd_options;
 
-    if (args.is_big_endian) {
+    const char *const string_table =
+        (const char *)(map + string_table_range.begin);
+
+    const struct nlist_64 *nlist = (const struct nlist_64 *)(map + symoff);
+    const struct nlist_64 *const end = nlist + nsyms;
+
+    if (args->is_big_endian) {
         for (; nlist != end; nlist++) {
             /*
              * Ensure that either each symbol is an indirect symbol, each
@@ -1260,7 +1310,7 @@ macho_file_parse_symbols_64_from_map(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -1269,7 +1319,7 @@ macho_file_parse_symbols_64_from_map(
                     break;
 
                 case N_UNDF: {
-                    const uint64_t n_value = nlist->n_value;
+                    const uint64_t n_value = swap_uint64(nlist->n_value);
                     if ((is_undef = should_parse_undef(version, n_value))) {
                         break;
                     }
@@ -1287,7 +1337,7 @@ macho_file_parse_symbols_64_from_map(
              */
 
             const uint32_t index = swap_uint32(nlist->n_un.n_strx);
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -1295,15 +1345,15 @@ macho_file_parse_symbols_64_from_map(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -1318,7 +1368,7 @@ macho_file_parse_symbols_64_from_map(
              */
 
             const uint8_t n_type = nlist->n_type;
-            const uint8_t type = n_type & N_TYPE;
+            const uint8_t type = (n_type & N_TYPE);
 
             bool is_undef = false;
             switch (type) {
@@ -1340,12 +1390,12 @@ macho_file_parse_symbols_64_from_map(
             }
 
             /*
-             * For the sake of leniency, we avoid erroring out for symbols with
-             * invalid string-table references.
+             * For leniency reasons, ignore invalid symbol-references instead of
+             * erroring out.
              */
 
             const uint32_t index = nlist->n_un.n_strx;
-            if (unlikely(index >= args.strsize)) {
+            if (unlikely(index >= strsize)) {
                 continue;
             }
 
@@ -1353,15 +1403,15 @@ macho_file_parse_symbols_64_from_map(
             const char *const symbol_string = string_table + index;
 
             const enum macho_file_parse_result handle_symbol_result =
-                handle_symbol(args.info_in,
-                              args.arch_bit,
+                handle_symbol(info_in,
+                              arch_bit,
                               index,
-                              args.strsize,
+                              strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              args.tbd_options);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;

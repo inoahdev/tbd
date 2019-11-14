@@ -18,6 +18,11 @@
 #include "notnull.h"
 #include "range.h"
 
+enum mf_parse_load_commands_flags {
+    F_MF_PARSE_LOAD_COMMANDS_IS_64 = (1ull << 0),
+    F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN = (1ull << 1)
+};
+
 struct mf_parse_lc_from_file_info {
     int fd;
 
@@ -27,15 +32,14 @@ struct mf_parse_lc_from_file_info {
     struct range macho_range;
     struct range available_range;
 
-    bool is_64;
-    bool is_big_endian;
-
     uint32_t ncmds;
     uint32_t sizeofcmds;
     uint32_t header_size;
 
     uint64_t tbd_options;
     uint64_t options;
+
+    uint64_t flags;
 };
 
 enum macho_file_parse_result
@@ -58,14 +62,13 @@ struct mf_parse_lc_from_map_info {
 
     struct range available_map_range;
 
-    bool is_64;
-    bool is_big_endian;
-
     uint32_t ncmds;
     uint32_t sizeofcmds;
 
     uint64_t tbd_options;
     uint64_t options;
+
+    uint64_t flags;
 };
 
 enum macho_file_parse_result

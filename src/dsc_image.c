@@ -209,6 +209,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         (const struct mach_header *)(map + file_offset);
 
     const uint32_t magic = header->magic;
+    uint64_t lc_flags = 0;
 
     const bool is_64 = (magic == MH_MAGIC_64 || magic == MH_CIGAM_64);
     const bool is_big_endian = (magic == MH_CIGAM || magic == MH_CIGAM_64);
@@ -217,6 +218,12 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         if (max_image_size < sizeof(struct mach_header_64)) {
             return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
         }
+
+        if (is_big_endian) {
+            lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
+        }
+
+        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_64;
     } else {
         const bool is_fat =
             magic == FAT_MAGIC || magic == FAT_MAGIC_64 ||
@@ -230,6 +237,8 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             if (magic != MH_MAGIC) {
                 return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
             }
+        } else {
+            lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
         }
     }
 
@@ -276,14 +285,13 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
         .available_map_range = dsc_info->available_range,
 
-        .is_64 = is_64,
-        .is_big_endian = is_big_endian,
-
         .ncmds = header->ncmds,
         .sizeofcmds = header->sizeofcmds,
 
         .tbd_options = tbd_options,
-        .options = lc_options
+        .options = lc_options,
+
+        .flags = lc_flags
     };
 
     const enum macho_file_parse_result parse_load_commands_result =
@@ -332,9 +340,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     };
 
     if (is_64) {
-        ret = macho_file_parse_symbols_64_from_map(args, map);
+        ret = macho_file_parse_symbols_64_from_map(&args, map);
     } else {
-        ret = macho_file_parse_symbols_from_map(args, map);
+        ret = macho_file_parse_symbols_from_map(&args, map);
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {
