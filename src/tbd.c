@@ -240,11 +240,6 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
         .type = type,
     };
 
-    if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-        symbol_info.archs = info_in->fields.archs;
-        symbol_info.archs_count = info_in->fields.archs_count;
-    }
-
     struct array_cached_index_info cached_info = {};
     struct tbd_symbol_info *const existing_info =
         array_find_item_in_sorted(list,
@@ -282,6 +277,11 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
     const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
         symbol_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
+    }
+
+    if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
+        symbol_info.archs = info_in->fields.archs;
+        symbol_info.archs_count = info_in->fields.archs_count;
     }
 
     const enum array_result add_export_info_result =
@@ -729,7 +729,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     const uint64_t archs = info->fields.archs;
-    const uint64_t archs_count = info->fields.archs_count;
+    const int archs_count = info->fields.archs_count;
 
     if (tbd_write_archs_for_header(file, archs, archs_count)) {
         return E_TBD_CREATE_WRITE_FAIL;
