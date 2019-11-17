@@ -1033,8 +1033,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                 if (!should_continue) {
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                 }
-
-                header.filetype = MH_DYLIB;
             }
         }
 
@@ -1077,7 +1075,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
+        const bool ignore_missing_exports_flags =
+            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+
+        if ((tbd_options & ignore_missing_exports_flags) == 0) {
             if (info_in->fields.exports.item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_EXPORTS;
             }
