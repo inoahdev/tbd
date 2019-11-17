@@ -19,7 +19,6 @@
 #include "handle_dsc_parse_result.h"
 #include "parse_dsc_for_main.h"
 
-#include "macho_file.h"
 #include "notnull.h"
 #include "our_io.h"
 #include "path.h"

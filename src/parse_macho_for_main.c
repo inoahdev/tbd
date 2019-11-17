@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 #include "handle_macho_file_parse_result.h"
-#include "macho_file.h"
 #include "our_io.h"
 #include "parse_macho_for_main.h"
 #include "recursive.h"

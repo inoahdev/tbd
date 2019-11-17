@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "handle_macho_file_parse_result.h"
-#include "macho_file.h"
 #include "request_user_input.h"
 
 bool
