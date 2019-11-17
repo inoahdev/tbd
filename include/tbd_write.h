@@ -15,7 +15,7 @@
 int
 tbd_write_archs_for_header(FILE *__notnull file,
                            uint64_t archs,
-                           uint64_t archs_count);
+                           int archs_count);
 
 int tbd_write_current_version(FILE *__notnull file, uint32_t version);
 int tbd_write_compatibility_version(FILE *__notnull file, uint32_t version);

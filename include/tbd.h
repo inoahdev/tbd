@@ -123,12 +123,12 @@ enum tbd_symbol_info_flags {
 
 struct tbd_symbol_info {
     uint64_t archs;
-    uint64_t archs_count;
+    int archs_count;
 
     char *string;
-    enum tbd_symbol_type type;
-
     uint64_t length;
+
+    enum tbd_symbol_type type;
     uint64_t flags;
 };
 
@@ -173,7 +173,7 @@ enum tbd_create_info_flags {
 
 struct tbd_create_info_fields {
     uint64_t archs;
-    uint64_t archs_count;
+    int archs_count;
 
     uint32_t flags;
 

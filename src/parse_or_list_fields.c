@@ -27,11 +27,11 @@ uint64_t
 parse_architectures_list(int index,
                          const int argc,
                          const char *const *__notnull const argv,
-                         uint64_t *__notnull const count_out,
+                         int *__notnull const count_out,
                          int *__notnull const index_out)
 {
     uint64_t archs = 0;
-    uint64_t count = 0;
+    int count = 0;
 
     const struct arch_info *const arch_info_list = arch_info_get_list();
 

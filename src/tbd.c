@@ -566,13 +566,11 @@ tbd_symbol_info_comparator(const void *__notnull const array_item,
     const struct tbd_symbol_info *const info =
         (const struct tbd_symbol_info *)item;
 
-    const uint64_t array_archs_count = array_info->archs_count;
-    const uint64_t archs_count = info->archs_count;
+    const int array_archs_count = array_info->archs_count;
+    const int archs_count = info->archs_count;
 
-    if (array_archs_count > archs_count) {
-        return 1;
-    } else if (array_archs_count < archs_count) {
-        return -1;
+    if (array_archs_count != archs_count) {
+        return (array_archs_count - archs_count);
     }
 
     const uint64_t array_archs = array_info->archs;
@@ -587,10 +585,8 @@ tbd_symbol_info_comparator(const void *__notnull const array_item,
     const enum tbd_symbol_type array_type = array_info->type;
     const enum tbd_symbol_type type = info->type;
 
-    if (array_type > type) {
-        return 1;
-    } else if (array_type < type) {
-        return -1;
+    if (array_type != type) {
+        return (int)(array_type - type);
     }
 
     const uint64_t array_length = array_info->length;
@@ -651,10 +647,8 @@ tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
     const enum tbd_symbol_type array_type = array_info->type;
     const enum tbd_symbol_type type = info->type;
 
-    if (array_type > type) {
-        return 1;
-    } else if (array_type < type) {
-        return -1;
+    if (array_type != type) {
+        return (int)(array_type - type);
     }
 
     const uint64_t array_length = array_info->length;

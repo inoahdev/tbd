@@ -18,7 +18,7 @@ uint64_t
 parse_architectures_list(int index,
                          int argc,
                          const char *const *__notnull argv,
-                         uint64_t *__notnull count_out,
+                         int *__notnull count_out,
                          int *__notnull index_out);
 
 uint32_t

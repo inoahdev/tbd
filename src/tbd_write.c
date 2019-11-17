@@ -15,7 +15,7 @@
 int
 tbd_write_archs_for_header(FILE *__notnull const file,
                            const uint64_t archs,
-                           const uint64_t archs_count)
+                           const int archs_count)
 {
     if (archs_count == 0) {
         return 1;
@@ -69,8 +69,8 @@ tbd_write_archs_for_header(FILE *__notnull const file,
      * Break lines for every seven archs written out.
      */
 
+    int i = 1;
     uint64_t counter = 1;
-    uint64_t i = 1;
 
     while (i != archs_count) {
         index += 1;
