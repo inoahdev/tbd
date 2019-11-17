@@ -15,9 +15,12 @@
 #include "guard_overflow.h"
 
 #include "macho_file_parse_load_commands.h"
-#include "macho_file_parse_symbols.h"
+#include "macho_file_parse_export_trie.h"
+#include "macho_file_parse_symtab.h"
 
 #include "range.h"
+#include "char_buffer.h"
+#include "tbd.h"
 #include "unused.h"
 
 /*
@@ -124,11 +127,14 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
-        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
-            return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
-
         case E_MACHO_FILE_PARSE_NO_EXPORTS:
             return E_DSC_IMAGE_PARSE_NO_EXPORTS;
+
+        case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
+            return E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE;
+
+        case E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL:
+            return E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL;
     }
 
     return E_DSC_IMAGE_PARSE_OK;
@@ -268,11 +274,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      */
 
     const uint64_t lc_options =
-        O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE |
+        O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS |
         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
         macho_options;
 
-    struct symtab_command symtab = {};
     struct mf_parse_lc_from_map_info info = {
         .map = map,
         .map_size = dsc_info->size,
@@ -294,65 +299,102 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         .flags = lc_flags
     };
 
+    struct char_buffer cb_buffer = {};
+    struct macho_file_parse_extra_args extra = {
+        .callback = callback,
+        .callback_info = callback_info,
+        .export_trie_cb = &cb_buffer
+    };
+
+    struct macho_file_symbol_lc_info_out sym_info = {};
     const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_map(info_in,
                                                 &info,
-                                                callback,
-                                                callback_info,
-                                                &symtab);
+                                                extra,
+                                                &sym_info);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(parse_load_commands_result);
     }
 
+    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
+
+    bool parsed_dyld_info = false;
+    bool parse_symtab = false;
+
     /*
-     * Because macho_file_parse_load_commands_from_map() didn't return an
-     * error-code, we can assume that lacking a symtab is no big deal.
-     *
-     * However, this should never happen in the first place.
+     * Parse dyld_info if available, and if not, parse symtab instead. However,
+     * if private
      */
 
-    if (symtab.cmd != LC_SYMTAB) {
-        return E_DSC_IMAGE_PARSE_OK;
+    if (sym_info.dyld_info.export_off != 0 &&
+        sym_info.dyld_info.export_size != 0)
+    {
+        const struct macho_file_parse_export_trie_args args = {
+            .info_in = info_in,
+
+            .arch = dsc_info->arch,
+            .arch_bit = arch_bit,
+
+            .available_range = dsc_info->available_range,
+
+            .is_64 = is_64,
+            .is_big_endian = is_big_endian,
+
+            .dyld_info = sym_info.dyld_info,
+            .cb_buffer = extra.export_trie_cb,
+
+            .tbd_options = tbd_options
+        };
+
+        ret = macho_file_parse_export_trie_from_map(args, map);
+
+        parsed_dyld_info = true;
+        parse_symtab = !(tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS);
+    } else {
+        parse_symtab = true;
     }
 
-    /*
-     * Because the symbol-table and string-table offsets are relative to the
-     * cache-base and not the mach-o header, we have to provide the full map and
-     * the full map range to macho_file_parse_symbols_from_map().
-     */
+    if (sym_info.symtab.nsyms != 0 && parse_symtab) {
+        const struct macho_file_parse_symtab_args args = {
+            .info_in = info_in,
+            .available_range = dsc_info->available_range,
 
-    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
-    const struct macho_file_parse_symbols_args args = {
-        .info_in = info_in,
-        .available_range = dsc_info->available_range,
+            .arch_bit = arch_bit,
+            .is_big_endian = is_big_endian,
 
-        .arch_bit = arch_bit,
-        .is_big_endian = is_big_endian,
+            .symoff = sym_info.symtab.symoff,
+            .nsyms = sym_info.symtab.nsyms,
 
-        .symoff = symtab.symoff,
-        .nsyms = symtab.nsyms,
+            .stroff = sym_info.symtab.stroff,
+            .strsize = sym_info.symtab.strsize,
 
-        .stroff = symtab.stroff,
-        .strsize = symtab.strsize,
+            .tbd_options = tbd_options
+        };
 
-        .tbd_options = tbd_options
-    };
+        if (is_64) {
+            ret = macho_file_parse_symtab_64_from_map(&args, map);
+        } else {
+            ret = macho_file_parse_symtab_from_map(&args, map);
+        }
+    } else if (!parsed_dyld_info) {
+        const uint64_t ignore_missing_flags =
+            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
-    if (is_64) {
-        ret = macho_file_parse_symbols_64_from_map(&args, map);
-    } else {
-        ret = macho_file_parse_symbols_from_map(&args, map);
+        /*
+         * If we have either O_TBD_PARSE_IGNORE_EXPORTS, or
+         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         */
+
+        if ((tbd_options & ignore_missing_flags) == 0) {
+            return E_DSC_IMAGE_PARSE_OK;
+        }
+
+        return E_DSC_IMAGE_PARSE_NO_EXPORTS;
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(ret);
-    }
-
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_EXPORTS)) {
-        if (info_in->fields.exports.item_count == 0) {
-            return E_DSC_IMAGE_PARSE_NO_EXPORTS;
-        }
     }
 
     return E_DSC_IMAGE_PARSE_OK;

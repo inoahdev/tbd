@@ -558,6 +558,17 @@ void array_clear(struct array *__notnull const array) {
     array->item_count = 0;
 }
 
+void
+array_trim_to_item_count(struct array *__notnull const array,
+                         const size_t item_size,
+                         const uint64_t item_count)
+{
+    const uint64_t byte_index = (item_count * item_size);
+
+    array->data_end = (array->data + byte_index);
+    array->item_count = item_count;
+}
+
 enum array_result array_destroy(struct array *__notnull const array) {
     /*
      * free(NULL) is allowed

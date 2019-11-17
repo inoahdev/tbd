@@ -154,6 +154,11 @@ array_sort_with_comparator(struct array *__notnull array,
                            size_t item_size,
                            __notnull array_sort_comparator comparator);
 
+void
+array_trim_to_item_count(struct array *__notnull array,
+                         size_t item_size,
+                         const uint64_t item_count);
+
 void array_clear(struct array *__notnull array);
 enum array_result array_destroy(struct array *__notnull array);
 

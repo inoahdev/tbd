@@ -701,17 +701,25 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
             break;
 
-        case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
-            fprintf(stderr,
-                    "Image (with path %s) has no symbol-table\r\n",
-                    image_path);
-
-            break;
-
         case E_DSC_IMAGE_PARSE_NO_EXPORTS:
             fprintf(stderr,
                     "Image (with path %s) has no exported clients, re-exports, "
                     "or symbols to be written out\r\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE:
+            fprintf(stderr,
+                    "Image (with path %s) has an invalid exports-trie\r\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL:
+            fprintf(stderr,
+                    "Failed to create symbols-list while parsing image (with "
+                    "path: %s)\r\n",
                     image_path);
 
             break;

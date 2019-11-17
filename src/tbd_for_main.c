@@ -167,15 +167,15 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 {
     int index = *index_in;
     if (strcmp(option, "allow-private-objc-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
     } else if (strcmp(option, "allow-private-objc-class-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS;
     } else if (strcmp(option, "allow-private-objc-ehtype-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS;
     } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS;
+        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
     } else if (strcmp(option, "ignore-clients") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_CLIENTS;
     } else if (strcmp(option, "ignore-compatibility-version") == 0) {

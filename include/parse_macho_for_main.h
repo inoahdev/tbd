@@ -9,6 +9,7 @@
 #ifndef PARSE_MACHO_FOR_MAIN_H
 #define PARSE_MACHO_FOR_MAIN_H
 
+#include "char_buffer.h"
 #include "tbd_for_main.h"
 
 enum parse_macho_for_main_options {
@@ -45,6 +46,7 @@ struct parse_macho_for_main_args {
     bool dont_handle_non_macho_error;
     bool print_paths;
 
+    struct char_buffer *export_trie_cb;
     uint64_t options;
 };
 

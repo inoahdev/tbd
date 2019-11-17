@@ -40,9 +40,9 @@ enum tbd_parse_options {
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_CLASS_SYMBOLS  = 1ull << 13,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_EHTYPE_SYMBOLS = 1ull << 14,
-    O_TBD_PARSE_ALLOW_PRIVATE_OBJC_IVAR_SYMBOLS   = 1ull << 15,
+    O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS  = 1ull << 13,
+    O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS = 1ull << 14,
+    O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS   = 1ull << 15,
 
     O_TBD_PARSE_IGNORE_MISSING_EXPORTS  = 1ull << 16,
     O_TBD_PARSE_IGNORE_MISSING_UUIDS    = 1ull << 17,
@@ -109,6 +109,14 @@ enum tbd_symbol_type {
     TBD_SYMBOL_TYPE_WEAK_DEF
 };
 
+enum tbd_version {
+    TBD_VERSION_NONE,
+
+    TBD_VERSION_V1,
+    TBD_VERSION_V2,
+    TBD_VERSION_V3
+};
+
 enum tbd_symbol_info_flags {
     F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES = 1ull << 0
 };
@@ -120,7 +128,7 @@ struct tbd_symbol_info {
     char *string;
     enum tbd_symbol_type type;
 
-    uint32_t length;
+    uint64_t length;
     uint64_t flags;
 };
 
@@ -144,14 +152,6 @@ tbd_uuid_info_comparator(const void *__notnull array_item,
 int
 tbd_uuid_info_is_unique_comparator(const void *__notnull array_item,
                                    const void *__notnull item);
-
-enum tbd_version {
-    TBD_VERSION_NONE,
-
-    TBD_VERSION_V1,
-    TBD_VERSION_V2,
-    TBD_VERSION_V3
-};
 
 enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1ull << 0,
@@ -201,6 +201,33 @@ struct tbd_create_info {
 
     uint64_t flags;
 };
+
+enum tbd_add_symbol_result {
+    E_TBD_ADD_SYMBOL_OK,
+
+    E_TBD_ADD_SYMBOL_ALLOC_FAIL,
+    E_TBD_ADD_SYMBOL_ARRAY_FAIL
+};
+
+enum tbd_add_symbol_result
+tbd_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
+                         const char *__notnull string,
+                         uint64_t max_len,
+                         uint64_t arch_bit,
+                         enum tbd_symbol_type predefined_type,
+                         bool is_external,
+                         bool is_undef,
+                         uint64_t options);
+
+enum tbd_add_symbol_result
+tbd_add_symbol_with_info_and_len(struct tbd_create_info *__notnull info_in,
+                                 const char *__notnull string,
+                                 uint64_t len,
+                                 uint64_t arch_bit,
+                                 enum tbd_symbol_type predefined_type,
+                                 bool is_external,
+                                 bool is_undef,
+                                 uint64_t options);
 
 enum tbd_create_result {
     E_TBD_CREATE_OK,

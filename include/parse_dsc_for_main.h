@@ -9,6 +9,7 @@
 #ifndef PARSE_DSC_FOR_MAIN_H
 #define PARSE_DSC_FOR_MAIN_H
 
+#include "char_buffer.h"
 #include "tbd_for_main.h"
 
 /*
@@ -47,6 +48,7 @@ struct parse_dsc_for_main_args {
     bool dont_handle_non_dsc_error;
     bool print_paths;
 
+    struct char_buffer *export_trie_cb;
     uint64_t options;
 };
 

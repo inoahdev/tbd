@@ -969,20 +969,6 @@ handle_macho_file_parse_result(
 
             return false;
 
-        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s), or one of its "
-                        "architectures, has no symbol-table\n",
-                        args.dir_path);
-            } else {
-                fputs("The provided mach-o file, or one of its architectures, "
-                      "has no symbol-table\n",
-                      stderr);
-            }
-
-            return false;
-
         case E_MACHO_FILE_PARSE_NO_EXPORTS:
             if (args.print_paths) {
                 fprintf(stderr,
@@ -993,6 +979,26 @@ handle_macho_file_parse_result(
             } else {
                 fputs("The provided mach-o file has no exported clients, "
                       "re-exports, or symbols to be written out\n",
+                      stderr);
+            }
+
+            return false;
+
+        case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
+            fputs("The provided mach-o file has an invalid exports-trie\n",
+                  stderr);
+
+            return false;
+
+        case E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL:
+            if (args.print_paths) {
+                fprintf(stderr,
+                        "Failed to create list of symbols while parsing mach-o "
+                        "file at path: %s\n",
+                        args.dir_path);
+            } else {
+                fputs("Failed to create list of symbols while parsing the "
+                      "provided mach-o file\n",
                       stderr);
             }
 
@@ -1243,15 +1249,6 @@ handle_macho_file_parse_result_while_recursing(
 
             return false;
 
-        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
-            fprintf(stderr,
-                    "Mach-o file (at path %s/%s), or one of its "
-                    "architectures, has no symbol-table\n",
-                    args.dir_path,
-                    args.name);
-
-            return false;
-
         case E_MACHO_FILE_PARSE_NO_EXPORTS: {
             if (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
                 return false;
@@ -1265,6 +1262,23 @@ handle_macho_file_parse_result_while_recursing(
 
             return false;
         }
+
+        case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has an invalid exports-trie\n",
+                    args.dir_path,
+                    args.name);
+
+            return false;
+
+        case E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL:
+            fprintf(stderr,
+                    "Failed to create symbols-array while parsing mach-o file "
+                    "at path: %s/%s\n",
+                    args.dir_path,
+                    args.name);
+
+            return false;
     }
 
     return true;

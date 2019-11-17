@@ -1,0 +1,584 @@
+//
+//  src/macho_file_parse_export_trie.c
+//  tbd
+//
+//  Created by inoahdev on 11/3/19.
+//  Copyright © 2019 inoahdev. All rights reserved.
+//
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "guard_overflow.h"
+#include "likely.h"
+#include "macho_file_parse_export_trie.h"
+#include "our_io.h"
+
+int
+read_uleb128(const uint8_t *iter,
+             const uint8_t *const end,
+             const uint8_t **const iter_out,
+             uint64_t *const result_out)
+{
+    uint64_t shift = 0;
+    uint64_t result = 0;
+
+    /*
+     * uleb128 format is as follows:
+     * Every byte with the MSB set to 1 indicates that the byte and the next
+     * byte are part of the uleb128 format.
+     *
+     * The uleb128's integer contents are stored in the 7 LSBs, and are combined
+     * into a single integer by placing every 7 bits right to the left (MSB) of
+     * the previous 7 bits stored.
+     *
+     * Ex:
+     *     10000110 10010100 00101000
+     *
+     * In the example above, the first two bytes have the MSB set, meaning that
+     * the same byte, and the byte after, are in that uleb128.
+     *
+     * In this case, all three bytes are used.
+     *
+     * The lower 7 bits of the integer are all combined together as described
+     * earlier.
+     *
+     * Parsing into an integer should result in the following:
+     *     0101000 0010100 0000110
+     *
+     * Here, the 7 bits are stored in the order opposite to how they were found.
+     *
+     * The first byte's 7 bits are stored in the 3rd component, the second
+     * byte's 7 bits are in the second component, and the third byte's 7 bits
+     * are stored in the 1st component.
+     */
+
+    do {
+        if (iter == end) {
+            return -1;
+        }
+
+        /*
+         * Get the lower 7 bits.
+         */
+
+        const uint64_t bits = (*iter & 0x7f);
+
+        /*
+         * Make sure we actually have the bit-space on a 64-bit integer to store
+         * the lower 7-bits.
+         */
+
+        const uint64_t shifted_bits = (bits << shift);
+        const uint64_t shifted_back_bits = (shifted_bits >> shift);
+
+        if (bits != shifted_back_bits) {
+            return -1;
+        }
+
+        result |= (bits << shift);
+        shift += 7;
+    } while (*iter++ & 0x80);
+
+    *iter_out = iter;
+    *result_out = result;
+
+    return 0;
+}
+
+int
+skip_uleb128(const uint8_t *iter,
+             const uint8_t *const end,
+             const uint8_t **const iter_out)
+{
+    uint64_t shift = 0;
+
+    do {
+        if (iter == end || shift == 70) {
+            return -1;
+        }
+
+        shift += 7;
+    } while (*iter++ & 0x80);
+
+    *iter_out = iter;
+    return 0;
+}
+
+static bool
+has_range_for_location(struct array *__notnull const list,
+                       const struct range range)
+{
+    struct range *list_range = list->data;
+    const struct range *const end = list->data_end;
+
+    for (; list_range != end; list_range++) {
+        if (range_contains_other(*list_range, range)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*
+ * Apple's mach-o loader.h header doesn't seem to have this export-kind.
+ */
+
+const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
+
+/*
+ * The export-trie is a compressed tree designed to store symbols and other info
+ * in an efficient fashion.
+ *
+ * To better understand the forat, let's create a trie of the symbols "_symbol",
+ * "__symcol", and "_abcdef", "_abcghi", and work backwrds.
+ *
+ * Here's a tree showing how the compressed trie would look like:
+ *              "_"
+ *            /     \
+ *       "sym"       "abc"
+ *       /   \        /  \
+ *  "bol"    "col" "def"  "ghi"
+ *
+ * As you can see, the symbols are parsed to find common prefixes, and then
+ * placed in a tree where they can later be reconstructed back into full-fledged
+ * symbols.
+ *
+ * To store them in binary, each node on the tree is stored in an tree-node.
+ *
+ * Every tree-node contains two properties - its structure (terminal) size and
+ * the children-count. The structure size and children-count are both stored in
+ * the uleb128 format described above.
+ *
+ * If the given structure-size is zero, the tree-node simply contains the
+ * children-count, and an array of children mini-nodes that follow directly
+ * after the tree-node.
+ *
+ * In the example tree above, the "sym" and "abc" nodes' information would be
+ * stored in the structure described above.
+ *
+ * The "sym" and "abc" strings, as well as an array of index to the nodes below,
+ * are stored in the mini-nodes as described below.
+ *
+ * Each mini-node contains a label (the prefix, as shown in the tree above), and
+ * a uleb128 index to the next node in that path.
+ *
+ * The uleb128 index is relative to the start of the export-trie, and not
+ * relative to the start of the current tree-node.
+ *
+ * However, if the terminal-size is non-zero, the previous node encountered gave
+ * the last bit of string we needed to create the symbol.
+ *
+ * In this case, the present node would be the final node to parse, and would
+ * contain information on the symbol.
+ *
+ * The final export-node structure stores a uleb128 flags field.
+ *
+ * The flags field stores the 'kind' of the symbol, whether its a normal symbol,
+ * weakly-defined, or a thread-local symbol.
+ *
+ * The flags field also specifies whether the export is a re-export of not, and
+ * as such what format the fields after the flags field are in.
+ *
+ * For a re-export export-node, a dylib-ordinal uleb128 immediately follows the
+ * flags field.
+ *
+ * The dylib-ordinal is the number (starting from 1) of the dylibs imported via
+ * the LC_REEXPORT_DYLIB and other load-commands. The ordinal describes where
+ * the symbol is re-exported from.
+ *
+ * Following the dylib-ordinal is the re-export string. If the string is not
+ * empty, the string describes what symbol the export-node's is re-exported
+ * from.
+ *
+ * For example, the export-node _bzero is re-exported from _platform_bzero in
+ * another library file.
+ *
+ * On the other hand, a non-reexport export-node has an address uleb128 field
+ * follow it.
+ *
+ * If the export is non-reexport, as well as a stub-resolver, the address of the
+ * stub-resolver's own stub-resolver is given in another uleb128.
+ *
+ * Basically, the structures can be imagined in the following:
+ *
+ * struct final_export_node_reexport {
+ *     uleb128 terminal_size;
+ *     uleb128 dylib_ordinal;
+ *     char reexport_symbol[]; // may be empty.
+ * };
+ *
+ * struct final_export_node_non_reexport {
+ *     uleb128 terminal_size;
+ *     uleb128 address;
+ * };
+ *
+ * struct final_export_node_non_reexport_stub_resolver {
+ *     uleb128 terminal_size;
+ *     uleb128 address;
+ *     uleb128 address_of_self_stub_resolver;
+ * };
+ */
+
+enum macho_file_parse_result
+parse_trie_node(struct tbd_create_info *__notnull info_in,
+                const uint64_t arch_bit,
+                const uint8_t *__notnull const start,
+                const uint64_t offset,
+                const uint8_t *__notnull const end,
+                struct array *__notnull const node_ranges,
+                const uint64_t export_size,
+                struct char_buffer *__notnull cb_buffer,
+                const uint64_t options)
+{
+    const uint8_t *iter = start + offset;
+    uint64_t iter_size = *iter;
+
+    if (iter_size > 127) {
+        /*
+         * The iter-size is stored in a uleb128.
+         */
+
+        if (read_uleb128(iter, end, &iter, &iter_size)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+    } else {
+        iter++;
+    }
+
+    const uint8_t *const node_start = iter;
+    const uint8_t *const children = iter + iter_size;
+
+    if (unlikely(children > end)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    const struct range export_range = {
+        .begin = offset,
+        .end = iter_size
+    };
+
+    if (unlikely(has_range_for_location(node_ranges, export_range))) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    const enum array_result add_range_result =
+        array_add_item(node_ranges,
+                       sizeof(export_range),
+                       &export_range,
+                       NULL);
+
+    if (unlikely(add_range_result != E_ARRAY_OK)) {
+        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+    }
+
+    const bool is_export_info = (iter_size != 0);
+    if (is_export_info) {
+        uint64_t flags = 0;
+        if (read_uleb128(iter, end, &iter, &flags)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        const uint64_t kind = (flags & EXPORT_SYMBOL_FLAGS_KIND_MASK);
+        if (flags != 0) {
+            if (kind != EXPORT_SYMBOL_FLAGS_KIND_REGULAR &&
+                kind != EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE &&
+                kind != EXPORT_SYMBOL_FLAGS_KIND_THREAD_LOCAL)
+            {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+        }
+
+        if (flags & EXPORT_SYMBOL_FLAGS_REEXPORT) {
+            if (skip_uleb128(iter, end, &iter)) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+
+            if (unlikely(*iter != '\0')) {
+                iter++;
+
+                /*
+                 * Pass the length-calculation of the re-export's install-name
+                 * to strnlen in the hopes of better performance.
+                 */
+
+                const uint64_t max_length = (uint64_t)(end - iter);
+                const uint64_t length = strnlen((char *)iter, max_length);
+
+                /*
+                 * We can't have a re-export whose install-name reaches the end
+                 * of the export-trie.
+                 */
+
+                if (unlikely(length == max_length)) {
+                    return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+                }
+
+                /*
+                 * Skip past the null-terminator.
+                 */
+
+                iter += (length + 1);
+            } else {
+                iter++;
+            }
+        } else {
+            if (skip_uleb128(iter, end, &iter)) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+
+            if (flags & EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER) {
+                if (skip_uleb128(iter, end, &iter)) {
+                    return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+                }
+            }
+        }
+
+        const uint8_t *const expected_end = node_start + iter_size;
+        if (unlikely(iter != expected_end)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        enum tbd_symbol_type predefined_type = TBD_SYMBOL_TYPE_NONE;
+        if (kind == EXPORT_SYMBOL_FLAGS_KIND_REGULAR) {
+            if (flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION) {
+                predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
+            }
+        }
+
+        const enum tbd_add_symbol_result add_symbol_result =
+            tbd_add_symbol_with_info_and_len(info_in,
+                                             cb_buffer->data,
+                                             cb_buffer->length,
+                                             arch_bit,
+                                             predefined_type,
+                                             true,
+                                             false,
+                                             options);
+
+        if (add_symbol_result != E_TBD_ADD_SYMBOL_OK) {
+            return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
+        }
+    }
+
+    const uint8_t children_count = *iter;
+    if (children_count == 0) {
+        return E_MACHO_FILE_PARSE_OK;
+    }
+
+    iter++;
+    if (unlikely(iter == end)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    /*
+     * Every child shares only the same symbol-prefix, and only the same
+     * node-ranges, both of which we need to restore to its original amount
+     * after every loop.
+     */
+
+    const uint64_t orig_buff_length = cb_buffer->length;
+    const uint64_t orig_node_ranges_count = node_ranges->item_count;
+
+    for (uint8_t i = 0; i != children_count; i++) {
+        /*
+         * Pass the length-calculation of the string to strnlen in the hopes of
+         * better performance.
+         */
+
+        const uint64_t max_length = (uint64_t)(end - iter);
+        const uint64_t length = strnlen((char *)iter, max_length);
+
+        /*
+         * We can't have the string reach the end of the export-trie.
+         */
+
+        if (unlikely(length == max_length)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        const enum char_buffer_result add_c_str_result =
+            cb_add_c_str(cb_buffer, (char *)iter, length);
+
+        if (unlikely(add_c_str_result != E_CHAR_BUFFER_OK)) {
+            return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+        }
+
+        /*
+         * Skip past the null-terminator.
+         */
+
+        iter += (length + 1);
+
+        uint64_t next = *iter;
+        if (next > 127) {
+            if (read_uleb128(iter, end, &iter, &next)) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+        } else {
+            iter++;
+        }
+
+        if (unlikely(next >= export_size)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        /*
+         * From dyld, don't parse an export-trie that gets too deep.
+         */
+
+        if (unlikely(node_ranges->item_count > 128)) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        const enum macho_file_parse_result parse_export_result =
+            parse_trie_node(info_in,
+                            arch_bit,
+                            start,
+                            next,
+                            end,
+                            node_ranges,
+                            export_size,
+                            cb_buffer,
+                            options);
+
+        if (unlikely(parse_export_result != E_MACHO_FILE_PARSE_OK)) {
+            return parse_export_result;
+        }
+
+        array_trim_to_item_count(node_ranges,
+                                 sizeof(struct range),
+                                 orig_node_ranges_count);
+
+        cb_buffer->length = orig_buff_length;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+enum macho_file_parse_result
+macho_file_parse_export_trie_from_file(
+    const struct macho_file_parse_export_trie_args args,
+    const int fd,
+    const uint64_t base_offset)
+{
+    /*
+     * Validate the dyld-info exports-range.
+     */
+
+    if (args.dyld_info.export_size < 2) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    uint64_t export_end = args.dyld_info.export_off;
+    if (guard_overflow_add(&export_end, args.dyld_info.export_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    uint64_t full_export_off = base_offset;
+    if (guard_overflow_add(&full_export_off, args.dyld_info.export_off)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    uint64_t full_export_end = base_offset;
+    if (guard_overflow_add(&full_export_end, export_end)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    const struct range full_export_range = {
+        .begin = full_export_off,
+        .end = full_export_end
+    };
+
+    if (!range_contains_other(args.available_range, full_export_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_RANGE;
+    }
+
+    if (our_lseek(fd, full_export_off, SEEK_SET) < 0) {
+        return E_MACHO_FILE_PARSE_SEEK_FAIL;
+    }
+
+    uint8_t *const export_trie = calloc(1, args.dyld_info.export_size);
+    if (export_trie == NULL) {
+        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
+    }
+
+    if (our_read(fd, export_trie, args.dyld_info.export_size) < 0) {
+        free(export_trie);
+        return E_MACHO_FILE_PARSE_READ_FAIL;
+    }
+
+    struct array node_ranges = {};
+    const uint8_t *const end = export_trie + args.dyld_info.export_size;
+
+    const enum macho_file_parse_result parse_node_result =
+        parse_trie_node(args.info_in,
+                        args.arch_bit,
+                        export_trie,
+                        0,
+                        end,
+                        &node_ranges,
+                        args.dyld_info.export_size,
+                        args.cb_buffer,
+                        args.tbd_options);
+
+    free(export_trie);
+
+    if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
+        return parse_node_result;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+enum macho_file_parse_result
+macho_file_parse_export_trie_from_map(
+    const struct macho_file_parse_export_trie_args args,
+    const uint8_t *__notnull map)
+{
+    /*
+     * Validate the dyld-info exports-range.
+     */
+
+    if (args.dyld_info.export_size < 2) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    uint64_t export_end = args.dyld_info.export_off;
+    if (guard_overflow_add(&export_end, args.dyld_info.export_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    const struct range export_range = {
+        .begin = args.dyld_info.export_off,
+        .end = args.dyld_info.export_size
+    };
+
+    if (!range_contains_other(args.available_range, export_range)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    const uint8_t *const export_trie = map + args.dyld_info.export_off;
+    const uint8_t *const end = export_trie + args.dyld_info.export_size;
+
+    struct array node_ranges = {};
+    const enum macho_file_parse_result parse_node_result =
+        parse_trie_node(args.info_in,
+                        args.arch_bit,
+                        export_trie,
+                        0,
+                        end,
+                        &node_ranges,
+                        args.dyld_info.export_size,
+                        args.cb_buffer,
+                        args.tbd_options);
+
+    if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
+        return parse_node_result;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}

@@ -11,8 +11,551 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "copy.h"
+#include "likely.h"
 #include "tbd.h"
 #include "tbd_write.h"
+#include "yaml.h"
+
+/*
+ * We compare strings by using the largest possible byte size when reading from
+ * memory to maximize our performance.
+ */
+
+static uint64_t
+is_objc_class_symbol(const char *__notnull const symbol,
+                     const uint64_t first,
+                     const uint64_t max_length)
+{
+    /*
+     * Ensure the max potential length of the symbol is at least 14 bytes.
+     */
+
+    if (max_length < 15) {
+        return 0;
+    }
+
+    /*
+     * Objc-class symbols may have different prefixes.
+     */
+
+    switch (first) {
+        case 5495340712935444319: {
+            /*
+             * The check above is `if (first == "_OBJC_CL")`, checking if the
+             * prefix is "_OBJC_CLASS_$_".
+             *
+             * The check below is `if (second != "ASS_")`.
+             */
+
+            const uint32_t second = *(const uint32_t *)(symbol + 8);
+            if (second != 1599296321) {
+                return 0;
+            }
+
+            /*
+             * The check below is `if (third != "$_")`.
+             */
+
+            const uint16_t third = *(const uint16_t *)(symbol + 12);
+            if (third != 24356) {
+                return 0;
+            }
+
+            /*
+             * We return the underscore.
+             */
+
+            return 13;
+        }
+
+        case 4993752304437055327: {
+            /*
+             * The check above is `if (first == "_OBJC_ME")`, checking if the
+             * prefix is "_OBJC_METACLASS_$_".
+             *
+             * Ensure the max potential length of the symbol is at least 18
+             * bytes.
+             */
+
+            if (max_length < 19) {
+                return 0;
+            }
+
+            /*
+             * The check below is `if (second != "TACLASS_")`.
+             */
+
+            const uint64_t second = *(const uint64_t *)(symbol + 8);
+            if (second != 6868925396587594068) {
+                return 0;
+            }
+
+            /*
+             * The check below is `if (third != "$_")`.
+             */
+
+            const uint16_t third = *(const uint16_t *)(symbol + 16);
+            if (third != 24356) {
+                return 0;
+            }
+
+            /*
+             * We return the underscore.
+             */
+
+            return 17;
+        }
+
+        case 7810191059381808942: {
+            /*
+             * The check above is `if (first == ".objc_cl")`, checking if the
+             * prefix is ".objc_class_name".
+             *
+             * Ensure that the max potential length of this symbol is at least
+             * 17 btyes.
+             */
+
+            if (max_length < 18) {
+                return 0;
+            }
+
+            /*
+             * The check below is `if (second != "ass_name")`.
+             */
+
+            const uint64_t second = *(const uint64_t *)(symbol + 8);
+            if (second != 7308604896967881569) {
+                return 0;
+            }
+
+            if (symbol[16] != '_') {
+                return 0;
+            }
+
+            /*
+             * We return the underscore.
+             */
+
+            return 16;
+        }
+
+        default:
+            return 0;
+    }
+}
+
+static uint64_t
+is_objc_ehtype_sym(const char *__notnull const symbol,
+                   const uint64_t first,
+                   const uint64_t max_len,
+                   const enum tbd_version version)
+{
+    /*
+     * The ObjC eh-type group was introduced in tbd-version v3, with objc-eh
+     * type symbols belonging to the normal-symbols group in previous versions.
+     */
+
+    if (version != TBD_VERSION_V3) {
+        return 0;
+    }
+
+    if (max_len < 16) {
+        return 0;
+    }
+
+    /*
+     * The check below is `if (first != "_OBJC_EH")`.
+     */
+
+    if (first != 5207673286737153887) {
+        return 0;
+    }
+
+    /*
+     * The check below is `if (second != "TYPE")`.
+     */
+
+    const uint32_t second = *(const uint32_t *)(symbol + 8);
+    if (second != 1162893652) {
+        return 0;
+    }
+
+    /*
+     * The check below is `if (third != "_$")`.
+     */
+
+    const uint16_t third = *(const uint16_t *)(symbol + 12);
+    if (third != 9311) {
+        return 0;
+    }
+
+    if (symbol[14] != '_') {
+        return 0;
+    }
+
+    return 15;
+}
+
+static uint64_t
+is_objc_ivar_symbol(const char *__notnull const symbol, const uint64_t first) {
+    /*
+     * The check here is `if (first == "_OBJC_IV")`.
+     */
+
+    if (first != 6217605503174987615) {
+        return 0;
+    }
+
+    /*
+     * The check here is `if (second == "AR_$")`.
+     */
+
+    const uint32_t second = *(const uint32_t *)(symbol + 8);
+    if (second != 610226753) {
+        return 0;
+    }
+
+    if (symbol[12] != '_') {
+        return 0;
+    }
+
+    return 12;
+}
+
+static enum tbd_add_symbol_result
+add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
+                   struct array *__notnull const list,
+                   const char *__notnull const string,
+                   const uint64_t length,
+                   const uint64_t arch_bit,
+                   const enum tbd_symbol_type type,
+                   const uint64_t options)
+{
+    struct tbd_symbol_info symbol_info = {
+        .archs = arch_bit,
+        .archs_count = 1,
+        .length = length,
+        .string = (char *)string,
+        .type = type,
+    };
+
+    if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
+        symbol_info.archs = info_in->fields.archs;
+        symbol_info.archs_count = info_in->fields.archs_count;
+    }
+
+    struct array_cached_index_info cached_info = {};
+    struct tbd_symbol_info *const existing_info =
+        array_find_item_in_sorted(list,
+                                  sizeof(symbol_info),
+                                  &symbol_info,
+                                  tbd_symbol_info_no_archs_comparator,
+                                  &cached_info);
+
+    if (existing_info != NULL) {
+        if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
+            return E_TBD_ADD_SYMBOL_OK;
+        }
+
+        /*
+         * Avoid erroneously incrementing the archs-count in the rare case we
+         * encounter the symbol multiple times in the same architecture.
+         */
+
+        const uint64_t archs = existing_info->archs;
+        if (archs & arch_bit) {
+            return E_TBD_ADD_SYMBOL_OK;
+        }
+
+        existing_info->archs = archs | arch_bit;
+        existing_info->archs_count += 1;
+
+        return E_TBD_ADD_SYMBOL_OK;
+    }
+
+    symbol_info.string = alloc_and_copy(symbol_info.string, symbol_info.length);
+    if (unlikely(symbol_info.string == NULL)) {
+        return E_TBD_ADD_SYMBOL_ALLOC_FAIL;
+    }
+
+    const bool needs_quotes = yaml_check_c_str(string, length);
+    if (needs_quotes) {
+        symbol_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
+    }
+
+    const enum array_result add_export_info_result =
+        array_add_item_with_cached_index_info(list,
+                                              sizeof(symbol_info),
+                                              &symbol_info,
+                                              &cached_info,
+                                              NULL);
+
+    if (unlikely(add_export_info_result != E_ARRAY_OK)) {
+        free(symbol_info.string);
+        return E_TBD_ADD_SYMBOL_ARRAY_FAIL;
+    }
+
+    return E_TBD_ADD_SYMBOL_OK;
+}
+
+enum tbd_add_symbol_result
+tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
+                         const char *__notnull string,
+                         uint64_t lnmax,
+                         const uint64_t arch_bit,
+                         const enum tbd_symbol_type predefined_type,
+                         const bool is_external,
+                         const bool is_undef,
+                         const uint64_t options)
+{
+    uint64_t length = 0;
+
+    enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
+    const enum tbd_version vers = info_in->version;
+
+    /*
+     * We can skip calls to is_objc_*_symbol if the symbol's max-length
+     * disqualifies the symbol from being an objc symbol.
+     */
+
+    if (likely(predefined_type == TBD_SYMBOL_TYPE_NONE)) {
+        if (lnmax > 13) {
+            const uint64_t first = *(const uint64_t *)string;
+            const char *const str = string;
+            uint64_t offset = 0;
+
+            if ((offset = is_objc_class_symbol(str, first, lnmax)) != 0) {
+                if (!is_external) {
+                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
+                        return E_TBD_ADD_SYMBOL_OK;
+                    }
+                }
+
+                string += offset;
+
+                /*
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the class-name is to be removed.
+                 */
+
+                if (vers == TBD_VERSION_V3) {
+                    string += 1;
+                    lnmax -= 1;
+                }
+
+                length = strnlen(string, lnmax - offset);
+                if (likely(length != 0)) {
+                    type = TBD_SYMBOL_TYPE_OBJC_CLASS;
+                }
+            } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
+                if (!is_external) {
+                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
+                        return E_TBD_ADD_SYMBOL_OK;
+                    }
+                }
+
+                string += offset;
+
+                /*
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the ivar-name is to be removed.
+                 */
+
+                if (vers == TBD_VERSION_V3) {
+                    string += 1;
+                    lnmax -= 1;
+                }
+
+                length = strnlen(string, lnmax - offset);
+                if (likely(length != 0)) {
+                    type = TBD_SYMBOL_TYPE_OBJC_IVAR;
+                }
+            } else if ((offset = is_objc_ehtype_sym(str, first, lnmax, vers))) {
+                string += offset;
+                length = strnlen(string, lnmax - offset);
+
+                if (likely(length != 0)) {
+                    type = TBD_SYMBOL_TYPE_OBJC_EHTYPE;
+                }
+            } else {
+                if (!is_external) {
+                    return E_TBD_ADD_SYMBOL_OK;
+                }
+
+                length = (uint32_t)strnlen(string, lnmax);
+                if (unlikely(length == 0)) {
+                    return E_TBD_ADD_SYMBOL_OK;
+                }
+            }
+        } else {
+            if (!is_external) {
+                return E_TBD_ADD_SYMBOL_OK;
+            }
+
+            length = (uint32_t)strnlen(string, lnmax);
+            if (unlikely(length == 0)) {
+                return E_TBD_ADD_SYMBOL_OK;
+            }
+        }
+    } else {
+        if (!is_external) {
+            return E_TBD_ADD_SYMBOL_OK;
+        }
+
+        length = (uint32_t)strnlen(string, lnmax);
+        if (unlikely(length == 0)) {
+            return E_TBD_ADD_SYMBOL_OK;
+        }
+
+        type = predefined_type;
+    }
+
+    struct array *list = &info_in->fields.exports;
+    if (is_undef) {
+        list = &info_in->fields.undefineds;
+    }
+
+    const enum tbd_add_symbol_result add_export_result =
+        add_symbol_to_list(info_in,
+                           list,
+                           string,
+                           length,
+                           arch_bit,
+                           type,
+                           options);
+
+    if (add_export_result != E_TBD_ADD_SYMBOL_OK) {
+        return add_export_result;
+    }
+
+    return E_TBD_ADD_SYMBOL_OK;
+}
+
+enum tbd_add_symbol_result
+tbd_add_symbol_with_info_and_len(
+    struct tbd_create_info *__notnull const info_in,
+    const char *__notnull string,
+    uint64_t len,
+    const uint64_t arch_bit,
+    const enum tbd_symbol_type predefined_type,
+    const bool is_external,
+    const bool is_undef,
+    const uint64_t options)
+{
+    const enum tbd_version vers = info_in->version;
+    enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
+
+    /*
+     * We can skip calls to is_objc_*_symbol if the symbol is too short to be an
+     * objc symbol.
+     */
+
+    if (predefined_type == TBD_SYMBOL_TYPE_NONE) {
+        if (len > 13) {
+            const uint64_t first = *(const uint64_t *)string;
+            const char *const str = string;
+            uint64_t offset = 0;
+
+            if ((offset = is_objc_class_symbol(str, first, len)) != 0) {
+                if (!is_external) {
+                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
+                        return E_TBD_ADD_SYMBOL_OK;
+                    }
+                }
+
+                string += offset;
+                len -= offset;
+
+                /*
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the class-name is to be removed.
+                 */
+
+                if (vers == TBD_VERSION_V3) {
+                    string += 1;
+                    len -= 1;
+                }
+
+                if (unlikely(len == 0)) {
+                    return E_TBD_ADD_SYMBOL_OK;
+                }
+
+                type = TBD_SYMBOL_TYPE_OBJC_CLASS;
+            } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
+                if (!is_external) {
+                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
+                        return E_TBD_ADD_SYMBOL_OK;
+                    }
+                }
+
+                string += offset;
+                len -= offset;
+
+                /*
+                 * Starting from tbd-version v3, the underscore at the front of
+                 * the ivar-name is to be removed.
+                 */
+
+                if (vers == TBD_VERSION_V3) {
+                    string += 1;
+                    len -= 1;
+                }
+
+                if (unlikely(len == 0)) {
+                    return E_TBD_ADD_SYMBOL_OK;
+                }
+
+                type = TBD_SYMBOL_TYPE_OBJC_IVAR;
+            } else if ((offset = is_objc_ehtype_sym(str, first, len, vers))) {
+                if (!is_external) {
+                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS)) {
+                        return E_TBD_ADD_SYMBOL_OK;
+                    }
+                }
+
+                string += offset;
+                len -= offset;
+
+                if (unlikely(len == 0)) {
+                    return E_TBD_ADD_SYMBOL_OK;
+                }
+
+                type = TBD_SYMBOL_TYPE_OBJC_EHTYPE;
+            }
+        } else {
+            if (!is_external) {
+                return E_TBD_ADD_SYMBOL_OK;
+            }
+        }
+    } else {
+        if (!is_external) {
+            return E_TBD_ADD_SYMBOL_OK;
+        }
+
+        type = predefined_type;
+    }
+
+    struct array *list = &info_in->fields.exports;
+    if (is_undef) {
+        list = &info_in->fields.undefineds;
+    }
+
+    const enum tbd_add_symbol_result add_symbol_result =
+        add_symbol_to_list(info_in,
+                           list,
+                           string,
+                           len,
+                           arch_bit,
+                           type,
+                           options);
+
+    if (add_symbol_result != E_TBD_ADD_SYMBOL_OK) {
+        return add_symbol_result;
+    }
+
+    return E_TBD_ADD_SYMBOL_OK;
+}
 
 int
 tbd_symbol_info_comparator(const void *__notnull const array_item,
@@ -134,14 +677,33 @@ tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
      *
-     * Add one to also compare the null-terminator.
+     * Since we can't ensure that the strings were allocated with a
+     * null-terminator, we have to check differently than in the other
+     * comparator.
+     *
+     * If the lengths don't match, we call memcmp() on both strings with the
+     * smaller lengths. If the symbols match (upto the smaller length), we
+     * return compare the strings by their length, which would have been the
+     * case anyways if a null-terminator had existed.
      */
 
     if (array_length > length) {
-        return memcmp(array_string, string, length + 1);
-    } else {
-        return memcmp(array_string, string, array_length + 1);
+        const int result = memcmp(array_string, string, length);
+        if (result != 0) {
+            return result;
+        }
+
+        return 1;
+    } else if (array_length < length) {
+        const int result = memcmp(array_string, string, array_length);
+        if (result != 0) {
+            return result;
+        }
+
+        return -1;
     }
+
+    return memcmp(array_string, string, length);
 }
 
 int

@@ -14,6 +14,7 @@
 
 #include "array.h"
 #include "notnull.h"
+#include "char_buffer.h"
 #include "tbd.h"
 
 enum macho_file_options {
@@ -23,7 +24,7 @@ enum macho_file_options {
 
     O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS      = 1ull << 0,
     O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1ull << 1,
-    O_MACHO_FILE_PARSE_DONT_PARSE_SYMBOL_TABLE    = 1ull << 2,
+    O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS         = 1ull << 2,
 
     /*
      * By default, strings are not copied for a mapped mach-o file.
@@ -76,14 +77,15 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_INVALID_SECTION,
 
     E_MACHO_FILE_PARSE_INVALID_CLIENT,
+    E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE,
     E_MACHO_FILE_PARSE_INVALID_REEXPORT,
     E_MACHO_FILE_PARSE_INVALID_STRING_TABLE,
     E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE,
 
     E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO,
+    E_MACHO_FILE_PARSE_NO_EXPORTS,
 
-    E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE,
-    E_MACHO_FILE_PARSE_NO_EXPORTS
+    E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL
 };
 
 enum macho_file_parse_error {
@@ -115,12 +117,18 @@ typedef bool
                                    enum macho_file_parse_error error,
                                    void *callback_info);
 
+struct macho_file_parse_extra_args {
+    macho_file_parse_error_callback callback;
+    void *callback_info;
+
+    struct char_buffer *export_trie_cb;
+};
+
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull info_in,
                            int fd,
                            uint32_t magic,
-                           macho_file_parse_error_callback callback,
-                           void *callback_info,
+                           struct macho_file_parse_extra_args extra,
                            uint64_t parse_options,
                            uint64_t options);
 
@@ -129,8 +137,7 @@ macho_file_parse_from_range(struct tbd_create_info *__notnull info_in,
                             int fd,
                             uint64_t start,
                             uint64_t end,
-                            macho_file_parse_error_callback callback,
-                            void *callback_info,
+                            struct macho_file_parse_extra_args extra,
                             uint64_t parse_options,
                             uint64_t options);
 

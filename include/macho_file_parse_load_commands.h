@@ -42,13 +42,17 @@ struct mf_parse_lc_from_file_info {
     uint64_t flags;
 };
 
+struct macho_file_symbol_lc_info_out {
+    struct dyld_info_command dyld_info;
+    struct symtab_command symtab;
+};
+
 enum macho_file_parse_result
 macho_file_parse_load_commands_from_file(
     struct tbd_create_info *__notnull info_in,
     const struct mf_parse_lc_from_file_info *__notnull parse_info,
-    macho_file_parse_error_callback callback,
-    void *callback_info,
-    struct symtab_command *symtab_out);
+    struct macho_file_parse_extra_args extra,
+    struct macho_file_symbol_lc_info_out *sym_info_out);
 
 struct mf_parse_lc_from_map_info {
     const uint8_t *map;
@@ -75,8 +79,7 @@ enum macho_file_parse_result
 macho_file_parse_load_commands_from_map(
     struct tbd_create_info *__notnull info_in,
     const struct mf_parse_lc_from_map_info *__notnull parse_info,
-    macho_file_parse_error_callback callback,
-    void *callback_info,
-    struct symtab_command *symtab_out);
+    struct macho_file_parse_extra_args extra,
+    struct macho_file_symbol_lc_info_out *sym_info_out);
 
 #endif /* MACHO_FILE_PARSE_LOAD_COMMANDS_H */

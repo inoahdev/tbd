@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include <dirent.h>
@@ -18,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "char_buffer.h"
 #include "copy.h"
 #include "dir_recurse.h"
 
@@ -32,6 +34,7 @@
 #include "path.h"
 
 #include "recursive.h"
+#include "tbd.h"
 #include "tbd_write.h"
 
 #include "unused.h"
@@ -46,6 +49,8 @@ struct recurse_callback_info {
 
     uint64_t files_parsed;
     uint64_t retained_info;
+
+    struct char_buffer *export_trie_cb;
 };
 
 static bool
@@ -93,7 +98,9 @@ recurse_directory_callback(const char *__notnull const dir_path,
             .name_length = name_length,
 
             .dont_handle_non_macho_error = true,
-            .print_paths = true
+            .print_paths = true,
+
+            .export_trie_cb = recurse_info->export_trie_cb
         };
 
         if (should_combine) {
@@ -291,7 +298,9 @@ int main(const int argc, const char *const argv[]) {
      */
 
     uint64_t current_tbd_index = 0;
+
     bool has_stdout = false;
+    bool will_parse_exports = false;
 
     for (int index = 1; index != argc; index++) {
         /*
@@ -873,6 +882,10 @@ int main(const int argc, const char *const argv[]) {
                 return 1;
             }
 
+            if (!(tbd.parse_options & O_TBD_PARSE_IGNORE_EXPORTS)) {
+                will_parse_exports = true;
+            }
+
             const enum array_result add_tbd_result =
                 array_add_item(&tbds, sizeof(tbd), &tbd, NULL);
 
@@ -1077,17 +1090,28 @@ int main(const int argc, const char *const argv[]) {
         return 1;
     }
 
+    struct char_buffer export_trie_cb = {};
+    if (will_parse_exports) {
+        const enum char_buffer_result reserve_cb_result =
+            cb_reserve_capacity(&export_trie_cb, 32);
+
+        if (reserve_cb_result != E_CHAR_BUFFER_OK) {
+            fputs("Failed to allocate memory\n", stderr);
+            return 1;
+        }
+    }
+
     /*
      * If only a single file has been provided, we do not need to print the
      * path-strings of the file we're parsing.
      */
 
     uint64_t retained_info = 0;
-
     const bool should_print_paths = (tbds.item_count != 1);
-    const struct tbd_for_main *const end = tbds.data_end;
 
     struct tbd_for_main *tbd = tbds.data;
+    const struct tbd_for_main *const end = tbds.data_end;
+
     for (; tbd != end; tbd++) {
         tbd_for_main_apply_missing_from(tbd, &global);
 
@@ -1114,6 +1138,7 @@ int main(const int argc, const char *const argv[]) {
                 .global = &global,
                 .tbd = tbd,
                 .retained_info = retained_info,
+                .export_trie_cb = &export_trie_cb
             };
 
             enum dir_recurse_result recurse_dir_result = E_DIR_RECURSE_OK;
@@ -1230,6 +1255,7 @@ int main(const int argc, const char *const argv[]) {
                      * configuration is now accounted for.
                      */
 
+                    .export_trie_cb = &export_trie_cb,
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
@@ -1272,6 +1298,7 @@ int main(const int argc, const char *const argv[]) {
                      * configuration is now accounted for.
                      */
 
+                    .export_trie_cb = &export_trie_cb,
                     .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
@@ -1315,6 +1342,8 @@ int main(const int argc, const char *const argv[]) {
             }
         }
     }
+
+    cb_destroy(&export_trie_cb);
 
     tbd_for_main_destroy(&global);
     destroy_tbds_array(&tbds);

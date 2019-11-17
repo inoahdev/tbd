@@ -821,8 +821,8 @@ enum write_comma_result {
 
 static enum write_comma_result
 write_comma_or_newline(FILE *__notnull const file,
-                       const uint32_t line_length,
-                       const uint32_t string_length)
+                       const uint64_t line_length,
+                       const uint64_t string_length)
 {
     /*
      * If the string is as long, or longer than the max-line limit, bend the
@@ -897,7 +897,7 @@ tbd_write_exports(FILE *__notnull const file,
      * beginning spaces).
      */
 
-    uint32_t line_length = 0;
+    uint64_t line_length = 0;
 
     do {
         const uint64_t archs = info->archs;
@@ -989,7 +989,7 @@ tbd_write_exports(FILE *__notnull const file,
              * to preserve a limit on line-lengths.
              */
 
-            const uint32_t length = info->length;
+            const uint64_t length = info->length;
             const enum write_comma_result write_comma_result =
                 write_comma_or_newline(file, line_length, length);
 
@@ -1051,7 +1051,7 @@ tbd_write_exports_with_full_archs(
         return 1;
     }
 
-    uint32_t line_length = line_length_initial + export->length;
+    uint64_t line_length = line_length_initial + export->length;
 
     do {
         export++;
@@ -1105,7 +1105,7 @@ tbd_write_exports_with_full_archs(
          * preserve a limit on line-lengths.
          */
 
-        const uint32_t length = export->length;
+        const uint64_t length = export->length;
         const enum write_comma_result write_comma_result =
             write_comma_or_newline(file, line_length, length);
 
@@ -1152,7 +1152,7 @@ tbd_write_undefineds(FILE *__notnull const file,
      * beginning spaces).
      */
 
-    uint32_t line_length = 0;
+    uint64_t line_length = 0;
 
     do {
         const uint64_t archs = info->archs;
@@ -1244,7 +1244,7 @@ tbd_write_undefineds(FILE *__notnull const file,
              * to preserve a limit on line-lengths.
              */
 
-            const uint32_t length = info->length;
+            const uint64_t length = info->length;
             const enum write_comma_result write_comma_result =
                 write_comma_or_newline(file, line_length, length);
 
@@ -1284,7 +1284,7 @@ tbd_write_undefineds_with_full_archs(
         return 0;
     }
 
-    if (fputs("exports:\n", file) < 0) {
+    if (fputs("undefineds:\n", file) < 0) {
         return 1;
     }
 
@@ -1306,7 +1306,7 @@ tbd_write_undefineds_with_full_archs(
         return 1;
     }
 
-    uint32_t line_length = line_length_initial + undefined->length;
+    uint64_t line_length = line_length_initial + undefined->length;
 
     do {
         undefined++;
@@ -1360,7 +1360,7 @@ tbd_write_undefineds_with_full_archs(
          * preserve a limit on line-lengths.
          */
 
-        const uint32_t length = undefined->length;
+        const uint64_t length = undefined->length;
         const enum write_comma_result write_comma_result =
             write_comma_or_newline(file, line_length, length);
 

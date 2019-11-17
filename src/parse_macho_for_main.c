@@ -168,10 +168,7 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
             }
 
             fprintf(stderr,
-                    "Skipping over file (at path %s/%s) as a file at its "
-                    "write-path (%s) already exists\n",
-                    args->dir_path,
-                    args->name,
+                    "File at write-path (%s) already exists\n",
                     write_path);
 
             return NULL;
@@ -234,13 +231,19 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         .is_recursing = false
     };
 
+    struct char_buffer cb_buffer = {};
+    struct macho_file_parse_extra_args extra = {
+        .callback = handle_macho_file_for_main_error_callback,
+        .callback_info = (void *)&cb_info,
+        .export_trie_cb = &cb_buffer
+    };
+
     const uint32_t magic = *(const uint32_t *)args.magic_in;
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(info,
                                    args.fd,
                                    magic,
-                                   handle_macho_file_for_main_error_callback,
-                                   (void *)&cb_info,
+                                   extra,
                                    args.tbd->parse_options,
                                    macho_options);
 
@@ -369,12 +372,17 @@ parse_macho_file_for_main_while_recursing(
         .is_recursing = true
     };
 
+    struct macho_file_parse_extra_args extra = {
+        .callback = handle_macho_file_for_main_error_callback,
+        .callback_info = (void *)&cb_info,
+        .export_trie_cb = args.export_trie_cb
+    };
+
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(info,
                                    args.fd,
                                    magic,
-                                   handle_macho_file_for_main_error_callback,
-                                   (void *)&cb_info,
+                                   extra,
                                    parse_options,
                                    macho_options);
 
