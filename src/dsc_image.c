@@ -19,7 +19,7 @@
 #include "macho_file_parse_symtab.h"
 
 #include "range.h"
-#include "char_buffer.h"
+#include "string_buffer.h"
 #include "tbd.h"
 #include "unused.h"
 
@@ -302,11 +302,11 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         .flags = lc_flags
     };
 
-    struct char_buffer cb_buffer = {};
+    struct string_buffer sb_buffer = {};
     struct macho_file_parse_extra_args extra = {
         .callback = callback,
         .callback_info = callback_info,
-        .export_trie_cb = &cb_buffer
+        .export_trie_sb = &sb_buffer
     };
 
     struct macho_file_symbol_lc_info_out sym_info = {};
@@ -344,7 +344,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .is_big_endian = is_big_endian,
 
             .dyld_info = sym_info.dyld_info,
-            .cb_buffer = extra.export_trie_cb,
+            .sb_buffer = extra.export_trie_sb,
 
             .tbd_options = tbd_options
         };

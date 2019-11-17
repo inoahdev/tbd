@@ -14,7 +14,7 @@
 
 #include "array.h"
 #include "notnull.h"
-#include "char_buffer.h"
+#include "string_buffer.h"
 #include "tbd.h"
 
 enum macho_file_options {
@@ -123,7 +123,7 @@ struct macho_file_parse_extra_args {
     macho_file_parse_error_callback callback;
     void *callback_info;
 
-    struct char_buffer *export_trie_cb;
+    struct string_buffer *export_trie_sb;
 };
 
 enum macho_file_parse_result

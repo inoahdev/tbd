@@ -231,11 +231,11 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         .is_recursing = false
     };
 
-    struct char_buffer cb_buffer = {};
+    struct string_buffer sb_buffer = {};
     struct macho_file_parse_extra_args extra = {
         .callback = handle_macho_file_for_main_error_callback,
         .callback_info = (void *)&cb_info,
-        .export_trie_cb = &cb_buffer
+        .export_trie_sb = &sb_buffer
     };
 
     const uint32_t magic = *(const uint32_t *)args.magic_in;
@@ -375,7 +375,7 @@ parse_macho_file_for_main_while_recursing(
     struct macho_file_parse_extra_args extra = {
         .callback = handle_macho_file_for_main_error_callback,
         .callback_info = (void *)&cb_info,
-        .export_trie_cb = args.export_trie_cb
+        .export_trie_sb = args.export_trie_sb
     };
 
     const enum macho_file_parse_result parse_result =

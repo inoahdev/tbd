@@ -1815,7 +1815,7 @@ macho_file_parse_load_commands_from_file(
                 .is_big_endian = is_big_endian,
 
                 .dyld_info = dyld_info,
-                .cb_buffer = extra.export_trie_cb,
+                .sb_buffer = extra.export_trie_sb,
 
                 .tbd_options = tbd_options
             };
@@ -2469,7 +2469,7 @@ macho_file_parse_load_commands_from_map(
             .is_big_endian = is_big_endian,
 
             .dyld_info = dyld_info,
-            .cb_buffer = extra.export_trie_cb,
+            .sb_buffer = extra.export_trie_sb,
 
             .tbd_options = tbd_options
         };

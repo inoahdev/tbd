@@ -19,7 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "char_buffer.h"
+#include "string_buffer.h"
 #include "copy.h"
 #include "dir_recurse.h"
 
@@ -50,7 +50,7 @@ struct recurse_callback_info {
     uint64_t files_parsed;
     uint64_t retained_info;
 
-    struct char_buffer *export_trie_cb;
+    struct string_buffer *export_trie_sb;
 };
 
 static bool
@@ -100,7 +100,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
             .dont_handle_non_macho_error = true,
             .print_paths = true,
 
-            .export_trie_cb = recurse_info->export_trie_cb
+            .export_trie_sb = recurse_info->export_trie_sb
         };
 
         if (should_combine) {
@@ -1090,12 +1090,12 @@ int main(const int argc, const char *const argv[]) {
         return 1;
     }
 
-    struct char_buffer export_trie_cb = {};
+    struct string_buffer export_trie_sb = {};
     if (will_parse_exports) {
-        const enum char_buffer_result reserve_cb_result =
-            cb_reserve_capacity(&export_trie_cb, 32);
+        const enum string_buffer_result reserve_sb_result =
+            sb_reserve_space(&export_trie_sb, 32);
 
-        if (reserve_cb_result != E_CHAR_BUFFER_OK) {
+        if (reserve_sb_result != E_STRING_BUFFER_OK) {
             fputs("Failed to allocate memory\n", stderr);
             return 1;
         }
@@ -1138,7 +1138,7 @@ int main(const int argc, const char *const argv[]) {
                 .global = &global,
                 .tbd = tbd,
                 .retained_info = retained_info,
-                .export_trie_cb = &export_trie_cb
+                .export_trie_sb = &export_trie_sb
             };
 
             enum dir_recurse_result recurse_dir_result = E_DIR_RECURSE_OK;
@@ -1255,7 +1255,7 @@ int main(const int argc, const char *const argv[]) {
                      * configuration is now accounted for.
                      */
 
-                    .export_trie_cb = &export_trie_cb,
+                    .export_trie_sb = &export_trie_sb,
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
@@ -1298,7 +1298,7 @@ int main(const int argc, const char *const argv[]) {
                      * configuration is now accounted for.
                      */
 
-                    .export_trie_cb = &export_trie_cb,
+                    .export_trie_sb = &export_trie_sb,
                     .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
                 };
 
@@ -1343,7 +1343,7 @@ int main(const int argc, const char *const argv[]) {
         }
     }
 
-    cb_destroy(&export_trie_cb);
+    sb_destroy(&export_trie_sb);
 
     tbd_for_main_destroy(&global);
     destroy_tbds_array(&tbds);

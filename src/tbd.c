@@ -676,33 +676,14 @@ tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
      *
-     * Since we can't ensure that the strings were allocated with a
-     * null-terminator, we have to check differently than in the other
-     * comparator.
-     *
-     * If the lengths don't match, we call memcmp() on both strings with the
-     * smaller lengths. If the symbols match (upto the smaller length), we
-     * return compare the strings by their length, which would have been the
-     * case anyways if a null-terminator had existed.
+     * Add one to also compare the null-terminator.
      */
 
     if (array_length > length) {
-        const int result = memcmp(array_string, string, length);
-        if (result != 0) {
-            return result;
-        }
-
-        return 1;
-    } else if (array_length < length) {
-        const int result = memcmp(array_string, string, array_length);
-        if (result != 0) {
-            return result;
-        }
-
-        return -1;
+        return memcmp(array_string, string, length + 1);
+    } else {
+        return memcmp(array_string, string, array_length + 1);
     }
-
-    return memcmp(array_string, string, length);
 }
 
 int

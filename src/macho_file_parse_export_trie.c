@@ -231,7 +231,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                 const uint8_t *__notnull const end,
                 struct array *__notnull const node_ranges,
                 const uint64_t export_size,
-                struct char_buffer *__notnull cb_buffer,
+                struct string_buffer *__notnull sb_buffer,
                 const uint64_t options)
 {
     const uint8_t *iter = start + offset;
@@ -351,8 +351,8 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
 
         const enum tbd_add_symbol_result add_symbol_result =
             tbd_add_symbol_with_info_and_len(info_in,
-                                             cb_buffer->data,
-                                             cb_buffer->length,
+                                             sb_buffer->data,
+                                             sb_buffer->length,
                                              arch_bit,
                                              predefined_type,
                                              true,
@@ -380,7 +380,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
      * after every loop.
      */
 
-    const uint64_t orig_buff_length = cb_buffer->length;
+    const uint64_t orig_buff_length = sb_buffer->length;
     const uint64_t orig_node_ranges_count = node_ranges->item_count;
 
     for (uint8_t i = 0; i != children_count; i++) {
@@ -400,10 +400,10 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
-        const enum char_buffer_result add_c_str_result =
-            cb_add_c_str(cb_buffer, (char *)iter, length);
+        const enum string_buffer_result add_c_str_result =
+            sb_add_c_str(sb_buffer, (char *)iter, length);
 
-        if (unlikely(add_c_str_result != E_CHAR_BUFFER_OK)) {
+        if (unlikely(add_c_str_result != E_STRING_BUFFER_OK)) {
             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
         }
 
@@ -442,7 +442,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                             end,
                             node_ranges,
                             export_size,
-                            cb_buffer,
+                            sb_buffer,
                             options);
 
         if (unlikely(parse_export_result != E_MACHO_FILE_PARSE_OK)) {
@@ -453,7 +453,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                                  sizeof(struct range),
                                  orig_node_ranges_count);
 
-        cb_buffer->length = orig_buff_length;
+        sb_buffer->length = orig_buff_length;
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -522,7 +522,7 @@ macho_file_parse_export_trie_from_file(
                         end,
                         &node_ranges,
                         args.dyld_info.export_size,
-                        args.cb_buffer,
+                        args.sb_buffer,
                         args.tbd_options);
 
     free(export_trie);
@@ -573,7 +573,7 @@ macho_file_parse_export_trie_from_map(
                         end,
                         &node_ranges,
                         args.dyld_info.export_size,
-                        args.cb_buffer,
+                        args.sb_buffer,
                         args.tbd_options);
 
     if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
