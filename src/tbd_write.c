@@ -652,7 +652,7 @@ tbd_write_uuids(FILE *__notnull const file,
                 const struct array *__notnull const uuids)
 {
     if (uuids->item_count == 0) {
-        return 1;
+        return 0;
     }
 
     if (fprintf(file, "uuids:%-17s[ ", "") < 0) {
