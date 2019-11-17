@@ -21,7 +21,6 @@
 		C361A4F922489453001BD07A /* usage.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E022489453001BD07A /* usage.c */; };
 		C361A4FA22489453001BD07A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E122489453001BD07A /* main.c */; };
 		C361A4FB22489453001BD07A /* parse_macho_for_main.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E222489453001BD07A /* parse_macho_for_main.c */; };
-		C361A4FC22489453001BD07A /* macho_file_parse_symbols.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E322489453001BD07A /* macho_file_parse_symbols.c */; };
 		C361A4FD22489453001BD07A /* range.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E422489453001BD07A /* range.c */; };
 		C361A4FE22489453001BD07A /* dyld_shared_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E522489453001BD07A /* dyld_shared_cache.c */; };
 		C361A4FF22489453001BD07A /* handle_macho_file_parse_result.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4E622489453001BD07A /* handle_macho_file_parse_result.c */; };
@@ -34,6 +33,9 @@
 		C361A50622489453001BD07A /* tbd.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4ED22489453001BD07A /* tbd.c */; };
 		C367ACFA23621BD90059EF14 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = C367ACF923621BD90059EF14 /* util.c */; };
 		C39372B8235A78B6003F3CB7 /* our_io.c in Sources */ = {isa = PBXBuildFile; fileRef = C39372B7235A78B6003F3CB7 /* our_io.c */; };
+		C3B715FF2381E1AE00E1AEBA /* macho_file_parse_symtab.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */; };
+		C3B716002381E1AE00E1AEBA /* string_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FD2381E1AE00E1AEBA /* string_buffer.c */; };
+		C3B716012381E1AE00E1AEBA /* macho_file_parse_export_trie.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,7 +66,6 @@
 		C361A4E022489453001BD07A /* usage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = usage.c; path = ../../src/usage.c; sourceTree = "<group>"; };
 		C361A4E122489453001BD07A /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../src/main.c; sourceTree = "<group>"; };
 		C361A4E222489453001BD07A /* parse_macho_for_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = parse_macho_for_main.c; path = ../../src/parse_macho_for_main.c; sourceTree = "<group>"; };
-		C361A4E322489453001BD07A /* macho_file_parse_symbols.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_symbols.c; path = ../../src/macho_file_parse_symbols.c; sourceTree = "<group>"; };
 		C361A4E422489453001BD07A /* range.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = range.c; path = ../../src/range.c; sourceTree = "<group>"; };
 		C361A4E522489453001BD07A /* dyld_shared_cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dyld_shared_cache.c; path = ../../src/dyld_shared_cache.c; sourceTree = "<group>"; };
 		C361A4E622489453001BD07A /* handle_macho_file_parse_result.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = handle_macho_file_parse_result.c; path = ../../src/handle_macho_file_parse_result.c; sourceTree = "<group>"; };
@@ -99,7 +100,6 @@
 		C361A51C2248946B001BD07A /* range.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = range.h; path = ../../include/range.h; sourceTree = "<group>"; };
 		C361A51D2248946B001BD07A /* macho_file_parse_load_commands.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file_parse_load_commands.h; path = ../../include/macho_file_parse_load_commands.h; sourceTree = "<group>"; };
 		C361A51E2248946B001BD07A /* yaml.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = yaml.h; path = ../../include/yaml.h; sourceTree = "<group>"; };
-		C361A51F2248946B001BD07A /* macho_file_parse_symbols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file_parse_symbols.h; path = ../../include/macho_file_parse_symbols.h; sourceTree = "<group>"; };
 		C361A5202248946B001BD07A /* parse_dsc_for_main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = parse_dsc_for_main.h; path = ../../include/parse_dsc_for_main.h; sourceTree = "<group>"; };
 		C361A5212248946B001BD07A /* macho_file.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file.h; path = ../../include/macho_file.h; sourceTree = "<group>"; };
 		C361A52222489474001BD07A /* vm_prot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = vm_prot.h; path = ../../include/mach/vm_prot.h; sourceTree = "<group>"; };
@@ -115,6 +115,12 @@
 		C392B60F2233686600419D2D /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C39372B7235A78B6003F3CB7 /* our_io.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = our_io.c; path = ../../src/our_io.c; sourceTree = "<group>"; };
 		C39372B9235A78CC003F3CB7 /* our_io.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = our_io.h; path = ../../include/our_io.h; sourceTree = "<group>"; };
+		C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_symtab.c; path = ../../src/macho_file_parse_symtab.c; sourceTree = "<group>"; };
+		C3B715FD2381E1AE00E1AEBA /* string_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = string_buffer.c; path = ../../src/string_buffer.c; sourceTree = "<group>"; };
+		C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_export_trie.c; path = ../../src/macho_file_parse_export_trie.c; sourceTree = "<group>"; };
+		C3B716022381E1EB00E1AEBA /* macho_file_parse_symtab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file_parse_symtab.h; path = ../../include/macho_file_parse_symtab.h; sourceTree = "<group>"; };
+		C3B716032381E1EB00E1AEBA /* string_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = string_buffer.h; path = ../../include/string_buffer.h; sourceTree = "<group>"; };
+		C3B716042381E1EB00E1AEBA /* macho_file_parse_export_trie.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file_parse_export_trie.h; path = ../../include/macho_file_parse_export_trie.h; sourceTree = "<group>"; };
 		C3C1E9AD22D8502B008696B5 /* notnull.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = notnull.h; path = ../../include/notnull.h; sourceTree = "<group>"; };
 		C3C6D21422D7DC7900760FC6 /* likely.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = likely.h; path = ../../include/likely.h; sourceTree = "<group>"; };
 		C3C6D21622D7E75000760FC6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../.gitignore; sourceTree = "<group>"; };
@@ -170,8 +176,9 @@
 				C361A50922489460001BD07A /* handle_dsc_parse_result.h */,
 				C361A50D22489460001BD07A /* handle_macho_file_parse_result.h */,
 				C3C6D21422D7DC7900760FC6 /* likely.h */,
+				C3B716042381E1EB00E1AEBA /* macho_file_parse_export_trie.h */,
 				C361A51D2248946B001BD07A /* macho_file_parse_load_commands.h */,
-				C361A51F2248946B001BD07A /* macho_file_parse_symbols.h */,
+				C3B716022381E1EB00E1AEBA /* macho_file_parse_symtab.h */,
 				C361A5212248946B001BD07A /* macho_file.h */,
 				C3C1E9AD22D8502B008696B5 /* notnull.h */,
 				C361A5172248946B001BD07A /* objc.h */,
@@ -183,6 +190,7 @@
 				C361A51C2248946B001BD07A /* range.h */,
 				C361A5132248946A001BD07A /* recursive.h */,
 				C361A51B2248946B001BD07A /* request_user_input.h */,
+				C3B716032381E1EB00E1AEBA /* string_buffer.h */,
 				C361A5122248946A001BD07A /* swap.h */,
 				C361A5182248946B001BD07A /* tbd.h */,
 				C361A5142248946A001BD07A /* tbd_for_main.h */,
@@ -225,8 +233,9 @@
 				C361A4E522489453001BD07A /* dyld_shared_cache.c */,
 				C361A4DB22489452001BD07A /* handle_dsc_parse_result.c */,
 				C361A4E622489453001BD07A /* handle_macho_file_parse_result.c */,
+				C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */,
 				C361A4DA22489452001BD07A /* macho_file_parse_load_commands.c */,
-				C361A4E322489453001BD07A /* macho_file_parse_symbols.c */,
+				C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */,
 				C361A4E722489453001BD07A /* macho_file.c */,
 				C361A4E122489453001BD07A /* main.c */,
 				C39372B7235A78B6003F3CB7 /* our_io.c */,
@@ -237,6 +246,7 @@
 				C361A4E422489453001BD07A /* range.c */,
 				C361A4DE22489452001BD07A /* recursive.c */,
 				C361A4D622489452001BD07A /* request_user_input.c */,
+				C3B715FD2381E1AE00E1AEBA /* string_buffer.c */,
 				C361A4E922489453001BD07A /* swap.c */,
 				C361A4ED22489453001BD07A /* tbd.c */,
 				C361A4E822489453001BD07A /* tbd_for_main.c */,
@@ -308,7 +318,6 @@
 				C318AD89227AB70B0049C25E /* copy.c in Sources */,
 				C361A4FA22489453001BD07A /* main.c in Sources */,
 				C361A4EE22489453001BD07A /* dir_recurse.c in Sources */,
-				C361A4FC22489453001BD07A /* macho_file_parse_symbols.c in Sources */,
 				C361A4F622489453001BD07A /* path.c in Sources */,
 				C361A50422489453001BD07A /* yaml.c in Sources */,
 				C361A4FB22489453001BD07A /* parse_macho_for_main.c in Sources */,
@@ -320,12 +329,15 @@
 				C361A4EF22489453001BD07A /* request_user_input.c in Sources */,
 				C361A4F522489453001BD07A /* arch_info.c in Sources */,
 				C39372B8235A78B6003F3CB7 /* our_io.c in Sources */,
+				C3B716012381E1AE00E1AEBA /* macho_file_parse_export_trie.c in Sources */,
 				C361A4F822489453001BD07A /* dsc_image.c in Sources */,
 				C361A4FF22489453001BD07A /* handle_macho_file_parse_result.c in Sources */,
+				C3B716002381E1AE00E1AEBA /* string_buffer.c in Sources */,
 				C361A4F422489453001BD07A /* handle_dsc_parse_result.c in Sources */,
 				C361A4F922489453001BD07A /* usage.c in Sources */,
 				C361A50222489453001BD07A /* swap.c in Sources */,
 				C361A50122489453001BD07A /* tbd_for_main.c in Sources */,
+				C3B715FF2381E1AE00E1AEBA /* macho_file_parse_symtab.c in Sources */,
 				C361A50522489453001BD07A /* parse_dsc_for_main.c in Sources */,
 				C361A4F722489453001BD07A /* recursive.c in Sources */,
 				C361A4FE22489453001BD07A /* dyld_shared_cache.c in Sources */,
