@@ -10,7 +10,7 @@ SRCS := $(shell find src -name "*.c")
 TARGET := bin/tbd
 
 EXTRADEBUGFLAGS := -fsanitize=address -fno-omit-frame-pointer
-DEBUGFLAGS := -fprofile-arcs $(DEFAULTFLAGS) -g $(EXTRADEBUGFLAGS)
+DEBUGFLAGS := $(DEFAULTFLAGS) -g $(EXTRADEBUGFLAGS)
 
 .DEFAULT_GOAL := all
 
