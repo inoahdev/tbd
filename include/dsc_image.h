@@ -13,6 +13,7 @@
 #include "likely.h"
 #include "macho_file.h"
 #include "notnull.h"
+#include "string_buffer.h"
 #include "tbd.h"
 
 enum dsc_image_parse_result {
@@ -60,6 +61,7 @@ dsc_image_parse(struct tbd_create_info *__notnull info_in,
                 struct dyld_cache_image_info *__notnull image,
                 const macho_file_parse_error_callback callback,
                 void *const callback_info,
+                struct string_buffer *__notnull export_trie_sb,
                 uint64_t macho_options,
                 uint64_t tbd_options,
                 uint64_t options);

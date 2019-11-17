@@ -46,13 +46,11 @@ expand_to_capacity(struct string_buffer *__notnull const sb,
         return NULL;
     }
 
+    char *const data = sb->data;
     const uint64_t sb_length = sb->length;
-    if (sb_length != 0) {
-        char *const data = sb->data;
 
-        memcpy(new_data, data, sb_length);
-        free(data);
-    }
+    memcpy(new_data, data, sb_length);
+    free(data);
 
     sb->data = new_data;
     sb->capacity = new_cap;

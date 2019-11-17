@@ -197,6 +197,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 struct dyld_cache_image_info *__notnull const image,
                 const macho_file_parse_error_callback callback,
                 void *const callback_info,
+                struct string_buffer *__notnull const export_trie_sb,
                 const uint64_t macho_options,
                 const uint64_t tbd_options,
                 __unused const uint64_t options)
@@ -302,11 +303,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         .flags = lc_flags
     };
 
-    struct string_buffer sb_buffer = {};
     struct macho_file_parse_extra_args extra = {
         .callback = callback,
         .callback_info = callback_info,
-        .export_trie_sb = &sb_buffer
+        .export_trie_sb = export_trie_sb
     };
 
     struct macho_file_symbol_lc_info_out sym_info = {};

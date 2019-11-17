@@ -58,6 +58,8 @@ struct dsc_iterate_images_info {
     bool print_paths;
     bool parse_all_images;
     bool did_print_messages_header;
+
+    struct string_buffer *export_trie_sb;
 };
 
 enum dyld_cache_image_info_pad {
@@ -416,6 +418,7 @@ actually_parse_image(
                         image,
                         iterate_info->callback,
                         cb_info,
+                        iterate_info->export_trie_sb,
                         tbd->macho_options,
                         tbd->parse_options,
                         0);
@@ -953,7 +956,9 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         .callback_info = &cb_info,
 
         .print_paths = args.print_paths,
-        .parse_all_images = true
+        .parse_all_images = true,
+
+        .export_trie_sb = args.export_trie_sb
     };
 
     const struct array *const filters = &args.tbd->dsc_image_filters;
@@ -1197,7 +1202,9 @@ parse_dsc_for_main_while_recursing(
         .callback_info = &cb_info,
 
         .print_paths = args.print_paths,
-        .parse_all_images = true
+        .parse_all_images = true,
+
+        .export_trie_sb = args.export_trie_sb
     };
 
     const struct array *const filters = &args.tbd->dsc_image_filters;

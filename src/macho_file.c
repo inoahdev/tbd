@@ -472,6 +472,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                                       extra.callback_info);
 
                     if (!should_continue) {
+                        free(arch_list);
                         return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                     }
                 }
@@ -484,6 +485,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                                       extra.callback_info);
 
                     if (!should_continue) {
+                        free(arch_list);
                         return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                     }
 
@@ -804,6 +806,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                                       extra.callback_info);
 
                     if (!should_continue) {
+                        free(arch_list);
                         return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                     }
                 }
@@ -816,6 +819,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                                       extra.callback_info);
 
                     if (!should_continue) {
+                        free(arch_list);
                         return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                     }
 

@@ -149,7 +149,9 @@ recurse_directory_callback(const char *__notnull const dir_path,
             .dsc_name_length = name_length,
 
             .dont_handle_non_dsc_error = true,
-            .print_paths = true
+            .print_paths = true,
+
+            .export_trie_sb = recurse_info->export_trie_sb
         };
 
         if (should_combine) {

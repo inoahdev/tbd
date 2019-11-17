@@ -525,6 +525,7 @@ macho_file_parse_export_trie_from_file(
                         args.sb_buffer,
                         args.tbd_options);
 
+    array_destroy(&node_ranges);
     free(export_trie);
 
     if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
@@ -575,6 +576,8 @@ macho_file_parse_export_trie_from_map(
                         args.dyld_info.export_size,
                         args.sb_buffer,
                         args.tbd_options);
+
+    array_destroy(&node_ranges);
 
     if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
         return parse_node_result;
