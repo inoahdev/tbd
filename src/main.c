@@ -1138,11 +1138,15 @@ int main(const int argc, const char *const argv[]) {
             if (recurse_dir_result != E_DIR_RECURSE_OK) {
                 if (should_print_paths) {
                     fprintf(stderr,
-                            "Failed to recurse directory (at path %s)\n",
-                            tbd->parse_path);
+                            "Failed to recurse directory (at path %s), "
+                            "error: %s\n",
+                            tbd->parse_path,
+                            strerror(errno));
                 } else {
-                    fputs("Failed to recurse directory at the provided path\n",
-                          stderr);
+                    fprintf(stderr,
+                            "Failed to recurse directory at the provided path, "
+                            "error: %s\n",
+                            strerror(errno));
                 }
             }
 
