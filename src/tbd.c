@@ -310,9 +310,7 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                          const uint64_t options)
 {
     uint64_t length = 0;
-
     enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
-    const enum tbd_version vers = info_in->version;
 
     /*
      * We can skip calls to is_objc_*_symbol if the symbol's max-length
@@ -324,6 +322,7 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
             uint64_t offset = 0;
+            const enum tbd_version vers = info_in->version;
 
             if ((offset = is_objc_class_symbol(str, first, lnmax)) != 0) {
                 if (!is_external) {
@@ -443,7 +442,6 @@ tbd_add_symbol_with_info_and_len(
     const bool is_undef,
     const uint64_t options)
 {
-    const enum tbd_version vers = info_in->version;
     enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
 
     /*
@@ -456,6 +454,7 @@ tbd_add_symbol_with_info_and_len(
             const uint64_t first = *(const uint64_t *)string;
             const char *const str = string;
             uint64_t offset = 0;
+            const enum tbd_version vers = info_in->version;
 
             if ((offset = is_objc_class_symbol(str, first, len)) != 0) {
                 if (!is_external) {
