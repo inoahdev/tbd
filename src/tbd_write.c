@@ -133,7 +133,7 @@ write_archs_for_symbol_arrays(FILE *__notnull const file,
     do {
         if (archs_iter & 1) {
             const struct arch_info *const arch = arch_info_list + index;
-            if (fprintf(file, "  - archs:%-14s[ %s", "", arch->name) < 0) {
+            if (fprintf(file, "  - archs:%-16s[ %s", "", arch->name) < 0) {
                 return 1;
             }
 
@@ -186,7 +186,7 @@ write_archs_for_symbol_arrays(FILE *__notnull const file,
             counter++;
 
             if (counter == 7) {
-                if (fprintf(file, "\n%-19s", "") < 0) {
+                if (fprintf(file, "\n%-28s", "") < 0) {
                     return 1;
                 }
 
@@ -239,18 +239,18 @@ write_packed_version(FILE *__notnull const file, const uint32_t version) {
 
     if (revision != 0) {
         /*
-         * Write out a .0 version-component as if minor was zero, we didn't
+         * Write out a .0 version-component because if minor was zero, we didn't
          * write it as a component.
          */
 
         if (minor == 0) {
-            if (fputs(".0", file) < 0) {
+            if (fprintf(file, ".0.%" PRIu8, revision) < 0) {
                 return 1;
             }
-        }
-
-        if (fprintf(file, ".%" PRIu8, revision) < 0) {
-            return 1;
+        } else {
+            if (fprintf(file, ".%" PRIu8, revision) < 0) {
+                return 1;
+            }
         }
     }
 
@@ -725,11 +725,11 @@ write_symbol_type_key(FILE *__notnull const file,
 
         case TBD_SYMBOL_TYPE_CLIENT: {
             if (version == TBD_VERSION_V1) {
-                if (fprintf(file, "%-4sallowed-clients:%-4s[ ", "", "") < 0) {
+                if (fprintf(file, "%-4sallowed-clients:%-6s[ ", "", "") < 0) {
                     return 1;
                 }
             } else {
-                if (fprintf(file, "%-4sallowable-clients:%-2s[ ", "", "") < 0) {
+                if (fprintf(file, "%-4sallowable-clients:%-4s[ ", "", "") < 0) {
                     return 1;
                 }
             }
@@ -738,35 +738,35 @@ write_symbol_type_key(FILE *__notnull const file,
         }
 
         case TBD_SYMBOL_TYPE_REEXPORT:
-            if (fprintf(file, "%-4sre-exports:%9s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4sre-exports:%11s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
         case TBD_SYMBOL_TYPE_NORMAL:
-            if (fprintf(file, "%-4ssymbols:%12s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4ssymbols:%14s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
         case TBD_SYMBOL_TYPE_OBJC_CLASS:
-            if (fprintf(file, "%-4sobjc-classes:%7s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4sobjc-classes:%9s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
         case TBD_SYMBOL_TYPE_OBJC_EHTYPE:
-            if (fprintf(file, "%-4sobjc-eh-types:%6s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4sobjc-eh-types:%8s[ ", "", "") < 0) {
                 return 1;
             }
 
             break;
 
         case TBD_SYMBOL_TYPE_OBJC_IVAR:
-            if (fprintf(file, "%-4sobjc-ivars:%9s[ ", "", "") < 0) {
+            if (fprintf(file, "%-4sobjc-ivars:%11s[ ", "", "") < 0) {
                 return 1;
             }
 
@@ -774,13 +774,24 @@ write_symbol_type_key(FILE *__notnull const file,
 
         case TBD_SYMBOL_TYPE_WEAK_DEF:
             if (is_export) {
-                if (fprintf(file, "%-4sweak-def-symbols:%3s[ ", "", "") < 0) {
+                if (fprintf(file, "%-4sweak-def-symbols:%5s[ ", "", "") < 0) {
                     return 1;
                 }
             } else {
-                if (fprintf(file, "%-4sweak-ref-symbols:%3s[ ", "", "") < 0) {
+                if (fprintf(file, "%-4sweak-ref-symbols:%5s[ ", "", "") < 0) {
                     return 1;
                 }
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_THREAD_LOCAL:
+            if (!is_export) {
+                return 1;
+            }
+
+            if (fprintf(file, "%-4sthread-local-symbols: [ ", "") < 0) {
+                return 1;
             }
 
             break;
@@ -798,7 +809,7 @@ static inline int end_written_symbol_array(FILE *__notnull const file) {
     return 0;
 }
 
-static uint32_t line_length_initial = 26;
+static uint32_t line_length_initial = 28;
 static uint32_t line_length_max = 80;
 
 /*
@@ -831,7 +842,7 @@ write_comma_or_newline(FILE *__notnull const file,
 
     const uint64_t max_string_length = line_length_max - line_length_initial;
     if (string_length >= max_string_length) {
-        if (fprintf(file, ",\n%-26s", "") < 0) {
+        if (fprintf(file, ",\n%-28s", "") < 0) {
             return E_WRITE_COMMA_WRITE_FAIL;
         }
 
@@ -846,7 +857,7 @@ write_comma_or_newline(FILE *__notnull const file,
 
     const uint64_t new_line_length = line_length + string_length + 2;
     if (new_line_length > line_length_max) {
-        if (fprintf(file, ",\n%-26s", "") < 0) {
+        if (fprintf(file, ",\n%-28s", "") < 0) {
             return E_WRITE_COMMA_WRITE_FAIL;
         }
 

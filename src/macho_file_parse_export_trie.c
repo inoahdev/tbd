@@ -343,10 +343,20 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
         }
 
         enum tbd_symbol_type predefined_type = TBD_SYMBOL_TYPE_NONE;
-        if (kind == EXPORT_SYMBOL_FLAGS_KIND_REGULAR) {
-            if (flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION) {
-                predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
-            }
+        switch (kind) {
+            case EXPORT_SYMBOL_FLAGS_KIND_REGULAR:
+                if (flags & EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION) {
+                    predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
+                }
+
+                break;
+
+            case EXPORT_SYMBOL_FLAGS_KIND_THREAD_LOCAL:
+                predefined_type = TBD_SYMBOL_TYPE_THREAD_LOCAL;
+                break;
+
+            default:
+                break;
         }
 
         const enum tbd_add_symbol_result add_symbol_result =
