@@ -87,6 +87,7 @@ void print_usage(void) {
     fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.\n", stdout);
     fputs("                                        objc-ehtype symbols are only recognized for .tbd version v3\n", stdout);
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
+    fputs("        --use-symbol-table,             Use the symbol-table over the export-trie\n", stdout);
 
     fputc('\n', stdout);
     fputs("Field options: (Both path and global options)\n", stdout);

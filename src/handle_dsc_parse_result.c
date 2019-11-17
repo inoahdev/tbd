@@ -709,6 +709,13 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
             break;
 
+        case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
+            fprintf(stderr,
+                    "Image (with path %s) has no symbol-table\r\n",
+                    image_path);
+
+            break;
+
         case E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE:
             fprintf(stderr,
                     "Image (with path %s) has an invalid exports-trie\r\n",

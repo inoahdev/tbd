@@ -984,6 +984,20 @@ handle_macho_file_parse_result(
 
             return false;
 
+        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
+            if (args.print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, doesn't have a symbol-table\n",
+                        args.dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "doesn't have a symbol-table\n",
+                      stderr);
+            }
+
+            return false;
+
         case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
             fputs("The provided mach-o file has an invalid exports-trie\n",
                   stderr);
@@ -1262,6 +1276,14 @@ handle_macho_file_parse_result_while_recursing(
 
             return false;
         }
+
+        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
+            fprintf(stderr,
+                    "Mach-o file (at path %s/%s) has no symbol-table\n",
+                    args.dir_path,
+                    args.name);
+
+            return false;
 
         case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
             fprintf(stderr,

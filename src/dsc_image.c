@@ -135,6 +135,9 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         case E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL:
             return E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL;
+
+        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
+            return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
     }
 
     return E_DSC_IMAGE_PARSE_OK;
@@ -317,16 +320,15 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         return translate_macho_file_parse_result(parse_load_commands_result);
     }
 
-    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
-
     bool parsed_dyld_info = false;
     bool parse_symtab = false;
 
     /*
      * Parse dyld_info if available, and if not, parse symtab instead. However,
-     * if private
+     * if private.
      */
 
+    enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
     if (sym_info.dyld_info.export_off != 0 &&
         sym_info.dyld_info.export_size != 0)
     {

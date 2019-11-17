@@ -75,6 +75,7 @@ Symbol options: (Both path and global options)
         --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.
                                         objc-ehtype symbols are only recognized for .tbd version v3
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
+        --use-symbol-table,             Use the symbol-table over the export-trie
 
 Field options: (Both path and global options)
         --replace-archs,           Provide a list of architectures to replace the list found in the provided input file(s)

@@ -37,7 +37,8 @@ enum macho_file_options {
      */
 
     O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE     = 1ull << 4,
-    O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE = 1ull << 5
+    O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE = 1ull << 5,
+    O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE      = 1ull << 6
 };
 
 enum macho_file_parse_result {
@@ -85,6 +86,7 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO,
     E_MACHO_FILE_PARSE_NO_EXPORTS,
 
+    E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE,
     E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL
 };
 

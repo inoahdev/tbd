@@ -409,6 +409,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
+    } else if (strcmp(option, "use-symbol-table") == 0) {
+        tbd->macho_options |= O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE;
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {
