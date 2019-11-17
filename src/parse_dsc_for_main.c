@@ -926,8 +926,6 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         args.tbd->flags |= F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE;
     }
 
-    args.tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
-
     struct handle_dsc_image_parse_error_cb_info cb_info = {
         .retained_info_in = args.retained_info_in,
 
