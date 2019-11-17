@@ -15,7 +15,8 @@ uint64_t range_get_size(const struct range range) {
 
 bool
 range_contains_location(const struct range range, const uint64_t location) {
-    return (location >= range.begin && location < range.end);
+    const uint64_t size = range_get_size(range);
+    return ((uint64_t)(location - range.begin) < size);
 }
 
 bool range_contains_end(const struct range range, const uint64_t end) {
