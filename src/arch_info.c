@@ -21,10 +21,6 @@
 static const cpu_subtype_t CPU_SUBTYPE_X86_64_ALL_LIB64 =
     (CPU_SUBTYPE_X86_64_ALL | CPU_SUBTYPE_LIB64);
 
-/*
- * To support the use of fake-arrays, we don't const our arch-info table.
- */
-
 static struct arch_info arch_info_list[] = {
     /*
      * Index starts at 0 and ends at 2.
