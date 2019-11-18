@@ -285,11 +285,6 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
         .type = type
     };
 
-    if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-        export_info.archs = info_in->fields.archs;
-        export_info.archs_count = info_in->fields.archs_count;
-    }
-
     struct array *const exports = &info_in->fields.exports;
     struct array_cached_index_info cached_info = {};
 
@@ -324,6 +319,11 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
 
     if (needs_quotes) {
         export_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
+    }
+
+    if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
+        export_info.archs = info_in->fields.archs;
+        export_info.archs_count = info_in->fields.archs_count;
     }
 
     const enum array_result add_export_info_result =
