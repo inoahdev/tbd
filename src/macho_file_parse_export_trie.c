@@ -13,6 +13,7 @@
 
 #include "guard_overflow.h"
 #include "likely.h"
+#include "macho_file.h"
 #include "macho_file_parse_export_trie.h"
 #include "our_io.h"
 
@@ -147,27 +148,40 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  * placed in a tree where they can later be reconstructed back into full-fledged
  * symbols.
  *
- * To store them in binary, each node on the tree is stored in an tree-node.
+ * To store them in binary, each node on the tree is stored in a tree-node.
  *
  * Every tree-node contains two properties - its structure (terminal) size and
  * the children-count. The structure size and children-count are both stored in
  * the uleb128 format described above.
  *
- * If the given structure-size is zero, the tree-node simply contains the
+ * So in C, a basic tree-node may look something like the following:
+ *
+ * struct tree_node {
+ *     uleb128 terminal_size; // structure-size
+ *     uleb128 children_count;
+ * }
+ *
+ * If the tree-node's terminal-size is zero, the tree-node simply contains the
  * children-count, and an array of children mini-nodes that follow directly
  * after the tree-node.
  *
- * In the example tree above, the "sym" and "abc" nodes' information would be
- * stored in the structure described above.
+ * Every tree-node is pointed to by a child (mini-node) belonging to another
+ * tree-node, except the first tree-node. Until the terminal-size is a non-zero
+ * value, indicating that tree-node has reached its end, creating a full symbol,
+ * the tree of nodes will keep extending down.
  *
- * The "sym" and "abc" strings, as well as an array of index to the nodes below,
- * are stored in the mini-nodes as described below.
+ * Each child (mini-node) contains a label (the string, as shown in the tree
+ * above), and a uleb128 index to the next node in that path. The uleb128 index
+ * is relative to the start of the export-trie, and not relative to the start of
+ * the current tree-node.
  *
- * Each mini-node contains a label (the prefix, as shown in the tree above), and
- * a uleb128 index to the next node in that path.
+ * So for the tree provided above, the top-level node would have one child,
+ * whose label is '_', and an index to another tree-node, which provides info
+ * for the '_' label.
  *
- * The uleb128 index is relative to the start of the export-trie, and not
- * relative to the start of the current tree-node.
+ * That tree-node would have two children, for both the "sym" and the "abc"
+ * components, and these two children would each have their two children for the
+ * "bol", "col", "def", "ghi" components.
  *
  * However, if the terminal-size is non-zero, the previous node encountered gave
  * the last bit of string we needed to create the symbol.
@@ -180,7 +194,7 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  * The flags field stores the 'kind' of the symbol, whether its a normal symbol,
  * weakly-defined, or a thread-local symbol.
  *
- * The flags field also specifies whether the export is a re-export of not, and
+ * The flags field also specifies whether the export is a re-export or not, and
  * as such what format the fields after the flags field are in.
  *
  * For a re-export export-node, a dylib-ordinal uleb128 immediately follows the
@@ -194,7 +208,8 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  * empty, the string describes what symbol the export-node's is re-exported
  * from.
  *
- * For example, the export-node _bzero is re-exported from _platform_bzero in
+ * Re-exports are used to provide additional symbols, to one that already exist,
+ * for example, the export-node _bzero is re-exported from _platform_bzero in
  * another library file.
  *
  * On the other hand, a non-reexport export-node has an address uleb128 field
@@ -207,17 +222,20 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  *
  * struct final_export_node_reexport {
  *     uleb128 terminal_size;
+ *     uleb128 flags;
  *     uleb128 dylib_ordinal;
  *     char reexport_symbol[]; // may be empty.
  * };
  *
  * struct final_export_node_non_reexport {
  *     uleb128 terminal_size;
+ *     uleb128 flags;
  *     uleb128 address;
  * };
  *
  * struct final_export_node_non_reexport_stub_resolver {
  *     uleb128 terminal_size;
+ *     uleb128 flags;
  *     uleb128 address;
  *     uleb128 address_of_self_stub_resolver;
  * };
@@ -277,6 +295,15 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
 
     const bool is_export_info = (iter_size != 0);
     if (is_export_info) {
+        /*
+         * This should only occur if the first tree-node is an export-node, but
+         * check anyways as this is invalid behavior.
+         */
+
+        if (sb_buffer->length == 0) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
         uint64_t flags = 0;
         if (read_uleb128(iter, end, &iter, &flags)) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
