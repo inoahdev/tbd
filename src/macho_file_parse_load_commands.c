@@ -424,15 +424,6 @@ parse_load_command(
             if (platform < TBD_PLATFORM_MACOS ||
                 platform > TBD_PLATFORM_WATCHOS_SIMULATOR)
             {
-                /*
-                 * Move on to the next load-commmand if we have to ignore
-                 * invalid fields.
-                 */
-
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
                 const bool should_continue =
                     call_callback(callback,
                                   info_in,
@@ -548,11 +539,6 @@ parse_load_command(
             if (name_offset < sizeof(struct dylib_command) ||
                 name_offset >= load_cmd.cmdsize)
             {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *parse_info->found_identification_out = true;
-                    break;
-                }
-
                 const bool should_continue =
                     call_callback(callback,
                                   info_in,
@@ -578,11 +564,6 @@ parse_load_command(
             const uint32_t length = (uint32_t)strnlen(name, max_length);
 
             if (length == 0) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    *parse_info->found_identification_out = true;
-                    break;
-                }
-
                 const bool should_continue =
                     call_callback(callback,
                                   info_in,
@@ -744,10 +725,6 @@ parse_load_command(
             const uint32_t length = (uint32_t)strnlen(string, max_length);
 
             if (length == 0) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
                 return E_MACHO_FILE_PARSE_INVALID_REEXPORT;
             }
 
@@ -824,10 +801,6 @@ parse_load_command(
             const uint32_t length = (uint32_t)strnlen(string, max_length);
 
             if (length == 0) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
                 return E_MACHO_FILE_PARSE_INVALID_CLIENT;
             }
 
@@ -880,10 +853,6 @@ parse_load_command(
             if (umbrella_offset < sizeof(struct sub_framework_command) ||
                 umbrella_offset >= load_cmd.cmdsize)
             {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
                 const bool should_continue =
                     call_callback(callback,
                                   info_in,
@@ -909,10 +878,6 @@ parse_load_command(
             const uint32_t length = (uint32_t)strnlen(umbrella, max_length);
 
             if (length == 0) {
-                if (options & O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS) {
-                    break;
-                }
-
                 const bool should_continue =
                     call_callback(callback,
                                   info_in,

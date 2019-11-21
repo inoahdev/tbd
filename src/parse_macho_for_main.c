@@ -212,9 +212,6 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
      * errors. Instead, we prefer to check manually for any field errors.
      */
 
-    const uint64_t macho_options =
-        (O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options);
-
     struct tbd_create_info *const info = &args.tbd->info;
     struct tbd_create_info *const g_info = &args.global->info;
 
@@ -245,7 +242,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
                                    magic,
                                    extra,
                                    args.tbd->parse_options,
-                                   macho_options);
+                                   args.tbd->macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
         if (!args.dont_handle_non_macho_error) {
@@ -352,10 +349,6 @@ parse_macho_file_for_main_while_recursing(
 
     const uint32_t magic = *(const uint32_t *)args.magic_in;
 
-    const uint64_t parse_options = args.tbd->parse_options;
-    const uint64_t macho_options =
-        (O_MACHO_FILE_PARSE_IGNORE_INVALID_FIELDS | args.tbd->macho_options);
-
     struct tbd_create_info *const info = &args.tbd->info;
     struct tbd_create_info *const g_info = &args.global->info;
 
@@ -383,8 +376,8 @@ parse_macho_file_for_main_while_recursing(
                                    args.fd,
                                    magic,
                                    extra,
-                                   parse_options,
-                                   macho_options);
+                                   args.tbd->parse_options,
+                                   args.tbd->macho_options);
 
     if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
         if (!args.dont_handle_non_macho_error) {
