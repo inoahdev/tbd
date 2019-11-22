@@ -223,22 +223,25 @@ is_objc_ivar_symbol(const char *__notnull const symbol, const uint64_t first) {
     return 12;
 }
 
-static enum tbd_ci_add_symbol_result
-add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
-                   struct array *__notnull const list,
-                   const char *__notnull const string,
-                   const uint64_t length,
-                   const uint64_t arch_bit,
-                   const enum tbd_symbol_type type,
-                   const uint64_t options)
+enum tbd_ci_add_symbol_result
+tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
+                            const char *__notnull const string,
+                            const uint64_t length,
+                            const uint64_t arch_bit,
+                            const enum tbd_symbol_type type,
+                            const bool is_undef,
+                            const uint64_t options)
 {
     struct tbd_symbol_info symbol_info = {
-        .archs = arch_bit,
-        .archs_count = 1,
         .length = length,
         .string = (char *)string,
         .type = type,
     };
+
+    struct array *list = &info_in->fields.exports;
+    if (is_undef) {
+        list = &info_in->fields.undefineds;
+    }
 
     struct array_cached_index_info cached_info = {};
     struct tbd_symbol_info *const existing_info =
@@ -282,6 +285,9 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
     if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
         symbol_info.archs = info_in->fields.archs;
         symbol_info.archs_count = info_in->fields.archs_count;
+    } else {
+        symbol_info.archs = arch_bit;
+        symbol_info.archs_count = 1;
     }
 
     const enum array_result add_export_info_result =
@@ -410,22 +416,17 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
         type = predefined_type;
     }
 
-    struct array *list = &info_in->fields.exports;
-    if (is_undef) {
-        list = &info_in->fields.undefineds;
-    }
+    const enum tbd_ci_add_symbol_result add_symbol_result =
+        tbd_ci_add_symbol_with_type(info_in,
+                                    string,
+                                    length,
+                                    arch_bit,
+                                    type,
+                                    is_undef,
+                                    options);
 
-    const enum tbd_ci_add_symbol_result add_export_result =
-        add_symbol_to_list(info_in,
-                           list,
-                           string,
-                           length,
-                           arch_bit,
-                           type,
-                           options);
-
-    if (add_export_result != E_TBD_CI_ADD_SYMBOL_OK) {
-        return add_export_result;
+    if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
+        return add_symbol_result;
     }
 
     return E_TBD_CI_ADD_SYMBOL_OK;
@@ -535,19 +536,14 @@ tbd_ci_add_symbol_with_info_and_len(
         type = predefined_type;
     }
 
-    struct array *list = &info_in->fields.exports;
-    if (is_undef) {
-        list = &info_in->fields.undefineds;
-    }
-
     const enum tbd_ci_add_symbol_result add_symbol_result =
-        add_symbol_to_list(info_in,
-                           list,
-                           string,
-                           len,
-                           arch_bit,
-                           type,
-                           options);
+        tbd_ci_add_symbol_with_type(info_in,
+                                    string,
+                                    len,
+                                    arch_bit,
+                                    type,
+                                    is_undef,
+                                    options);
 
     if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
         return add_symbol_result;

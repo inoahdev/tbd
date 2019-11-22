@@ -277,65 +277,17 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
                    const uint32_t length,
                    const uint64_t tbd_options)
 {
-    struct tbd_symbol_info export_info = {
-        .archs = arch_bit,
-        .archs_count = 1,
-        .length = length,
-        .string = (char *)string,
-        .type = type
-    };
+    const enum tbd_ci_add_symbol_result add_export_result =
+        tbd_ci_add_symbol_with_type(info_in,
+                                    string,
+                                    length,
+                                    arch_bit,
+                                    type,
+                                    false,
+                                    tbd_options);
 
-    struct array *const exports = &info_in->fields.exports;
-    struct array_cached_index_info cached_info = {};
-
-    struct tbd_symbol_info *const existing_info =
-        array_find_item_in_sorted(exports,
-                                  sizeof(export_info),
-                                  &export_info,
-                                  tbd_symbol_info_no_archs_comparator,
-                                  &cached_info);
-
-    if (existing_info != NULL) {
-        if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-            return E_MACHO_FILE_PARSE_OK;
-        }
-
-        const uint64_t archs = existing_info->archs;
-        if (!(archs & arch_bit)) {
-            existing_info->archs = archs | arch_bit;
-            existing_info->archs_count += 1;
-        }
-
-        return E_MACHO_FILE_PARSE_OK;
-    }
-
-    export_info.string = alloc_and_copy(export_info.string, export_info.length);
-    if (export_info.string == NULL) {
-        return E_MACHO_FILE_PARSE_ALLOC_FAIL;
-    }
-
-    const bool needs_quotes =
-        yaml_check_c_str(export_info.string, export_info.length);
-
-    if (needs_quotes) {
-        export_info.flags |= F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES;
-    }
-
-    if (tbd_options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-        export_info.archs = info_in->fields.archs;
-        export_info.archs_count = info_in->fields.archs_count;
-    }
-
-    const enum array_result add_export_info_result =
-        array_add_item_with_cached_index_info(exports,
-                                              sizeof(export_info),
-                                              &export_info,
-                                              &cached_info,
-                                              NULL);
-
-    if (add_export_info_result != E_ARRAY_OK) {
-        free(export_info.string);
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
+    if (add_export_result != E_TBD_CI_ADD_SYMBOL_OK) {
+        return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
     }
 
     return E_MACHO_FILE_PARSE_OK;

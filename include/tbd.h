@@ -211,6 +211,15 @@ enum tbd_ci_add_symbol_result {
 };
 
 enum tbd_ci_add_symbol_result
+tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull info_in,
+                            const char *__notnull string,
+                            uint64_t length,
+                            uint64_t arch_bit,
+                            enum tbd_symbol_type type,
+                            bool is_undef,
+                            uint64_t options);
+
+enum tbd_ci_add_symbol_result
 tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
                             const char *__notnull string,
                             uint64_t max_len,
