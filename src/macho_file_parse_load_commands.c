@@ -1846,7 +1846,7 @@ macho_file_parse_load_commands_from_file(
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         /*
-         * If we have either O_TBD_PARSE_IGNORE_SYMBOLS, or
+         * If we have either O_TBD_PARSE_IGNORE_EXPORTS, or
          * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
          */
 
@@ -2500,7 +2500,7 @@ macho_file_parse_load_commands_from_map(
          * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
          */
 
-        if ((tbd_options & ignore_missing_flags) == 0) {
+        if ((tbd_options & ignore_missing_flags) != 0) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
