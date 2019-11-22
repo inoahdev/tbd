@@ -223,7 +223,7 @@ is_objc_ivar_symbol(const char *__notnull const symbol, const uint64_t first) {
     return 12;
 }
 
-static enum tbd_add_symbol_result
+static enum tbd_ci_add_symbol_result
 add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
                    struct array *__notnull const list,
                    const char *__notnull const string,
@@ -250,7 +250,7 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
 
     if (existing_info != NULL) {
         if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-            return E_TBD_ADD_SYMBOL_OK;
+            return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
         /*
@@ -260,18 +260,18 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
 
         const uint64_t archs = existing_info->archs;
         if (archs & arch_bit) {
-            return E_TBD_ADD_SYMBOL_OK;
+            return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
         existing_info->archs = archs | arch_bit;
         existing_info->archs_count += 1;
 
-        return E_TBD_ADD_SYMBOL_OK;
+        return E_TBD_CI_ADD_SYMBOL_OK;
     }
 
     symbol_info.string = alloc_and_copy(symbol_info.string, symbol_info.length);
     if (unlikely(symbol_info.string == NULL)) {
-        return E_TBD_ADD_SYMBOL_ALLOC_FAIL;
+        return E_TBD_CI_ADD_SYMBOL_ALLOC_FAIL;
     }
 
     const bool needs_quotes = yaml_check_c_str(string, length);
@@ -293,21 +293,21 @@ add_symbol_to_list(struct tbd_create_info *__notnull const info_in,
 
     if (unlikely(add_export_info_result != E_ARRAY_OK)) {
         free(symbol_info.string);
-        return E_TBD_ADD_SYMBOL_ARRAY_FAIL;
+        return E_TBD_CI_ADD_SYMBOL_ARRAY_FAIL;
     }
 
-    return E_TBD_ADD_SYMBOL_OK;
+    return E_TBD_CI_ADD_SYMBOL_OK;
 }
 
-enum tbd_add_symbol_result
-tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
-                         const char *__notnull string,
-                         uint64_t lnmax,
-                         const uint64_t arch_bit,
-                         const enum tbd_symbol_type predefined_type,
-                         const bool is_external,
-                         const bool is_undef,
-                         const uint64_t options)
+enum tbd_ci_add_symbol_result
+tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
+                            const char *__notnull string,
+                            uint64_t lnmax,
+                            const uint64_t arch_bit,
+                            const enum tbd_symbol_type predefined_type,
+                            const bool is_external,
+                            const bool is_undef,
+                            const uint64_t options)
 {
     uint64_t length = 0;
     enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
@@ -327,7 +327,7 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
             if ((offset = is_objc_class_symbol(str, first, lnmax)) != 0) {
                 if (!is_external) {
                     if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
-                        return E_TBD_ADD_SYMBOL_OK;
+                        return E_TBD_CI_ADD_SYMBOL_OK;
                     }
                 }
 
@@ -350,7 +350,7 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
             } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
                 if (!is_external) {
                     if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
-                        return E_TBD_ADD_SYMBOL_OK;
+                        return E_TBD_CI_ADD_SYMBOL_OK;
                     }
                 }
 
@@ -379,32 +379,32 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                 }
             } else {
                 if (!is_external) {
-                    return E_TBD_ADD_SYMBOL_OK;
+                    return E_TBD_CI_ADD_SYMBOL_OK;
                 }
 
                 length = (uint32_t)strnlen(string, lnmax);
                 if (unlikely(length == 0)) {
-                    return E_TBD_ADD_SYMBOL_OK;
+                    return E_TBD_CI_ADD_SYMBOL_OK;
                 }
             }
         } else {
             if (!is_external) {
-                return E_TBD_ADD_SYMBOL_OK;
+                return E_TBD_CI_ADD_SYMBOL_OK;
             }
 
             length = (uint32_t)strnlen(string, lnmax);
             if (unlikely(length == 0)) {
-                return E_TBD_ADD_SYMBOL_OK;
+                return E_TBD_CI_ADD_SYMBOL_OK;
             }
         }
     } else {
         if (!is_external) {
-            return E_TBD_ADD_SYMBOL_OK;
+            return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
         length = (uint32_t)strnlen(string, lnmax);
         if (unlikely(length == 0)) {
-            return E_TBD_ADD_SYMBOL_OK;
+            return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
         type = predefined_type;
@@ -415,7 +415,7 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
         list = &info_in->fields.undefineds;
     }
 
-    const enum tbd_add_symbol_result add_export_result =
+    const enum tbd_ci_add_symbol_result add_export_result =
         add_symbol_to_list(info_in,
                            list,
                            string,
@@ -424,15 +424,15 @@ tbd_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                            type,
                            options);
 
-    if (add_export_result != E_TBD_ADD_SYMBOL_OK) {
+    if (add_export_result != E_TBD_CI_ADD_SYMBOL_OK) {
         return add_export_result;
     }
 
-    return E_TBD_ADD_SYMBOL_OK;
+    return E_TBD_CI_ADD_SYMBOL_OK;
 }
 
-enum tbd_add_symbol_result
-tbd_add_symbol_with_info_and_len(
+enum tbd_ci_add_symbol_result
+tbd_ci_add_symbol_with_info_and_len(
     struct tbd_create_info *__notnull const info_in,
     const char *__notnull string,
     uint64_t len,
@@ -459,7 +459,7 @@ tbd_add_symbol_with_info_and_len(
             if ((offset = is_objc_class_symbol(str, first, len)) != 0) {
                 if (!is_external) {
                     if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
-                        return E_TBD_ADD_SYMBOL_OK;
+                        return E_TBD_CI_ADD_SYMBOL_OK;
                     }
                 }
 
@@ -477,14 +477,14 @@ tbd_add_symbol_with_info_and_len(
                 }
 
                 if (unlikely(len == 0)) {
-                    return E_TBD_ADD_SYMBOL_OK;
+                    return E_TBD_CI_ADD_SYMBOL_OK;
                 }
 
                 type = TBD_SYMBOL_TYPE_OBJC_CLASS;
             } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
                 if (!is_external) {
                     if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
-                        return E_TBD_ADD_SYMBOL_OK;
+                        return E_TBD_CI_ADD_SYMBOL_OK;
                     }
                 }
 
@@ -502,14 +502,14 @@ tbd_add_symbol_with_info_and_len(
                 }
 
                 if (unlikely(len == 0)) {
-                    return E_TBD_ADD_SYMBOL_OK;
+                    return E_TBD_CI_ADD_SYMBOL_OK;
                 }
 
                 type = TBD_SYMBOL_TYPE_OBJC_IVAR;
             } else if ((offset = is_objc_ehtype_sym(str, first, len, vers))) {
                 if (!is_external) {
                     if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS)) {
-                        return E_TBD_ADD_SYMBOL_OK;
+                        return E_TBD_CI_ADD_SYMBOL_OK;
                     }
                 }
 
@@ -517,19 +517,19 @@ tbd_add_symbol_with_info_and_len(
                 len -= offset;
 
                 if (unlikely(len == 0)) {
-                    return E_TBD_ADD_SYMBOL_OK;
+                    return E_TBD_CI_ADD_SYMBOL_OK;
                 }
 
                 type = TBD_SYMBOL_TYPE_OBJC_EHTYPE;
             }
         } else {
             if (!is_external) {
-                return E_TBD_ADD_SYMBOL_OK;
+                return E_TBD_CI_ADD_SYMBOL_OK;
             }
         }
     } else {
         if (!is_external) {
-            return E_TBD_ADD_SYMBOL_OK;
+            return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
         type = predefined_type;
@@ -540,7 +540,7 @@ tbd_add_symbol_with_info_and_len(
         list = &info_in->fields.undefineds;
     }
 
-    const enum tbd_add_symbol_result add_symbol_result =
+    const enum tbd_ci_add_symbol_result add_symbol_result =
         add_symbol_to_list(info_in,
                            list,
                            string,
@@ -549,11 +549,11 @@ tbd_add_symbol_with_info_and_len(
                            type,
                            options);
 
-    if (add_symbol_result != E_TBD_ADD_SYMBOL_OK) {
+    if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
         return add_symbol_result;
     }
 
-    return E_TBD_ADD_SYMBOL_OK;
+    return E_TBD_CI_ADD_SYMBOL_OK;
 }
 
 int

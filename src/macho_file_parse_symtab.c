@@ -78,17 +78,17 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
     }
 
-    const enum tbd_add_symbol_result add_symbol_result =
-        tbd_add_symbol_with_info(info_in,
-                                 string,
-                                 max_len,
-                                 arch_bit,
-                                 predefined_type,
-                                 is_external,
-                                 is_undef,
-                                 options);
+    const enum tbd_ci_add_symbol_result add_symbol_result =
+        tbd_ci_add_symbol_with_info(info_in,
+                                    string,
+                                    max_len,
+                                    arch_bit,
+                                    predefined_type,
+                                    is_external,
+                                    is_undef,
+                                    options);
 
-    if (add_symbol_result != E_TBD_ADD_SYMBOL_OK) {
+    if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
         return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
     }
 

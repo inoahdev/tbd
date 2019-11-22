@@ -386,17 +386,17 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                 break;
         }
 
-        const enum tbd_add_symbol_result add_symbol_result =
-            tbd_add_symbol_with_info_and_len(info_in,
-                                             sb_buffer->data,
-                                             sb_buffer->length,
-                                             arch_bit,
-                                             predefined_type,
-                                             true,
-                                             false,
-                                             options);
+        const enum tbd_ci_add_symbol_result add_symbol_result =
+            tbd_ci_add_symbol_with_info_and_len(info_in,
+                                                sb_buffer->data,
+                                                sb_buffer->length,
+                                                arch_bit,
+                                                predefined_type,
+                                                true,
+                                                false,
+                                                options);
 
-        if (add_symbol_result != E_TBD_ADD_SYMBOL_OK) {
+        if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
             return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
         }
     }
