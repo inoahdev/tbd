@@ -1767,6 +1767,10 @@ macho_file_parse_load_commands_from_file(
                 dyld_info.export_size = swap_uint32(dyld_info.export_size);
             }
 
+            if (sym_info_out != NULL) {
+                sym_info_out->dyld_info = dyld_info;
+            }
+
             const uint64_t base_offset = macho_range.begin;
             const struct macho_file_parse_export_trie_args args = {
                 .info_in = info_in,
