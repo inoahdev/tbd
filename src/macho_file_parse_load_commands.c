@@ -482,48 +482,55 @@ parse_load_command(
             bool ignore_install_name =
                 (tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME);
 
-            /*
-             * The install-name should be fully contained within the
-             * dylib-command, while not overlapping with the dylib-command's
-             * basic information.
-             */
+            const char *install_name = NULL;
+            uint64_t length = 0;
 
-            if (name_offset < sizeof(struct dylib_command) ||
-                name_offset >= load_cmd.cmdsize)
-            {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
-                                  cb_info);
+            if (!ignore_install_name) {
+                /*
+                 * The install-name should be fully contained within the
+                 * dylib-command, while not overlapping with the dylib-command's
+                 * basic information.
+                 */
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
+                if (name_offset < sizeof(struct dylib_command) ||
+                    name_offset >= load_cmd.cmdsize)
+                {
+                    const bool should_continue =
+                        call_callback(callback,
+                                      info_in,
+                                      ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
+                                      cb_info);
 
-                ignore_install_name = true;
-            }
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
 
-            /*
-             * The install-name extends from its offset to the end of the
-             * dylib-command load-commmand.
-             */
+                    ignore_install_name = true;
+                } else {
+                    /*
+                    * The install-name extends from its offset to the end of the
+                    * dylib-command load-commmand.
+                    */
 
-            const char *const name =
-                (const char *)dylib_command + name_offset;
+                    const uint32_t max_length = load_cmd.cmdsize - name_offset;
 
-            const uint32_t max_length = load_cmd.cmdsize - name_offset;
-            const uint32_t length = (uint32_t)strnlen(name, max_length);
+                    install_name = (const char *)dylib_command + name_offset;
+                    length = (uint32_t)strnlen(install_name, max_length);
 
-            if (length == 0) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
-                                  cb_info);
+                    if (length == 0) {
+                        const bool should_continue =
+                            call_callback(
+                                callback,
+                                info_in,
+                                ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
+                                cb_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                        if (!should_continue) {
+                            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                        }
+
+                        ignore_install_name = true;
+                    }
                 }
             }
 
@@ -539,16 +546,11 @@ parse_load_command(
                 }
 
                 if (!ignore_install_name) {
-                    const char *install_name = name;
                     if (lc_parse_flags & F_PARSE_LOAD_COMMAND_COPY_STRINGS) {
-                        install_name = alloc_and_copy(name, length);
+                        install_name = alloc_and_copy(install_name, length);
                         if (install_name == NULL) {
                             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
                         }
-
-                        info_in->fields.install_name = install_name;
-                    } else {
-                        info_in->fields.install_name = name;
                     }
 
                     const bool needs_quotes =
@@ -559,6 +561,7 @@ parse_load_command(
                             F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES;
                     }
 
+                    info_in->fields.install_name = install_name;
                     info_in->fields.install_name_length = length;
                 }
             } else {
@@ -610,7 +613,7 @@ parse_load_command(
                     const char *const info_install_name =
                         info_in->fields.install_name;
 
-                    if (memcmp(info_install_name, name, length) != 0) {
+                    if (memcmp(info_install_name, install_name, length) != 0) {
                         const bool should_continue =
                             call_callback(
                                 callback,
