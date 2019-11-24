@@ -434,6 +434,13 @@ tbd_write_magic(FILE *__notnull const file, const enum tbd_version version) {
             }
 
             break;
+
+        case TBD_VERSION_V4:
+            if (fputs("--- !tapi-tbd\ntbd-version: 4\n", file) < 0) {
+                return 1;
+            }
+
+            break;
     }
 
     return 0;
@@ -554,6 +561,7 @@ tbd_write_swift_version(FILE *__notnull const file,
             break;
 
         case TBD_VERSION_V3:
+        case TBD_VERSION_V4:
             if (fprintf(file, "swift-abi-version:%-5s", "") < 0) {
                 return 1;
             }

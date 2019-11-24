@@ -17,6 +17,130 @@
 #include "tbd_write.h"
 #include "yaml.h"
 
+static int
+tbd_symbol_info_comparator(const void *__notnull const array_item,
+                           const void *__notnull const item)
+{
+    const struct tbd_symbol_info *const array_info =
+        (const struct tbd_symbol_info *)array_item;
+
+    const struct tbd_symbol_info *const info =
+        (const struct tbd_symbol_info *)item;
+
+    const int array_archs_count = array_info->at.archs.count;
+    const int archs_count = info->at.archs.count;
+
+    if (array_archs_count != archs_count) {
+        return (array_archs_count - archs_count);
+    }
+
+    const uint64_t array_archs = array_info->at.archs.count;
+    const uint64_t archs = info->at.archs.count;
+
+    if (array_archs > archs) {
+        return 1;
+    } else if (array_archs < archs) {
+        return -1;
+    }
+
+    const enum tbd_symbol_type array_type = array_info->type;
+    const enum tbd_symbol_type type = info->type;
+
+    if (array_type != type) {
+        return (int)(array_type - type);
+    }
+
+    const uint64_t array_length = array_info->length;
+    const uint64_t length = info->length;
+
+    const char *const array_string = array_info->string;
+    const char *const string = info->string;
+
+    /*
+     * We try to avoid iterating and comparing over the whole string, so we
+     * could check to ensure their lengths match up.
+     *
+     * However, we don't want to symbols to ever be organized by their length,
+     * which would be the case if `(array_length - length)` was returned.
+     *
+     * So instead, we use separate memcmp() calls for when array_length and
+     * length don't match, depending on which is bigger.
+     *
+     * This stops us from having to use strcmp(), which would be the case since
+     * the lengths don't match.
+     *
+     * Add one to also compare the null-terminator.
+     */
+
+    if (array_length > length) {
+        return memcmp(array_string, string, length + 1);
+    } else {
+        return memcmp(array_string, string, array_length + 1);
+    }
+}
+
+/*
+ * Have the symbols array be sorted first into groups of matching arch-lists.
+ *
+ * The arch-lists themselves are sorted to where arch-lists with more archs are
+ * "greater", than those without. Arch-lists with the same number of archs are
+ * just compared numberically.
+ *
+ * Within each arch-list group, the symbols are then organized by their types.
+ * Within each type group, the symbols are then finally organized
+ * alphabetically.
+ *
+ * This is done to make the creation of export-groups later on easier, as no the
+ * symbols are already organized by their arch-lists, and then their types,
+ * all alphabetically.
+ */
+
+static int
+tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
+                                    const void *__notnull const item)
+{
+    const struct tbd_symbol_info *const array_info =
+        (const struct tbd_symbol_info *)array_item;
+
+    const struct tbd_symbol_info *const info =
+        (const struct tbd_symbol_info *)item;
+
+    const enum tbd_symbol_type array_type = array_info->type;
+    const enum tbd_symbol_type type = info->type;
+
+    if (array_type != type) {
+        return (int)(array_type - type);
+    }
+
+    const uint64_t array_length = array_info->length;
+    const uint64_t length = info->length;
+
+    const char *const array_string = array_info->string;
+    const char *const string = info->string;
+
+    /*
+     * We try to avoid iterating and comparing over the whole string, so we
+     * could check to ensure their lengths match up.
+     *
+     * However, we don't want to symbols to ever be organized by their length,
+     * which would be the case if `(array_length - length)` was returned.
+     *
+     * So instead, we use separate memcmp() calls for when array_length and
+     * length don't match, depending on which is bigger.
+     *
+     * This stops us from having to use strcmp(), which would be the case since
+     * the lengths don't match.
+     *
+     * Add one to also compare the null-terminator.
+     */
+
+    if (array_length > length) {
+        return memcmp(array_string, string, length + 1);
+    } else {
+        return memcmp(array_string, string, array_length + 1);
+    }
+}
+
 /*
  * We compare strings by using the largest possible byte size when reading from
  * memory to maximize our performance.
@@ -261,13 +385,13 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
          * encounter the symbol multiple times in the same architecture.
          */
 
-        const uint64_t archs = existing_info->archs;
+        const uint64_t archs = existing_info->at.archs.data;
         if (archs & arch_bit) {
             return E_TBD_CI_ADD_SYMBOL_OK;
         }
 
-        existing_info->archs = archs | arch_bit;
-        existing_info->archs_count += 1;
+        existing_info->at.archs.data = archs | arch_bit;
+        existing_info->at.archs.count += 1;
 
         return E_TBD_CI_ADD_SYMBOL_OK;
     }
@@ -283,11 +407,11 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
     }
 
     if (options & O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS) {
-        symbol_info.archs = info_in->fields.archs;
-        symbol_info.archs_count = info_in->fields.archs_count;
+        symbol_info.at.archs.data = info_in->fields.at.archs.data;
+        symbol_info.at.archs.count = info_in->fields.at.archs.count;
     } else {
-        symbol_info.archs = arch_bit;
-        symbol_info.archs_count = 1;
+        symbol_info.at.archs.data = arch_bit;
+        symbol_info.at.archs.count = 1;
     }
 
     const enum array_result add_export_info_result =
@@ -552,128 +676,12 @@ tbd_ci_add_symbol_with_info_and_len(
     return E_TBD_CI_ADD_SYMBOL_OK;
 }
 
-int
-tbd_symbol_info_comparator(const void *__notnull const array_item,
-                           const void *__notnull const item)
-{
-    const struct tbd_symbol_info *const array_info =
-        (const struct tbd_symbol_info *)array_item;
+void tbd_ci_sort_symbols(struct tbd_create_info *__notnull const info_in) {
+    if (info_in->version == TBD_VERSION_V4) {
 
-    const struct tbd_symbol_info *const info =
-        (const struct tbd_symbol_info *)item;
-
-    const int array_archs_count = array_info->archs_count;
-    const int archs_count = info->archs_count;
-
-    if (array_archs_count != archs_count) {
-        return (array_archs_count - archs_count);
     }
 
-    const uint64_t array_archs = array_info->archs;
-    const uint64_t archs = info->archs;
-
-    if (array_archs > archs) {
-        return 1;
-    } else if (array_archs < archs) {
-        return -1;
-    }
-
-    const enum tbd_symbol_type array_type = array_info->type;
-    const enum tbd_symbol_type type = info->type;
-
-    if (array_type != type) {
-        return (int)(array_type - type);
-    }
-
-    const uint64_t array_length = array_info->length;
-    const uint64_t length = info->length;
-
-    const char *const array_string = array_info->string;
-    const char *const string = info->string;
-
-    /*
-     * We try to avoid iterating and comparing over the whole string, so we
-     * could check to ensure their lengths match up.
-     *
-     * However, we don't want to symbols to ever be organized by their length,
-     * which would be the case if `(array_length - length)` was returned.
-     *
-     * So instead, we use separate memcmp() calls for when array_length and
-     * length don't match, depending on which is bigger.
-     *
-     * This stops us from having to use strcmp(), which would be the case since
-     * the lengths don't match.
-     *
-     * Add one to also compare the null-terminator.
-     */
-
-    if (array_length > length) {
-        return memcmp(array_string, string, length + 1);
-    } else {
-        return memcmp(array_string, string, array_length + 1);
-    }
-}
-
-/*
- * Have the symbols array be sorted first into groups of matching arch-lists.
- *
- * The arch-lists themselves are sorted to where arch-lists with more archs are
- * "greater", than those without. Arch-lists with the same number of archs are
- * just compared numberically.
- *
- * Within each arch-list group, the symbols are then organized by their types.
- * Within each type group, the symbols are then finally organized
- * alphabetically.
- *
- * This is done to make the creation of export-groups later on easier, as no the
- * symbols are already organized by their arch-lists, and then their types,
- * all alphabetically.
- */
-
-int
-tbd_symbol_info_no_archs_comparator(const void *__notnull const array_item,
-                                    const void *__notnull const item)
-{
-    const struct tbd_symbol_info *const array_info =
-        (const struct tbd_symbol_info *)array_item;
-
-    const struct tbd_symbol_info *const info =
-        (const struct tbd_symbol_info *)item;
-
-    const enum tbd_symbol_type array_type = array_info->type;
-    const enum tbd_symbol_type type = info->type;
-
-    if (array_type != type) {
-        return (int)(array_type - type);
-    }
-
-    const uint64_t array_length = array_info->length;
-    const uint64_t length = info->length;
-
-    const char *const array_string = array_info->string;
-    const char *const string = info->string;
-
-    /*
-     * We try to avoid iterating and comparing over the whole string, so we
-     * could check to ensure their lengths match up.
-     *
-     * However, we don't want to symbols to ever be organized by their length,
-     * which would be the case if `(array_length - length)` was returned.
-     *
-     * So instead, we use separate memcmp() calls for when array_length and
-     * length don't match, depending on which is bigger.
-     *
-     * This stops us from having to use strcmp(), which would be the case since
-     * the lengths don't match.
-     *
-     * Add one to also compare the null-terminator.
-     */
-
-    if (array_length > length) {
-        return memcmp(array_string, string, length + 1);
-    } else {
-        return memcmp(array_string, string, array_length + 1);
-    }
+    return;
 }
 
 int
@@ -724,8 +732,8 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    const uint64_t archs = info->fields.archs;
-    const int archs_count = info->fields.archs_count;
+    const uint64_t archs = info->fields.at.archs.data;
+    const int archs_count = info->fields.at.archs.count;
 
     if (tbd_write_archs_for_header(file, archs, archs_count)) {
         return E_TBD_CREATE_WRITE_FAIL;
@@ -739,8 +747,10 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
     }
 
-    if (tbd_write_platform(file, info->fields.platform)) {
-        return E_TBD_CREATE_WRITE_FAIL;
+    if (version != TBD_VERSION_V4) {
+        if (tbd_write_platform(file, info->fields.at.archs.platform)) {
+            return E_TBD_CREATE_WRITE_FAIL;
+        }
     }
 
     if (version != TBD_VERSION_V1) {

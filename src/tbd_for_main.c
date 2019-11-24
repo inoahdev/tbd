@@ -469,6 +469,15 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.version = TBD_VERSION_V3;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+    } else if (strcmp(option, "v4") == 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+            fputs("Note: Option -v has been provided multiple times.\nOlder "
+                  "option's .tbd version will be overriden\n",
+                  stderr);
+        }
+
+        tbd->info.version = TBD_VERSION_V4;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
     } else {
         return false;
     }

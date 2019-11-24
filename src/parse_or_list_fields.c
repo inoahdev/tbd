@@ -235,6 +235,8 @@ enum tbd_version parse_tbd_version(const char *__notnull const version) {
         return TBD_VERSION_V2;
     } else if (strcmp(version, "v3") == 0) {
         return TBD_VERSION_V3;
+    } else if (strcmp(version, "v4") == 0) {
+        return TBD_VERSION_V4;
     }
 
     return TBD_VERSION_NONE;
