@@ -343,7 +343,6 @@ parse_load_command(
     const uint8_t *const load_cmd_iter = parse_info->load_cmd_iter;
 
     const uint64_t lc_parse_flags = parse_info->flags;
-    const uint64_t options = parse_info->options;
     const uint64_t tbd_options = parse_info->tbd_options;
 
     switch (load_cmd.cmd) {
@@ -483,7 +482,7 @@ parse_load_command(
                 (tbd_options & O_TBD_PARSE_IGNORE_INSTALL_NAME);
 
             const char *install_name = NULL;
-            uint64_t length = 0;
+            uint32_t length = 0;
 
             if (!ignore_install_name) {
                 /*

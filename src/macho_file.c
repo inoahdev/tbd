@@ -971,7 +971,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        const bool ignore_missing_exports_flags =
+        const uint64_t ignore_missing_exports_flags =
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
@@ -1075,7 +1075,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        const bool ignore_missing_exports_flags =
+        const uint64_t ignore_missing_exports_flags =
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
