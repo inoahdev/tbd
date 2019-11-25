@@ -46,6 +46,7 @@ struct dsc_iterate_images_info {
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+    const struct tbd_create_info *orig;
 
     struct array images;
 
@@ -403,9 +404,8 @@ actually_parse_image(
     const char *const image_path)
 {
     struct tbd_for_main *const tbd = iterate_info->tbd;
-
-    struct tbd_create_info *const g_info = &iterate_info->global->info;
     struct tbd_create_info *const info = &tbd->info;
+    const struct tbd_create_info *const orig_info = iterate_info->orig;
 
     struct handle_dsc_image_parse_error_cb_info *const cb_info =
         iterate_info->callback_info;
@@ -424,7 +424,7 @@ actually_parse_image(
                         0);
 
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        tbd_create_info_clear_fields_and_create_from(info, g_info);
+        tbd_create_info_clear_fields_and_create_from(info, orig_info);
         print_image_error(iterate_info, image_path, parse_image_result);
 
         return 1;
@@ -437,7 +437,7 @@ actually_parse_image(
     }
 
     write_out_tbd_info(iterate_info, tbd, image_path, image_path_length);
-    tbd_create_info_clear_fields_and_create_from(info, g_info);
+    tbd_create_info_clear_fields_and_create_from(info, orig_info);
 
     return 0;
 }
@@ -1191,6 +1191,7 @@ parse_dsc_for_main_while_recursing(
 
         .global = args.global,
         .tbd = args.tbd,
+        .orig = args.orig,
 
         .write_path = write_path,
         .write_path_length = write_path_length,

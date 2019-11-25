@@ -44,6 +44,7 @@
 struct recurse_callback_info {
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+    const struct tbd_create_info *orig;
 
     FILE *combine_file;
 
@@ -90,6 +91,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
 
             .global = global,
             .tbd = tbd,
+            .orig = recurse_info->orig,
 
             .dir_path = dir_path,
             .dir_path_length = dir_path_length,
@@ -141,6 +143,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
 
             .global = global,
             .tbd = tbd,
+            .orig = recurse_info->orig,
 
             .dsc_dir_path = dir_path,
             .dsc_dir_path_length = dir_path_length,
@@ -1118,6 +1121,8 @@ int main(const int argc, const char *const argv[]) {
         tbd_for_main_apply_missing_from(tbd, &global);
 
         const uint64_t options = tbd->flags;
+        const struct tbd_create_info orig = tbd->info;
+
         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             /*
              * We have to check write_path here, as its possible the
@@ -1139,6 +1144,7 @@ int main(const int argc, const char *const argv[]) {
             struct recurse_callback_info recurse_info = {
                 .global = &global,
                 .tbd = tbd,
+                .orig = &orig,
                 .retained_info = retained_info,
                 .export_trie_sb = &export_trie_sb
             };

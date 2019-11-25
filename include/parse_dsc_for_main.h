@@ -36,6 +36,7 @@ struct parse_dsc_for_main_args {
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+    const struct tbd_create_info *orig;
 
     const char *dsc_dir_path;
     uint64_t dsc_dir_path_length;

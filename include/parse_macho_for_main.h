@@ -29,6 +29,7 @@ struct parse_macho_for_main_args {
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+    const struct tbd_create_info *orig;
 
     /*
      * When not recursing, name will be NULL and dir_path will store the entire
