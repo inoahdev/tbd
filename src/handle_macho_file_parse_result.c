@@ -277,10 +277,10 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->retained_info_in,
                                             false,
                                             stderr,
-                                            "Mach-o file (at path %s/%s) has "
-                                            "architectures with multiple "
-                                            "objc-constraints that conflict "
-                                            "with one another\n",
+                                            "Mach-o file (at path %s/%s), or "
+                                            "one of its architectures, has "
+                                            "multiple objc-constraints that "
+                                            "conflict with one another\n",
                                             cb_info->dir_path,
                                             cb_info->name);
             } else if (cb_info->print_paths) {
@@ -302,10 +302,10 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->retained_info_in,
                                             false,
                                             stderr,
-                                            "The provided mach-o file has "
-                                            "architectures with multiple "
-                                            "objc-constraints that conflict "
-                                            "with one another\n");
+                                            "The provided mach-o file, or one "
+                                            "of its architectures, has "
+                                            "multiple objc-constraints that "
+                                            "conflict with one another\n");
             }
 
             if (!request_result) {
@@ -322,10 +322,10 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->retained_info_in,
                                             false,
                                             stderr,
-                                            "Mach-o file (at path %s) has "
-                                            "architectures with multiple "
-                                            "parent-umbrellas that conflict "
-                                            "with one another\n",
+                                            "Mach-o file (at path %s), or "
+                                            "one of its architectures, has "
+                                            "multiple parent-umbrellas that "
+                                            "conflict with one another\n",
                                             cb_info->dir_path);
             } else {
                 request_result =
@@ -334,10 +334,10 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->retained_info_in,
                                             false,
                                             stderr,
-                                            "The provided mach-o file has "
-                                            "architectures with multiple "
-                                            "parent-umbrellas that conflict "
-                                            "with one another\n");
+                                            "The provided mach-o file, or one "
+                                            "of its architectures, has "
+                                            "multiple parent-umbrellas that "
+                                            "conflict with one another\n");
             }
 
             if (!request_result) {
@@ -354,9 +354,10 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->retained_info_in,
                                      false,
                                      stderr,
-                                     "Mach-o file (at path %s/%s) has "
-                                     "architectures with multiple platforms "
-                                     "that conflict with one another\n",
+                                     "Mach-o file (at path %s/%s), or one of "
+                                     "its architectures, has multiple "
+                                     "platforms that conflict with one "
+                                     "another\n",
                                      cb_info->dir_path,
                                      cb_info->name);
             } else if (cb_info->print_paths) {
@@ -366,8 +367,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->retained_info_in,
                                      false,
                                      stderr,
-                                     "Mach-o file (at path %s) has "
-                                     "architectures with multiple platforms "
+                                     "Mach-o file (at path %s), or one of its "
+                                     "architectures, has multiple platforms "
                                      "that conflict with one another\n",
                                      cb_info->dir_path);
             } else {
@@ -377,8 +378,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->retained_info_in,
                                      false,
                                      stderr,
-                                     "The provided mach-o file has "
-                                     "architectures with multiple platforms "
+                                     "The provided mach-o file, or one of its "
+                                     "architectures, has multiple platforms "
                                      "that conflict with one another\n");
             }
 
@@ -396,8 +397,8 @@ handle_macho_file_for_main_error_callback(
                                           cb_info->retained_info_in,
                                           false,
                                           stderr,
-                                          "Mach-o file (at path %s/%s) has "
-                                          "architectures with multiple "
+                                          "Mach-o file (at path %s/%s), or one "
+                                          "of its architectures, has multiple "
                                           "swift-versions that conflict with "
                                           "one another\n",
                                           cb_info->dir_path,
@@ -409,8 +410,8 @@ handle_macho_file_for_main_error_callback(
                                           cb_info->retained_info_in,
                                           false,
                                           stderr,
-                                          "Mach-o file (at path %s) has "
-                                          "architectures with multiple "
+                                          "Mach-o file (at path %s), or one of "
+                                          "its architectures, has multiple "
                                           "swift-versions that conflict with "
                                           "one another\n",
                                           cb_info->dir_path);
@@ -421,8 +422,8 @@ handle_macho_file_for_main_error_callback(
                                           cb_info->retained_info_in,
                                           false,
                                           stderr,
-                                          "The provided mach-o file has "
-                                          "architectures with multiple "
+                                          "The provided mach-o file, or one of "
+                                          "its architectures, has multiple "
                                           "swift-versions that conflict with "
                                           "one another\n");
             }
@@ -436,18 +437,20 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
             if (cb_info->is_recursing) {
                 fprintf(stderr,
-                        "Mach-o file (at path %s/%s) has multiple "
-                        "architectures with the same uuid\n",
+                        "Mach-o file (at path %s/%s), or one of its "
+                        "architectures, has multiple uuids that are not "
+                        "unique\n",
                         cb_info->dir_path,
                         cb_info->name);
             } else if (cb_info->print_paths) {
                 fprintf(stderr,
-                        "Mach-o file (at path %s) has multiple architectures "
-                        "with the same uuid\n",
+                        "Mach-o file (at path %s), or one of its "
+                        "architectures, has multiple uuids that are not "
+                        "unique\n",
                         cb_info->dir_path);
             } else {
-                fputs("The provided mach-o file has multiple architectures "
-                      "with the same uuid\n",
+                fputs("The provided mach-o file, or one of its architectures, "
+                      "has multiple uuids that are not unique\n",
                       stderr);
             }
 
