@@ -40,8 +40,8 @@ parse_architectures_list(int index,
         const char arch_front = arch[0];
 
         /*
-         * Quickly check whether our arch-string is either a path-string or
-         * an option to avoid an unnecessary arch-info lookup.
+         * Quickly check if our arch-string is either a path-string or an option
+         * to avoid an unnecessary arch-info lookup.
          */
 
         if (arch_front == '-' || arch_front == '/') {
@@ -71,13 +71,18 @@ parse_architectures_list(int index,
         }
 
         const uint64_t arch_info_index = (uint64_t)(arch_info - arch_info_list);
-        const uint64_t arch_info_mask = 1ull << arch_info_index;
+        const uint64_t arch_info_mask = (1ull << arch_info_index);
 
-        archs |= arch_info_mask;
+        if (archs & arch_info_mask) {
+            fprintf(stderr,
+                    "Note: Arch %s has been provided multiple times\n",
+                    arch);
+        } else {
+            archs |= arch_info_mask;
+            count++;
+        }
 
         index++;
-        count++;
-
         if (index == argc) {
             break;
         }
