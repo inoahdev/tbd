@@ -106,7 +106,9 @@ sb_reserve_space(struct string_buffer *__notnull const sb,
                  const uint64_t space)
 {
     const uint64_t sb_capacity = sb->capacity;
-    if (get_free_space(sb->length, sb_capacity) >= space) {
+    if ((sb_capacity != 0) &&
+        (get_free_space(sb->length, sb_capacity) >= space))
+    {
         return E_STRING_BUFFER_OK;
     }
 
