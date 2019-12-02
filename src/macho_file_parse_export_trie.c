@@ -17,10 +17,9 @@
 #include "macho_file_parse_export_trie.h"
 #include "our_io.h"
 
-int
+const uint8_t *
 read_uleb128(const uint8_t *iter,
              const uint8_t *const end,
-             const uint8_t **const iter_out,
              uint64_t *const result_out)
 {
     uint64_t shift = 0;
@@ -58,7 +57,7 @@ read_uleb128(const uint8_t *iter,
 
     do {
         if (iter == end) {
-            return -1;
+            return NULL;
         }
 
         /*
@@ -76,43 +75,36 @@ read_uleb128(const uint8_t *iter,
         const uint64_t shifted_back_bits = (shifted_bits >> shift);
 
         if (bits != shifted_back_bits) {
-            return -1;
+            return NULL;
         }
 
         result |= (bits << shift);
         shift += 7;
     } while (*iter++ & 0x80);
 
-    *iter_out = iter;
     *result_out = result;
-
-    return 0;
+    return iter;
 }
 
-int
-skip_uleb128(const uint8_t *iter,
-             const uint8_t *const end,
-             const uint8_t **const iter_out)
-{
+const uint8_t *skip_uleb128(const uint8_t *iter, const uint8_t *const end) {
     uint64_t shift = 0;
 
     do {
-        if (iter == end || shift == 70) {
-            return -1;
+        if (iter == end || shift == 63) {
+            return NULL;
         }
 
         shift += 7;
     } while (*iter++ & 0x80);
 
-    *iter_out = iter;
-    return 0;
+    return iter;
 }
 
 static bool
 has_overlapping_range(struct array *__notnull const list,
                       const struct range range)
 {
-    struct range *list_range = list->data;
+    const struct range *list_range = list->data;
     const struct range *const end = list->data_end;
 
     for (; list_range != end; list_range++) {
@@ -260,7 +252,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
          * The iter-size is stored in a uleb128.
          */
 
-        if (read_uleb128(iter, end, &iter, &iter_size)) {
+        if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
     } else {
@@ -276,7 +268,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
 
     const struct range export_range = {
         .begin = offset,
-        .end = iter_size
+        .end = offset + iter_size
     };
 
     if (unlikely(has_overlapping_range(node_ranges, export_range))) {
@@ -305,7 +297,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
         }
 
         uint64_t flags = 0;
-        if (read_uleb128(iter, end, &iter, &flags)) {
+        if ((iter = read_uleb128(iter, end, &flags)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
@@ -320,7 +312,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
         }
 
         if (flags & EXPORT_SYMBOL_FLAGS_REEXPORT) {
-            if (skip_uleb128(iter, end, &iter)) {
+            if ((iter = skip_uleb128(iter, end)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
             }
 
@@ -353,12 +345,12 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                 iter++;
             }
         } else {
-            if (skip_uleb128(iter, end, &iter)) {
+            if ((iter = skip_uleb128(iter, end)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
             }
 
             if (flags & EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER) {
-                if (skip_uleb128(iter, end, &iter)) {
+                if ((iter = skip_uleb128(iter, end)) == NULL) {
                     return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
                 }
             }
@@ -452,7 +444,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
 
         uint64_t next = *iter;
         if (next > 127) {
-            if (read_uleb128(iter, end, &iter, &next)) {
+            if ((iter = read_uleb128(iter, end, &next)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
             }
         } else {
