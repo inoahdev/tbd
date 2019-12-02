@@ -109,14 +109,14 @@ skip_uleb128(const uint8_t *iter,
 }
 
 static bool
-has_range_for_location(struct array *__notnull const list,
-                       const struct range range)
+has_overlapping_range(struct array *__notnull const list,
+                      const struct range range)
 {
     struct range *list_range = list->data;
     const struct range *const end = list->data_end;
 
     for (; list_range != end; list_range++) {
-        if (range_contains_other(*list_range, range)) {
+        if (ranges_overlap(*list_range, range)) {
             return true;
         }
     }
@@ -279,7 +279,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
         .end = iter_size
     };
 
-    if (unlikely(has_range_for_location(node_ranges, export_range))) {
+    if (unlikely(has_overlapping_range(node_ranges, export_range))) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
