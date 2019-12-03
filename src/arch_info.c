@@ -21,7 +21,7 @@
 static const cpu_subtype_t CPU_SUBTYPE_X86_64_ALL_LIB64 =
     (CPU_SUBTYPE_X86_64_ALL | CPU_SUBTYPE_LIB64);
 
-static struct arch_info arch_info_list[] = {
+static const struct arch_info arch_info_list[] = {
     /*
      * Index starts at 0 and ends at 2.
      */
