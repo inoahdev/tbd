@@ -123,3 +123,14 @@ struct dirent *our_readdir(DIR *const dir) {
 
     return NULL;
 }
+
+ssize_t our_getline(char **const lineptr, size_t *const n, FILE *const stream) {
+    do {
+        const ssize_t ret = getline(lineptr, n, stream);
+        if (ret >= 0) {
+            return ret;
+        }
+    } while (errno == EINTR);
+
+    return 0;
+}

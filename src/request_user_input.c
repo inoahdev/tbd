@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "notnull.h"
+#include "our_io.h"
 #include "parse_or_list_fields.h"
 #include "request_user_input.h"
 
@@ -44,7 +45,7 @@ request_choice(const char *__notnull const prompt,
         char *input = NULL;
 
         size_t input_size = 0;
-        ssize_t input_length = getline(&input, &input_size, stdin);
+        ssize_t input_length = our_getline(&input, &input_size, stdin);
 
         fputc('\r', stdout);
 
@@ -102,7 +103,7 @@ request_input(const char *__notnull const prompt,
         fprintf(stdout, "%s: ", prompt);
         fflush(stdout);
 
-        input_length = getline(&input, &input_size, stdin);
+        input_length = our_getline(&input, &input_size, stdin);
 
         /*
          * We have an empty user-input if we only have a new-line character.
