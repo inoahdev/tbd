@@ -269,14 +269,48 @@ handle_dsc_file_parse_result_while_recursing(
     }
 }
 
+void
+print_dsc_image_parse_error_message_header(
+    const bool print_paths,
+    const char *__notnull const dsc_dir_path,
+    const char *const dsc_name)
+{
+    if (print_paths) {
+        if (dsc_name != NULL) {
+            fprintf(stderr,
+                    "Parsing dyld_shared_cache file (at path %s/%s) resulted "
+                    "in the following warnings and errors:\n",
+                    dsc_dir_path,
+                    dsc_name);
+        } else {
+            fprintf(stderr,
+                    "Parsing dyld_shared_cache file (at path %s) resulted in "
+                    "the following warnings and errors:\n",
+                    dsc_dir_path);
+        }
+    } else {
+        fputs("Parsing the provided dyld_shared_cache file resulted in the "
+              "following warnings and errors:\n",
+              stderr);
+    }
+}
+
 bool
 handle_dsc_image_parse_error_callback(
     struct tbd_create_info *__unused __notnull const info_in,
     const enum macho_file_parse_error error,
     void *const callback_info)
 {
-    const struct handle_dsc_image_parse_error_cb_info *const cb_info =
-        (const struct handle_dsc_image_parse_error_cb_info *)callback_info;
+    struct handle_dsc_image_parse_error_cb_info *const cb_info =
+        (struct handle_dsc_image_parse_error_cb_info *)callback_info;
+
+    if (!cb_info->did_print_messages_header) {
+        print_dsc_image_parse_error_message_header(cb_info->print_paths,
+                                                   cb_info->dsc_dir_path,
+                                                   cb_info->dsc_name);
+
+        cb_info->did_print_messages_header = true;
+    }
 
     bool request_result = true;
     switch (error) {

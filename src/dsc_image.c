@@ -350,6 +350,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         };
 
         ret = macho_file_parse_export_trie_from_map(args, map);
+        if (ret != E_MACHO_FILE_PARSE_OK) {
+            return translate_macho_file_parse_result(ret);
+        }
 
         parsed_dyld_info = true;
         parse_symtab = !(tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS);

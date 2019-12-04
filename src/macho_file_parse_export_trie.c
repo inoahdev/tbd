@@ -584,7 +584,7 @@ macho_file_parse_export_trie_from_map(
 
     const struct range export_range = {
         .begin = args.dyld_info.export_off,
-        .end = args.dyld_info.export_size
+        .end = export_end
     };
 
     if (!range_contains_other(args.available_range, export_range)) {

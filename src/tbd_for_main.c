@@ -865,6 +865,21 @@ dsc_image_number_comparator(const void *__notnull const array_item,
     return 0;
 }
 
+static uint64_t count_paths(const struct array *__notnull const filters) {
+    uint64_t count = 0;
+
+    const struct tbd_for_main_dsc_image_filter *filter = filters->data;
+    const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
+
+    for (; filter != end; filter++) {
+        if (filter->type == TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 void
 tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
                                 const struct tbd_for_main *__notnull const src)
@@ -927,6 +942,8 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
 
             exit(1);
         }
+
+        dst->dsc_filter_paths_count = count_paths(&dst->dsc_image_filters);
 
         const struct array *const src_numbers = &src->dsc_image_numbers;
         const enum array_result add_numbers_result =

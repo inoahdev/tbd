@@ -1251,6 +1251,7 @@ int main(const int argc, const char *const argv[]) {
 
                     .global = &global,
                     .tbd = tbd,
+                    .orig = &orig,
 
                     .dir_path = parse_path,
                     .dir_path_length = tbd->parse_path_length,
@@ -1294,6 +1295,7 @@ int main(const int argc, const char *const argv[]) {
 
                     .global = &global,
                     .tbd = tbd,
+                    .orig = &orig,
 
                     .dsc_dir_path = parse_path,
                     .dsc_dir_path_length = tbd->parse_path_length,

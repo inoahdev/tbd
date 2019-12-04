@@ -35,7 +35,15 @@ struct handle_dsc_image_parse_error_cb_info {
     const char *dsc_dir_path;
     const char *dsc_name;
     const char *image_path;
+
+    bool print_paths;
+    bool did_print_messages_header;
 };
+
+void
+print_dsc_image_parse_error_message_header(bool print_paths,
+                                           const char *__notnull dsc_dir_path,
+                                           const char *dsc_name);
 
 bool
 handle_dsc_image_parse_error_callback(struct tbd_create_info *__notnull info_in,
