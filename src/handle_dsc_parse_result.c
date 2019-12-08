@@ -322,7 +322,7 @@ handle_dsc_image_parse_error_callback(
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
-                                        "current-versions that conflict with "
+                                        "current-versions conflicting with "
                                         "one another\r\n",
                                         cb_info->image_path);
 
@@ -340,7 +340,7 @@ handle_dsc_image_parse_error_callback(
                                        true,
                                        stderr,
                                        "\tImage (with path %s) has multiple "
-                                       "compatibility-versions that conflict "
+                                       "compatibility-versions conflicting "
                                        "with one another\r\n",
                                        cb_info->image_path);
 
@@ -366,8 +366,8 @@ handle_dsc_image_parse_error_callback(
                                                true,
                                                stderr,
                                                "\tImage (with path %s) has "
-                                               "multiple, differing set of "
-                                               "flags that conflict with one "
+                                               "differing sets of flags "
+                                               "conflicting with one "
                                                "another\r\n",
                                                cb_info->image_path);
 
@@ -385,7 +385,7 @@ handle_dsc_image_parse_error_callback(
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has multiple "
-                                     "install-names that conflict with one "
+                                     "install-names conflicting with one "
                                      "another\r\n",
                                      cb_info->image_path);
 
@@ -403,8 +403,8 @@ handle_dsc_image_parse_error_callback(
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
-                                        "objc-constraints that conflict with "
-                                        "one another\r\n",
+                                        "objc-constraints conflicting with one "
+                                        "another\r\n",
                                         cb_info->image_path);
 
 
@@ -422,8 +422,8 @@ handle_dsc_image_parse_error_callback(
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
-                                        "parent-umbrellas that conflict with "
-                                        "one another\r\n",
+                                        "parent-umbrellas conflicting with one "
+                                        "another\r\n",
                                         cb_info->image_path);
 
             if (!request_result) {
@@ -440,7 +440,7 @@ handle_dsc_image_parse_error_callback(
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has multiple "
-                                 "platforms that conflict with one another\r\n",
+                                 "platforms conflicting with one another\r\n",
                                  cb_info->image_path);
 
             if (!request_result) {
@@ -457,7 +457,7 @@ handle_dsc_image_parse_error_callback(
                                       true,
                                       stderr,
                                       "\tImage (with path %s) has multiple "
-                                      "swift-versions that conflict with one "
+                                      "swift-versions conflicting with one "
                                       "another\r\n",
                                       cb_info->image_path);
 
@@ -468,9 +468,17 @@ handle_dsc_image_parse_error_callback(
 
             break;
 
+        case ERR_MACHO_FILE_PARSE_TARGET_PLATFORM_CONFLICT:
+            fprintf(stderr,
+                    "\tImage (with path %s) has multiple platforms conflicting "
+                    "with one another\r\n",
+                    cb_info->image_path);
+
+                return false;
+
         case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
             fprintf(stderr,
-                    "\tImage (with path %s) has multiple uuids that conflict "
+                    "\tImage (with path %s) has multiple uuids conflicting "
                     "with one another\r\n",
                     cb_info->image_path);
 
@@ -735,7 +743,7 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
 
             break;
 
-        case E_DSC_IMAGE_PARSE_NO_EXPORTS:
+        case E_DSC_IMAGE_PARSE_NO_DATA:
             fprintf(stderr,
                     "Image (with path %s) has no exported clients, re-exports, "
                     "or symbols to be written out\r\n",
@@ -760,6 +768,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
         case E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL:
             fprintf(stderr,
                     "Failed to create symbols-list while parsing image (with "
+                    "path: %s)\r\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_CREATE_TARGET_LIST_FAIL:
+            fprintf(stderr,
+                    "Failed to create targets-list while parsing image (with "
                     "path: %s)\r\n",
                     image_path);
 

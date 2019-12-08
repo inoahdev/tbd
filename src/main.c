@@ -6,20 +6,15 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
-#include <stdio.h>
 #include <sys/stat.h>
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 
-#include <stdint.h>
 #include <stdlib.h>
-
 #include <string.h>
 #include <unistd.h>
 
-#include "string_buffer.h"
 #include "copy.h"
 #include "dir_recurse.h"
 
@@ -28,24 +23,18 @@
 #include "parse_macho_for_main.h"
 
 #include "macho_file.h"
-#include "notnull.h"
-
 #include "our_io.h"
 #include "path.h"
 
-#include "recursive.h"
-#include "tbd.h"
 #include "tbd_write.h"
-
-#include "unused.h"
 #include "usage.h"
 #include "util.h"
 
 struct recurse_callback_info {
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;
-    const struct tbd_create_info *orig;
 
+    const struct tbd_create_info *orig;
     FILE *combine_file;
 
     uint64_t files_parsed;
@@ -265,7 +254,7 @@ static void destroy_tbds_array(struct array *const tbds) {
     array_destroy(tbds);
 }
 
-int main(const int argc, const char *const argv[]) {
+int main(const int argc, char *const argv[]) {
     if (argc < 2) {
         print_usage();
         return 0;

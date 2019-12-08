@@ -6,16 +6,12 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
-#include <sys/types.h>
-
-#include <ctype.h>
 #include <errno.h>
 
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "notnull.h"
 #include "our_io.h"
 #include "parse_or_list_fields.h"
 #include "request_user_input.h"
@@ -400,10 +396,10 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
         const enum tbd_objc_constraint global_objc_constraint =
-            global->info.fields.objc_constraint;
+            global->info.fields.at.archs.objc_constraint;
 
         if (global_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
-            tbd->info.fields.objc_constraint = global_objc_constraint;
+            tbd->info.fields.at.archs.objc_constraint = global_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
 
@@ -450,7 +446,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
             continue;
         }
 
-        tbd->info.fields.objc_constraint = objc_constraint;
+        tbd->info.fields.at.archs.objc_constraint = objc_constraint;
         free(input);
 
         break;
@@ -458,7 +454,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.objc_constraint = objc_constraint;
+        global->info.fields.at.archs.objc_constraint = objc_constraint;
         global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
 
@@ -488,10 +484,10 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
         const char *const global_parent_umbrella =
-            global->info.fields.parent_umbrella;
+            global->info.fields.at.archs.parent_umbrella;
 
         if (global_parent_umbrella != NULL) {
-            tbd->info.fields.parent_umbrella = global_parent_umbrella;
+            tbd->info.fields.at.archs.parent_umbrella = global_parent_umbrella;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
             return true;
@@ -520,15 +516,17 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
                       indent,
                       &parent_umbrella_length);
 
-    tbd->info.fields.parent_umbrella = parent_umbrella;
-    tbd->info.fields.parent_umbrella_length = parent_umbrella_length;
+    tbd->info.fields.at.archs.parent_umbrella = parent_umbrella;
+    tbd->info.fields.at.archs.parent_umbrella_length = parent_umbrella_length;
 
     tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.parent_umbrella = parent_umbrella;
-        global->info.fields.parent_umbrella_length = parent_umbrella_length;
+        global->info.fields.at.archs.parent_umbrella = parent_umbrella;
+        global->info.fields.at.archs.parent_umbrella_length =
+            parent_umbrella_length;
+
         global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     }
 
@@ -557,9 +555,11 @@ request_platform(struct tbd_for_main *__notnull const global,
     }
 
     if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
-        const enum tbd_platform global_platform = global->info.fields.platform;
+        const enum tbd_platform global_platform =
+            global->info.fields.at.archs.platform;
+
         if (global_platform != TBD_PLATFORM_NONE) {
-            tbd->info.fields.platform = global_platform;
+            tbd->info.fields.at.archs.platform = global_platform;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
 
@@ -606,7 +606,7 @@ request_platform(struct tbd_for_main *__notnull const global,
             continue;
         }
 
-        tbd->info.fields.platform = platform;
+        tbd->info.fields.at.archs.platform = platform;
         free(input);
 
         break;
@@ -614,7 +614,7 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.platform = platform;
+        global->info.fields.at.archs.platform = platform;
         global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
 

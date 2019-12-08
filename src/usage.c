@@ -60,6 +60,7 @@ void print_usage(void) {
     fputs("        -v1,                             Set version of .tbd files to version v1.\n", stdout);
     fputs("        -v2,                             Set version of .tbd files to version v2. (This is the default .tbd version)\n", stdout);
     fputs("        -v3,                             Set version of .tbd files to version v3.\n", stdout);
+    fputs("        -v4,                             Set version of .tbd files to version v4.\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore options:\n", stdout);

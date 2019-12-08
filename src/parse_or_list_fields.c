@@ -6,32 +6,21 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-
-#include <stdio.h>
-#include <stdint.h>
-
-#include <stdlib.h>
 #include <string.h>
 
-#include "arch_info.h"
-#include "guard_overflow.h"
 #include "macho_file.h"
-
 #include "parse_or_list_fields.h"
-#include "tbd.h"
+#include "target_list.h"
 
 uint64_t
 parse_architectures_list(int index,
                          const int argc,
-                         const char *const *__notnull const argv,
-                         int *__notnull const count_out,
+                         char *const *__notnull const argv,
+                         uint64_t *__notnull const count_out,
                          int *__notnull const index_out)
 {
     uint64_t archs = 0;
-    int count = 0;
+    uint64_t count = 0;
 
     const struct arch_info *const arch_info_list = arch_info_get_list();
 
@@ -103,7 +92,7 @@ parse_architectures_list(int index,
 uint32_t
 parse_flags_list(int index,
                  const int argc,
-                 const char *const *__notnull const argv,
+                 char *const *__notnull const argv,
                  int *__notnull const index_out)
 {
     uint32_t flags = 0;
@@ -166,6 +155,26 @@ parse_objc_constraint(const char *__notnull const constraint) {
     return TBD_OBJC_CONSTRAINT_NO_VALUE;
 }
 
+enum tbd_platform parse_platform(const char *__notnull const platform) {
+    if (strcmp(platform, "macosx") == 0) {
+        return TBD_PLATFORM_MACOS;
+    } else if (strcmp(platform, "ios") == 0) {
+        return TBD_PLATFORM_IOS;
+    } else if (strcmp(platform, "watchos") == 0) {
+        return TBD_PLATFORM_WATCHOS;
+    } else if (strcmp(platform, "tvos") == 0) {
+        return TBD_PLATFORM_TVOS;
+    } else if (strcmp(platform, "bridgeos") == 0) {
+        return TBD_PLATFORM_BRIDGEOS;
+    } else if (strcmp(platform, "iosmac") == 0) {
+        return TBD_PLATFORM_MACCATALYST;
+    } else if (strcmp(platform, "zippered") == 0) {
+        return TBD_PLATFORM_ZIPPERED;
+    }
+
+    return TBD_PLATFORM_NONE;
+}
+
 static inline bool ch_is_digit(const char ch) {
     return ((uint8_t)(ch - '0') < 10);
 }
@@ -208,24 +217,101 @@ uint32_t parse_swift_version(const char *__notnull const arg) {
     return version;
 }
 
-enum tbd_platform parse_platform(const char *__notnull const platform) {
-    if (strcmp(platform, "macosx") == 0) {
-        return TBD_PLATFORM_MACOS;
-    } else if (strcmp(platform, "ios") == 0) {
-        return TBD_PLATFORM_IOS;
-    } else if (strcmp(platform, "watchos") == 0) {
-        return TBD_PLATFORM_WATCHOS;
-    } else if (strcmp(platform, "tvos") == 0) {
-        return TBD_PLATFORM_TVOS;
-    } else if (strcmp(platform, "bridgeos") == 0) {
-        return TBD_PLATFORM_BRIDGEOS;
-    } else if (strcmp(platform, "iosmac") == 0) {
-        return TBD_PLATFORM_MACCATALYST;
-    } else if (strcmp(platform, "zippered") == 0) {
-        return TBD_PLATFORM_ZIPPERED;
+static char *find_dash(char *const str) {
+    char *iter = str;
+    for (char ch = *iter; ch != '\0'; ch = *(++iter)) {
+        if (ch == '-') {
+            return iter;
+        }
     }
 
-    return TBD_PLATFORM_NONE;
+    return NULL;
+}
+
+struct target_list
+parse_targets_list(int index,
+                   const int argc,
+                   char *const *__notnull const argv,
+                   int *__notnull index_out)
+{
+    struct target_list list = {};
+
+    do {
+        char *const arg = argv[index];
+
+        /*
+         * Catch any path-string or option to avoid unnecessary parsing.
+         */
+
+        if (*arg == '-') {
+            if (list.count == 0) {
+                fputs("Please provide a list of targets\n", stderr);
+                exit(1);
+            }
+
+            break;
+        }
+
+        char *const sep_dash = find_dash(arg);
+        if (sep_dash == NULL) {
+            if (list.count == 0) {
+                fprintf(stderr, "Unrecognized target: %s\n", arg);
+                exit(1);
+            }
+
+            break;
+        }
+
+        /*
+         * Set the char at sep_dash to '\0' to give us the arch-string.
+         */
+
+        *sep_dash = '\0';
+        const struct arch_info *const arch = arch_info_for_name(arg);
+
+        if (arch == NULL) {
+            fprintf(stderr, "Unrecognized architecture: %s\n", arg);
+            exit(1);
+        }
+
+        *sep_dash = '-';
+
+        const char *const platform_str = sep_dash + 1;
+        if (*platform_str == '\0') {
+            fprintf(stderr,
+                    "Please provide a platform for the target %s\n",
+                    arg);
+
+            exit(1);
+        }
+
+        const enum tbd_platform platform = parse_platform(platform_str);
+        if (platform == TBD_PLATFORM_NONE) {
+            fprintf(stderr, "Unrecognized platform: %s\n", platform_str);
+            exit(1);
+        }
+
+        const bool has_target = target_list_has_target(&list, arch, platform);
+        if (!has_target) {
+            const enum target_list_result add_target_result =
+                target_list_add_target(&list, arch, platform);
+
+            if (add_target_result != E_TARGET_LIST_OK) {
+                fputs("INTERNAL: Failed to add target to list\n", stderr);
+                exit(1);
+            }
+        } else {
+            fprintf(stderr, "Note: Target %s has been provided twice\n", arg);
+        }
+
+        index++;
+        if (index == argc) {
+            break;
+        }
+    } while (true);
+
+    *index_out = index - 1;
+    return list;
 }
 
 enum tbd_version parse_tbd_version(const char *__notnull const version) {

@@ -62,6 +62,8 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES,
 
     E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE,
+    E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_PLATFORM,
+
     E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES,
 
     E_MACHO_FILE_PARSE_ALLOC_FAIL,
@@ -83,10 +85,12 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE,
 
     E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO,
-    E_MACHO_FILE_PARSE_NO_EXPORTS,
 
+    E_MACHO_FILE_PARSE_NO_DATA,
     E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE,
-    E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL
+
+    E_MACHO_FILE_PARSE_CREATE_SYMBOL_LIST_FAIL,
+    E_MACHO_FILE_PARSE_CREATE_TARGET_LIST_FAIL
 };
 
 enum macho_file_parse_error {
@@ -98,6 +102,7 @@ enum macho_file_parse_error {
     ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT,
     ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT,
     ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
+    ERR_MACHO_FILE_PARSE_TARGET_PLATFORM_CONFLICT,
     ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT,
     ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
 
@@ -106,21 +111,21 @@ enum macho_file_parse_error {
     ERR_MACHO_FILE_PARSE_INVALID_PLATFORM,
     ERR_MACHO_FILE_PARSE_INVALID_UUID,
 
-    ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
-
     ERR_MACHO_FILE_PARSE_NOT_A_DYNAMIC_LIBRARY,
     ERR_MACHO_FILE_PARSE_NO_PLATFORM,
-    ERR_MACHO_FILE_PARSE_NO_UUID
+    ERR_MACHO_FILE_PARSE_NO_UUID,
+
+    ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
 };
 
 typedef bool
 (*macho_file_parse_error_callback)(struct tbd_create_info *__notnull info_in,
                                    enum macho_file_parse_error error,
-                                   void *callback_info);
+                                   void *cb_info);
 
 struct macho_file_parse_extra_args {
     macho_file_parse_error_callback callback;
-    void *callback_info;
+    void *cb_info;
 
     struct string_buffer *export_trie_sb;
 };

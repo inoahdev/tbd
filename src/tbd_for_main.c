@@ -11,10 +11,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <stdlib.h>
 #include <string.h>
 
-#include "copy.h"
 #include "macho_file.h"
 #include "parse_or_list_fields.h"
 
@@ -27,7 +25,7 @@ static void
 add_image_filter(int *__notnull const index_in,
                  struct tbd_for_main *__notnull const tbd,
                  const int argc,
-                 const char *const *__notnull const argv,
+                 char *const *__notnull const argv,
                  const bool is_directory)
 {
     const int index = *index_in;
@@ -68,7 +66,7 @@ static void
 add_image_number(int *__notnull const index_in,
                  struct tbd_for_main *__notnull const tbd,
                  const int argc,
-                 const char *const *__notnull const argv)
+                 char *const *__notnull const argv)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -125,7 +123,7 @@ static void
 add_image_path(int *__notnull const index_in,
                struct tbd_for_main *__notnull const tbd,
                const int argc,
-               const char *const *__notnull const argv)
+               char *const *__notnull const argv)
 {
     const int index = *index_in;
     if (index == argc) {
@@ -162,7 +160,7 @@ bool
 tbd_for_main_parse_option(int *const __notnull index_in,
                           struct tbd_for_main *const tbd,
                           const int argc,
-                          const char *const *const argv,
+                          char *const *const argv,
                           const char *const option)
 {
     int index = *index_in;
@@ -228,21 +226,34 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.archs != 0) {
+        if (tbd_uses_targets(tbd->info.version)) {
+            if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+                fputs("Replacing architectures is not supported for tbd-v4 and "
+                      "higher.\nPlease use --replace-targets and provide a "
+                      "list of targets\n",
+                      stderr);
+            } else {
+                fputs("Please provide a version that allows replacing "
+                      "architectures (versions less than tbd-version v4)\n",
+                      stderr);
+            }
+        }
+
+        if (tbd->info.fields.at.archs.data != 0) {
             fputs("Note: Option --replace-archs has been provided multiple "
                   "times.\nOlder option's list of architectures will be "
                   "overriden\n",
                   stderr);
         }
 
-        tbd->info.fields.archs =
+        tbd->info.fields.at.archs.data =
             parse_architectures_list(index,
                                      argc,
                                      argv,
-                                     &tbd->info.fields.archs_count,
+                                     &tbd->info.fields.at.archs.count,
                                      &index);
 
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
     } else if (strcmp(option, "replace-current-version") == 0) {
         index += 1;
@@ -327,7 +338,10 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
+        const enum tbd_objc_constraint info_objc_constraint =
+            tbd->info.fields.at.archs.objc_constraint;
+
+        if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
             fputs("Note: Option --replace-objc-constraint has been provided "
                   "multiple times.\nOlder option's objc-constraint will be "
                   "overriden\n",
@@ -348,7 +362,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.fields.objc_constraint = objc_constraint;
+        tbd->info.fields.at.archs.objc_constraint = objc_constraint;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
@@ -360,7 +374,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.platform != TBD_PLATFORM_NONE) {
+        if (tbd->info.fields.at.archs.platform != TBD_PLATFORM_NONE) {
             fputs("Note: Option --replace-platform has been provided multiple "
                   "times.\nOlder option's platform will be overriden\n",
                   stderr);
@@ -378,7 +392,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.fields.platform = platform;
+        tbd->info.fields.at.archs.platform = platform;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     } else if (strcmp(option, "replace-swift-version") == 0) {
         index += 1;
@@ -407,6 +421,41 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.fields.swift_version = swift_version;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+    } else if (strcmp(option, "replace-targets") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide a list of targets to replace the ones found "
+                  "in the provided input file(s)\n",
+                  stderr);
+
+            exit(1);
+        }
+
+        if (!tbd_uses_targets(tbd->info.version)) {
+            if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+                fputs("WARNING: Replacing targets is not supported for tbd-v3 "
+                      "and below.\nPlease use --replace-archs and provide a "
+                      "list of architectures\n",
+                      stderr);
+            } else {
+                fputs("WARNING: Please provide a version that allows replacing "
+                      "targets (tbd-version v4 or higher)\n",
+                      stderr);
+            }
+        }
+
+        if (tbd->info.fields.at.targets.list.count != 0) {
+            fputs("Note: Option --replace-targets has been provided multiple "
+                  "times.\nOlder option's list of targets will be "
+                  "overriden\n",
+                  stderr);
+        }
+
+        tbd->info.fields.at.targets.list =
+            parse_targets_list(index, argc, argv, &index);
+
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
+        tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
     } else if (strcmp(option, "use-symbol-table") == 0) {
@@ -782,8 +831,8 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull const tbd,
                         input_path,
                         strerror(errno));
             } else {
-                fputs("Failed to write to stdout (the terminal) for "
-                      "the provided input-file, error: %s\n",
+                fputs("Failed to write to stdout (the terminal) for the "
+                       "provided input-file, error: %s\n",
                       stderr);
             }
         }
@@ -823,9 +872,9 @@ tbd_for_main_write_to_stdout_for_dsc_image(
     }
 }
 
-static int
-dsc_image_filter_comparator(const void *__notnull const array_item,
-                            const void *__notnull const item)
+static bool
+dsc_image_filter_equals_comparator(const void *__notnull const array_item,
+                                   const void *__notnull const item)
 {
     const struct tbd_for_main_dsc_image_filter *const array_filter =
         (const struct tbd_for_main_dsc_image_filter *)array_item;
@@ -837,10 +886,8 @@ dsc_image_filter_comparator(const void *__notnull const array_item,
     const enum tbd_for_main_dsc_image_filter_type array_type =
         array_filter->type;
 
-    if (array_type > type) {
-        return 1;
-    } else if (array_type < type) {
-        return -1;
+    if (array_type != type) {
+        return false;
     }
 
     const uint64_t array_filter_length = array_filter->length;
@@ -850,28 +897,22 @@ dsc_image_filter_comparator(const void *__notnull const array_item,
     const char *const string = filter->string;
 
     if (array_filter_length > filter_length) {
-        return memcmp(array_string, string, filter_length + 1);
+        return (memcmp(array_string, string, filter_length + 1) == 0);
     } else if (array_filter_length < filter_length) {
-        return memcmp(array_string, string, array_filter_length + 1);
+        return (memcmp(array_string, string, array_filter_length + 1) == 0);
     }
 
-    return memcmp(array_string, string, filter_length);
+    return (memcmp(array_string, string, filter_length) == 0);
 }
 
-static int
-dsc_image_number_comparator(const void *__notnull const array_item,
-                            const void *__notnull const item)
+static bool
+dsc_image_number_equals_comparator(const void *__notnull const array_item,
+                                   const void *__notnull const item)
 {
     const uint32_t array_number = *(const uint32_t *)array_item;
     const uint32_t number = *(const uint32_t *)item;
 
-    if (array_number > number) {
-        return 1;
-    } else if (array_number < number) {
-        return -1;
-    }
-
-    return 0;
+    return (array_number == number);
 }
 
 static uint64_t count_paths(const struct array *__notnull const filters) {
@@ -893,9 +934,9 @@ void
 tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
                                 const struct tbd_for_main *__notnull const src)
 {
-    if (dst->info.fields.archs_count == 0) {
-        dst->info.fields.archs = src->info.fields.archs;
-        dst->info.fields.archs_count = src->info.fields.archs_count;
+    if (dst->info.fields.at.archs.count == 0) {
+        dst->info.fields.at.archs.data = src->info.fields.at.archs.data;
+        dst->info.fields.at.archs.count = src->info.fields.at.archs.count;
     }
 
     if (!(dst->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION)) {
@@ -915,16 +956,25 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
         dst->info.fields.install_name = src->info.fields.install_name;
     }
 
-    if (dst->info.fields.parent_umbrella == NULL) {
-        dst->info.fields.parent_umbrella = src->info.fields.parent_umbrella;
+    if (dst->info.fields.at.archs.parent_umbrella == NULL) {
+        const char *const src_parent_umbrella =
+            src->info.fields.at.archs.parent_umbrella;;
+
+        dst->info.fields.at.archs.parent_umbrella = src_parent_umbrella;
     }
 
-    if (dst->info.fields.platform == TBD_PLATFORM_NONE) {
-        dst->info.fields.platform = src->info.fields.platform;
+    if (dst->info.fields.at.archs.platform == TBD_PLATFORM_NONE) {
+        dst->info.fields.at.archs.platform = src->info.fields.at.archs.platform;
     }
 
-    if (dst->info.fields.objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
-        dst->info.fields.objc_constraint = src->info.fields.objc_constraint;
+    const enum tbd_objc_constraint dst_objc_constraint =
+        dst->info.fields.at.archs.objc_constraint;
+
+    if (dst_objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
+        const enum tbd_objc_constraint src_objc_constraint =
+            src->info.fields.at.archs.objc_constraint;
+
+        dst->info.fields.at.archs.objc_constraint = src_objc_constraint;
     }
 
     if (dst->info.fields.swift_version == 0) {
@@ -942,7 +992,7 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
                 &dst->dsc_image_filters,
                 sizeof(struct tbd_for_main_dsc_image_filter),
                 src_filters,
-                dsc_image_filter_comparator);
+                dsc_image_filter_equals_comparator);
 
         if (add_filters_result != E_ARRAY_OK) {
             fputs("Experienced an array failure when trying to add dsc "
@@ -956,10 +1006,11 @@ tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
 
         const struct array *const src_numbers = &src->dsc_image_numbers;
         const enum array_result add_numbers_result =
-            array_add_and_unique_items_from_array(&dst->dsc_image_numbers,
-                                                  sizeof(uint32_t),
-                                                  src_numbers,
-                                                  dsc_image_number_comparator);
+            array_add_and_unique_items_from_array(
+                &dst->dsc_image_numbers,
+                sizeof(uint32_t),
+                src_numbers,
+                dsc_image_number_equals_comparator);
 
         if (add_numbers_result != E_ARRAY_OK) {
             fputs("Experienced an array failure when trying to add dsc "

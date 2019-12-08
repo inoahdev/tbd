@@ -92,12 +92,13 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
         case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
             return;
 
-        case E_DSC_IMAGE_PARSE_NO_EXPORTS: {
-            const uint64_t flags = iterate_info->tbd->flags;
-            if (flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
-                if (flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                    return;
-                }
+        case E_DSC_IMAGE_PARSE_NO_DATA: {
+            const uint64_t flags =
+                (F_TBD_FOR_MAIN_IGNORE_WARNINGS |
+                 F_TBD_FOR_MAIN_RECURSE_DIRECTORIES);
+
+            if (iterate_info->tbd->flags & flags) {
+                return;
             }
 
             break;
@@ -125,6 +126,7 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
         case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
         case E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE:
         case E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL:
+        case E_DSC_IMAGE_PARSE_CREATE_TARGET_LIST_FAIL:
             break;
     }
 
@@ -556,11 +558,9 @@ unmark_happening_filters(const struct array *__notnull const list) {
     const struct tbd_for_main_dsc_image_filter *const end = list->data_end;
 
     for (; filter != end; filter++) {
-        if (filter->status != TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_HAPPENING) {
-            continue;
+        if (filter->status == TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_HAPPENING) {
+            filter->status = TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_NOT_FOUND;
         }
-
-        filter->status = TBD_FOR_MAIN_DSC_IMAGE_FILTER_PARSE_NOT_FOUND;
     }
 }
 
@@ -1001,18 +1001,19 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
     struct dsc_iterate_images_info iterate_info = {
         .dsc_info = &dsc_info,
+
         .dsc_dir_path = args.dsc_dir_path,
         .dsc_name = args.dsc_name,
+
+        .write_path = args.tbd->write_path,
+        .write_path_length = args.tbd->write_path_length,
 
         .global = args.global,
         .tbd = args.tbd,
         .orig = args.orig,
 
-        .write_path = args.tbd->write_path,
-        .write_path_length = args.tbd->write_path_length,
-
-        .retained_info = args.retained_info_in,
         .combine_file = args.combine_file,
+        .retained_info = args.retained_info_in,
 
         .callback = handle_dsc_image_parse_error_callback,
         .callback_info = &cb_info,
@@ -1074,10 +1075,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
-            const int parse_result =
-                actually_parse_image(&iterate_info, image, image_path);
-
-            if (parse_result == 0) {
+            if (actually_parse_image(&iterate_info, image, image_path) == 0) {
                 image->pad |= F_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
             }
         }
@@ -1249,19 +1247,18 @@ parse_dsc_for_main_while_recursing(
 
     struct dsc_iterate_images_info iterate_info = {
         .dsc_info = &dsc_info,
-
         .dsc_dir_path = args.dsc_dir_path,
         .dsc_name = args.dsc_name,
+
+        .write_path = write_path,
+        .write_path_length = write_path_length,
 
         .global = args.global,
         .tbd = args.tbd,
         .orig = args.orig,
 
-        .write_path = write_path,
-        .write_path_length = write_path_length,
-
-        .retained_info = args.retained_info_in,
         .combine_file = args.combine_file,
+        .retained_info = args.retained_info_in,
 
         .callback = handle_dsc_image_parse_error_callback,
         .callback_info = &cb_info,
@@ -1320,7 +1317,9 @@ parse_dsc_for_main_while_recursing(
             const char *const image_path =
                 (const char *)(dsc_info.map + path_offset);
 
-            actually_parse_image(&iterate_info, image, image_path);
+            if (actually_parse_image(&iterate_info, image, image_path) == 0) {
+                image->pad |= F_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED;
+            }
         }
 
         /*

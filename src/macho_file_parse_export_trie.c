@@ -6,14 +6,10 @@
 //  Copyright © 2019 inoahdev. All rights reserved.
 //
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "guard_overflow.h"
 #include "likely.h"
-#include "macho_file.h"
 #include "macho_file_parse_export_trie.h"
 #include "our_io.h"
 
@@ -54,6 +50,7 @@ read_uleb128(const uint8_t *iter,
      * byte's 7 bits are in the second component, and the third byte's 7 bits
      * are stored in the 1st component.
      */
+
 
     do {
         if (iter == end) {
@@ -234,14 +231,15 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  */
 
 enum macho_file_parse_result
-parse_trie_node(struct tbd_create_info *__notnull info_in,
+parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint64_t arch_bit,
+                const int arch_index,
                 const uint8_t *__notnull const start,
                 const uint64_t offset,
                 const uint8_t *__notnull const end,
                 struct array *__notnull const node_ranges,
                 const uint64_t export_size,
-                struct string_buffer *__notnull sb_buffer,
+                struct string_buffer *__notnull const sb_buffer,
                 const uint64_t options)
 {
     const uint8_t *iter = start + offset;
@@ -311,6 +309,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
             }
         }
 
+        enum tbd_symbol_meta_type meta_type = TBD_SYMBOL_META_TYPE_EXPORT;
         if (flags & EXPORT_SYMBOL_FLAGS_REEXPORT) {
             if ((iter = skip_uleb128(iter, end)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
@@ -344,6 +343,8 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
             } else {
                 iter++;
             }
+
+            meta_type = TBD_SYMBOL_META_TYPE_REEXPORT;
         } else {
             if ((iter = skip_uleb128(iter, end)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
@@ -378,18 +379,19 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
                 break;
         }
 
-        const enum tbd_ci_add_symbol_result add_symbol_result =
+        const enum tbd_ci_add_data_result add_symbol_result =
             tbd_ci_add_symbol_with_info_and_len(info_in,
                                                 sb_buffer->data,
                                                 sb_buffer->length,
                                                 arch_bit,
+                                                arch_index,
                                                 predefined_type,
+                                                meta_type,
                                                 true,
-                                                false,
                                                 options);
 
-        if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
-            return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
+        if (add_symbol_result != E_TBD_CI_ADD_DATA_OK) {
+            return E_MACHO_FILE_PARSE_CREATE_SYMBOL_LIST_FAIL;
         }
     }
 
@@ -466,6 +468,7 @@ parse_trie_node(struct tbd_create_info *__notnull info_in,
         const enum macho_file_parse_result parse_export_result =
             parse_trie_node(info_in,
                             arch_bit,
+                            arch_index,
                             start,
                             next,
                             end,
@@ -530,7 +533,7 @@ macho_file_parse_export_trie_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    uint8_t *const export_trie = calloc(1, args.dyld_info.export_size);
+    uint8_t *const export_trie = malloc(args.dyld_info.export_size);
     if (export_trie == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
@@ -546,6 +549,7 @@ macho_file_parse_export_trie_from_file(
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
                         args.arch_bit,
+                        args.arch_index,
                         export_trie,
                         0,
                         end,
@@ -598,6 +602,7 @@ macho_file_parse_export_trie_from_map(
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
                         args.arch_bit,
+                        args.arch_index,
                         export_trie,
                         0,
                         end,

@@ -9,19 +9,15 @@
 #ifndef MACHO_FILE_PARSE_EXPORT_TRIE_H
 #define MACHO_FILE_PARSE_EXPORT_TRIE_H
 
-#include "mach-o/loader.h"
-#include "arch_info.h"
 #include "macho_file.h"
 #include "range.h"
-#include "string_buffer.h"
 
 struct macho_file_parse_export_trie_args {
     struct tbd_create_info *info_in;
-
-    const struct arch_info *arch;
-    uint64_t arch_bit;
-
     struct range available_range;
+
+    uint64_t arch_bit;
+    int arch_index;
 
     bool is_64;
     bool is_big_endian;

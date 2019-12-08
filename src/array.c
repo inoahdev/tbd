@@ -222,17 +222,38 @@ array_add_items_from_array(struct array *__notnull const array,
     return E_ARRAY_OK;
 }
 
+void *
+array_find_item(const struct array *__notnull const array,
+                const size_t item_size,
+                const void *__notnull const item,
+                __notnull const array_item_equals_comparator comparator,
+                uint64_t *const index_out)
+{
+    void *iter = array->data;
+    const uint64_t item_count = array->item_count;
+
+    for (uint64_t index = 0; index != item_count; index++, iter += item_size) {
+        if (!comparator(iter, item)) {
+            continue;
+        }
+
+        if (index_out != NULL) {
+            *index_out = index;
+        }
+
+        return iter;
+    }
+
+    return NULL;
+}
+
 enum array_result
 array_add_and_unique_items_from_array(
     struct array *__notnull const array,
     const size_t item_size,
     const struct array *__notnull const src,
-    __notnull const array_item_comparator comparator)
+    __notnull const array_item_equals_comparator comparator)
 {
-    if (array->item_count == 0) {
-        return array_add_items_from_array(array, src);
-    }
-
     const void *iter = src->data;
     const void *const end = src->data_end;
 
@@ -253,31 +274,6 @@ array_add_and_unique_items_from_array(
     }
 
     return E_ARRAY_OK;
-}
-
-void *
-array_find_item(const struct array *__notnull const array,
-                const size_t item_size,
-                const void *__notnull const item,
-                __notnull const array_item_comparator comparator,
-                uint64_t *const index_out)
-{
-    void *iter = array->data;
-    const uint64_t item_count = array->item_count;
-
-    for (uint64_t index = 0; index != item_count; index++, iter += item_size) {
-        if (comparator(iter, item) != 0) {
-            continue;
-        }
-
-        if (index_out != NULL) {
-            *index_out = index;
-        }
-
-        return iter;
-    }
-
-    return NULL;
 }
 
 /*
@@ -344,7 +340,7 @@ array_slice_get_sorted_array_item_for_item(
     const size_t item_size,
     struct array_slice slice,
     const void *__notnull const item,
-    __notnull const array_item_comparator comparator,
+    __notnull const array_item_sort_comparator comparator,
     struct array_cached_index_info *const info_out)
 {
     void *const data = array->data;
@@ -397,11 +393,12 @@ array_slice_get_sorted_array_item_for_item(
 }
 
 void *
-array_find_item_in_sorted(const struct array *__notnull const array,
-                          const size_t item_size,
-                          const void *__notnull const item,
-                          __notnull const array_item_comparator comparator,
-                          struct array_cached_index_info *const info_out)
+array_find_item_in_sorted(
+    const struct array *__notnull const array,
+    const size_t item_size,
+    const void *__notnull const item,
+    __notnull const array_item_sort_comparator comparator,
+    struct array_cached_index_info *const info_out)
 {
     const uint64_t item_count = array->item_count;
     if (item_count == 0) {
@@ -435,7 +432,7 @@ array_find_item_in_sorted_with_slice(
     const size_t item_size,
     const struct array_slice slice,
     const void *__notnull const item,
-    __notnull const array_item_comparator comparator,
+    __notnull const array_item_sort_comparator comparator,
     struct array_cached_index_info *const info_out)
 {
     void *const array_item =
@@ -546,9 +543,10 @@ array_copy(struct array *__notnull const array,
 }
 
 void
-array_sort_with_comparator(struct array *__notnull const array,
-                           const size_t item_size,
-                           __notnull const array_sort_comparator comparator)
+array_sort_with_comparator(
+    struct array *__notnull const array,
+    const size_t item_size,
+    __notnull const array_item_sort_comparator comparator)
 {
     qsort(array->data, array->item_count, item_size, comparator);
 }

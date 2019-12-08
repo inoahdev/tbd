@@ -51,6 +51,7 @@ Both local and global options:
         -v1,                             Set version of .tbd files to version v1.
         -v2,                             Set version of .tbd files to version v2. (This is the default .tbd version)
         -v3,                             Set version of .tbd files to version v3.
+        -v4,                             Set version of .tbd files to version v4.
 
 Ignore options:
         --ignore-clients,               Ignore clients field

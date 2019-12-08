@@ -231,7 +231,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     struct string_buffer sb_buffer = {};
     struct macho_file_parse_extra_args extra = {
         .callback = handle_macho_file_for_main_error_callback,
-        .callback_info = (void *)&cb_info,
+        .cb_info = (void *)&cb_info,
         .export_trie_sb = &sb_buffer
     };
 
@@ -367,7 +367,7 @@ parse_macho_file_for_main_while_recursing(
 
     struct macho_file_parse_extra_args extra = {
         .callback = handle_macho_file_for_main_error_callback,
-        .callback_info = (void *)&cb_info,
+        .cb_info = (void *)&cb_info,
         .export_trie_sb = args.export_trie_sb
     };
 

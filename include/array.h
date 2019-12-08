@@ -70,15 +70,15 @@ array_add_item(struct array *__notnull array,
                const void *__notnull item,
                void **item_out);
 
-typedef int
-(*array_item_comparator)(const void *__notnull array_item,
-                         const void *item);
+typedef bool
+(*array_item_equals_comparator)(const void *__notnull array_item,
+                                const void *item);
 
 void *
 array_find_item(const struct array *__notnull array,
                 size_t item_size,
                 const void *__notnull item,
-                __notnull array_item_comparator comparator,
+                __notnull array_item_equals_comparator comparator,
                 uint64_t *index_out);
 
 enum array_result
@@ -86,7 +86,7 @@ array_add_and_unique_items_from_array(
     struct array *__notnull array,
     size_t item_size,
     const struct array *__notnull other,
-    __notnull array_item_comparator comparator);
+    __notnull array_item_equals_comparator comparator);
 
 enum array_cached_index_type {
     ARRAY_CACHED_INDEX_LESS_THAN    = -1,
@@ -115,11 +115,15 @@ struct array_cached_index_info {
     enum array_cached_index_type type;
 };
 
+typedef int
+(*array_item_sort_comparator)(const void *__notnull array_item,
+                              const void *item);
+
 void *
 array_find_item_in_sorted(const struct array *__notnull array,
                           size_t item_size,
                           const void *__notnull item,
-                          __notnull array_item_comparator comparator,
+                          __notnull array_item_sort_comparator comparator,
                           struct array_cached_index_info *index_out);
 
 struct array_slice {
@@ -128,12 +132,13 @@ struct array_slice {
 };
 
 void *
-array_find_item_in_sorted_with_slice(const struct array *__notnull array,
-                                     size_t item_size,
-                                     struct array_slice slice,
-                                     const void *__notnull item,
-                                     __notnull array_item_comparator comparator,
-                                     struct array_cached_index_info *info_out);
+array_find_item_in_sorted_with_slice(
+    const struct array *__notnull array,
+    size_t item_size,
+    struct array_slice slice,
+    const void *__notnull item,
+    __notnull array_item_sort_comparator comparator,
+    struct array_cached_index_info *info_out);
 
 enum array_result
 array_add_item_with_cached_index_info(struct array *array,
@@ -145,14 +150,10 @@ array_add_item_with_cached_index_info(struct array *array,
 enum array_result
 array_copy(struct array *__notnull array, struct array *__notnull array_out);
 
-typedef int
-(*array_sort_comparator)(const void *__notnull left,
-                         const void *__notnull right);
-
 void
 array_sort_with_comparator(struct array *__notnull array,
                            size_t item_size,
-                           __notnull array_sort_comparator comparator);
+                           __notnull array_item_sort_comparator comparator);
 
 void
 array_trim_to_item_count(struct array *__notnull array,

@@ -20,7 +20,6 @@
 #include "guard_overflow.h"
 #include "likely.h"
 
-#include "macho_file.h"
 #include "macho_file_parse_symtab.h"
 #include "our_io.h"
 
@@ -31,10 +30,11 @@
 #include "yaml.h"
 
 static inline bool is_weak_symbol(const uint16_t n_desc) {
-    return ((n_desc & (N_WEAK_DEF | N_WEAK_REF)) != 0);
+    const uint64_t check_flags = (N_WEAK_DEF | N_WEAK_REF);
+    return ((n_desc & check_flags) != 0);
 }
 
-static inline bool is_external_symbol(const uint8_t n_type) {
+static inline bool is_exported_symbol(const uint8_t n_type) {
     const uint64_t check_flags = (N_EXT | N_STAB);
     return ((n_type & check_flags) == N_EXT);
 }
@@ -42,6 +42,7 @@ static inline bool is_external_symbol(const uint8_t n_type) {
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *__notnull const info_in,
               const uint64_t arch_bit,
+              const int arch_index,
               const uint32_t index,
               const uint32_t strsize,
               const char *__notnull string,
@@ -55,16 +56,16 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
      * flags for private-symbols were provided.
      */
 
-    const bool is_external = is_external_symbol(n_type);
-    if (!is_external) {
+    const bool is_exported = is_exported_symbol(n_type);
+    if (!is_exported) {
         if (is_undef) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
         const uint64_t allow_priv_symbols_flags =
-            O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS |
-            O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS |
-            O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
+            (O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS |
+             O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS |
+             O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS);
 
         if ((options & allow_priv_symbols_flags) == 0) {
             return E_MACHO_FILE_PARSE_OK;
@@ -72,24 +73,31 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     }
 
     const uint32_t max_len = strsize - index;
+
     enum tbd_symbol_type predefined_type = TBD_SYMBOL_TYPE_NONE;
+    enum tbd_symbol_meta_type meta_type = TBD_SYMBOL_META_TYPE_EXPORT;
 
     if (is_weak_symbol(n_desc)) {
         predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
     }
 
-    const enum tbd_ci_add_symbol_result add_symbol_result =
+    if (is_undef) {
+        meta_type = TBD_SYMBOL_META_TYPE_UNDEFINED;
+    }
+
+    const enum tbd_ci_add_data_result add_symbol_result =
         tbd_ci_add_symbol_with_info(info_in,
                                     string,
                                     max_len,
                                     arch_bit,
+                                    arch_index,
                                     predefined_type,
-                                    is_external,
-                                    is_undef,
+                                    meta_type,
+                                    is_exported,
                                     options);
 
-    if (add_symbol_result != E_TBD_CI_ADD_SYMBOL_OK) {
-        return E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL;
+    if (add_symbol_result != E_TBD_CI_ADD_DATA_OK) {
+        return E_MACHO_FILE_PARSE_CREATE_SYMBOL_LIST_FAIL;
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -100,11 +108,11 @@ should_parse_undef(const enum tbd_version version,
                    const uint64_t n_value,
                    const uint64_t tbd_options)
 {
-    if (tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
+    if (version == TBD_VERSION_V1) {
         return false;
     }
 
-    if (version != TBD_VERSION_V1) {
+    if (tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
         return false;
     }
 
@@ -230,8 +238,9 @@ macho_file_parse_symtab_from_file(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
+    const int arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_opt = args->tbd_options;
+    const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist *nlist = symbol_table;
     const struct nlist *const end = symbol_table + nsyms;
@@ -251,15 +260,15 @@ macho_file_parse_symtab_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -287,13 +296,14 @@ macho_file_parse_symtab_from_file(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -317,15 +327,15 @@ macho_file_parse_symtab_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -353,13 +363,14 @@ macho_file_parse_symtab_from_file(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -491,8 +502,9 @@ macho_file_parse_symtab_64_from_file(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
+    const int arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_opt = args->tbd_options;
+    const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist_64 *nlist = symbol_table;
     const struct nlist_64 *const end = symbol_table + nsyms;
@@ -512,15 +524,15 @@ macho_file_parse_symtab_64_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -548,13 +560,14 @@ macho_file_parse_symtab_64_from_file(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -578,15 +591,15 @@ macho_file_parse_symtab_64_from_file(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -614,13 +627,14 @@ macho_file_parse_symtab_64_from_file(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 free(symbol_table);
@@ -695,8 +709,9 @@ macho_file_parse_symtab_from_map(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
+    const int arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_opt = args->tbd_options;
+    const uint64_t tbd_options = args->tbd_options;
 
     const char *const string_table =
         (const char *)(map + string_table_range.begin);
@@ -719,15 +734,15 @@ macho_file_parse_symtab_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -755,13 +770,14 @@ macho_file_parse_symtab_from_map(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -782,15 +798,15 @@ macho_file_parse_symtab_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -818,13 +834,14 @@ macho_file_parse_symtab_from_map(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -893,8 +910,9 @@ macho_file_parse_symtab_64_from_map(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
+    const int arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
-    const uint64_t tbd_opt = args->tbd_options;
+    const uint64_t tbd_options = args->tbd_options;
 
     const char *const string_table =
         (const char *)(map + string_table_range.begin);
@@ -917,15 +935,15 @@ macho_file_parse_symtab_64_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -953,13 +971,14 @@ macho_file_parse_symtab_64_from_map(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -980,15 +999,15 @@ macho_file_parse_symtab_64_from_map(
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_opt & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        continue;
+                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                        break;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_opt)) {
+                    if (!should_parse_undef(version, n_value, tbd_options)) {
                         continue;
                     }
 
@@ -1016,13 +1035,14 @@ macho_file_parse_symtab_64_from_map(
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
                               arch_bit,
+                              arch_index,
                               index,
                               strsize,
                               symbol_string,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_opt);
+                              tbd_options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;

@@ -134,7 +134,7 @@ bool
 tbd_for_main_parse_option(int *__notnull const index_in,
                           struct tbd_for_main *__notnull tbd,
                           int argc,
-                          const char *__notnull const *__notnull argv,
+                          char *__notnull const *__notnull argv,
                           const char *__notnull option);
 
 char *__notnull

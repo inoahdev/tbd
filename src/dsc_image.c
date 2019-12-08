@@ -9,19 +9,11 @@
 #include <unistd.h>
 
 #include "mach-o/fat.h"
-#include "mach-o/nlist.h"
-
 #include "dsc_image.h"
-#include "guard_overflow.h"
 
 #include "macho_file_parse_load_commands.h"
 #include "macho_file_parse_export_trie.h"
 #include "macho_file_parse_symtab.h"
-
-#include "range.h"
-#include "string_buffer.h"
-#include "tbd.h"
-#include "unused.h"
 
 /*
  * We avoid copying code by handing most of the mach-o parsing over to the
@@ -87,6 +79,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_OVERLAPPING_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_NO_VALID_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE:
+        case E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_PLATFORM:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
         case E_MACHO_FILE_PARSE_NO_LOAD_COMMANDS:
@@ -127,17 +120,20 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
-        case E_MACHO_FILE_PARSE_NO_EXPORTS:
-            return E_DSC_IMAGE_PARSE_NO_EXPORTS;
+        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
+            return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
+
+        case E_MACHO_FILE_PARSE_NO_DATA:
+            return E_DSC_IMAGE_PARSE_NO_DATA;
 
         case E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE:
             return E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE;
 
-        case E_MACHO_FILE_PARSE_CREATE_SYMBOLS_FAIL:
+        case E_MACHO_FILE_PARSE_CREATE_SYMBOL_LIST_FAIL:
             return E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL;
 
-        case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
-            return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
+        case E_MACHO_FILE_PARSE_CREATE_TARGET_LIST_FAIL:
+            return E_DSC_IMAGE_PARSE_CREATE_TARGET_LIST_FAIL;
     }
 
     return E_DSC_IMAGE_PARSE_OK;
@@ -148,7 +144,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
  * copied over to memory at runtime with different memory-protections.
  *
  * To find our mach-o data, we have to take our data's memory-address, and find
- * the mapping with a memory-range that contains our data's memory-address.
+ * the mapping with a memory-range containing our data's memory-address.
  *
  * The mach-o data's file-offset is simply at the mapping's file location,
  * plus the memory-mapping-index of the mach-o data.
@@ -263,10 +259,12 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
     const uint64_t arch_bit = dsc_info->arch_bit;
 
-    info_in->fields.archs = arch_bit;
-    info_in->fields.archs_count = 1;
+    if (!tbd_uses_targets(info_in->version)) {
+        info_in->fields.at.archs.data = arch_bit;
+        info_in->fields.at.archs.count = 1;
+    }
 
-    info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS;
+    info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
 
     /*
      * The symbol-table and string-table's file-offsets are relative to the
@@ -305,16 +303,16 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
     struct macho_file_parse_extra_args extra = {
         .callback = callback,
-        .callback_info = callback_info,
+        .cb_info = callback_info,
         .export_trie_sb = export_trie_sb
     };
 
-    struct macho_file_symbol_lc_info_out sym_info = {};
+    struct macho_file_lc_info_out lc_info = {};
     const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_map(info_in,
                                                 &info,
                                                 extra,
-                                                &sym_info);
+                                                &lc_info);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(parse_load_commands_result);
@@ -329,13 +327,11 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      */
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
-    if (sym_info.dyld_info.export_off != 0 &&
-        sym_info.dyld_info.export_size != 0)
+    if (lc_info.dyld_info.export_off != 0 &&
+        lc_info.dyld_info.export_size != 0)
     {
         const struct macho_file_parse_export_trie_args args = {
             .info_in = info_in,
-
-            .arch = dsc_info->arch,
             .arch_bit = arch_bit,
 
             .available_range = dsc_info->available_range,
@@ -343,7 +339,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .is_64 = is_64,
             .is_big_endian = is_big_endian,
 
-            .dyld_info = sym_info.dyld_info,
+            .dyld_info = lc_info.dyld_info,
             .sb_buffer = extra.export_trie_sb,
 
             .tbd_options = tbd_options
@@ -360,7 +356,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         parse_symtab = true;
     }
 
-    if (sym_info.symtab.nsyms != 0 && parse_symtab) {
+    if (lc_info.symtab.nsyms != 0 && parse_symtab) {
         const struct macho_file_parse_symtab_args args = {
             .info_in = info_in,
             .available_range = dsc_info->available_range,
@@ -368,11 +364,11 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .arch_bit = arch_bit,
             .is_big_endian = is_big_endian,
 
-            .symoff = sym_info.symtab.symoff,
-            .nsyms = sym_info.symtab.nsyms,
+            .symoff = lc_info.symtab.symoff,
+            .nsyms = lc_info.symtab.nsyms,
 
-            .stroff = sym_info.symtab.stroff,
-            .strsize = sym_info.symtab.strsize,
+            .stroff = lc_info.symtab.stroff,
+            .strsize = lc_info.symtab.strsize,
 
             .tbd_options = tbd_options
         };
@@ -395,12 +391,13 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             return E_DSC_IMAGE_PARSE_OK;
         }
 
-        return E_DSC_IMAGE_PARSE_NO_EXPORTS;
+        return E_DSC_IMAGE_PARSE_NO_DATA;
     }
 
     if (ret != E_MACHO_FILE_PARSE_OK) {
         return translate_macho_file_parse_result(ret);
     }
 
+    tbd_ci_sort_info(info_in);
     return E_DSC_IMAGE_PARSE_OK;
 }

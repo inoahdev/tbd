@@ -9,19 +9,22 @@
 #ifndef TBD_H
 #define TBD_H
 
+#include <stdint.h>
 #include <stdio.h>
 
 #include "arch_info.h"
 #include "array.h"
 
+#include "bit_list.h"
 #include "notnull.h"
+#include "target_list.h"
 
 /*
  * Options to handle when parsing out information for tbd_create_info.
  */
 
 enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_ARCHS_AND_UUIDS       = 1ull << 0,
+    O_TBD_PARSE_IGNORE_AT_AND_UUIDS          = 1ull << 0,
     O_TBD_PARSE_IGNORE_CLIENTS               = 1ull << 1,
     O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1ull << 2,
     O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1ull << 3,
@@ -97,6 +100,34 @@ enum tbd_platform {
     TBD_PLATFORM_ZIPPERED
 };
 
+enum tbd_version {
+    TBD_VERSION_NONE,
+
+    TBD_VERSION_V1,
+    TBD_VERSION_V2,
+    TBD_VERSION_V3,
+    TBD_VERSION_V4
+};
+
+const char *
+tbd_platform_to_string(enum tbd_platform platform, enum tbd_version version);
+
+enum tbd_metadata_type {
+    TBD_METADATA_TYPE_NONE,
+
+    TBD_METADATA_TYPE_PARENT_UMBRELLA,
+    TBD_METADATA_TYPE_CLIENT,
+    TBD_METADATA_TYPE_REEXPORTED_LIBRARY,
+};
+
+enum tbd_symbol_meta_type {
+    TBD_SYMBOL_META_TYPE_NONE,
+
+    TBD_SYMBOL_META_TYPE_EXPORT,
+    TBD_SYMBOL_META_TYPE_REEXPORT,
+    TBD_SYMBOL_META_TYPE_UNDEFINED
+};
+
 enum tbd_symbol_type {
     TBD_SYMBOL_TYPE_NONE,
 
@@ -110,49 +141,59 @@ enum tbd_symbol_type {
     TBD_SYMBOL_TYPE_THREAD_LOCAL
 };
 
-enum tbd_version {
-    TBD_VERSION_NONE,
-
-    TBD_VERSION_V1,
-    TBD_VERSION_V2,
-    TBD_VERSION_V3
+enum tbd_data_info_flags {
+    F_TBD_DATA_INFO_STRING_NEEDS_QUOTES = 1ull << 0
 };
 
-enum tbd_symbol_info_flags {
-    F_TBD_SYMBOL_INFO_STRING_NEEDS_QUOTES = 1ull << 0
+struct tbd_archs_pair {
+    uint64_t data;
+    uint64_t count;
 };
 
-struct tbd_symbol_info {
-    uint64_t archs;
-    int archs_count;
+union tbd_archs_or_targets {
+    struct tbd_archs_pair archs;
+    struct bit_list targets;
+};
+
+struct tbd_metadata_info {
+    struct bit_list bits;
 
     char *string;
     uint64_t length;
 
-    enum tbd_symbol_type type;
-    uint64_t flags;
+    enum tbd_metadata_type type;
+    uint32_t flags;
 };
 
-int
-tbd_symbol_info_comparator(const void *__notnull array_item,
-                           const void *__notnull item);
+struct tbd_symbol_info {
+    union tbd_archs_or_targets at;
 
-int
-tbd_symbol_info_no_archs_comparator(const void *__notnull array_item,
-                                    const void *__notnull item);
+    char *string;
+    uint64_t length;
+
+    enum tbd_symbol_meta_type meta_type;
+    enum tbd_symbol_type type;
+
+    uint32_t flags;
+};
 
 struct tbd_uuid_info {
-    const struct arch_info *arch;
+    union {
+        const struct arch_info *arch;
+        uint64_t target;
+    } at;
+
     uint8_t uuid[16];
 };
 
-int
-tbd_uuid_info_comparator(const void *__notnull array_item,
-                         const void *__notnull item);
+bool
+tbd_should_parse_objc_constraint(uint64_t options, enum tbd_version version);
 
-int
-tbd_uuid_info_is_unique_comparator(const void *__notnull array_item,
-                                   const void *__notnull item);
+bool
+tbd_should_parse_swift_version(uint64_t options, enum tbd_version version);
+
+bool tbd_should_parse_flags(uint64_t options, enum tbd_version version);
+bool tbd_uses_targets(enum tbd_version version);
 
 enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1ull << 0,
@@ -168,31 +209,39 @@ enum tbd_create_info_flags {
      * does not check for archs.
      */
 
-    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_ARCHS    = 1ull << 4,
-    F_TBD_CREATE_INFO_UNDEFINEDS_HAVE_FULL_ARCHS = 1ull << 5
+    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT    = 1ull << 4,
+    F_TBD_CREATE_INFO_UNDEFINEDS_HAVE_FULL_AT = 1ull << 5
 };
 
 struct tbd_create_info_fields {
-    uint64_t archs;
-    int archs_count;
+    union {
+        struct {
+            uint64_t data;
+            uint64_t count;
+
+            enum tbd_objc_constraint objc_constraint;
+            enum tbd_platform platform;
+
+            const char *parent_umbrella;
+            uint64_t parent_umbrella_length;
+        } archs;
+
+        struct {
+            struct array metadata;
+            struct target_list list;
+        } targets;
+    } at;
 
     uint32_t flags;
 
-    enum tbd_platform platform;
-    enum tbd_objc_constraint objc_constraint;
-
     const char *install_name;
-    const char *parent_umbrella;
-
-    uint32_t install_name_length;
-    uint32_t parent_umbrella_length;
+    uint64_t install_name_length;
 
     uint32_t current_version;
     uint32_t compatibility_version;
     uint32_t swift_version;
 
-    struct array exports;
-    struct array undefineds;
+    struct array symbols;
     struct array uuids;
 };
 
@@ -200,44 +249,95 @@ struct tbd_create_info {
     enum tbd_version version;
     struct tbd_create_info_fields fields;
 
-    uint64_t flags;
+    uint32_t flags;
 };
 
-enum tbd_ci_add_symbol_result {
-    E_TBD_CI_ADD_SYMBOL_OK,
-
-    E_TBD_CI_ADD_SYMBOL_ALLOC_FAIL,
-    E_TBD_CI_ADD_SYMBOL_ARRAY_FAIL
+enum tbd_ci_set_at_count_result {
+    E_TBD_CI_SET_AT_COUNT_OK,
+    E_TBD_CI_SET_AT_COUNT_ALLOC_FAIL
 };
 
-enum tbd_ci_add_symbol_result
+enum tbd_ci_set_at_count_result
+tbd_ci_set_at_count(struct tbd_create_info *__notnull info_in, uint64_t count);
+
+enum tbd_ci_add_parent_umbrella_result {
+    E_TBD_CI_ADD_PARENT_UMBRELLA_OK,
+
+    E_TBD_CI_ADD_PARENT_UMBRELLA_ALLOC_FAIL,
+    E_TBD_CI_ADD_PARENT_UMBRELLA_ARRAY_FAIL,
+
+    E_TBD_CI_ADD_PARENT_UMBRELLA_INFO_CONFLICT
+};
+
+enum tbd_ci_add_parent_umbrella_result
+tbd_ci_add_parent_umbrella(struct tbd_create_info *__notnull info_in,
+                           const char *__notnull string,
+                           uint64_t length,
+                           uint64_t arch_index,
+                           bool copy_string,
+                           uint64_t options);
+
+enum tbd_ci_add_data_result {
+    E_TBD_CI_ADD_DATA_OK,
+
+    E_TBD_CI_ADD_DATA_ALLOC_FAIL,
+    E_TBD_CI_ADD_DATA_ARRAY_FAIL,
+};
+
+enum tbd_ci_add_data_result
+tbd_ci_add_metadata(struct tbd_create_info *__notnull info_in,
+                    const char *__notnull string,
+                    uint64_t length,
+                    uint64_t arch_index,
+                    enum tbd_metadata_type type,
+                    bool copy_string,
+                    uint64_t options);
+
+enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull info_in,
                             const char *__notnull string,
                             uint64_t length,
                             uint64_t arch_bit,
+                            uint64_t arch_index,
                             enum tbd_symbol_type type,
-                            bool is_undef,
+                            enum tbd_symbol_meta_type meta_type,
                             uint64_t options);
 
-enum tbd_ci_add_symbol_result
+enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
                             const char *__notnull string,
                             uint64_t max_len,
                             uint64_t arch_bit,
+                            uint64_t arch_index,
                             enum tbd_symbol_type predefined_type,
-                            bool is_external,
-                            bool is_undef,
+                            enum tbd_symbol_meta_type meta_type,
+                            bool is_exported,
                             uint64_t options);
 
-enum tbd_ci_add_symbol_result
+enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info_and_len(struct tbd_create_info *__notnull info_in,
                                     const char *__notnull string,
                                     uint64_t len,
                                     uint64_t arch_bit,
+                                    uint64_t arch_index,
                                     enum tbd_symbol_type predefined_type,
-                                    bool is_external,
-                                    bool is_undef,
+                                    enum tbd_symbol_meta_type meta_type,
+                                    bool is_exported,
                                     uint64_t options);
+
+void tbd_ci_sort_info(struct tbd_create_info *__notnull info_in);
+
+enum tbd_ci_add_uuid_result {
+    E_TBD_CI_ADD_UUID_OK,
+    E_TBD_CI_ADD_UUID_ARRAY_FAIL,
+    E_TBD_CI_ADD_UUID_NON_UNIQUE_UUID
+};
+
+enum tbd_ci_add_uuid_result
+tbd_ci_add_uuid(struct tbd_create_info *__notnull info_in,
+                const struct arch_info *__notnull arch,
+                enum tbd_platform platform,
+                const uint8_t uuid[16]);
 
 enum tbd_create_result {
     E_TBD_CREATE_OK,
@@ -245,17 +345,19 @@ enum tbd_create_result {
 };
 
 enum tbd_create_options {
-    O_TBD_CREATE_IGNORE_CURRENT_VERSION       = 1ull << 0,
-    O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1ull << 1,
-    O_TBD_CREATE_IGNORE_EXPORTS               = 1ull << 2,
-    O_TBD_CREATE_IGNORE_FLAGS                 = 1ull << 3,
-    O_TBD_CREATE_IGNORE_FOOTER                = 1ull << 4,
-    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 5,
-    O_TBD_CREATE_IGNORE_PARENT_UMBRELLA       = 1ull << 6,
-    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 7,
-    O_TBD_CREATE_IGNORE_UNDEFINEDS            = 1ull << 8,
-    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 9,
-    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 10
+    O_TBD_CREATE_IGNORE_CLIENTS               = 1ull << 0,
+    O_TBD_CREATE_IGNORE_CURRENT_VERSION       = 1ull << 1,
+    O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1ull << 2,
+    O_TBD_CREATE_IGNORE_EXPORTS               = 1ull << 3,
+    O_TBD_CREATE_IGNORE_FLAGS                 = 1ull << 4,
+    O_TBD_CREATE_IGNORE_FOOTER                = 1ull << 5,
+    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 6,
+    O_TBD_CREATE_IGNORE_PARENT_UMBRELLAS      = 1ull << 7,
+    O_TBD_CREATE_IGNORE_REEXPORTS             = 1ull << 8,
+    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 9,
+    O_TBD_CREATE_IGNORE_UNDEFINEDS            = 1ull << 10,
+    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 11,
+    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 12
 };
 
 enum tbd_create_result

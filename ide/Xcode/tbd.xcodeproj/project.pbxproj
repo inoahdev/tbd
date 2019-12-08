@@ -33,6 +33,8 @@
 		C361A50622489453001BD07A /* tbd.c in Sources */ = {isa = PBXBuildFile; fileRef = C361A4ED22489453001BD07A /* tbd.c */; };
 		C367ACFA23621BD90059EF14 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = C367ACF923621BD90059EF14 /* util.c */; };
 		C39372B8235A78B6003F3CB7 /* our_io.c in Sources */ = {isa = PBXBuildFile; fileRef = C39372B7235A78B6003F3CB7 /* our_io.c */; };
+		C397818B238B9E9900AFDA14 /* target_list.c in Sources */ = {isa = PBXBuildFile; fileRef = C3978189238B9E9900AFDA14 /* target_list.c */; };
+		C397818C238B9E9900AFDA14 /* bit_list.c in Sources */ = {isa = PBXBuildFile; fileRef = C397818A238B9E9900AFDA14 /* bit_list.c */; };
 		C3B715FF2381E1AE00E1AEBA /* macho_file_parse_symtab.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */; };
 		C3B716002381E1AE00E1AEBA /* string_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FD2381E1AE00E1AEBA /* string_buffer.c */; };
 		C3B716012381E1AE00E1AEBA /* macho_file_parse_export_trie.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */; };
@@ -115,6 +117,10 @@
 		C392B60F2233686600419D2D /* tbd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tbd; sourceTree = BUILT_PRODUCTS_DIR; };
 		C39372B7235A78B6003F3CB7 /* our_io.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = our_io.c; path = ../../src/our_io.c; sourceTree = "<group>"; };
 		C39372B9235A78CC003F3CB7 /* our_io.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = our_io.h; path = ../../include/our_io.h; sourceTree = "<group>"; };
+		C3978189238B9E9900AFDA14 /* target_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = target_list.c; path = ../../src/target_list.c; sourceTree = "<group>"; };
+		C397818A238B9E9900AFDA14 /* bit_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bit_list.c; path = ../../src/bit_list.c; sourceTree = "<group>"; };
+		C397818D238B9EA600AFDA14 /* bit_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bit_list.h; path = ../../include/bit_list.h; sourceTree = "<group>"; };
+		C397818E238B9EA600AFDA14 /* target_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = target_list.h; path = ../../include/target_list.h; sourceTree = "<group>"; };
 		C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_symtab.c; path = ../../src/macho_file_parse_symtab.c; sourceTree = "<group>"; };
 		C3B715FD2381E1AE00E1AEBA /* string_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = string_buffer.c; path = ../../src/string_buffer.c; sourceTree = "<group>"; };
 		C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_export_trie.c; path = ../../src/macho_file_parse_export_trie.c; sourceTree = "<group>"; };
@@ -167,6 +173,7 @@
 				C3D20F752233689A0063F3F2 /* mach-o */,
 				C361A50A22489460001BD07A /* arch_info.h */,
 				C361A50C22489460001BD07A /* array.h */,
+				C397818D238B9EA600AFDA14 /* bit_list.h */,
 				C31604B722D7F6EE00D21221 /* copy.h */,
 				C361A50722489460001BD07A /* dir_recurse.h */,
 				C361A50822489460001BD07A /* dsc_image.h */,
@@ -192,6 +199,7 @@
 				C361A51B2248946B001BD07A /* request_user_input.h */,
 				C3B716032381E1EB00E1AEBA /* string_buffer.h */,
 				C361A5122248946A001BD07A /* swap.h */,
+				C397818E238B9EA600AFDA14 /* target_list.h */,
 				C361A5182248946B001BD07A /* tbd.h */,
 				C361A5142248946A001BD07A /* tbd_for_main.h */,
 				C361A51A2248946B001BD07A /* tbd_write.h */,
@@ -227,6 +235,7 @@
 			children = (
 				C361A4DC22489452001BD07A /* arch_info.c */,
 				C361A4D922489452001BD07A /* array.c */,
+				C397818A238B9E9900AFDA14 /* bit_list.c */,
 				C318AD88227AB70B0049C25E /* copy.c */,
 				C361A4D522489452001BD07A /* dir_recurse.c */,
 				C361A4DF22489452001BD07A /* dsc_image.c */,
@@ -248,6 +257,7 @@
 				C361A4D622489452001BD07A /* request_user_input.c */,
 				C3B715FD2381E1AE00E1AEBA /* string_buffer.c */,
 				C361A4E922489453001BD07A /* swap.c */,
+				C3978189238B9E9900AFDA14 /* target_list.c */,
 				C361A4ED22489453001BD07A /* tbd.c */,
 				C361A4E822489453001BD07A /* tbd_for_main.c */,
 				C361A4D722489452001BD07A /* tbd_write.c */,
@@ -329,6 +339,7 @@
 				C361A4EF22489453001BD07A /* request_user_input.c in Sources */,
 				C361A4F522489453001BD07A /* arch_info.c in Sources */,
 				C39372B8235A78B6003F3CB7 /* our_io.c in Sources */,
+				C397818B238B9E9900AFDA14 /* target_list.c in Sources */,
 				C3B716012381E1AE00E1AEBA /* macho_file_parse_export_trie.c in Sources */,
 				C361A4F822489453001BD07A /* dsc_image.c in Sources */,
 				C361A4FF22489453001BD07A /* handle_macho_file_parse_result.c in Sources */,
@@ -344,6 +355,7 @@
 				C361A50022489453001BD07A /* macho_file.c in Sources */,
 				C361A4F222489453001BD07A /* array.c in Sources */,
 				C367ACFA23621BD90059EF14 /* util.c in Sources */,
+				C397818C238B9E9900AFDA14 /* bit_list.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

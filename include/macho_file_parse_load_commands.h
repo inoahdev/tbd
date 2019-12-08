@@ -17,6 +17,7 @@
 #include "macho_file.h"
 #include "notnull.h"
 #include "range.h"
+#include "tbd.h"
 
 enum mf_parse_load_commands_flags {
     F_MF_PARSE_LOAD_COMMANDS_IS_64 = (1ull << 0),
@@ -25,9 +26,10 @@ enum mf_parse_load_commands_flags {
 
 struct mf_parse_lc_from_file_info {
     int fd;
-
     const struct arch_info *arch;
+
     uint64_t arch_bit;
+    int arch_index;
 
     struct range macho_range;
     struct range available_range;
@@ -42,7 +44,7 @@ struct mf_parse_lc_from_file_info {
     uint64_t flags;
 };
 
-struct macho_file_symbol_lc_info_out {
+struct macho_file_lc_info_out {
     struct dyld_info_command dyld_info;
     struct symtab_command symtab;
 };
@@ -52,7 +54,7 @@ macho_file_parse_load_commands_from_file(
     struct tbd_create_info *__notnull info_in,
     const struct mf_parse_lc_from_file_info *__notnull parse_info,
     struct macho_file_parse_extra_args extra,
-    struct macho_file_symbol_lc_info_out *sym_info_out);
+    struct macho_file_lc_info_out *sym_info_out);
 
 struct mf_parse_lc_from_map_info {
     const uint8_t *map;
@@ -62,7 +64,9 @@ struct mf_parse_lc_from_map_info {
     uint64_t macho_size;
 
     const struct arch_info *arch;
+
     uint64_t arch_bit;
+    int arch_index;
 
     struct range available_map_range;
 
@@ -80,6 +84,6 @@ macho_file_parse_load_commands_from_map(
     struct tbd_create_info *__notnull info_in,
     const struct mf_parse_lc_from_map_info *__notnull parse_info,
     struct macho_file_parse_extra_args extra,
-    struct macho_file_symbol_lc_info_out *sym_info_out);
+    struct macho_file_lc_info_out *sym_info_out);
 
 #endif /* MACHO_FILE_PARSE_LOAD_COMMANDS_H */

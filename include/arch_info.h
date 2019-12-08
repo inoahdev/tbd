@@ -18,7 +18,7 @@ struct arch_info {
 
     const char *name;
     uint64_t name_length;
-};
+} __attribute__((aligned(16)));
 
 const struct arch_info *__notnull arch_info_get_list(void);
 uint64_t arch_info_list_get_size(void);
