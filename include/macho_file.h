@@ -14,6 +14,8 @@
 
 #include "array.h"
 #include "notnull.h"
+#include "magic_buffer.h"
+#include "range.h"
 #include "string_buffer.h"
 #include "tbd.h"
 
@@ -40,6 +42,30 @@ enum macho_file_options {
     O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE      = 1ull << 5
 };
 
+struct macho_file {
+    int fd;
+
+    uint32_t magic;
+    uint32_t nfat_arch;
+
+    struct mach_header header;
+    struct range range;
+};
+
+enum macho_file_open_result {
+    E_MACHO_FILE_OPEN_OK,
+    E_MACHO_FILE_OPEN_READ_FAIL,
+    E_MACHO_FILE_OPEN_FSTAT_FAIL,
+
+    E_MACHO_FILE_OPEN_NOT_A_MACHO
+};
+
+enum macho_file_open_result
+macho_file_open(struct macho_file *__notnull macho,
+                struct magic_buffer *__notnull buffer,
+                int fd,
+                struct range range);
+
 enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_OK,
     E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK,
@@ -47,9 +73,6 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_SEEK_FAIL,
     E_MACHO_FILE_PARSE_READ_FAIL,
 
-    E_MACHO_FILE_PARSE_FSTAT_FAIL,
-
-    E_MACHO_FILE_PARSE_NOT_A_MACHO,
     E_MACHO_FILE_PARSE_SIZE_TOO_SMALL,
 
     E_MACHO_FILE_PARSE_INVALID_RANGE,
@@ -132,20 +155,10 @@ struct macho_file_parse_extra_args {
 
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull info_in,
-                           int fd,
-                           uint32_t magic,
+                           struct macho_file *__notnull macho,
                            struct macho_file_parse_extra_args extra,
                            uint64_t parse_options,
                            uint64_t options);
-
-enum macho_file_parse_result
-macho_file_parse_from_range(struct tbd_create_info *__notnull info_in,
-                            int fd,
-                            uint64_t start,
-                            uint64_t end,
-                            struct macho_file_parse_extra_args extra,
-                            uint64_t parse_options,
-                            uint64_t options);
 
 void macho_file_print_archs(int fd);
 

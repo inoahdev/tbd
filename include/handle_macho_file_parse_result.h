@@ -31,6 +31,13 @@ handle_macho_file_for_main_error_callback(
     enum macho_file_parse_error error,
     void *cb_info);
 
+void
+handle_macho_file_open_result(enum macho_file_open_result result,
+                              const char *__notnull dir_path,
+                              const char *name,
+                              bool print_paths,
+                              bool is_recursing);
+
 struct handle_macho_file_parse_result_args {
     uint64_t *retained_info_in;
 

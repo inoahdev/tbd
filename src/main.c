@@ -58,14 +58,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     struct tbd_for_main *const global = recurse_info->global;
 
     uint64_t *const retained = &recurse_info->retained_info;
-
-    /*
-     * We need to store a buffer for the parse_*_for_main_while_recursing()
-     * APIs.
-     */
-
-    char magic[16] = {};
-    uint64_t magic_size = 0;
+    struct magic_buffer magic_buffer = {};
 
     const char *const name = dirent->d_name;
     const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
@@ -73,9 +66,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
         struct parse_macho_for_main_args args = {
             .fd = fd,
-            .magic_in = &magic,
-
-            .magic_in_size_in = &magic_size,
+            .magic_buffer = &magic_buffer,
             .retained_info_in = retained,
 
             .global = global,
@@ -125,9 +116,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
         struct parse_dsc_for_main_args args = {
             .fd = fd,
-            .magic_in = &magic,
-
-            .magic_in_size_in = &magic_size,
+            .magic_buffer = &magic_buffer,
             .retained_info_in = retained,
 
             .global = global,
@@ -1227,15 +1216,11 @@ int main(const int argc, char *const argv[]) {
              * We need to store a buffer to read magic.
              */
 
-            char magic[16] = {};
-            uint64_t magic_size = 0;
-
+            struct magic_buffer magic_buffer = {};
             if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
                 struct parse_macho_for_main_args args = {
                     .fd = fd,
-                    .magic_in = &magic,
-
-                    .magic_in_size_in = &magic_size,
+                    .magic_buffer = &magic_buffer,
                     .retained_info_in = &retained_info,
 
                     .global = &global,
@@ -1277,9 +1262,7 @@ int main(const int argc, char *const argv[]) {
             if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
                 struct parse_dsc_for_main_args args = {
                     .fd = fd,
-                    .magic_in = &magic,
-
-                    .magic_in_size_in = &magic_size,
+                    .magic_buffer = &magic_buffer,
                     .retained_info_in = &retained_info,
 
                     .global = &global,

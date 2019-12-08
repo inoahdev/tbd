@@ -600,6 +600,77 @@ handle_macho_file_for_main_error_callback(
     return true;
 }
 
+void
+handle_macho_file_open_result(const enum macho_file_open_result result,
+                              const char *__notnull const dir_path,
+                              const char *const name,
+                              const bool print_paths,
+                              const bool is_recursing)
+{
+    switch (result) {
+        case E_MACHO_FILE_OPEN_OK:
+            break;
+
+        case E_MACHO_FILE_OPEN_READ_FAIL:
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to read data while parsing mach-o file (at "
+                        "path: %s/%s)\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
+                fprintf(stderr,
+                        "Failed to read data while parsing mach-o file (at "
+                        "path: %s)\n",
+                        dir_path);
+            } else {
+                fputs("Failed to read data while parsing mach-o file at the "
+                      "provided path\n",
+                      stderr);
+            }
+
+            break;
+
+        case E_MACHO_FILE_OPEN_FSTAT_FAIL:
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to get information on mach-o file (at "
+                        "(at path: %s/%s)\n",
+                        dir_path,
+                        name);
+
+            } else if (print_paths) {
+                fprintf(stderr,
+                        "Failed to get information on mach-o file (at "
+                        "(at path: %s)\n",
+                        dir_path);
+            } else {
+                fputs("Failed to get information on mach-o file at the "
+                      "provided path\n",
+                      stderr);
+            }
+
+            break;
+
+        case E_MACHO_FILE_OPEN_NOT_A_MACHO:
+            if (is_recursing) {
+                fprintf(stderr,
+                        "File (at path %s/%s) is not a valid mach-o file\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
+                fprintf(stderr,
+                        "File (at path %s) is not a valid mach-o file\n",
+                        dir_path);
+            } else {
+                fputs("File at provided path is not a valid mach-o file\n",
+                      stderr);
+            }
+
+            break;
+    }
+}
+
 bool
 handle_macho_file_parse_result(
     const struct handle_macho_file_parse_result_args args)
@@ -611,18 +682,6 @@ handle_macho_file_parse_result(
         case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
             return false;
 
-        case E_MACHO_FILE_PARSE_NOT_A_MACHO:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "File (at path %s) is not a valid mach-o file\n",
-                        args.dir_path);
-            } else {
-                fputs("File at provided path is not a valid mach-o file\n",
-                      stderr);
-            }
-
-            return false;
-
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
         case E_MACHO_FILE_PARSE_READ_FAIL:
             if (args.print_paths) {
@@ -632,20 +691,6 @@ handle_macho_file_parse_result(
                         args.dir_path);
             } else {
                 fputs("Failed to read data while parsing mach-o file at the "
-                      "provided path\n",
-                      stderr);
-            }
-
-            return false;
-
-        case E_MACHO_FILE_PARSE_FSTAT_FAIL:
-            if (args.print_paths) {
-                fprintf(stderr,
-                        "Failed to get information on mach-o file (at "
-                        "(at path: %s)\n",
-                        args.dir_path);
-            } else {
-                fputs("Failed to get information on mach-o file at the "
                       "provided path\n",
                       stderr);
             }
@@ -721,10 +766,10 @@ handle_macho_file_parse_result(
         case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
             if (args.print_paths) {
                 fprintf(stderr,
-                        "Mach-o file (at path %s) has an invalid archs\n",
+                        "Mach-o file (at path %s) has an invalid arch\n",
                         args.dir_path);
             } else {
-                fputs("Mach-o file at the provided path has an invalid archs\n",
+                fputs("Mach-o file at the provided path has an invalid arch\n",
                       stderr);
             }
 
@@ -1047,27 +1092,10 @@ handle_macho_file_parse_result_while_recursing(
         case E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK:
             return false;
 
-        case E_MACHO_FILE_PARSE_NOT_A_MACHO:
-            fprintf(stderr,
-                    "File (at path %s/%s) is not a valid mach-o file\n",
-                    args.dir_path,
-                    args.name);
-
-            return false;
-
         case E_MACHO_FILE_PARSE_SEEK_FAIL:
         case E_MACHO_FILE_PARSE_READ_FAIL:
             fprintf(stderr,
                     "Failed to read data while parsing mach-o file (at "
-                    "path: %s/%s)\n",
-                    args.dir_path,
-                    args.name);
-
-            return false;
-
-        case E_MACHO_FILE_PARSE_FSTAT_FAIL:
-            fprintf(stderr,
-                    "Failed to get information on mach-o file (at "
                     "path: %s/%s)\n",
                     args.dir_path,
                     args.name);
@@ -1120,7 +1148,7 @@ handle_macho_file_parse_result_while_recursing(
 
         case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
             fprintf(stderr,
-                    "Mach-o file (at path %s/%s) has an invalid archs\n",
+                    "Mach-o file (at path %s/%s) has an invalid arch\n",
                     args.dir_path,
                     args.name);
 

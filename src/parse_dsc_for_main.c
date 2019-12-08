@@ -755,29 +755,6 @@ enum read_magic_result {
     E_READ_MAGIC_NOT_LARGE_ENOUGH
 };
 
-static enum read_magic_result
-read_magic(void *__notnull const magic_in,
-           uint64_t *__notnull const magic_in_size_in,
-           const int fd)
-{
-    const uint64_t magic_in_size = *magic_in_size_in;
-    if (magic_in_size >= 16) {
-        return E_READ_MAGIC_OK;
-    }
-
-    const uint64_t read_size = 16 - magic_in_size;
-    if (our_read(fd, magic_in + magic_in_size, read_size) < 0) {
-        if (errno == EOVERFLOW) {
-            return E_READ_MAGIC_NOT_LARGE_ENOUGH;
-        }
-
-        return E_READ_MAGIC_READ_FAILED;
-    }
-
-    *magic_in_size_in = 16;
-    return E_READ_MAGIC_OK;
-}
-
 static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
@@ -931,28 +908,15 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
 
 enum parse_dsc_for_main_result
 parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
-    const enum read_magic_result read_magic_result =
-        read_magic(args.magic_in, args.magic_in_size_in, args.fd);
+    const enum magic_buffer_result get_magic_result =
+        magic_buffer_read_n(args.magic_buffer, args.fd, 16);
 
-    switch (read_magic_result) {
-        case E_READ_MAGIC_OK:
-            break;
+    if (get_magic_result != E_MAGIC_BUFFER_OK) {
+        handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     args.print_paths);
 
-        case E_READ_MAGIC_READ_FAILED:
-            /*
-             * Manually handle the read fail by passing on to
-             * handle_dsc_file_parse_result() as if we went to
-             * dyld_shared_cache_parse_from_file().
-             */
-
-            handle_dsc_file_parse_result(args.dsc_dir_path,
-                                         E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
-                                         args.print_paths);
-
-            return true;
-
-        case E_READ_MAGIC_NOT_LARGE_ENOUGH:
-            return false;
+        return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
     const uint64_t dsc_options =
@@ -962,7 +926,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
         dyld_shared_cache_parse_from_file(&dsc_info,
                                           args.fd,
-                                          args.magic_in,
+                                          (const char *)args.magic_buffer->buff,
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
@@ -1150,32 +1114,20 @@ enum parse_dsc_for_main_result
 parse_dsc_for_main_while_recursing(
     struct parse_dsc_for_main_args *__notnull const args_ptr)
 {
-    const struct parse_dsc_for_main_args args = *args_ptr;
-    const enum read_magic_result read_magic_result =
-        read_magic(args.magic_in, args.magic_in_size_in, args.fd);
+    struct parse_dsc_for_main_args args = *args_ptr;
+    const enum magic_buffer_result get_magic_result =
+        magic_buffer_read_n(args.magic_buffer, args.fd, 16);
 
-    switch (read_magic_result) {
-        case E_READ_MAGIC_OK:
-            break;
+    if (get_magic_result != E_MAGIC_BUFFER_OK) {
+        handle_dsc_file_parse_result_while_recursing(
+            args.dsc_dir_path,
+            args.dsc_name,
+            E_DYLD_SHARED_CACHE_PARSE_READ_FAIL);
 
-        case E_READ_MAGIC_READ_FAILED:
-            /*
-             * Manually handle the read fail by passing on to
-             * handle_dsc_file_parse_result() as if we went to
-             * dyld_shared_cache_parse_from_file().
-             */
-
-            handle_dsc_file_parse_result_while_recursing(
-                args.dsc_dir_path,
-                args.dsc_name,
-                E_DYLD_SHARED_CACHE_PARSE_READ_FAIL);
-
-            return true;
-
-        case E_READ_MAGIC_NOT_LARGE_ENOUGH:
-            return false;
+        return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
+    const char *const magic = (const char *)args.magic_buffer->buff;
     const uint64_t dsc_options =
         (args.tbd->dsc_options | O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS);
 
@@ -1183,7 +1135,7 @@ parse_dsc_for_main_while_recursing(
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
         dyld_shared_cache_parse_from_file(&dsc_info,
                                           args.fd,
-                                          args.magic_in,
+                                          magic,
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {

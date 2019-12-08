@@ -10,10 +10,9 @@
 
 #include <errno.h>
 #include <inttypes.h>
-
 #include <string.h>
-#include "mach-o/fat.h"
 
+#include "mach-o/fat.h"
 #include "guard_overflow.h"
 
 #include "macho_file.h"
@@ -23,6 +22,124 @@
 #include "swap.h"
 #include "target_list.h"
 #include "tbd.h"
+
+static bool magic_is_thin(const uint32_t magic) {
+    switch (magic) {
+        case MH_MAGIC:
+        case MH_CIGAM:
+        case MH_MAGIC_64:
+        case MH_CIGAM_64:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+static bool magic_is_fat(const uint32_t magic) {
+    switch (magic) {
+        case FAT_MAGIC:
+        case FAT_CIGAM:
+        case FAT_MAGIC_64:
+        case FAT_CIGAM_64:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+static bool magic_is_big_endian(const uint32_t magic) {
+    switch (magic) {
+        case MH_CIGAM:
+        case MH_CIGAM_64:
+        case FAT_CIGAM:
+        case FAT_CIGAM_64:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+static inline enum macho_file_open_result open_result_from_read_fail(void) {
+    if (errno == EOVERFLOW) {
+        return E_MACHO_FILE_OPEN_NOT_A_MACHO;
+    }
+
+    return E_MACHO_FILE_OPEN_READ_FAIL;
+}
+
+enum macho_file_open_result
+macho_file_open(struct macho_file *__notnull const macho,
+                struct magic_buffer *__notnull const buffer,
+                const int fd,
+                struct range range)
+{
+    const enum magic_buffer_result read_magic_result =
+        magic_buffer_read_n(buffer, fd, sizeof(uint32_t));
+
+    if (read_magic_result != E_MAGIC_BUFFER_OK) {
+        return E_MACHO_FILE_OPEN_READ_FAIL;
+    }
+
+    uint32_t nfat_arch = 1;
+    struct mach_header header = {};
+
+    const uint32_t magic = *(uint32_t *)buffer->buff;
+    if (magic_is_fat(magic)) {
+        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
+            return open_result_from_read_fail();
+        }
+
+        if (magic_is_big_endian(magic)) {
+            nfat_arch = swap_uint32(nfat_arch);
+        }
+    } else if (magic_is_thin(magic)) {
+        if (our_read(fd, &header, sizeof(header)) < 0) {
+            return open_result_from_read_fail();
+        }
+
+        /*
+         * Swap the mach_header's fields if big-endian.
+         */
+
+        if (magic_is_big_endian(magic)) {
+            header.cputype = swap_int32(header.cputype);
+            header.cpusubtype = swap_int32(header.cpusubtype);
+
+            header.ncmds = swap_uint32(header.ncmds);
+            header.sizeofcmds = swap_uint32(header.sizeofcmds);
+
+            header.filetype = swap_uint32(header.filetype);
+            header.flags = swap_uint32(header.flags);
+        }
+    } else {
+        return E_MACHO_FILE_OPEN_NOT_A_MACHO;
+    }
+
+    if (range.end == 0) {
+        struct stat sbuf = {};
+        if (fstat(fd, &sbuf) != 0) {
+            return E_MACHO_FILE_OPEN_FSTAT_FAIL;
+        }
+
+        const uint64_t real_size = sbuf.st_size - range.begin;
+        if (real_size < sizeof(struct mach_header)) {
+            return E_MACHO_FILE_OPEN_NOT_A_MACHO;
+        }
+
+        range.end = real_size;
+    }
+
+    macho->fd = fd;
+    macho->magic = magic;
+    macho->nfat_arch = nfat_arch;
+    macho->header = header;
+    macho->range = range;
+
+    return E_MACHO_FILE_OPEN_OK;
+}
 
 static inline bool magic_is_64_bit(const uint32_t magic) {
     switch (magic) {
@@ -280,32 +397,6 @@ verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
     }
 
     return E_MACHO_FILE_PARSE_OK;
-}
-
-static bool magic_is_thin(const uint32_t magic) {
-    switch (magic) {
-        case MH_MAGIC:
-        case MH_CIGAM:
-        case MH_MAGIC_64:
-        case MH_CIGAM_64:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
-static bool magic_is_big_endian(const uint32_t magic) {
-    switch (magic) {
-        case MH_CIGAM:
-        case MH_CIGAM_64:
-        case FAT_CIGAM:
-        case FAT_CIGAM_64:
-            return true;
-
-        default:
-            return false;
-    }
 }
 
 static inline bool is_invalid_filetype(const uint32_t filetype) {
@@ -894,19 +985,6 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     return E_MACHO_FILE_PARSE_OK;
 }
 
-static bool magic_is_fat(const uint32_t magic) {
-    switch (magic) {
-        case FAT_MAGIC:
-        case FAT_CIGAM:
-        case FAT_MAGIC_64:
-        case FAT_CIGAM_64:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
 static bool magic_is_fat_64(const uint32_t magic) {
     switch (magic) {
         case FAT_MAGIC_64:
@@ -920,39 +998,19 @@ static bool magic_is_fat_64(const uint32_t magic) {
 
 enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
-                           const int fd,
-                           const uint32_t magic,
+                           struct macho_file *__notnull const macho,
                            struct macho_file_parse_extra_args extra,
                            const uint64_t tbd_options,
                            const uint64_t options)
 {
-    struct range macho_range = { .begin = 0 };
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
 
-    if (magic_is_fat(magic)) {
-        uint32_t nfat_arch = 0;
-        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
-            if (errno == EOVERFLOW) {
-                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
-            }
+    const int fd = macho->fd;
+    const uint32_t magic = macho->magic;
+    const uint32_t nfat_arch = macho->nfat_arch;
 
-            return E_MACHO_FILE_PARSE_READ_FAIL;
-        }
-
-        if (nfat_arch == 0) {
-            return E_MACHO_FILE_PARSE_NO_ARCHITECTURES;
-        }
-
+    if (nfat_arch != 1) {
         const bool is_big_endian = magic_is_big_endian(magic);
-        if (is_big_endian) {
-            nfat_arch = swap_uint32(nfat_arch);
-        }
-
-        struct stat sbuf = {};
-        if (fstat(fd, &sbuf) < 0) {
-            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
-        }
-
         const enum tbd_ci_set_at_count_result set_count_result =
             tbd_ci_set_at_count(info_in, nfat_arch);
 
@@ -960,13 +1018,11 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
         }
 
-        macho_range.end = sbuf.st_size;
-
         const bool is_64 = magic_is_fat_64(magic);
         if (is_64) {
             ret = handle_fat_64_file(info_in,
                                      fd,
-                                     macho_range,
+                                     macho->range,
                                      nfat_arch,
                                      is_big_endian,
                                      extra,
@@ -975,7 +1031,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         } else {
             ret = handle_fat_32_file(info_in,
                                      fd,
-                                     macho_range,
+                                     macho->range,
                                      nfat_arch,
                                      is_big_endian,
                                      extra,
@@ -1014,32 +1070,8 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         } else {
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
         }
-    } else if (magic_is_thin(magic)) {
-        struct mach_header header = { .magic = magic };
-        if (our_read(fd, &header.cputype, sizeof(header) - sizeof(magic)) < 0) {
-            if (errno == EOVERFLOW) {
-                return E_MACHO_FILE_PARSE_NOT_A_MACHO;
-            }
-
-            return E_MACHO_FILE_PARSE_READ_FAIL;
-        }
-
-        /*
-         * Swap the mach_header's fields if big-endian.
-         */
-
-        const bool is_big_endian = magic_is_big_endian(magic);
-        if (is_big_endian) {
-            header.cputype = swap_int32(header.cputype);
-            header.cpusubtype = swap_int32(header.cpusubtype);
-
-            header.ncmds = swap_uint32(header.ncmds);
-            header.sizeofcmds = swap_uint32(header.sizeofcmds);
-
-            header.filetype = swap_uint32(header.filetype);
-            header.flags = swap_uint32(header.flags);
-        }
-
+    } else {
+        const struct mach_header header = macho->header;
         if (is_invalid_filetype(header.filetype)) {
             if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
                 const bool should_continue =
@@ -1052,11 +1084,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                     return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
                 }
             }
-        }
-
-        struct stat sbuf = {};
-        if (fstat(fd, &sbuf) < 0) {
-            return E_MACHO_FILE_PARSE_FSTAT_FAIL;
         }
 
         const struct arch_info *arch = NULL;
@@ -1082,14 +1109,13 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
         }
 
-        macho_range.end = sbuf.st_size;
         ret = parse_thin_file(info_in,
                               fd,
-                              macho_range,
+                              macho->range,
                               &header,
                               arch,
                               extra,
-                              is_big_endian,
+                              magic_is_big_endian(magic),
                               0,
                               tbd_options,
                               options);
@@ -1114,8 +1140,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                 }
             }
         }
-    } else {
-        return E_MACHO_FILE_PARSE_NOT_A_MACHO;
     }
 
     return E_MACHO_FILE_PARSE_OK;

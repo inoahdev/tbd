@@ -9,6 +9,7 @@
 #ifndef PARSE_MACHO_FOR_MAIN_H
 #define PARSE_MACHO_FOR_MAIN_H
 
+#include "magic_buffer.h"
 #include "string_buffer.h"
 #include "tbd_for_main.h"
 
@@ -22,9 +23,7 @@ struct parse_macho_for_main_args {
      */
 
     int fd;
-    void *magic_in;
-
-    uint64_t *magic_in_size_in;
+    struct magic_buffer *magic_buffer;
     uint64_t *retained_info_in;
 
     struct tbd_for_main *global;

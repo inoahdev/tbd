@@ -20,25 +20,6 @@
 #include "parse_macho_for_main.h"
 #include "recursive.h"
 
-static int
-read_magic(void *__notnull const magic_in,
-           uint64_t *__notnull const magic_in_size_in,
-           const int fd)
-{
-    const uint64_t magic_in_size = *magic_in_size_in;
-    if (magic_in_size >= sizeof(uint32_t)) {
-        return 0;
-    }
-
-    const uint64_t read_size = sizeof(uint32_t) - magic_in_size;
-    if (our_read(fd, magic_in + magic_in_size, read_size) < 0) {
-        return 1;
-    }
-
-    *magic_in_size_in = sizeof(uint32_t);
-    return 0;
-}
-
 static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
     if (write_path == NULL) {
@@ -183,28 +164,33 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
 
 enum parse_macho_for_main_result
 parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
-    if (read_magic(args.magic_in, args.magic_in_size_in, args.fd)) {
-        if (errno == EOVERFLOW) {
+    struct macho_file macho = {};
+    struct range range = {};
+
+    const enum macho_file_open_result open_macho_result =
+        macho_file_open(&macho, args.magic_buffer, args.fd, range);
+
+    switch (open_macho_result) {
+        case E_MACHO_FILE_OPEN_OK:
+            break;
+
+        case E_MACHO_FILE_OPEN_READ_FAIL:
+        case E_MACHO_FILE_OPEN_FSTAT_FAIL:
+            break;
+
+        case E_MACHO_FILE_OPEN_NOT_A_MACHO:
+            if (!args.dont_handle_non_macho_error) {
+                handle_macho_file_open_result(open_macho_result,
+                                              args.dir_path,
+                                              args.name,
+                                              args.print_paths,
+                                              false);
+            }
+
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
-        }
 
-        /*
-         * Manually handle the read fail by passing on to
-         * handle_macho_file_parse_result() as if we went to
-         * macho_file_parse_from_file().
-         */
-
-        const struct handle_macho_file_parse_result_args handle_args = {
-            .retained_info_in = args.retained_info_in,
-            .global = args.global,
-            .tbd = args.tbd,
-            .dir_path = args.dir_path,
-            .parse_result = E_MACHO_FILE_PARSE_READ_FAIL,
-            .print_paths = args.print_paths
-        };
-
-        handle_macho_file_parse_result(handle_args);
-        return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
+        default:
+            break;
     }
 
     /*
@@ -235,31 +221,12 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         .export_trie_sb = &sb_buffer
     };
 
-    const uint32_t magic = *(const uint32_t *)args.magic_in;
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(info,
-                                   args.fd,
-                                   magic,
+                                   &macho,
                                    extra,
                                    args.tbd->parse_options,
                                    args.tbd->macho_options);
-
-    if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        if (!args.dont_handle_non_macho_error) {
-            const struct handle_macho_file_parse_result_args handle_args = {
-                .retained_info_in = args.retained_info_in,
-                .global = args.global,
-                .tbd = args.tbd,
-                .dir_path = args.dir_path,
-                .parse_result = parse_result,
-                .print_paths = args.print_paths
-            };
-
-            handle_macho_file_parse_result(handle_args);
-        }
-
-        return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
-    }
 
     const struct handle_macho_file_parse_result_args handle_args = {
         .retained_info_in = args.retained_info_in,
@@ -318,36 +285,39 @@ parse_macho_file_for_main_while_recursing(
     struct parse_macho_for_main_args *__notnull const args_ptr)
 {
     const struct parse_macho_for_main_args args = *args_ptr;
-    if (read_magic(args.magic_in, args.magic_in_size_in, args.fd)) {
-        if (errno == EOVERFLOW) {
+
+    struct macho_file macho = {};
+    struct range range = {};
+
+    const enum macho_file_open_result open_macho_result =
+        macho_file_open(&macho, args.magic_buffer, args.fd, range);
+
+    switch (open_macho_result) {
+        case E_MACHO_FILE_OPEN_OK:
+            break;
+
+        case E_MACHO_FILE_OPEN_READ_FAIL:
+        case E_MACHO_FILE_OPEN_FSTAT_FAIL:
+            break;
+
+        case E_MACHO_FILE_OPEN_NOT_A_MACHO:
+            if (!args.dont_handle_non_macho_error) {
+                handle_macho_file_open_result(open_macho_result,
+                                              args.dir_path,
+                                              args.name,
+                                              args.print_paths,
+                                              true);
+            }
+
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
-        }
 
-        /*
-         * Pass on the read-failure to
-         * handle_macho_file_parse_result_while_recursing() as should be done
-         * with every error faced in this function.
-         */
-
-        const struct handle_macho_file_parse_result_args handle_args = {
-            .retained_info_in = args.retained_info_in,
-            .global = args.global,
-            .tbd = args.tbd,
-            .dir_path = args.dir_path,
-            .name = args.name,
-            .parse_result = E_MACHO_FILE_PARSE_READ_FAIL,
-            .print_paths = args.print_paths
-        };
-
-        handle_macho_file_parse_result_while_recursing(handle_args);
-        return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
+        default:
+            break;
     }
 
     /*
      * Handle any provided replacement options.
      */
-
-    const uint32_t magic = *(const uint32_t *)args.magic_in;
 
     struct tbd_create_info *const info = &args.tbd->info;
     const struct tbd_create_info *const orig_info = args.orig;
@@ -373,29 +343,10 @@ parse_macho_file_for_main_while_recursing(
 
     const enum macho_file_parse_result parse_result =
         macho_file_parse_from_file(info,
-                                   args.fd,
-                                   magic,
+                                   &macho,
                                    extra,
                                    args.tbd->parse_options,
                                    args.tbd->macho_options);
-
-    if (parse_result == E_MACHO_FILE_PARSE_NOT_A_MACHO) {
-        if (!args.dont_handle_non_macho_error) {
-            const struct handle_macho_file_parse_result_args handle_args = {
-                .retained_info_in = args.retained_info_in,
-                .global = args.global,
-                .tbd = args.tbd,
-                .dir_path = args.dir_path,
-                .name = args.name,
-                .parse_result = parse_result,
-                .print_paths = args.print_paths
-            };
-
-            handle_macho_file_parse_result_while_recursing(handle_args);
-        }
-
-        return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
-    }
 
     const struct handle_macho_file_parse_result_args handle_args = {
         .retained_info_in = args.retained_info_in,

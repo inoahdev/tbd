@@ -47,17 +47,6 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_READ_FAIL:
             return E_DSC_IMAGE_PARSE_READ_FAIL;
 
-        /*
-         * Because we never call macho_file_parse_from_file(), fstat() should
-         * never be called.
-         */
-
-        case E_MACHO_FILE_PARSE_FSTAT_FAIL:
-            return E_DSC_IMAGE_PARSE_READ_FAIL;
-
-        case E_MACHO_FILE_PARSE_NOT_A_MACHO:
-            return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
-
         case E_MACHO_FILE_PARSE_SIZE_TOO_SMALL:
             return E_DSC_IMAGE_PARSE_SIZE_TOO_SMALL;
 
@@ -276,9 +265,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      */
 
     const uint64_t lc_options =
-        O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS |
-        O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
-        macho_options;
+        (O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS |
+         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
+         macho_options);
 
     struct mf_parse_lc_from_map_info info = {
         .map = map,
