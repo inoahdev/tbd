@@ -377,8 +377,8 @@ dyld_shared_cache_parse_from_file(
         const uint64_t mapping_file_begin = mapping->fileOffset;
 
         /*
-         * We skip validation of mapping's address-range as its irrelevant to
-         * our operations, and because we aim to be lenient.
+         * We skip validation of mapping's address-range we don't use it,
+         * and because we aim to be lenient.
          */
 
         uint64_t mapping_file_end = mapping_file_begin;
@@ -404,12 +404,10 @@ dyld_shared_cache_parse_from_file(
          */
 
         for (uint32_t j = 0; j != i; j++) {
-            const struct dyld_cache_mapping_info *const inner_mapping =
-                mappings + j;
+            const struct dyld_cache_mapping_info *const inner = mappings + j;
 
-            const uint64_t inner_file_begin = inner_mapping->fileOffset;
-            const uint64_t inner_size = inner_mapping->size;
-            const uint64_t inner_file_end = inner_file_begin + inner_size;
+            const uint64_t inner_file_begin = inner->fileOffset;
+            const uint64_t inner_file_end = inner_file_begin + inner->size;
 
             const struct range inner_file_range = {
                 .begin = inner_file_begin,
@@ -450,20 +448,23 @@ dyld_shared_cache_parse_from_file(
      */
 
     if (options & O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS) {
-        for (uint32_t i = 0; i != header.imagesCount; i++) {
-            struct dyld_cache_image_info *const image = images + i;
-
-            if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
+        if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
+            for (uint32_t i = 0; i != header.imagesCount; i++) {
+                struct dyld_cache_image_info *const image = images + i;
                 const uint32_t location = image->pathFileOffset;
-                if (range_contains_location(available_range, location)) {
-                    continue;
+
+                if (!range_contains_location(available_range, location)) {
+                    munmap(map, dsc_size);
+                    return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
                 }
 
-                munmap(map, dsc_size);
-                return E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES;
+                image->pad = 0;
             }
-
-            image->pad = 0;
+        } else {
+            for (uint32_t i = 0; i != header.imagesCount; i++) {
+                struct dyld_cache_image_info *const image = images + i;
+                image->pad = 0;
+            }
         }
     } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
         for (uint32_t i = 0; i != header.imagesCount; i++) {
