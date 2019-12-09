@@ -17,14 +17,11 @@
 #include "tbd_for_main.h"
 
 void
-handle_dsc_file_parse_result(const char *path,
+handle_dsc_file_parse_result(const char *dir_path,
+                             const char *name,
                              enum dyld_shared_cache_parse_result parse_result,
-                             bool print_paths);
-void
-handle_dsc_file_parse_result_while_recursing(
-    const char *__notnull dir_path,
-    const char *__notnull name,
-    enum dyld_shared_cache_parse_result parse_result);
+                             bool print_paths,
+                             bool is_recursing);
 
 struct handle_dsc_image_parse_error_cb_info {
     uint64_t *retained_info_in;
@@ -49,27 +46,6 @@ bool
 handle_dsc_image_parse_error_callback(struct tbd_create_info *__notnull info_in,
                                       enum macho_file_parse_error error,
                                       void *callback_info);
-
-struct handle_dsc_image_parse_result_args {
-    uint64_t *retained_info_in;
-
-    struct tbd_for_main *global;
-    struct tbd_for_main *tbd;
-
-    const char *dsc_dir_path;
-    const char *dsc_name;
-    const char *image_path;
-
-    enum dsc_image_parse_result parse_result;
-};
-
-/*
- * full_path should be stored in args.dsc_dir_path.
- */
-
-bool
-handle_dsc_image_parse_result_while_recursing(
-	struct handle_dsc_image_parse_result_args args);
 
 void
 print_dsc_image_parse_error(const char *__notnull image_path,

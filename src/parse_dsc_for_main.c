@@ -913,8 +913,10 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
     if (get_magic_result != E_MAGIC_BUFFER_OK) {
         handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
-                                     args.print_paths);
+                                     args.print_paths,
+                                     false);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
@@ -932,8 +934,10 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
         if (!args.dont_handle_non_dsc_error) {
             handle_dsc_file_parse_result(args.dsc_dir_path,
+                                         args.dsc_name,
                                          parse_dsc_file_result,
-                                         args.print_paths);
+                                         args.print_paths,
+                                         false);
         }
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
@@ -941,8 +945,10 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
         handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
                                      parse_dsc_file_result,
-                                     args.print_paths);
+                                     args.print_paths,
+                                     false);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
@@ -1119,10 +1125,11 @@ parse_dsc_for_main_while_recursing(
         magic_buffer_read_n(args.magic_buffer, args.fd, 16);
 
     if (get_magic_result != E_MAGIC_BUFFER_OK) {
-        handle_dsc_file_parse_result_while_recursing(
-            args.dsc_dir_path,
-            args.dsc_name,
-            E_DYLD_SHARED_CACHE_PARSE_READ_FAIL);
+        handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
+                                     E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     args.print_paths,
+                                     true);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
@@ -1140,18 +1147,22 @@ parse_dsc_for_main_while_recursing(
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
         if (!args.dont_handle_non_dsc_error) {
-            handle_dsc_file_parse_result_while_recursing(args.dsc_dir_path,
-                                                         args.dsc_name,
-                                                         parse_dsc_file_result);
+            handle_dsc_file_parse_result(args.dsc_dir_path,
+                                         args.dsc_name,
+                                         parse_dsc_file_result,
+                                         args.print_paths,
+                                         true);
         }
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
     }
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result_while_recursing(args.dsc_dir_path,
-                                                     args.dsc_name,
-                                                     parse_dsc_file_result);
+        handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
+                                     parse_dsc_file_result,
+                                     args.print_paths,
+                                     true);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
@@ -1330,7 +1341,9 @@ void print_list_of_dsc_images(const int fd) {
     char magic[16] = {};
     if (our_read(fd, &magic, sizeof(magic)) < 0) {
         handle_dsc_file_parse_result(NULL,
+                                     NULL,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     false,
                                      false);
 
         exit(1);
@@ -1341,7 +1354,12 @@ void print_list_of_dsc_images(const int fd) {
         dyld_shared_cache_parse_from_file(&dsc_info, fd, magic, 0);
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(NULL, parse_dsc_file_result, false);
+        handle_dsc_file_parse_result(NULL,
+                                     NULL,
+                                     parse_dsc_file_result,
+                                     false,
+                                     false);
+
         exit(1);
     }
 
@@ -1372,7 +1390,9 @@ void print_list_of_dsc_images_ordered(const int fd) {
     char magic[16] = {};
     if (our_read(fd, &magic, sizeof(magic)) < 0) {
         handle_dsc_file_parse_result(NULL,
+                                     NULL,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
+                                     false,
                                      false);
 
         exit(1);
@@ -1383,7 +1403,12 @@ void print_list_of_dsc_images_ordered(const int fd) {
         dyld_shared_cache_parse_from_file(&dsc_info, fd, magic, 0);
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(NULL, parse_dsc_file_result, false);
+        handle_dsc_file_parse_result(NULL,
+                                     NULL,
+                                     parse_dsc_file_result,
+                                     false,
+                                     false);
+
         exit(1);
     }
 

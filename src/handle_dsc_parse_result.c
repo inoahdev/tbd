@@ -14,20 +14,28 @@
 
 void
 handle_dsc_file_parse_result(
-    const char *const path,
+    const char *const dir_path,
+    const char *const name,
     const enum dyld_shared_cache_parse_result parse_result,
-    const bool print_paths)
+    const bool print_paths,
+    const bool is_recursing)
 {
     switch (parse_result) {
         case E_DYLD_SHARED_CACHE_PARSE_OK:
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_ALLOC_FAIL:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to allocate data while parsing "
+                        "dyld_shared_cache file (at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "Failed to allocate data while parsing "
                         "dyld_shared_cache file (at path %s)\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("Failed to allocate data while parsing the provided "
                       "dyld_shared_cache file\n",
@@ -37,11 +45,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_READ_FAIL:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to read data while parsing dyld_shared_cache "
+                        "file (at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "Failed to read data while parsing dyld_shared_cache "
                         "file (at path %s)\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("Failed to read data while parsing the provided "
                       "dyld_shared_cache file\n",
@@ -51,11 +65,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to get information on dyld_shared_cache file "
+                        "(at path %s/%s)\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "Failed to get information on dyld_shared_cache file "
                         "(at path %s)\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("Failed to get information on provided dyld_shared_cache "
                       "file\n",
@@ -65,11 +85,18 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Failed to map dyld_shared_cache file (at path %s) to "
+                        "memory, error: %s/%s\n",
+                        dir_path,
+                        name,
+                        strerror(errno));
+            } else if (print_paths) {
                 fprintf(stderr,
                         "Failed to map dyld_shared_cache file (at path %s) to "
                         "memory, error: %s\n",
-                        path,
+                        dir_path,
                         strerror(errno));
             } else {
                 fprintf(stderr,
@@ -81,11 +108,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "File (at path %s/%s) is not a valid dyld_shared_cache "
+                        "file\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "File (at path %s) is not a valid dyld_shared_cache "
                         "file\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("File at the provided path is not a valid "
                       "dyld_shared_cache file\n",
@@ -95,11 +128,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has invalid "
+                        "images\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has invalid "
                         "images\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has invalid "
                       "images\n",
@@ -109,11 +148,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has invalid "
+                        "mappigns\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has invalid "
                         "mappigns\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has invalid "
                       "mappings\n",
@@ -123,11 +168,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_RANGES:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping ranges\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has "
                         "overlapping ranges\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
                       "overlapping ranges\n",
@@ -137,11 +188,17 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_IMAGES:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping images\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has "
                         "overlapping images\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
                       "overlapping images\n",
@@ -151,119 +208,22 @@ handle_dsc_file_parse_result(
             break;
 
         case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS:
-            if (print_paths) {
+            if (is_recursing) {
+                fprintf(stderr,
+                        "dyld_shared_cache file (at path %s/%s) has "
+                        "overlapping mappings\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
                 fprintf(stderr,
                         "dyld_shared_cache file (at path %s) has "
                         "overlapping mappings\n",
-                        path);
+                        dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
                       "overlapping mappings\n",
                       stderr);
             }
-
-            break;
-    }
-}
-
-void
-handle_dsc_file_parse_result_while_recursing(
-    const char *__notnull const dir_path,
-    const char *__notnull const name,
-    const enum dyld_shared_cache_parse_result parse_result)
-{
-    switch (parse_result) {
-        case E_DYLD_SHARED_CACHE_PARSE_OK:
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_ALLOC_FAIL:
-            fprintf(stderr,
-                    "Failed to allocate data while parsing "
-                    "dyld_shared_cache file (at path %s/%s)\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_READ_FAIL:
-            fprintf(stderr,
-                    "Failed to read data while parsing dyld_shared_cache "
-                    "file (at path %s/%s)\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_FSTAT_FAIL:
-            fprintf(stderr,
-                    "Failed to get information on dyld_shared_cache file "
-                    "(at path %s/%s)\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_MMAP_FAIL:
-            fprintf(stderr,
-                    "Failed to map dyld_shared_cache file (at path %s) to "
-                    "memory, error: %s/%s\n",
-                    dir_path,
-                    name,
-                    strerror(errno));
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE:
-            fprintf(stderr,
-                    "File (at path %s/%s) is not a valid dyld_shared_cache "
-                    "file\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_INVALID_IMAGES:
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s/%s) has invalid "
-                    "images\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_INVALID_MAPPINGS:
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s/%s) has invalid "
-                    "mappigns\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_RANGES:
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s/%s) has "
-                    "overlapping ranges\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_IMAGES:
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s/%s) has "
-                    "overlapping images\n",
-                    dir_path,
-                    name);
-
-            break;
-
-        case E_DYLD_SHARED_CACHE_PARSE_OVERLAPPING_MAPPINGS:
-            fprintf(stderr,
-                    "dyld_shared_cache file (at path %s/%s) has "
-                    "overlapping mappings\n",
-                    dir_path,
-                    name);
 
             break;
     }

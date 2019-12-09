@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "handle_macho_file_parse_result.h"
+#include "macho_file.h"
 #include "our_io.h"
 #include "parse_macho_for_main.h"
 #include "recursive.h"
@@ -176,7 +177,13 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
 
         case E_MACHO_FILE_OPEN_READ_FAIL:
         case E_MACHO_FILE_OPEN_FSTAT_FAIL:
-            break;
+            handle_macho_file_open_result(open_macho_result,
+                                          args.dir_path,
+                                          args.name,
+                                          args.print_paths,
+                                          false);
+
+            return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
 
         case E_MACHO_FILE_OPEN_NOT_A_MACHO:
             if (!args.dont_handle_non_macho_error) {
@@ -199,7 +206,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
      */
 
     struct tbd_create_info *const info = &args.tbd->info;
-    struct tbd_create_info *const g_info = &args.global->info;
+    const struct tbd_create_info *const orig_info = args.orig;
 
     const struct handle_macho_file_parse_error_cb_info cb_info = {
         .retained_info_in = args.retained_info_in,
@@ -221,25 +228,25 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         .export_trie_sb = &sb_buffer
     };
 
-    const enum macho_file_parse_result parse_result =
+    const enum macho_file_parse_result parse_macho_result =
         macho_file_parse_from_file(info,
                                    &macho,
                                    extra,
                                    args.tbd->parse_options,
                                    args.tbd->macho_options);
 
-    const struct handle_macho_file_parse_result_args handle_args = {
-        .retained_info_in = args.retained_info_in,
-        .global = args.global,
-        .tbd = args.tbd,
-        .dir_path = args.dir_path,
-        .parse_result = parse_result,
-        .print_paths = args.print_paths
-    };
+    if (parse_macho_result != E_MACHO_FILE_PARSE_OK) {
+        const bool ignore_warnings =
+            (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
 
-    const bool should_continue = handle_macho_file_parse_result(handle_args);
-    if (!should_continue) {
-        tbd_create_info_clear_fields_and_create_from(info, g_info);
+        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        handle_macho_file_parse_result(args.dir_path,
+                                       args.name,
+                                       parse_macho_result,
+                                       args.print_paths,
+                                       false,
+                                       ignore_warnings);
+
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
@@ -260,7 +267,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
                                   &terminator);
 
         if (file == NULL) {
-            tbd_create_info_clear_fields_and_create_from(info, g_info);
+            tbd_create_info_clear_fields_and_create_from(info, orig_info);
             return E_PARSE_MACHO_FOR_MAIN_OK;
         }
 
@@ -276,7 +283,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         tbd_for_main_write_to_stdout(args.tbd, args.dir_path, true);
     }
 
-    tbd_create_info_clear_fields_and_create_from(info, g_info);
+    tbd_create_info_clear_fields_and_create_from(info, orig_info);
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }
 
@@ -298,7 +305,13 @@ parse_macho_file_for_main_while_recursing(
 
         case E_MACHO_FILE_OPEN_READ_FAIL:
         case E_MACHO_FILE_OPEN_FSTAT_FAIL:
-            break;
+            handle_macho_file_open_result(open_macho_result,
+                                          args.dir_path,
+                                          args.name,
+                                          args.print_paths,
+                                          true);
+
+            return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
 
         case E_MACHO_FILE_OPEN_NOT_A_MACHO:
             if (!args.dont_handle_non_macho_error) {
@@ -341,28 +354,25 @@ parse_macho_file_for_main_while_recursing(
         .export_trie_sb = args.export_trie_sb
     };
 
-    const enum macho_file_parse_result parse_result =
+    const enum macho_file_parse_result parse_macho_result =
         macho_file_parse_from_file(info,
                                    &macho,
                                    extra,
                                    args.tbd->parse_options,
                                    args.tbd->macho_options);
 
-    const struct handle_macho_file_parse_result_args handle_args = {
-        .retained_info_in = args.retained_info_in,
-        .global = args.global,
-        .tbd = args.tbd,
-        .dir_path = args.dir_path,
-        .name = args.name,
-        .parse_result = parse_result,
-        .print_paths = args.print_paths
-    };
+    if (parse_macho_result != E_MACHO_FILE_PARSE_OK) {
+        const bool ignore_warnings =
+            (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
 
-    const bool should_continue =
-        handle_macho_file_parse_result_while_recursing(handle_args);
-
-    if (!should_continue) {
         tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        handle_macho_file_parse_result(args.dir_path,
+                                       args.name,
+                                       parse_macho_result,
+                                       args.print_paths,
+                                       true,
+                                       ignore_warnings);
+
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
