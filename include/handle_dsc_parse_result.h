@@ -24,7 +24,7 @@ handle_dsc_file_parse_result(const char *dir_path,
                              bool is_recursing);
 
 struct handle_dsc_image_parse_error_cb_info {
-    uint64_t *retained_info_in;
+    struct retained_user_info *retained;
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;

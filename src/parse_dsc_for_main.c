@@ -49,9 +49,7 @@ struct dsc_iterate_images_info {
     const struct tbd_create_info *orig;
 
     struct array images;
-
     FILE *combine_file;
-    uint64_t *retained_info;
 
     macho_file_parse_error_callback callback;
     struct handle_dsc_image_parse_error_cb_info *callback_info;
@@ -60,6 +58,7 @@ struct dsc_iterate_images_info {
     bool parse_all_images;
     bool did_print_messages_header;
 
+    struct retained_user_info *retained;
     struct string_buffer *export_trie_sb;
 };
 
@@ -960,7 +959,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     }
 
     struct handle_dsc_image_parse_error_cb_info cb_info = {
-        .retained_info_in = args.retained_info_in,
+        .retained = args.retained,
 
         .global = args.global,
         .tbd = args.tbd,
@@ -983,7 +982,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         .orig = args.orig,
 
         .combine_file = args.combine_file,
-        .retained_info = args.retained_info_in,
+        .retained = args.retained,
 
         .callback = handle_dsc_image_parse_error_callback,
         .callback_info = &cb_info,
@@ -1199,7 +1198,7 @@ parse_dsc_for_main_while_recursing(
                                             &write_path_length);
 
     struct handle_dsc_image_parse_error_cb_info cb_info = {
-        .retained_info_in = args.retained_info_in,
+        .retained = args.retained,
 
         .global = args.global,
         .tbd = args.tbd,
@@ -1221,7 +1220,7 @@ parse_dsc_for_main_while_recursing(
         .orig = args.orig,
 
         .combine_file = args.combine_file,
-        .retained_info = args.retained_info_in,
+        .retained = args.retained,
 
         .callback = handle_dsc_image_parse_error_callback,
         .callback_info = &cb_info,

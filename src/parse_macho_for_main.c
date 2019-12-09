@@ -209,7 +209,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
     const struct tbd_create_info *const orig_info = args.orig;
 
     const struct handle_macho_file_parse_error_cb_info cb_info = {
-        .retained_info_in = args.retained_info_in,
+        .retained = args.retained,
 
         .global = args.global,
         .tbd = args.tbd,
@@ -336,7 +336,7 @@ parse_macho_file_for_main_while_recursing(
     const struct tbd_create_info *const orig_info = args.orig;
 
     const struct handle_macho_file_parse_error_cb_info cb_info = {
-        .retained_info_in = args.retained_info_in,
+        .retained = args.retained,
 
         .global = args.global,
         .tbd = args.tbd,

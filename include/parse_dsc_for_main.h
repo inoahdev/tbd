@@ -30,8 +30,9 @@ enum parse_dsc_for_main_options {
 
 struct parse_dsc_for_main_args {
     int fd;
+
     struct magic_buffer *magic_buffer;
-    uint64_t *retained_info_in;
+    struct retained_user_info *retained;
 
     struct tbd_for_main *global;
     struct tbd_for_main *tbd;

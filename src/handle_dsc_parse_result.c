@@ -278,7 +278,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_current_version(cb_info->global,
                                         cb_info->tbd,
-                                        cb_info->retained_info_in,
+                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -296,7 +296,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_compat_version(cb_info->global,
                                        cb_info->tbd,
-                                       cb_info->retained_info_in,
+                                       cb_info->retained,
                                        true,
                                        stderr,
                                        "\tImage (with path %s) has multiple "
@@ -322,7 +322,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_if_should_ignore_flags(cb_info->global,
                                                cb_info->tbd,
-                                               cb_info->retained_info_in,
+                                               cb_info->retained,
                                                true,
                                                stderr,
                                                "\tImage (with path %s) has "
@@ -341,7 +341,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_install_name(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has multiple "
@@ -359,7 +359,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_objc_constraint(cb_info->global,
                                         cb_info->tbd,
-                                        cb_info->retained_info_in,
+                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -378,7 +378,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_parent_umbrella(cb_info->global,
                                         cb_info->tbd,
-                                        cb_info->retained_info_in,
+                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -396,7 +396,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_platform(cb_info->global,
                                  cb_info->tbd,
-                                 cb_info->retained_info_in,
+                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has multiple "
@@ -413,7 +413,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_swift_version(cb_info->global,
                                       cb_info->tbd,
-                                      cb_info->retained_info_in,
+                                      cb_info->retained,
                                       true,
                                       stderr,
                                       "\tImage (with path %s) has multiple "
@@ -455,7 +455,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_install_name(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has an invalid "
@@ -472,7 +472,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_parent_umbrella(cb_info->global,
                                         cb_info->tbd,
-                                        cb_info->retained_info_in,
+                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has an invalid "
@@ -489,7 +489,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_platform(cb_info->global,
                                  cb_info->tbd,
-                                 cb_info->retained_info_in,
+                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has an invalid "
@@ -522,7 +522,7 @@ handle_dsc_image_parse_error_callback(
             request_result =
                 request_platform(cb_info->global,
                                  cb_info->tbd,
-                                 cb_info->retained_info_in,
+                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) doesn't have a "

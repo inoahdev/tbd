@@ -154,14 +154,14 @@ enum default_choice_index {
 bool
 request_current_version(struct tbd_for_main *__notnull const global,
                         struct tbd_for_main *__notnull const tbd,
-                        uint64_t *__notnull const info_in,
+                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS))
+        retained->never_replace_current_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -194,7 +194,7 @@ request_current_version(struct tbd_for_main *__notnull const global,
         request_choice("Replace current-version?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_CURRENT_VERS;
+        retained->never_replace_current_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -230,14 +230,14 @@ request_current_version(struct tbd_for_main *__notnull const global,
 bool
 request_compat_version(struct tbd_for_main *__notnull const global,
                        struct tbd_for_main *__notnull const tbd,
-                       uint64_t *__notnull const info_in,
+                       struct retained_user_info *__notnull const retained,
                        const bool indent,
                        FILE *__notnull const file,
                        const char *__notnull const prompt,
                        ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS))
+        retained->never_replace_compat_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -272,7 +272,7 @@ request_compat_version(struct tbd_for_main *__notnull const global,
                        indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_COMPAT_VERS;
+        retained->never_replace_compat_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -308,14 +308,14 @@ request_compat_version(struct tbd_for_main *__notnull const global,
 bool
 request_install_name(struct tbd_for_main *__notnull const global,
                      struct tbd_for_main *__notnull const tbd,
-                     uint64_t *__notnull const info_in,
+                     struct retained_user_info *__notnull const retained,
                      const bool indent,
                      FILE *__notnull const file,
                      const char *__notnull const prompt,
                      ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME))
+        retained->never_replace_install_name)
     {
         va_list args;
         va_start(args, prompt);
@@ -348,7 +348,7 @@ request_install_name(struct tbd_for_main *__notnull const global,
         request_choice("Replace install-name?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_INSTALL_NAME;
+        retained->never_replace_install_name = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -376,14 +376,14 @@ request_install_name(struct tbd_for_main *__notnull const global,
 bool
 request_objc_constraint(struct tbd_for_main *__notnull const global,
                         struct tbd_for_main *__notnull const tbd,
-                        uint64_t *__notnull const info_in,
+                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull const file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT))
+        retained->never_replace_objc_constraint)
     {
         va_list args;
         va_start(args, prompt);
@@ -416,7 +416,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         request_choice("Replace objc-constraint?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_OBJC_CONSTRAINT;
+        retained->never_replace_objc_constraint = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -464,14 +464,14 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 bool
 request_parent_umbrella(struct tbd_for_main *__notnull const global,
                         struct tbd_for_main *__notnull const tbd,
-                        uint64_t *__notnull const info_in,
+                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull const file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA))
+        retained->never_replace_parent_umbrella)
     {
         va_list args;
         va_start(args, prompt);
@@ -504,7 +504,7 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         request_choice("Replace parent-umbrella?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PARENT_UMBRELLA;
+        retained->never_replace_parent_umbrella = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -536,14 +536,14 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
 bool
 request_platform(struct tbd_for_main *__notnull const global,
                  struct tbd_for_main *__notnull const tbd,
-                 uint64_t *__notnull const info_in,
+                 struct retained_user_info *__notnull const retained,
                  const bool indent,
                  FILE *__notnull const file,
                  const char *__notnull const prompt,
                  ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM))
+        retained->never_replace_platform)
     {
         va_list args;
         va_start(args, prompt);
@@ -576,7 +576,7 @@ request_platform(struct tbd_for_main *__notnull const global,
         request_choice("Replace platform?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_PLATFORM;
+        retained->never_replace_platform = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -624,14 +624,14 @@ request_platform(struct tbd_for_main *__notnull const global,
 bool
 request_swift_version(struct tbd_for_main *__notnull const global,
                       struct tbd_for_main *__notnull const tbd,
-                      uint64_t *__notnull const info_in,
+                      struct retained_user_info *__notnull const retained,
                       const bool indent,
                       FILE *__notnull const file,
                       const char *__notnull const prompt,
                       ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION))
+        retained->never_replace_swift_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -662,7 +662,7 @@ request_swift_version(struct tbd_for_main *__notnull const global,
         request_choice("Replace swift-version?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_REPLACE_SWIFT_VERSION;
+        retained->never_replace_swift_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -699,16 +699,17 @@ request_swift_version(struct tbd_for_main *__notnull const global,
 }
 
 bool
-request_if_should_ignore_flags(struct tbd_for_main *__notnull const global,
-                               struct tbd_for_main *__notnull const tbd,
-                               uint64_t *__notnull const info_in,
-                               const bool indent,
-                               FILE *__notnull const file,
-                               const char *__notnull const prompt,
-                               ...)
+request_if_should_ignore_flags(
+    struct tbd_for_main *__notnull const global,
+    struct tbd_for_main *__notnull const tbd,
+    struct retained_user_info *__notnull const retained,
+    const bool indent,
+    FILE *__notnull const file,
+    const char *__notnull const prompt,
+    ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS))
+        retained->never_ignore_flags)
     {
         va_list args;
         va_start(args, prompt);
@@ -734,7 +735,7 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const global,
         request_choice("Ignore flags?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_FLAGS;
+        retained->never_ignore_flags = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -752,14 +753,14 @@ bool
 request_if_should_ignore_non_unique_uuids(
     struct tbd_for_main *__notnull const global,
     struct tbd_for_main *__notnull const tbd,
-    uint64_t *__notnull const info_in,
+    struct retained_user_info *__notnull const retained,
     const bool indent,
     FILE *__notnull const file,
     const char *__notnull const prompt,
     ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        (*info_in & F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS))
+        retained->never_ignore_non_unique_uuids)
     {
         va_list args;
         va_start(args, prompt);
@@ -785,7 +786,7 @@ request_if_should_ignore_non_unique_uuids(
         request_choice("Ignore non-unique uuids?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        *info_in |= F_RETAINED_USER_INPUT_INFO_NEVER_IGNORE_NON_UNIQUE_UUIDS;
+        retained->never_ignore_non_unique_uuids = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;

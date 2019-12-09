@@ -25,7 +25,7 @@
 #include "macho_file.h"
 #include "our_io.h"
 #include "path.h"
-
+#include "request_user_input.h"
 #include "tbd_write.h"
 #include "usage.h"
 #include "util.h"
@@ -38,8 +38,8 @@ struct recurse_callback_info {
     FILE *combine_file;
 
     uint64_t files_parsed;
-    uint64_t retained_info;
 
+    struct retained_user_info *retained;
     struct string_buffer *export_trie_sb;
 };
 
@@ -57,7 +57,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     struct tbd_for_main *const tbd = recurse_info->tbd;
     struct tbd_for_main *const global = recurse_info->global;
 
-    uint64_t *const retained = &recurse_info->retained_info;
+    struct retained_user_info *const retained = recurse_info->retained;
     struct magic_buffer magic_buffer = {};
 
     const char *const name = dirent->d_name;
@@ -67,7 +67,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
         struct parse_macho_for_main_args args = {
             .fd = fd,
             .magic_buffer = &magic_buffer,
-            .retained_info_in = retained,
+            .retained = retained,
 
             .global = global,
             .tbd = tbd,
@@ -117,7 +117,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
         struct parse_dsc_for_main_args args = {
             .fd = fd,
             .magic_buffer = &magic_buffer,
-            .retained_info_in = retained,
+            .retained = retained,
 
             .global = global,
             .tbd = tbd,
@@ -1089,8 +1089,8 @@ int main(const int argc, char *const argv[]) {
      * path-strings of the file we're parsing.
      */
 
-    uint64_t retained_info = 0;
     const bool should_print_paths = (tbds.item_count != 1);
+    struct retained_user_info retained = {};
 
     struct tbd_for_main *tbd = tbds.data;
     const struct tbd_for_main *const end = tbds.data_end;
@@ -1123,7 +1123,7 @@ int main(const int argc, char *const argv[]) {
                 .global = &global,
                 .tbd = tbd,
                 .orig = &orig,
-                .retained_info = retained_info,
+                .retained = &retained,
                 .export_trie_sb = &export_trie_sb
             };
 
@@ -1221,7 +1221,7 @@ int main(const int argc, char *const argv[]) {
                 struct parse_macho_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
-                    .retained_info_in = &retained_info,
+                    .retained = &retained,
 
                     .global = &global,
                     .tbd = tbd,
@@ -1263,7 +1263,7 @@ int main(const int argc, char *const argv[]) {
                 struct parse_dsc_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
-                    .retained_info_in = &retained_info,
+                    .retained = &retained,
 
                     .global = &global,
                     .tbd = tbd,

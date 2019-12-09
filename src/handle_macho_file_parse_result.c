@@ -88,7 +88,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_if_should_ignore_flags(cb_info->global,
                                                    cb_info->tbd,
-                                                   cb_info->retained_info_in,
+                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "Mach-o file (at "
@@ -103,7 +103,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_if_should_ignore_flags(cb_info->global,
                                                    cb_info->tbd,
-                                                   cb_info->retained_info_in,
+                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "Mach-o file (at path %s) "
@@ -115,7 +115,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_if_should_ignore_flags(cb_info->global,
                                                    cb_info->tbd,
-                                                   cb_info->retained_info_in,
+                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "The provided mach-o file "
@@ -155,7 +155,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), or one of "
@@ -167,7 +167,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s), or one of its "
@@ -177,7 +177,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file, or one of its "
@@ -195,7 +195,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s/%s), or "
@@ -207,7 +207,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s), or one "
@@ -218,7 +218,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file, or one "
@@ -257,7 +257,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_objc_constraint(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s/%s) has "
@@ -270,7 +270,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_objc_constraint(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
@@ -282,7 +282,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_objc_constraint(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file has "
@@ -301,7 +301,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
@@ -313,7 +313,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_parent_umbrella(cb_info->global,
                                             cb_info->tbd,
-                                            cb_info->retained_info_in,
+                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file, has "
@@ -333,7 +333,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s) has archs "
@@ -345,7 +345,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s) has multiple "
@@ -355,7 +355,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file has archs with "
@@ -374,7 +374,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_swift_version(cb_info->global,
                                           cb_info->tbd,
-                                          cb_info->retained_info_in,
+                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "Mach-o file (at path %s/%s) has "
@@ -386,7 +386,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_swift_version(cb_info->global,
                                           cb_info->tbd,
-                                          cb_info->retained_info_in,
+                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "Mach-o file (at path %s) has archs "
@@ -397,7 +397,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_swift_version(cb_info->global,
                                           cb_info->tbd,
-                                          cb_info->retained_info_in,
+                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "The provided mach-o file has archs "
@@ -479,7 +479,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_install_name(cb_info->global,
                                          cb_info->tbd,
-                                         cb_info->retained_info_in,
+                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "Mach-o file (at path %s/%s), or one "
@@ -491,7 +491,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_install_name(cb_info->global,
                                          cb_info->tbd,
-                                         cb_info->retained_info_in,
+                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "Mach-o file (at path %s), or one of "
@@ -502,7 +502,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_install_name(cb_info->global,
                                          cb_info->tbd,
-                                         cb_info->retained_info_in,
+                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "The provided mach-o file, or one of "
@@ -542,7 +542,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), does not "
@@ -553,7 +553,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s), does not have "
@@ -563,7 +563,7 @@ handle_macho_file_for_main_error_callback(
                 request_result =
                     request_platform(cb_info->global,
                                      cb_info->tbd,
-                                     cb_info->retained_info_in,
+                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file does not have a "
