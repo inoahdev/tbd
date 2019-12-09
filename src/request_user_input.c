@@ -101,6 +101,8 @@ request_input(const char *__notnull const prompt,
 
         input_length = our_getline(&input, &input_size, stdin);
 
+        fputc('\r', stdout);
+
         /*
          * We have an empty user-input if we only have a new-line character.
          */
@@ -121,8 +123,6 @@ request_input(const char *__notnull const prompt,
         free(input);
         input = NULL;
     } while (true);
-
-    fputc('\r', stdout);
 
     /*
      * getline() returns to us a newline delimiter in our input-buffer.
