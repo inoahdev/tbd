@@ -18,15 +18,15 @@ static inline uint64_t get_new_capacity(const uint64_t capacity) {
 
 static uint64_t
 capacity_for_length(struct string_buffer *__notnull sb, const uint64_t needed) {
+    const uint64_t capacity = sb->capacity;
+    const uint64_t wanted = sb->length + needed;
+
     /*
      * Add one to wanted for the null-terminator.
      */
 
-    const uint64_t capacity = sb->capacity;
-    const uint64_t wanted = sb->length + needed + 1;
-
     if (unlikely(capacity == 0)) {
-        return wanted;
+        return (wanted + 1);
     }
 
     uint64_t new_capacity = capacity;
@@ -34,7 +34,11 @@ capacity_for_length(struct string_buffer *__notnull sb, const uint64_t needed) {
         new_capacity = get_new_capacity(new_capacity);
     } while (new_capacity < wanted);
 
-    return new_capacity;
+    /*
+     * Add one to wanted for the null-terminator.
+     */
+
+    return (new_capacity + 1);
 }
 
 static char *
