@@ -23,13 +23,12 @@ struct parse_macho_for_main_args {
      */
 
     int fd;
-    
+
     struct magic_buffer *magic_buffer;
     struct retained_user_info *retained;
 
-    struct tbd_for_main *global;
     struct tbd_for_main *tbd;
-    const struct tbd_create_info *orig;
+    struct tbd_for_main *orig;
 
     /*
      * When not recursing, name will be NULL and dir_path will store the entire

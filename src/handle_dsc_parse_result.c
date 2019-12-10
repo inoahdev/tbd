@@ -176,8 +176,8 @@ handle_dsc_file_parse_result(
                         name);
             } else if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has "
-                        "overlapping ranges\n",
+                        "dyld_shared_cache file (at path %s) has overlapping "
+                        "ranges\n",
                         dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -196,8 +196,8 @@ handle_dsc_file_parse_result(
                         name);
             } else if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has "
-                        "overlapping images\n",
+                        "dyld_shared_cache file (at path %s) has overlapping "
+                        "images\n",
                         dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -216,8 +216,8 @@ handle_dsc_file_parse_result(
                         name);
             } else if (print_paths) {
                 fprintf(stderr,
-                        "dyld_shared_cache file (at path %s) has "
-                        "overlapping mappings\n",
+                        "dyld_shared_cache file (at path %s) has overlapping "
+                        "mappings\n",
                         dir_path);
             } else {
                 fputs("dyld_shared_cache file at the provided path has "
@@ -276,9 +276,8 @@ handle_dsc_image_parse_error_callback(
     switch (error) {
         case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
             request_result =
-                request_current_version(cb_info->global,
+                request_current_version(cb_info->orig,
                                         cb_info->tbd,
-                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -294,9 +293,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT:
             request_result =
-                request_compat_version(cb_info->global,
+                request_compat_version(cb_info->orig,
                                        cb_info->tbd,
-                                       cb_info->retained,
                                        true,
                                        stderr,
                                        "\tImage (with path %s) has multiple "
@@ -320,9 +318,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
             request_result =
-                request_if_should_ignore_flags(cb_info->global,
+                request_if_should_ignore_flags(cb_info->orig,
                                                cb_info->tbd,
-                                               cb_info->retained,
                                                true,
                                                stderr,
                                                "\tImage (with path %s) has "
@@ -339,9 +336,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT:
             request_result =
-                request_install_name(cb_info->global,
+                request_install_name(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has multiple "
@@ -357,9 +353,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT:
             request_result =
-                request_objc_constraint(cb_info->global,
+                request_objc_constraint(cb_info->orig,
                                         cb_info->tbd,
-                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -376,9 +371,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT:
             request_result =
-                request_parent_umbrella(cb_info->global,
+                request_parent_umbrella(cb_info->orig,
                                         cb_info->tbd,
-                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has multiple "
@@ -394,9 +388,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT:
             request_result =
-                request_platform(cb_info->global,
+                request_platform(cb_info->orig,
                                  cb_info->tbd,
-                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has multiple "
@@ -411,9 +404,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT:
             request_result =
-                request_swift_version(cb_info->global,
+                request_swift_version(cb_info->orig,
                                       cb_info->tbd,
-                                      cb_info->retained,
                                       true,
                                       stderr,
                                       "\tImage (with path %s) has multiple "
@@ -453,9 +445,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
             request_result =
-                request_install_name(cb_info->global,
+                request_install_name(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      true,
                                      stderr,
                                      "\tImage (with path %s) has an invalid "
@@ -470,9 +461,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA:
             request_result =
-                request_parent_umbrella(cb_info->global,
+                request_parent_umbrella(cb_info->orig,
                                         cb_info->tbd,
-                                        cb_info->retained,
                                         true,
                                         stderr,
                                         "\tImage (with path %s) has an invalid "
@@ -487,9 +477,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_INVALID_PLATFORM:
             request_result =
-                request_platform(cb_info->global,
+                request_platform(cb_info->orig,
                                  cb_info->tbd,
-                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) has an invalid "
@@ -520,9 +509,8 @@ handle_dsc_image_parse_error_callback(
 
         case ERR_MACHO_FILE_PARSE_NO_PLATFORM:
             request_result =
-                request_platform(cb_info->global,
+                request_platform(cb_info->orig,
                                  cb_info->tbd,
-                                 cb_info->retained,
                                  true,
                                  stderr,
                                  "\tImage (with path %s) doesn't have a "

@@ -12,6 +12,7 @@
 #include "likely.h"
 #include "macho_file_parse_export_trie.h"
 #include "our_io.h"
+#include "string_buffer.h"
 
 const uint8_t *
 read_uleb128(const uint8_t *iter,

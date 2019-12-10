@@ -15,6 +15,7 @@
 #include "our_io.h"
 #include "parse_or_list_fields.h"
 #include "request_user_input.h"
+#include "tbd_for_main.h"
 
 static uint64_t
 request_choice(const char *__notnull const prompt,
@@ -152,16 +153,15 @@ enum default_choice_index {
 };
 
 bool
-request_current_version(struct tbd_for_main *__notnull const global,
+request_current_version(struct tbd_for_main *__notnull const orig,
                         struct tbd_for_main *__notnull const tbd,
-                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_current_version)
+        tbd->retained.never_replace_current_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -172,12 +172,10 @@ request_current_version(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
-        const uint32_t global_current_version =
-            global->info.fields.current_version;
-
-        if (global_current_version != 0) {
-            tbd->info.fields.current_version = global_current_version;
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
+        const uint32_t orig_current_version = orig->info.fields.current_version;
+        if (orig_current_version != 0) {
+            tbd->info.fields.current_version = orig_current_version;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
 
             return true;
@@ -194,7 +192,7 @@ request_current_version(struct tbd_for_main *__notnull const global,
         request_choice("Replace current-version?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_current_version = true;
+        tbd->retained.never_replace_current_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -220,24 +218,23 @@ request_current_version(struct tbd_for_main *__notnull const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.current_version = (uint32_t)current_version;
-        global->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+        orig->info.fields.current_version = (uint32_t)current_version;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
     }
 
     return true;
 }
 
 bool
-request_compat_version(struct tbd_for_main *__notnull const global,
+request_compat_version(struct tbd_for_main *__notnull const orig,
                        struct tbd_for_main *__notnull const tbd,
-                       struct retained_user_info *__notnull const retained,
                        const bool indent,
                        FILE *__notnull const file,
                        const char *__notnull const prompt,
                        ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_compat_version)
+        tbd->retained.never_replace_compat_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -248,13 +245,13 @@ request_compat_version(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION) {
-        const uint32_t global_compat_version =
-            global->info.fields.compatibility_version;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION) {
+        const uint32_t orig_compat_version =
+            orig->info.fields.compatibility_version;
 
-        if (global_compat_version != 0) {
-            tbd->info.fields.compatibility_version = global_compat_version;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+        if (orig_compat_version != 0) {
+            tbd->info.fields.compatibility_version = orig_compat_version;
+            tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
 
             return true;
         }
@@ -272,7 +269,7 @@ request_compat_version(struct tbd_for_main *__notnull const global,
                        indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_compat_version = true;
+        tbd->retained.never_replace_compat_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -295,27 +292,26 @@ request_compat_version(struct tbd_for_main *__notnull const global,
     } while (true);
 
     tbd->info.fields.compatibility_version = (uint32_t)compat_version;
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+    tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.compatibility_version = (uint32_t)compat_version;
-        global->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+        orig->info.fields.compatibility_version = (uint32_t)compat_version;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
     }
 
     return true;
 }
 
 bool
-request_install_name(struct tbd_for_main *__notnull const global,
+request_install_name(struct tbd_for_main *__notnull const orig,
                      struct tbd_for_main *__notnull const tbd,
-                     struct retained_user_info *__notnull const retained,
                      const bool indent,
                      FILE *__notnull const file,
                      const char *__notnull const prompt,
                      ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_install_name)
+        tbd->retained.never_replace_install_name)
     {
         va_list args;
         va_start(args, prompt);
@@ -326,12 +322,10 @@ request_install_name(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
-        const char *const global_install_name =
-            global->info.fields.install_name;
-
-        if (global_install_name != NULL) {
-            tbd->info.fields.install_name = global_install_name;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
+        const char *const orig_install_name = orig->info.fields.install_name;
+        if (orig_install_name != NULL) {
+            tbd->info.fields.install_name = orig_install_name;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
 
             return true;
@@ -348,7 +342,7 @@ request_install_name(struct tbd_for_main *__notnull const global,
         request_choice("Replace install-name?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_install_name = true;
+        tbd->retained.never_replace_install_name = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -360,30 +354,33 @@ request_install_name(struct tbd_for_main *__notnull const global,
 
     tbd->info.fields.install_name = install_name;
     tbd->info.fields.install_name_length = install_name_length;
-
-    tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
     tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.install_name = install_name;
-        global->info.fields.install_name_length = install_name_length;
-        global->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+        orig->info.fields.install_name = install_name;
+        orig->info.fields.install_name_length = install_name_length;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+    } else {
+        /*
+         * Don't have install-name freed if we're giving it to orig.
+         */
+
+        tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
     }
 
     return true;
 }
 
 bool
-request_objc_constraint(struct tbd_for_main *__notnull const global,
+request_objc_constraint(struct tbd_for_main *__notnull const orig,
                         struct tbd_for_main *__notnull const tbd,
-                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull const file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_objc_constraint)
+        tbd->retained.never_replace_objc_constraint)
     {
         va_list args;
         va_start(args, prompt);
@@ -394,12 +391,12 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
-        const enum tbd_objc_constraint global_objc_constraint =
-            global->info.fields.at.archs.objc_constraint;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+        const enum tbd_objc_constraint orig_objc_constraint =
+            orig->info.fields.at.archs.objc_constraint;
 
-        if (global_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
-            tbd->info.fields.at.archs.objc_constraint = global_objc_constraint;
+        if (orig_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
+            tbd->info.fields.at.archs.objc_constraint = orig_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
 
@@ -416,7 +413,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
         request_choice("Replace objc-constraint?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_objc_constraint = true;
+        tbd->retained.never_replace_objc_constraint = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -454,24 +451,23 @@ request_objc_constraint(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.at.archs.objc_constraint = objc_constraint;
-        global->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+        orig->info.fields.at.archs.objc_constraint = objc_constraint;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
 
     return true;
 }
 
 bool
-request_parent_umbrella(struct tbd_for_main *__notnull const global,
+request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                         struct tbd_for_main *__notnull const tbd,
-                        struct retained_user_info *__notnull const retained,
                         const bool indent,
                         FILE *__notnull const file,
                         const char *__notnull const prompt,
                         ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_parent_umbrella)
+        tbd->retained.never_replace_parent_umbrella)
     {
         va_list args;
         va_start(args, prompt);
@@ -482,12 +478,12 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
-        const char *const global_parent_umbrella =
-            global->info.fields.at.archs.parent_umbrella;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
+        const char *const orig_parent_umbrella =
+            orig->info.fields.at.archs.parent_umbrella;
 
-        if (global_parent_umbrella != NULL) {
-            tbd->info.fields.at.archs.parent_umbrella = global_parent_umbrella;
+        if (orig_parent_umbrella != NULL) {
+            tbd->info.fields.at.archs.parent_umbrella = orig_parent_umbrella;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
             return true;
@@ -504,7 +500,7 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
         request_choice("Replace parent-umbrella?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_parent_umbrella = true;
+        tbd->retained.never_replace_parent_umbrella = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -518,32 +514,35 @@ request_parent_umbrella(struct tbd_for_main *__notnull const global,
 
     tbd->info.fields.at.archs.parent_umbrella = parent_umbrella;
     tbd->info.fields.at.archs.parent_umbrella_length = parent_umbrella_length;
-
-    tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.at.archs.parent_umbrella = parent_umbrella;
-        global->info.fields.at.archs.parent_umbrella_length =
+        orig->info.fields.at.archs.parent_umbrella = parent_umbrella;
+        orig->info.fields.at.archs.parent_umbrella_length =
             parent_umbrella_length;
 
-        global->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+    } else {
+        /*
+         * Don't have parent-umbrella freed if we're giving it to orig.
+         */
+
+        tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
     }
 
     return true;
 }
 
 bool
-request_platform(struct tbd_for_main *__notnull const global,
+request_platform(struct tbd_for_main *__notnull const orig,
                  struct tbd_for_main *__notnull const tbd,
-                 struct retained_user_info *__notnull const retained,
                  const bool indent,
                  FILE *__notnull const file,
                  const char *__notnull const prompt,
                  ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_platform)
+        tbd->retained.never_replace_platform)
     {
         va_list args;
         va_start(args, prompt);
@@ -554,12 +553,12 @@ request_platform(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
-        const enum tbd_platform global_platform =
-            global->info.fields.at.archs.platform;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+        const enum tbd_platform orig_platform =
+            orig->info.fields.at.archs.platform;
 
-        if (global_platform != TBD_PLATFORM_NONE) {
-            tbd->info.fields.at.archs.platform = global_platform;
+        if (orig_platform != TBD_PLATFORM_NONE) {
+            tbd->info.fields.at.archs.platform = orig_platform;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
 
@@ -576,7 +575,7 @@ request_platform(struct tbd_for_main *__notnull const global,
         request_choice("Replace platform?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_platform = true;
+        tbd->retained.never_replace_platform = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -614,24 +613,23 @@ request_platform(struct tbd_for_main *__notnull const global,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.at.archs.platform = platform;
-        global->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+        orig->info.fields.at.archs.platform = platform;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
 
     return true;
 }
 
 bool
-request_swift_version(struct tbd_for_main *__notnull const global,
+request_swift_version(struct tbd_for_main *__notnull const orig,
                       struct tbd_for_main *__notnull const tbd,
-                      struct retained_user_info *__notnull const retained,
                       const bool indent,
                       FILE *__notnull const file,
                       const char *__notnull const prompt,
                       ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_replace_swift_version)
+        tbd->retained.never_replace_swift_version)
     {
         va_list args;
         va_start(args, prompt);
@@ -642,10 +640,10 @@ request_swift_version(struct tbd_for_main *__notnull const global,
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-        const uint32_t global_swift_version = global->info.fields.swift_version;
-        if (global_swift_version != 0) {
-            tbd->info.fields.swift_version = global_swift_version;
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
+        const uint32_t orig_swift_version = orig->info.fields.swift_version;
+        if (orig_swift_version != 0) {
+            tbd->info.fields.swift_version = orig_swift_version;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
         }
 
@@ -662,7 +660,7 @@ request_swift_version(struct tbd_for_main *__notnull const global,
         request_choice("Replace swift-version?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_replace_swift_version = true;
+        tbd->retained.never_replace_swift_version = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -691,25 +689,23 @@ request_swift_version(struct tbd_for_main *__notnull const global,
     tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->info.fields.swift_version = swift_version;
-        global->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+        orig->info.fields.swift_version = swift_version;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
     }
 
     return true;
 }
 
 bool
-request_if_should_ignore_flags(
-    struct tbd_for_main *__notnull const global,
-    struct tbd_for_main *__notnull const tbd,
-    struct retained_user_info *__notnull const retained,
-    const bool indent,
-    FILE *__notnull const file,
-    const char *__notnull const prompt,
-    ...)
+request_if_should_ignore_flags(struct tbd_for_main *__notnull const orig,
+                               struct tbd_for_main *__notnull const tbd,
+                               const bool indent,
+                               FILE *__notnull const file,
+                               const char *__notnull const prompt,
+                               ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_ignore_flags)
+        tbd->retained.never_ignore_flags)
     {
         va_list args;
         va_start(args, prompt);
@@ -720,7 +716,7 @@ request_if_should_ignore_flags(
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
+    if (orig->parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
         return true;
     }
@@ -735,7 +731,7 @@ request_if_should_ignore_flags(
         request_choice("Ignore flags?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_ignore_flags = true;
+        tbd->retained.never_ignore_flags = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -743,7 +739,7 @@ request_if_should_ignore_flags(
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
     }
 
     return true;
@@ -751,16 +747,15 @@ request_if_should_ignore_flags(
 
 bool
 request_if_should_ignore_non_unique_uuids(
-    struct tbd_for_main *__notnull const global,
+    struct tbd_for_main *__notnull const orig,
     struct tbd_for_main *__notnull const tbd,
-    struct retained_user_info *__notnull const retained,
     const bool indent,
     FILE *__notnull const file,
     const char *__notnull const prompt,
     ...)
 {
     if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        retained->never_ignore_non_unique_uuids)
+        tbd->retained.never_ignore_non_unique_uuids)
     {
         va_list args;
         va_start(args, prompt);
@@ -771,7 +766,7 @@ request_if_should_ignore_non_unique_uuids(
         return false;
     }
 
-    if (global->parse_options & O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS) {
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
         return true;
     }
@@ -786,7 +781,7 @@ request_if_should_ignore_non_unique_uuids(
         request_choice("Ignore non-unique uuids?", default_choices, indent);
 
     if (choice_index == DEFAULT_CHOICE_INDEX_NEVER) {
-        retained->never_ignore_non_unique_uuids = true;
+        tbd->retained.never_ignore_non_unique_uuids = true;
         return false;
     } else if (choice_index == DEFAULT_CHOICE_INDEX_NO) {
         return false;
@@ -794,7 +789,7 @@ request_if_should_ignore_non_unique_uuids(
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        global->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
+        orig->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     }
 
     return true;

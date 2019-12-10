@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include <errno.h>
@@ -26,17 +27,17 @@
 #include "our_io.h"
 #include "path.h"
 #include "request_user_input.h"
+#include "tbd.h"
+#include "tbd_for_main.h"
 #include "tbd_write.h"
 #include "usage.h"
 #include "util.h"
 
 struct recurse_callback_info {
-    struct tbd_for_main *global;
     struct tbd_for_main *tbd;
+    struct tbd_for_main *orig;
 
-    const struct tbd_create_info *orig;
     FILE *combine_file;
-
     uint64_t files_parsed;
 
     struct retained_user_info *retained;
@@ -54,8 +55,8 @@ recurse_directory_callback(const char *__notnull const dir_path,
     struct recurse_callback_info *const recurse_info =
         (struct recurse_callback_info *)callback_info;
 
+    struct tbd_for_main *const orig = recurse_info->orig;
     struct tbd_for_main *const tbd = recurse_info->tbd;
-    struct tbd_for_main *const global = recurse_info->global;
 
     struct retained_user_info *const retained = recurse_info->retained;
     struct magic_buffer magic_buffer = {};
@@ -69,9 +70,8 @@ recurse_directory_callback(const char *__notnull const dir_path,
             .magic_buffer = &magic_buffer,
             .retained = retained,
 
-            .global = global,
             .tbd = tbd,
-            .orig = recurse_info->orig,
+            .orig = orig,
 
             .dir_path = dir_path,
             .dir_path_length = dir_path_length,
@@ -116,12 +116,12 @@ recurse_directory_callback(const char *__notnull const dir_path,
     if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
         struct parse_dsc_for_main_args args = {
             .fd = fd,
+
             .magic_buffer = &magic_buffer,
             .retained = retained,
 
-            .global = global,
             .tbd = tbd,
-            .orig = recurse_info->orig,
+            .orig = orig,
 
             .dsc_dir_path = dir_path,
             .dsc_dir_path_length = dir_path_length,
@@ -215,23 +215,6 @@ recurse_directory_fail_callback(const char *const dir_path,
     return true;
 }
 
-static int validate_tbd_filetype(struct tbd_for_main *const tbd) {
-    const struct array *const filters = &tbd->dsc_image_filters;
-    if (filters->item_count == 0) {
-        return 0;
-    }
-
-    if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
-        fputs("dsc image-filters have been provided for a file that is not a "
-              "dyld_shared_cache file\n",
-              stderr);
-
-        exit(1);
-    }
-
-    return 0;
-}
-
 static void destroy_tbds_array(struct array *const tbds) {
     struct tbd_for_main *tbd = tbds->data;
     const struct tbd_for_main *const end = tbds->data_end;
@@ -243,6 +226,319 @@ static void destroy_tbds_array(struct array *const tbds) {
     array_destroy(tbds);
 }
 
+static void set_default_options(struct tbd_for_main *__notnull const tbd) {
+    tbd->info.version = TBD_VERSION_V2;
+}
+
+static void
+print_not_supported_error(const struct tbd_for_main *__notnull const tbd,
+                          const char *__notnull const option,
+                          const enum tbd_version version)
+{
+    fprintf(stderr,
+            "%s is not supported for .tbd version %s.\n",
+            option,
+            tbd_version_to_string(version));
+
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        fputs("Please either provide a different .tbd version or remove the "
+              "option from the argument-list\n",
+              stderr);
+    } else {
+        fputs("Please either manually provide a different version (with option "
+              "-v/--version), or remove the option from the argument-list\n",
+              stderr);
+    }
+}
+
+static int
+check_archs(const struct tbd_for_main *__notnull const tbd,
+            const enum tbd_version version,
+            const int result)
+{
+    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_ARCHS)) {
+        return result;
+    }
+
+    print_not_supported_error(tbd, "--replace-archs", version);
+    return 1;
+}
+
+static int
+check_flags(const struct tbd_for_main *__notnull const tbd,
+            const enum tbd_version version,
+            const int result)
+{
+    int return_value = result;
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_FLAGS) {
+        print_not_supported_error(tbd, "--replace-flags", version);
+        return_value = 1;
+    }
+
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS) {
+        print_not_supported_error(tbd, "--ignore-flags", version);
+        return_value = 1;
+    }
+
+    return return_value;
+}
+
+static int
+check_objc_constraint(const struct tbd_for_main *__notnull const tbd,
+                      const enum tbd_version version,
+                      const int result)
+{
+    int return_value = result;
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
+        print_not_supported_error(tbd, "--replace-objc-constraint", version);
+        return_value = 1;
+    }
+
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT) {
+        print_not_supported_error(tbd, "--ignore-objc-constraint", version);
+        return_value = 1;
+    }
+
+    return return_value;
+}
+
+static int
+check_platform(const struct tbd_for_main *__notnull const tbd,
+               const enum tbd_version version,
+               const int result)
+{
+    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM)) {
+        return result;
+    }
+
+    print_not_supported_error(tbd, "--replace-platform", version);
+    return 1;
+}
+
+static int
+check_targets(const struct tbd_for_main *__notnull const tbd,
+              const enum tbd_version version,
+              const int result)
+{
+    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TARGETS)) {
+        return result;
+    }
+
+    print_not_supported_error(tbd, "--replace-targets", version);
+    return 1;
+}
+
+static bool
+verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
+                    const char *__notnull const path)
+{
+    const enum tbd_version version = tbd->info.version;
+    int result = 0;
+
+    switch (version) {
+        case TBD_VERSION_NONE:
+            fprintf(stderr,
+                    "INTERNAL: Private tbd structure (for file from: %s) was "
+                    "not properly configured\n",
+                    path);
+
+            result = 1;
+            break;
+
+        case TBD_VERSION_V1:
+            result = check_flags(tbd, version, result);
+            result = check_targets(tbd, version, result);
+
+            if (tbd->parse_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
+                fprintf(stderr,
+                        "Undefined-symbols are already ignored for tbd with "
+                        "file from: %s\n",
+                        path);
+
+                result = 1;
+            }
+
+            break;
+
+        case TBD_VERSION_V2:
+        case TBD_VERSION_V3:
+            result = check_targets(tbd, version, result);
+            break;
+
+        case TBD_VERSION_V4:
+            result = check_archs(tbd, version, result);
+            result = check_objc_constraint(tbd, version, result);
+            result = check_platform(tbd, version, result);
+
+            break;
+    }
+
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION) {
+            fprintf(stderr,
+                    "Please only provide either --ignore-current-version or "
+                    "--replace-current-version for file from: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION) {
+            fprintf(stderr,
+                    "Please only provide either --ignore-compat-version or "
+                    "--replace-compat-version for file from: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
+            fprintf(stderr,
+                    "Please only provide either --ignore-objc-constraint or "
+                    "--replace-objc-constraint for file from: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
+        if (tbd->info.fields.swift_version != 0) {
+            fprintf(stderr,
+                    "Please only provide either --ignore-swift-version or "
+                    "--replace-swift-version for file from: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    /*
+     * Check for any conflicts in the provided options.
+     */
+
+    if (strcmp(path, "stdin") != 0) {
+        /*
+         * We may have been provided with a path relative to the
+         * current-directory.
+         */
+
+        uint64_t full_path_length = strlen(path);
+        char *full_path =
+            path_get_absolute_path(path,
+                                   full_path_length,
+                                   &full_path_length);
+
+        if (full_path == NULL) {
+            fputs("Failed to allocate memory\n", stderr);
+            exit(1);
+        }
+
+        /*
+         * Ensure that the file/directory actually exists on the
+         * filesystem.
+         */
+
+        struct stat info = {};
+        if (stat(full_path, &info) != 0) {
+            /*
+             * ENOTDIR will be returned if a directory in the
+             * path hierarchy isn't a directory at all, which still
+             * means that no file/directory exists at the provided
+             * path.
+             */
+
+            if (errno == ENOENT || errno == ENOTDIR) {
+                fprintf(stderr,
+                        "No file or directory exists at path: %s\n",
+                        full_path);
+            } else {
+                fprintf(stderr,
+                        "Failed to retrieve information on file or directory "
+                        "at path, error: %s\n",
+                        full_path);
+            }
+
+            if (full_path != path) {
+                free(full_path);
+            }
+
+            result = 1;
+        } else if (S_ISREG(info.st_mode)) {
+            if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                fprintf(stderr, "Cannot recurse file at path: %s\n", path);
+                if (full_path != path) {
+                    free(full_path);
+                }
+
+                result = 1;
+            }
+        } else if (S_ISDIR(info.st_mode)) {
+            if (!(tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
+                fputs("Please provide option '-r' to if you want to recurse "
+                      "the provided directory\n",
+                      stderr);
+
+                if (full_path != path) {
+                    free(full_path);
+                }
+
+                result = 1;
+            }
+        } else {
+            fprintf(stderr, "Unsupported object at path: %s\n", full_path);
+            if (full_path != path) {
+                free(full_path);
+            }
+
+            result = 1;
+        }
+
+        tbd->parse_path = full_path;
+        tbd->parse_path_length = full_path_length;
+    } else {
+        if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+            fputs("Recursing the input file is not supported.\nPlease provide "
+                  "a path to a directory for recursing\n",
+                  stderr);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->dsc_image_filters.item_count != 0) {
+        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+            fprintf(stderr,
+                    "dsc image-filters have been provided for file from (%s) "
+                    "that will not be parsed as a dyld_shared_cache file.\n"
+                    "Please provide option --dsc to parse the file as a "
+                    "dyld_shared_cache file",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->dsc_image_numbers.item_count != 0) {
+        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+            fprintf(stderr,
+                    "--filter-image-number has been provided for file "
+                    "from (%s) that will not be parsed as a dyld_shared_cache "
+                    "file.\nPlease provide option --dsc to parse the file as a "
+                    "dyld_shared_cache file",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    return result;
+}
+
 int main(const int argc, char *const argv[]) {
     if (argc < 2) {
         print_usage();
@@ -250,36 +546,11 @@ int main(const int argc, char *const argv[]) {
     }
 
     /*
-     * We distinguish between "local" and "global" options.
-     *
-     * Local options are provided to set information of only one file or
-     * directory that is provided with one "--path" option.
-     *
-     * Global options are provided to set information of all files and all
-     * directories that would ever be provided.
-     *
-     * Although this construction seems simple, some complexities remain.
-     *
-     * It would make no sense for a global option to override an explicity
-     * stated local option, as there would have been no reason to have
-     * explicitly provided the local option if a global option of a different
-     * type was to be provided.
-     *
-     * To store our global information, we keep a tbd_with_options struct here
-     * where information can be stored, and later set the information of "local"
-     * tbd_with_options structures.
-     */
-
-    struct array tbds = {};
-    struct tbd_for_main global = {
-        .info.version = TBD_VERSION_V2
-    };
-
-    /*
      * Store an index into the tbds array indicating the "current" tbd for when
      * we parsing output arguments.
      */
 
+    struct array tbds = {};
     uint64_t current_tbd_index = 0;
 
     bool has_stdout = false;
@@ -301,9 +572,7 @@ int main(const int argc, char *const argv[]) {
                     index,
                     argument);
 
-            tbd_for_main_destroy(&global);
             destroy_tbds_array(&tbds);
-
             return 1;
         }
 
@@ -329,9 +598,7 @@ int main(const int argc, char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
@@ -350,9 +617,7 @@ int main(const int argc, char *const argv[]) {
                         "index: %d\n",
                         index - 1);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
@@ -384,8 +649,6 @@ int main(const int argc, char *const argv[]) {
                         tbd->flags |= F_TBD_FOR_MAIN_COMBINE_TBDS;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", in_arg);
-
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
                         return 1;
@@ -407,9 +670,7 @@ int main(const int argc, char *const argv[]) {
                               "a directory to write all created files to\n",
                               stderr);
 
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-
                         return 1;
                     }
 
@@ -418,9 +679,7 @@ int main(const int argc, char *const argv[]) {
                               "allowed\n",
                               stderr);
 
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-
                         return 1;
                     }
 
@@ -452,9 +711,7 @@ int main(const int argc, char *const argv[]) {
                               "dyld_shared_cache files\n",
                               stderr);
 
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-
                         return 1;
                     }
 
@@ -466,9 +723,7 @@ int main(const int argc, char *const argv[]) {
                               "path-string\n",
                               stderr);
 
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-
                         return 1;
                     }
 
@@ -478,9 +733,7 @@ int main(const int argc, char *const argv[]) {
                               "dyld_shared_cache files\n",
                               stderr);
 
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
-
                         return 1;
                     }
                 }
@@ -498,8 +751,6 @@ int main(const int argc, char *const argv[]) {
 
                 if (full_path == NULL) {
                     fputs("Failed to allocate memory\n", stderr);
-
-                    tbd_for_main_destroy(&global);
                     destroy_tbds_array(&tbds);
 
                     return 1;
@@ -530,9 +781,7 @@ int main(const int argc, char *const argv[]) {
                                 free(full_path);
                             }
 
-                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
@@ -549,9 +798,7 @@ int main(const int argc, char *const argv[]) {
                                 free(full_path);
                             }
 
-                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-
                             return 1;
                         }
 
@@ -566,9 +813,7 @@ int main(const int argc, char *const argv[]) {
                                 free(full_path);
                             }
 
-                            tbd_for_main_destroy(&global);
                             destroy_tbds_array(&tbds);
-
                             return 1;
                         }
                     }
@@ -583,8 +828,6 @@ int main(const int argc, char *const argv[]) {
                     full_path = alloc_and_copy(full_path, full_path_length);
                     if (full_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
-
-                        tbd_for_main_destroy(&global);
                         destroy_tbds_array(&tbds);
 
                         return 1;
@@ -603,9 +846,7 @@ int main(const int argc, char *const argv[]) {
                       "\"stdout\" to print to stdout (terminal)\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
@@ -618,15 +859,14 @@ int main(const int argc, char *const argv[]) {
                       "terminal input\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
             struct tbd_for_main tbd = {};
-            bool found_path = false;
+            set_default_options(&tbd);
 
+            bool found_path = false;
             for (; index != argc; index++) {
                 const char *const inner_arg = argv[index];
                 const char inner_arg_front = inner_arg[0];
@@ -639,218 +879,57 @@ int main(const int argc, char *const argv[]) {
                         inner_opt += 1;
                     }
 
-                    if (strcmp(inner_opt, "r") == 0 ||
-                        strcmp(inner_opt, "recurse") == 0)
-                    {
-                        tbd.flags |= F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+                    const bool ret =
+                        tbd_for_main_parse_option(&index,
+                                                  &tbd,
+                                                  argc,
+                                                  argv,
+                                                  inner_opt);
 
-                        /*
-                         * -r/--recurse may have an extra argument specifying
-                         * whether or not to recurse sub-directories (By
-                         * default, we don't).
-                         */
-
-                        const int spec_index = index + 1;
-                        if (spec_index < argc) {
-                            const char *const spec = argv[spec_index];
-                            if (strcmp(spec, "all") == 0) {
-                                index += 1;
-                                tbd.flags |=
-                                    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
-                            } else if (strcmp(spec, "once") == 0) {
-                                index += 1;
-                            }
-                        }
-                    } else {
-                        const bool ret =
-                            tbd_for_main_parse_option(&index,
-                                                      &tbd,
-                                                      argc,
-                                                      argv,
-                                                      inner_opt);
-
-                        if (ret) {
-                            continue;
-                        }
-
-                        fprintf(stderr, "Unrecognized option: %s\n", inner_arg);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
+                    if (ret) {
+                        continue;
                     }
 
-                    continue;
+                    fprintf(stderr, "Unrecognized option: %s\n", inner_arg);
+                    destroy_tbds_array(&tbds);
+
+                    return 1;
+                }
+
+                if (verify_tbd_for_main(&tbd, inner_arg)) {
+                    destroy_tbds_array(&tbds);
+                    return 1;
                 }
 
                 /*
-                 * Check for any conflicts in the provided options.
+                 * Copy the path, if still from argv, to allow open_r to create
+                 * the file.
                  */
 
-                const char *const path = inner_arg;
-                if (tbd.parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
-                    if (tbd.info.fields.flags != 0) {
-                        fprintf(stderr,
-                                "Both modifying tbd-flags, and removing the "
-                                "field entirely, for file(s) at path (%s), is "
-                                "not supported.\nPlease select only one "
-                                "option\n",
-                                path);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
-                    }
-                }
-
-                if (strcmp(path, "stdin") != 0) {
+                if (tbd.parse_path == inner_arg) {
                     /*
-                     * We may have been provided with a path relative to the
-                     * current-directory.
-                     */
+                    * Prevent any ending slashes from being copied to make
+                    * directory recursing easier.
+                    *
+                    * We only need to do this when full_path was not
+                    * created with the current-directory, as our path
+                    * functions don't append ending slashes.
+                    */
 
-                    uint64_t full_path_length = strlen(path);
-                    char *full_path =
-                        path_get_absolute_path(path,
-                                               full_path_length,
-                                               &full_path_length);
+                    tbd.parse_path_length =
+                        remove_end_slashes(tbd.parse_path,
+                                           tbd.parse_path_length);
 
-                    if (full_path == NULL) {
+                    tbd.parse_path =
+                        alloc_and_copy(tbd.parse_path, tbd.parse_path_length);
+
+                    if (tbd.parse_path == NULL) {
                         fputs("Failed to allocate memory\n", stderr);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
-                    }
-
-                    /*
-                     * Ensure that the file/directory actually exists on the
-                     * filesystem.
-                     */
-
-                    struct stat info = {};
-                    if (stat(full_path, &info) != 0) {
-                        /*
-                         * ENOTDIR will be returned if a directory in the
-                         * path hierarchy isn't a directory at all, which still
-                         * means that no file/directory exists at the provided
-                         * path.
-                         */
-
-                        if (errno == ENOENT || errno == ENOTDIR) {
-                            fprintf(stderr,
-                                    "No file or directory exists at path: %s\n",
-                                    full_path);
-                        } else {
-                            fprintf(stderr,
-                                    "Failed to retrieve information on file or "
-                                    "directory at path, error: %s\n",
-                                    full_path);
-                        }
-
-                        if (full_path != path) {
-                            free(full_path);
-                        }
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
-                    }
-
-                    if (S_ISREG(info.st_mode)) {
-                        if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                            fputs("Only directories can be recursed\n", stderr);
-                            if (full_path != path) {
-                                free(full_path);
-                            }
-
-                            tbd_for_main_destroy(&global);
-                            destroy_tbds_array(&tbds);
-
-                            return 1;
-                        }
-                    } else if (S_ISDIR(info.st_mode)) {
-                        if (!(tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
-                            fputs("Please provide option '-r' to if you want "
-                                  "to recurse the provided directory\n",
-                                  stderr);
-
-                            if (full_path != path) {
-                                free(full_path);
-                            }
-
-                            tbd_for_main_destroy(&global);
-                            destroy_tbds_array(&tbds);
-
-                            return 1;
-                        }
-                    } else {
-                        fprintf(stderr,
-                                "Unsupported object at path: %s\n",
-                                full_path);
-
-                        if (full_path != path) {
-                            free(full_path);
-                        }
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
-                    }
-
-                    /*
-                     * Copy the path, if still from argv, to allow open_r to
-                     * create the file.
-                     */
-
-                    if (full_path == path) {
-                        /*
-                         * Prevent any ending slashes from being copied to make
-                         * directory recursing easier.
-                         *
-                         * We only need to do this when full_path was not
-                         * created with the current-directory, as our path
-                         * functions don't append ending slashes.
-                         */
-
-                        full_path_length =
-                            remove_end_slashes(full_path, full_path_length);
-
-                        full_path = alloc_and_copy(full_path, full_path_length);
-                        if (full_path == NULL) {
-                            fputs("Failed to allocate memory\n", stderr);
-
-                            tbd_for_main_destroy(&global);
-                            destroy_tbds_array(&tbds);
-
-                            return 1;
-                        }
-                    }
-
-                    tbd.parse_path = full_path;
-                    tbd.parse_path_length = full_path_length;
-                } else {
-                    if (tbd.flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
-                        fputs("Recursing the input file is not supported.\n"
-                              "Please provide a path to a directory for "
-                              "recursing\n",
-                              stderr);
-
-                        tbd_for_main_destroy(&global);
-                        destroy_tbds_array(&tbds);
-
-                        return 1;
+                        exit(1);
                     }
                 }
 
-                validate_tbd_filetype(&tbd);
                 found_path = true;
-
                 break;
             }
 
@@ -859,9 +938,7 @@ int main(const int argc, char *const argv[]) {
                       "\"stdin\" to parse from terminal input\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
@@ -876,10 +953,9 @@ int main(const int argc, char *const argv[]) {
                 fputs("Internal failure: Failed to add path-info to array\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 free(tbd.parse_path);
+
                 return 1;
             }
         } else if (strcmp(option, "list-architectures") == 0) {
@@ -889,9 +965,7 @@ int main(const int argc, char *const argv[]) {
                       "be printed",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
@@ -986,8 +1060,6 @@ int main(const int argc, char *const argv[]) {
         } else if (strcmp(option, "list-objc-constraints") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-objc-constraints need to be run alone\n", stderr);
-
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
                 return 1;
@@ -998,8 +1070,6 @@ int main(const int argc, char *const argv[]) {
         } else if (strcmp(option, "list-platforms") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-platforms need to be run alone\n", stderr);
-
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
                 return 1;
@@ -1010,8 +1080,6 @@ int main(const int argc, char *const argv[]) {
         } else if (strcmp(option, "list-tbd-flags") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-flags need to be run alone\n", stderr);
-
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
                 return 1;
@@ -1022,8 +1090,6 @@ int main(const int argc, char *const argv[]) {
         } else if (strcmp(option, "list-tbd-versions") == 0) {
             if (index != 1 || argc != 2) {
                 fputs("--list-tbd-versions need to be run alone\n", stderr);
-
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
 
                 return 1;
@@ -1031,33 +1097,20 @@ int main(const int argc, char *const argv[]) {
 
             print_tbd_version_list();
             return 0;
-        } else if (strcmp(option, "no-overwrite") == 0) {
-            global.flags |= F_TBD_FOR_MAIN_NO_OVERWRITE;
         } else if (strcmp(option, "u") == 0 || strcmp(option, "usage") == 0) {
             if (index != 1 || argc != 2) {
                 fprintf(stderr,
                         "Option %s needs to be run by itself\n",
                         argument);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
             print_usage();
             return 0;
         } else {
-            const char *const opt = option;
-            if (tbd_for_main_parse_option(&index, &global, argc, argv, opt)) {
-                continue;
-            }
-
-            fprintf(stderr, "Unrecognized option: %s\n", argument);
-
-            tbd_for_main_destroy(&global);
-            destroy_tbds_array(&tbds);
-
+            fprintf(stderr, "Unrecognized argument: %s\n", argument);
             return 1;
         }
     }
@@ -1067,9 +1120,7 @@ int main(const int argc, char *const argv[]) {
               "recurse\n",
               stderr);
 
-        tbd_for_main_destroy(&global);
         destroy_tbds_array(&tbds);
-
         return 1;
     }
 
@@ -1096,10 +1147,8 @@ int main(const int argc, char *const argv[]) {
     const struct tbd_for_main *const end = tbds.data_end;
 
     for (; tbd != end; tbd++) {
-        tbd_for_main_apply_missing_from(tbd, &global);
-
+        struct tbd_for_main copy = *tbd;
         const uint64_t options = tbd->flags;
-        const struct tbd_create_info orig = tbd->info;
 
         if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
             /*
@@ -1113,16 +1162,13 @@ int main(const int argc, char *const argv[]) {
                       "to write all created files to\n",
                       stderr);
 
-                tbd_for_main_destroy(&global);
                 destroy_tbds_array(&tbds);
-
                 return 1;
             }
 
             struct recurse_callback_info recurse_info = {
-                .global = &global,
-                .tbd = tbd,
-                .orig = &orig,
+                .tbd = &copy,
+                .orig = tbd,
                 .retained = &retained,
                 .export_trie_sb = &export_trie_sb
             };
@@ -1223,9 +1269,8 @@ int main(const int argc, char *const argv[]) {
                     .magic_buffer = &magic_buffer,
                     .retained = &retained,
 
-                    .global = &global,
-                    .tbd = tbd,
-                    .orig = &orig,
+                    .tbd = &copy,
+                    .orig = tbd,
 
                     .dir_path = parse_path,
                     .dir_path_length = tbd->parse_path_length,
@@ -1233,10 +1278,6 @@ int main(const int argc, char *const argv[]) {
                     .dont_handle_non_macho_error = false,
                     .print_paths = should_print_paths,
 
-                    /*
-                     * Verify the write-path only at the last moment, as global
-                     * configuration is now accounted for.
-                     */
 
                     .export_trie_sb = &export_trie_sb,
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
@@ -1265,20 +1306,14 @@ int main(const int argc, char *const argv[]) {
                     .magic_buffer = &magic_buffer,
                     .retained = &retained,
 
-                    .global = &global,
-                    .tbd = tbd,
-                    .orig = &orig,
+                    .tbd = &copy,
+                    .orig = tbd,
 
                     .dsc_dir_path = parse_path,
                     .dsc_dir_path_length = tbd->parse_path_length,
 
                     .dont_handle_non_dsc_error = false,
                     .print_paths = should_print_paths,
-
-                    /*
-                     * Verify the write-path only at the last moment, as global
-                     * configuration is now accounted for.
-                     */
 
                     .export_trie_sb = &export_trie_sb,
                     .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
@@ -1326,8 +1361,6 @@ int main(const int argc, char *const argv[]) {
     }
 
     sb_destroy(&export_trie_sb);
-
-    tbd_for_main_destroy(&global);
     destroy_tbds_array(&tbds);
 
     return 0;

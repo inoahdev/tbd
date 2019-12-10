@@ -44,9 +44,8 @@ struct dsc_iterate_images_info {
     char *write_path;
     uint64_t write_path_length;
 
-    struct tbd_for_main *global;
     struct tbd_for_main *tbd;
-    const struct tbd_create_info *orig;
+    struct tbd_for_main *orig;
 
     struct array images;
     FILE *combine_file;
@@ -434,9 +433,9 @@ actually_parse_image(
     const char *const image_path)
 {
     struct tbd_for_main *const tbd = iterate_info->tbd;
-    struct tbd_create_info *const info = &tbd->info;
-    const struct tbd_create_info *const orig_info = iterate_info->orig;
+    struct tbd_for_main *const orig = iterate_info->orig;
 
+    struct tbd_create_info *const info = &tbd->info;
     struct handle_dsc_image_parse_error_cb_info *const cb_info =
         iterate_info->callback_info;
 
@@ -459,7 +458,7 @@ actually_parse_image(
         cb_info->did_print_messages_header;
 
     if (parse_image_result != E_DSC_IMAGE_PARSE_OK) {
-        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        tbd_create_info_clear_fields_and_create_from(info, &orig->info);
         print_image_error(iterate_info, image_path, parse_image_result);
 
         return 1;
@@ -472,7 +471,7 @@ actually_parse_image(
     }
 
     write_out_tbd_info(iterate_info, tbd, image_path, image_path_length);
-    tbd_create_info_clear_fields_and_create_from(info, orig_info);
+    tbd_create_info_clear_fields_and_create_from(info, &orig->info);
 
     return 0;
 }
@@ -959,9 +958,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
     }
 
     struct handle_dsc_image_parse_error_cb_info cb_info = {
-        .retained = args.retained,
-
-        .global = args.global,
+        .orig = args.orig,
         .tbd = args.tbd,
 
         .dsc_dir_path = args.dsc_dir_path,
@@ -977,7 +974,6 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         .write_path = args.tbd->write_path,
         .write_path_length = args.tbd->write_path_length,
 
-        .global = args.global,
         .tbd = args.tbd,
         .orig = args.orig,
 
@@ -1198,9 +1194,7 @@ parse_dsc_for_main_while_recursing(
                                             &write_path_length);
 
     struct handle_dsc_image_parse_error_cb_info cb_info = {
-        .retained = args.retained,
-
-        .global = args.global,
+        .orig = args.orig,
         .tbd = args.tbd,
 
         .dsc_dir_path = args.dsc_dir_path,
@@ -1215,7 +1209,6 @@ parse_dsc_for_main_while_recursing(
         .write_path = write_path,
         .write_path_length = write_path_length,
 
-        .global = args.global,
         .tbd = args.tbd,
         .orig = args.orig,
 

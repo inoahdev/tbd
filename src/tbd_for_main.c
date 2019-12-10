@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "macho_file.h"
@@ -176,10 +177,13 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
     } else if (strcmp(option, "ignore-clients") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_CLIENTS;
-    } else if (strcmp(option, "ignore-compatibility-version") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+    } else if (strcmp(option, "ignore-compat-version") == 0) {
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
     } else if (strcmp(option, "ignore-current-version") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+    } else if (strcmp(option, "ignore-flags") == 0) {
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS;
     } else if (strcmp(option, "ignore-missing-exports") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_EXPORTS;
     } else if (strcmp(option, "ignore-missing-uuids") == 0) {
@@ -188,6 +192,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
     } else if (strcmp(option, "ignore-objc-constraint") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT;
     } else if (strcmp(option, "ignore-parent-umbrella") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     } else if (strcmp(option, "ignore-reexports") == 0) {
@@ -216,6 +221,25 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "macho") == 0) {
         tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
         tbd->filetypes_count++;
+    } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
+        tbd->flags |= F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+
+        /*
+         * -r/--recurse may have an extra argument specifying
+         * whether or not to recurse sub-directories (By
+         * default, we don't).
+         */
+
+        const int spec_index = index + 1;
+        if (spec_index < argc) {
+            const char *const spec = argv[spec_index];
+            if (strcmp(spec, "all") == 0) {
+                index += 1;
+                tbd->flags |= F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
+            } else if (strcmp(spec, "once") == 0) {
+                index += 1;
+            }
+        }
     } else if (strcmp(option, "replace-archs") == 0) {
         index += 1;
         if (index == argc) {
@@ -224,19 +248,6 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                   stderr);
 
             exit(1);
-        }
-
-        if (tbd_uses_targets(tbd->info.version)) {
-            if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
-                fputs("Replacing architectures is not supported for tbd-v4 and "
-                      "higher.\nPlease use --replace-targets and provide a "
-                      "list of targets\n",
-                      stderr);
-            } else {
-                fputs("Please provide a version that allows replacing "
-                      "architectures (versions less than tbd-version v4)\n",
-                      stderr);
-            }
         }
 
         if (tbd->info.fields.at.archs.data != 0) {
@@ -255,6 +266,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_ARCHS;
     } else if (strcmp(option, "replace-current-version") == 0) {
         index += 1;
         if (index == argc) {
@@ -308,7 +320,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.compatibility_version = (uint32_t)packed_version;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION;
+        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION;
     } else if (strcmp(option, "replace-flags") == 0) {
         index += 1;
@@ -328,6 +340,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.fields.flags = parse_flags_list(index, argc, argv, &index);
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_FLAGS;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
         if (index == argc) {
@@ -364,6 +377,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.fields.at.archs.objc_constraint = objc_constraint;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT;
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
         if (index == argc) {
@@ -394,6 +408,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.fields.at.archs.platform = platform;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_PLATFORM;
     } else if (strcmp(option, "replace-swift-version") == 0) {
         index += 1;
         if (index == argc) {
@@ -431,19 +446,6 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (!tbd_uses_targets(tbd->info.version)) {
-            if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
-                fputs("WARNING: Replacing targets is not supported for tbd-v3 "
-                      "and below.\nPlease use --replace-archs and provide a "
-                      "list of architectures\n",
-                      stderr);
-            } else {
-                fputs("WARNING: Please provide a version that allows replacing "
-                      "targets (tbd-version v4 or higher)\n",
-                      stderr);
-            }
-        }
-
         if (tbd->info.fields.at.targets.list.count != 0) {
             fputs("Note: Option --replace-targets has been provided multiple "
                   "times.\nOlder option's list of targets will be "
@@ -456,6 +458,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
         tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TARGETS;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
     } else if (strcmp(option, "use-symbol-table") == 0) {

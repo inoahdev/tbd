@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "macho_file.h"

@@ -86,9 +86,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_if_should_ignore_flags(cb_info->global,
+                    request_if_should_ignore_flags(cb_info->orig,
                                                    cb_info->tbd,
-                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "Mach-o file (at "
@@ -101,9 +100,8 @@ handle_macho_file_for_main_error_callback(
 
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_if_should_ignore_flags(cb_info->global,
+                    request_if_should_ignore_flags(cb_info->orig,
                                                    cb_info->tbd,
-                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "Mach-o file (at path %s) "
@@ -113,9 +111,8 @@ handle_macho_file_for_main_error_callback(
                                                    cb_info->dir_path);
             } else {
                 request_result =
-                    request_if_should_ignore_flags(cb_info->global,
+                    request_if_should_ignore_flags(cb_info->orig,
                                                    cb_info->tbd,
-                                                   cb_info->retained,
                                                    false,
                                                    stderr,
                                                    "The provided mach-o file "
@@ -153,9 +150,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_INVALID_PLATFORM:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), or one of "
@@ -165,9 +161,8 @@ handle_macho_file_for_main_error_callback(
 
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s), or one of its "
@@ -175,9 +170,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->dir_path);
             } else {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file, or one of its "
@@ -193,9 +187,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_parent_umbrella(cb_info->global,
+                    request_parent_umbrella(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s/%s), or "
@@ -205,9 +198,8 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_parent_umbrella(cb_info->global,
+                    request_parent_umbrella(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s), or one "
@@ -216,9 +208,8 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->dir_path);
             } else {
                 request_result =
-                    request_parent_umbrella(cb_info->global,
+                    request_parent_umbrella(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file, or one "
@@ -255,9 +246,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_OBJC_CONSTRAINT_CONFLICT:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_objc_constraint(cb_info->global,
+                    request_objc_constraint(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s/%s) has "
@@ -268,9 +258,8 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_objc_constraint(cb_info->global,
+                    request_objc_constraint(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
@@ -280,9 +269,8 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->dir_path);
             } else {
                 request_result =
-                    request_objc_constraint(cb_info->global,
+                    request_objc_constraint(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file has "
@@ -299,9 +287,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT:
             if (cb_info->print_paths) {
                 request_result =
-                    request_parent_umbrella(cb_info->global,
+                    request_parent_umbrella(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "Mach-o file (at path %s) has "
@@ -311,9 +298,8 @@ handle_macho_file_for_main_error_callback(
                                             cb_info->dir_path);
             } else {
                 request_result =
-                    request_parent_umbrella(cb_info->global,
+                    request_parent_umbrella(cb_info->orig,
                                             cb_info->tbd,
-                                            cb_info->retained,
                                             false,
                                             stderr,
                                             "The provided mach-o file, has "
@@ -331,9 +317,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s) has archs "
@@ -343,9 +328,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s) has multiple "
@@ -353,9 +337,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->dir_path);
             } else {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file has archs with "
@@ -372,9 +355,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_swift_version(cb_info->global,
+                    request_swift_version(cb_info->orig,
                                           cb_info->tbd,
-                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "Mach-o file (at path %s/%s) has "
@@ -384,9 +366,8 @@ handle_macho_file_for_main_error_callback(
                                           cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_swift_version(cb_info->global,
+                    request_swift_version(cb_info->orig,
                                           cb_info->tbd,
-                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "Mach-o file (at path %s) has archs "
@@ -395,9 +376,8 @@ handle_macho_file_for_main_error_callback(
                                           cb_info->dir_path);
             } else {
                 request_result =
-                    request_swift_version(cb_info->global,
+                    request_swift_version(cb_info->orig,
                                           cb_info->tbd,
-                                          cb_info->retained,
                                           false,
                                           stderr,
                                           "The provided mach-o file has archs "
@@ -477,9 +457,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_install_name(cb_info->global,
+                    request_install_name(cb_info->orig,
                                          cb_info->tbd,
-                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "Mach-o file (at path %s/%s), or one "
@@ -489,9 +468,8 @@ handle_macho_file_for_main_error_callback(
                                          cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_install_name(cb_info->global,
+                    request_install_name(cb_info->orig,
                                          cb_info->tbd,
-                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "Mach-o file (at path %s), or one of "
@@ -500,9 +478,8 @@ handle_macho_file_for_main_error_callback(
                                          cb_info->dir_path);
             } else {
                 request_result =
-                    request_install_name(cb_info->global,
+                    request_install_name(cb_info->orig,
                                          cb_info->tbd,
-                                         cb_info->retained,
                                          false,
                                          stderr,
                                          "The provided mach-o file, or one of "
@@ -540,9 +517,8 @@ handle_macho_file_for_main_error_callback(
         case ERR_MACHO_FILE_PARSE_NO_PLATFORM:
             if (cb_info->is_recursing) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s/%s), does not "
@@ -551,9 +527,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->name);
             } else if (cb_info->print_paths) {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "Mach-o file (at path %s), does not have "
@@ -561,9 +536,8 @@ handle_macho_file_for_main_error_callback(
                                      cb_info->dir_path);
             } else {
                 request_result =
-                    request_platform(cb_info->global,
+                    request_platform(cb_info->orig,
                                      cb_info->tbd,
-                                     cb_info->retained,
                                      false,
                                      stderr,
                                      "The provided mach-o file does not have a "

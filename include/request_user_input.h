@@ -9,8 +9,10 @@
 #ifndef REQUEST_USER_INPUT_H
 #define REQUEST_USER_INPUT_H
 
+#include <stdbool.h>
+#include <stdio.h>
+
 #include "notnull.h"
-#include "tbd_for_main.h"
 
 #ifndef __printflike
 #define __printflike(fmtarg, firstvararg) \
@@ -33,95 +35,87 @@ struct retained_user_info {
     bool never_ignore_non_unique_uuids : 1;
 };
 
-__printflike(6, 7)
+struct tbd_for_main;
+
+__printflike(5, 6)
 bool
-request_current_version(struct tbd_for_main *__notnull global,
+request_current_version(struct tbd_for_main *__notnull orig,
                         struct tbd_for_main *__notnull tbd,
-                        struct retained_user_info *__notnull retained,
                         bool indent,
                         FILE *__notnull prompt_file,
                         const char *__notnull prompt,
                         ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_compat_version(struct tbd_for_main *__notnull global,
+request_compat_version(struct tbd_for_main *__notnull orig,
                        struct tbd_for_main *__notnull tbd,
-                       struct retained_user_info *__notnull retained,
                        bool indent,
                        FILE *__notnull prompt_file,
                        const char *__notnull prompt,
                        ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_install_name(struct tbd_for_main *__notnull global,
+request_install_name(struct tbd_for_main *__notnull orig,
                      struct tbd_for_main *__notnull tbd,
-                     struct retained_user_info *__notnull retained,
                      bool indent,
                      FILE *__notnull prompt_file,
                      const char *__notnull prompt,
                      ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_objc_constraint(struct tbd_for_main *__notnull global,
+request_objc_constraint(struct tbd_for_main *__notnull orig,
                         struct tbd_for_main *__notnull tbd,
-                        struct retained_user_info *__notnull retained,
                         bool indent,
                         FILE *__notnull prompt_file,
                         const char *__notnull prompt,
                         ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_parent_umbrella(struct tbd_for_main *__notnull global,
+request_parent_umbrella(struct tbd_for_main *__notnull orig,
                         struct tbd_for_main *__notnull tbd,
-                        struct retained_user_info *__notnull retained,
                         bool indent,
                         FILE *__notnull prompt_file,
                         const char *__notnull prompt,
                         ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_platform(struct tbd_for_main *__notnull global,
+request_platform(struct tbd_for_main *__notnull orig,
                  struct tbd_for_main *__notnull tbd,
-                 struct retained_user_info *__notnull retained,
                  bool indent,
                  FILE *__notnull prompt_file,
                  const char *__notnull prompt,
                  ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_swift_version(struct tbd_for_main *__notnull global,
+request_swift_version(struct tbd_for_main *__notnull orig,
                       struct tbd_for_main *__notnull tbd,
-                      struct retained_user_info *__notnull retained,
                       bool indent,
                       FILE *__notnull prompt_file,
                       const char *__notnull prompt,
                       ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_if_should_ignore_flags(struct tbd_for_main *__notnull global,
+request_if_should_ignore_flags(struct tbd_for_main *__notnull orig,
                                struct tbd_for_main *__notnull tbd,
-                               struct retained_user_info *__notnull retained,
                                bool indent,
                                FILE *__notnull prompt_file,
                                const char *__notnull prompt,
                                ...);
 
-__printflike(6, 7)
+__printflike(5, 6)
 bool
-request_if_should_ignore_non_unique_uuids(
-    struct tbd_for_main *__notnull global,
-    struct tbd_for_main *__notnull tbd,
-    struct retained_user_info *__notnull retained,
-    bool indent,
-    FILE *__notnull prompt_file,
-    const char *__notnull prompt,
-    ...);
+request_if_should_ignore_non_unique_uuids(struct tbd_for_main *__notnull orig,
+                                          struct tbd_for_main *__notnull tbd,
+                                          bool indent,
+                                          FILE *__notnull prompt_file,
+                                          const char *__notnull prompt,
+                                          ...);
 
 #endif /* REQUEST_USER_INPUT_H */

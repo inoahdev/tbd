@@ -10,6 +10,8 @@
 
 #include <errno.h>
 #include <inttypes.h>
+
+#include <stdlib.h>
 #include <string.h>
 
 #include "mach-o/fat.h"
@@ -264,7 +266,6 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
     const uint64_t arch_bit = (uint64_t)(arch - arch_info_get_list());
     struct mf_parse_lc_from_file_info info = {
         .fd = fd,
-
         .arch = arch,
 
         .arch_bit = (1ull << arch_bit),
@@ -283,12 +284,11 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         .flags = lc_flags
     };
 
-    struct macho_file_lc_info_out lc_info_out = {};
     const enum macho_file_parse_result parse_load_commands_result =
         macho_file_parse_load_commands_from_file(info_in,
                                                  &info,
                                                  extra,
-                                                 &lc_info_out);
+                                                 NULL);
 
     if (parse_load_commands_result != E_MACHO_FILE_PARSE_OK) {
         return parse_load_commands_result;
@@ -1010,7 +1010,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
     const uint32_t nfat_arch = macho->nfat_arch;
 
     if (nfat_arch != 1) {
-        const bool is_big_endian = magic_is_big_endian(magic);
         const enum tbd_ci_set_at_count_result set_count_result =
             tbd_ci_set_at_count(info_in, nfat_arch);
 
@@ -1018,13 +1017,12 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_ALLOC_FAIL;
         }
 
-        const bool is_64 = magic_is_fat_64(magic);
-        if (is_64) {
+        if (magic_is_fat_64(magic)) {
             ret = handle_fat_64_file(info_in,
                                      fd,
                                      macho->range,
                                      nfat_arch,
-                                     is_big_endian,
+                                     magic_is_big_endian(magic),
                                      extra,
                                      tbd_options,
                                      options);
@@ -1033,7 +1031,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
                                      fd,
                                      macho->range,
                                      nfat_arch,
-                                     is_big_endian,
+                                     magic_is_big_endian(magic),
                                      extra,
                                      tbd_options,
                                      options);

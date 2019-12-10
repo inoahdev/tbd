@@ -10,13 +10,10 @@
 #define MACHO_FILE_H
 
 #include <stdio.h>
-#include "mach-o/loader.h"
 
-#include "array.h"
-#include "notnull.h"
+#include "mach-o/loader.h"
 #include "magic_buffer.h"
 #include "range.h"
-#include "string_buffer.h"
 #include "tbd.h"
 
 enum macho_file_options {

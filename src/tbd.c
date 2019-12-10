@@ -11,8 +11,28 @@
 
 #include "copy.h"
 #include "likely.h"
+#include "tbd.h"
 #include "tbd_write.h"
 #include "yaml.h"
+
+const char *tbd_version_to_string(const enum tbd_version version) {
+    switch (version) {
+        case TBD_VERSION_NONE:
+            return NULL;
+
+        case TBD_VERSION_V1:
+            return "v1";
+
+        case TBD_VERSION_V2:
+            return "v2";
+
+        case TBD_VERSION_V3:
+            return "v3";
+
+        case TBD_VERSION_V4:
+            return "v4";
+    }
+}
 
 const char *
 tbd_platform_to_string(const enum tbd_platform platform,
@@ -1481,7 +1501,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
             if (tbd_write_metadata_with_full_targets(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
-            
+
             if (tbd_write_symbols_with_full_targets(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
@@ -1577,12 +1597,6 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     destroy_symbols_array(&info->fields.symbols);
     array_destroy(&info->fields.uuids);
 
-    const struct array symbols = info->fields.symbols;
-    const struct array uuids = info->fields.uuids;
-
     memset(&info->fields, 0, sizeof(info->fields));
-
     info->flags = 0;
-    info->fields.symbols = symbols;
-    info->fields.uuids = uuids;
 }

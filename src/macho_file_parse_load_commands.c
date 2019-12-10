@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "arch_info.h"
@@ -581,7 +582,7 @@ parse_load_command(struct parse_lc_info *__notnull const parse_info,
 
             const uint64_t ignore_all_mask =
                 (O_TBD_PARSE_IGNORE_CURRENT_VERSION |
-                 O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION |
+                 O_TBD_PARSE_IGNORE_COMPAT_VERSION |
                  O_TBD_PARSE_IGNORE_INSTALL_NAME);
 
             if ((tbd_options & ignore_all_mask) == ignore_all_mask) {
@@ -675,7 +676,7 @@ parse_load_command(struct parse_lc_info *__notnull const parse_info,
                     info_in->fields.current_version = dylib.current_version;
                 }
 
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION)) {
+                if (!(tbd_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION)) {
                     const uint32_t compat_version = dylib.compatibility_version;
                     info_in->fields.compatibility_version = compat_version;
                 }
@@ -718,7 +719,7 @@ parse_load_command(struct parse_lc_info *__notnull const parse_info,
                 const uint32_t info_compat_version =
                     info_in->fields.compatibility_version;
 
-                if (!(tbd_options & O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION) &&
+                if (!(tbd_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION) &&
                     info_compat_version != dylib.compatibility_version)
                 {
                     const bool should_continue =

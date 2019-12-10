@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "notnull.h"
+#include "request_user_input.h"
 #include "tbd.h"
 
 enum tbd_for_main_dsc_image_flags {
@@ -80,10 +81,18 @@ enum tbd_for_main_flags {
 
     F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9,
 
-    F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION = 1ull << 10,
-    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 11,
+    F_TBD_FOR_MAIN_PROVIDED_ARCHS = 1ull << 10,
+    F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION = 1ull << 11,
+    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 12,
+    F_TBD_FOR_MAIN_PROVIDED_FLAGS           = 1ull << 13,
+    F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT = 1ull << 14,
 
-    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 12
+    F_TBD_FOR_MAIN_PROVIDED_PLATFORM = 1ull << 15,
+    F_TBD_FOR_MAIN_PROVIDED_TARGETS  = 1ull << 16,
+
+    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 17,
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS = 1ull << 18,
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT = 1ull << 19
 };
 
 enum tbd_for_main_filetype {
@@ -121,6 +130,8 @@ struct tbd_for_main {
 
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
+
+    struct retained_user_info retained;
 
     uint64_t dsc_filter_paths_count;
     uint64_t flags;

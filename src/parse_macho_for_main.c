@@ -206,12 +206,9 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
      */
 
     struct tbd_create_info *const info = &args.tbd->info;
-    const struct tbd_create_info *const orig_info = args.orig;
 
+    const struct tbd_create_info *const orig = &args.orig->info;
     const struct handle_macho_file_parse_error_cb_info cb_info = {
-        .retained = args.retained,
-
-        .global = args.global,
         .tbd = args.tbd,
 
         .dir_path = args.dir_path,
@@ -239,7 +236,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         const bool ignore_warnings =
             (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
 
-        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        tbd_create_info_clear_fields_and_create_from(info, orig);
         handle_macho_file_parse_result(args.dir_path,
                                        args.name,
                                        parse_macho_result,
@@ -267,7 +264,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
                                   &terminator);
 
         if (file == NULL) {
-            tbd_create_info_clear_fields_and_create_from(info, orig_info);
+            tbd_create_info_clear_fields_and_create_from(info, orig);
             return E_PARSE_MACHO_FOR_MAIN_OK;
         }
 
@@ -283,7 +280,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         tbd_for_main_write_to_stdout(args.tbd, args.dir_path, true);
     }
 
-    tbd_create_info_clear_fields_and_create_from(info, orig_info);
+    tbd_create_info_clear_fields_and_create_from(info, orig);
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }
 
@@ -333,12 +330,10 @@ parse_macho_file_for_main_while_recursing(
      */
 
     struct tbd_create_info *const info = &args.tbd->info;
-    const struct tbd_create_info *const orig_info = args.orig;
 
+    const struct tbd_create_info *const orig = &args.orig->info;
     const struct handle_macho_file_parse_error_cb_info cb_info = {
-        .retained = args.retained,
-
-        .global = args.global,
+        .orig = args.tbd,
         .tbd = args.tbd,
 
         .dir_path = args.dir_path,
@@ -365,7 +360,7 @@ parse_macho_file_for_main_while_recursing(
         const bool ignore_warnings =
             (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
 
-        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        tbd_create_info_clear_fields_and_create_from(info, orig);
         handle_macho_file_parse_result(args.dir_path,
                                        args.name,
                                        parse_macho_result,
@@ -409,7 +404,7 @@ parse_macho_file_for_main_while_recursing(
             free(write_path);
         }
 
-        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        tbd_create_info_clear_fields_and_create_from(info, orig);
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
@@ -425,6 +420,6 @@ parse_macho_file_for_main_while_recursing(
         free(write_path);
     }
 
-    tbd_create_info_clear_fields_and_create_from(info, orig_info);
+    tbd_create_info_clear_fields_and_create_from(info, orig);
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }

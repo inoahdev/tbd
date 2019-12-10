@@ -24,19 +24,19 @@
  */
 
 enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_AT_AND_UUIDS          = 1ull << 0,
-    O_TBD_PARSE_IGNORE_CLIENTS               = 1ull << 1,
-    O_TBD_PARSE_IGNORE_CURRENT_VERSION       = 1ull << 2,
-    O_TBD_PARSE_IGNORE_COMPATIBILITY_VERSION = 1ull << 3,
-    O_TBD_PARSE_IGNORE_EXPORTS               = 1ull << 4,
-    O_TBD_PARSE_IGNORE_FLAGS                 = 1ull << 5,
-    O_TBD_PARSE_IGNORE_INSTALL_NAME          = 1ull << 6,
-    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT       = 1ull << 7,
-    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA       = 1ull << 8,
-    O_TBD_PARSE_IGNORE_PLATFORM              = 1ull << 9,
-    O_TBD_PARSE_IGNORE_REEXPORTS             = 1ull << 10,
-    O_TBD_PARSE_IGNORE_SWIFT_VERSION         = 1ull << 11,
-    O_TBD_PARSE_IGNORE_UNDEFINEDS            = 1ull << 12,
+    O_TBD_PARSE_IGNORE_AT_AND_UUIDS    = 1ull << 0,
+    O_TBD_PARSE_IGNORE_CLIENTS         = 1ull << 1,
+    O_TBD_PARSE_IGNORE_CURRENT_VERSION = 1ull << 2,
+    O_TBD_PARSE_IGNORE_COMPAT_VERSION  = 1ull << 3,
+    O_TBD_PARSE_IGNORE_EXPORTS         = 1ull << 4,
+    O_TBD_PARSE_IGNORE_FLAGS           = 1ull << 5,
+    O_TBD_PARSE_IGNORE_INSTALL_NAME    = 1ull << 6,
+    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT = 1ull << 7,
+    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA = 1ull << 8,
+    O_TBD_PARSE_IGNORE_PLATFORM        = 1ull << 9,
+    O_TBD_PARSE_IGNORE_REEXPORTS       = 1ull << 10,
+    O_TBD_PARSE_IGNORE_SWIFT_VERSION   = 1ull << 11,
+    O_TBD_PARSE_IGNORE_UNDEFINEDS      = 1ull << 12,
 
     /*
      * Options dictating what types of symbols should also be allowed in
@@ -108,6 +108,8 @@ enum tbd_version {
     TBD_VERSION_V3,
     TBD_VERSION_V4
 };
+
+const char *tbd_version_to_string(enum tbd_version version);
 
 const char *
 tbd_platform_to_string(enum tbd_platform platform, enum tbd_version version);
