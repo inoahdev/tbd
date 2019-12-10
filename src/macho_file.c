@@ -573,6 +573,10 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                     }
                 }
             } else if (is_invalid_filetype(header.filetype)) {
+                if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
+                    continue;
+                }
+
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
                     const bool should_continue =
                         call_callback(info_in,
@@ -914,6 +918,10 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                     }
                 }
             } else if (is_invalid_filetype(header.filetype)) {
+                if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
+                    continue;
+                }
+
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
                     const bool should_continue =
                         call_callback(info_in,
