@@ -106,17 +106,19 @@ sb_add_c_str(struct string_buffer *__notnull const sb,
 }
 
 enum string_buffer_result
-sb_reserve_space(struct string_buffer *__notnull const sb,
-                 const uint64_t space)
+sb_reserve_space(struct string_buffer *__notnull const sb, const uint64_t space)
 {
     const uint64_t sb_capacity = sb->capacity;
-    if ((sb_capacity != 0) &&
-        (get_free_space(sb->length, sb_capacity) >= space))
-    {
-        return E_STRING_BUFFER_OK;
+    uint64_t new_cap = space;
+
+    if (sb_capacity != 0) {
+        if (get_free_space(sb->length, sb_capacity) >= space) {
+            return E_STRING_BUFFER_OK;
+        }
+
+        new_cap = capacity_for_length(sb, space);
     }
 
-    const uint64_t new_cap = capacity_for_length(sb, space);
     if (expand_to_capacity(sb, new_cap) == NULL) {
         return E_STRING_BUFFER_ALLOC_FAIL;
     }
