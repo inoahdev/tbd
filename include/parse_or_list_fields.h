@@ -14,11 +14,10 @@
 #include "notnull.h"
 #include "tbd.h"
 
-uint64_t
+struct target_list
 parse_architectures_list(int index,
                          int argc,
                          char *const *__notnull argv,
-                         uint64_t *__notnull count_out,
                          int *__notnull index_out);
 
 uint32_t

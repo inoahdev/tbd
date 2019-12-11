@@ -263,12 +263,10 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
      * Ignore if arch is NULL, as arch_index would be ignored as well.
      */
 
-    const uint64_t arch_bit = (uint64_t)(arch - arch_info_get_list());
     struct mf_parse_lc_from_file_info info = {
         .fd = fd,
-        .arch = arch,
 
-        .arch_bit = (1ull << arch_bit),
+        .arch = arch,
         .arch_index = arch_index,
 
         .macho_range = container_range,
@@ -298,8 +296,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 }
 
 static enum macho_file_parse_result
-verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
-                   struct fat_arch *__notnull const arch,
+verify_fat_32_arch(struct fat_arch *__notnull const arch,
                    const uint64_t macho_base,
                    const struct range available_range,
                    const bool is_big_endian,
@@ -364,23 +361,6 @@ verify_fat_32_arch(struct tbd_create_info *__notnull const info_in,
         arch_info = arch_info_for_cputype(arch_cputype, arch_cpusubtype);
         if (arch_info == NULL) {
             return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-        }
-
-        /*
-         * Archs are handled differently on tbd-v4
-         */
-
-        if (!tbd_uses_targets(info_in->version)) {
-            const struct arch_info *const arch_info_list = arch_info_get_list();
-
-            const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
-            const uint64_t arch_bit = 1ull << arch_index;
-
-            if (info_in->fields.at.archs.data & arch_bit) {
-                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-            }
-
-            info_in->fields.at.archs.data |= arch_bit;
         }
 
         /*
@@ -466,8 +446,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
     };
 
     const enum macho_file_parse_result verify_first_arch_result =
-        verify_fat_32_arch(info_in,
-                           first_arch,
+        verify_fat_32_arch(first_arch,
                            macho_range.begin,
                            available_range,
                            is_big_endian,
@@ -484,8 +463,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         struct range arch_range = {};
 
         const enum macho_file_parse_result verify_arch_result =
-            verify_fat_32_arch(info_in,
-                               arch,
+            verify_fat_32_arch(arch,
                                macho_range.begin,
                                available_range,
                                is_big_endian,
@@ -573,10 +551,6 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                     }
                 }
             } else if (is_invalid_filetype(header.filetype)) {
-                if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
-                    continue;
-                }
-
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
                     const bool should_continue =
                         call_callback(info_in,
@@ -649,8 +623,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 }
 
 static enum macho_file_parse_result
-verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
-                   struct fat_arch_64 *__notnull const arch,
+verify_fat_64_arch(struct fat_arch_64 *__notnull const arch,
                    const uint64_t macho_base,
                    const struct range available_range,
                    const bool is_big_endian,
@@ -720,23 +693,6 @@ verify_fat_64_arch(struct tbd_create_info *__notnull const info_in,
 
         if (arch_info == NULL) {
             return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-        }
-
-        const struct arch_info *const arch_info_list = arch_info_get_list();
-
-        const uint64_t arch_index = (uint64_t)(arch_info - arch_info_list);
-        const uint64_t arch_bit = 1ull << arch_index;
-
-        /*
-         * Archs are handled differently on tbd-v4
-         */
-
-        if (!tbd_uses_targets(info_in->version)) {
-            if (info_in->fields.at.archs.data & arch_bit) {
-                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_CPUTYPE;
-            }
-
-            info_in->fields.at.archs.data |= arch_bit;
         }
 
         /*
@@ -810,8 +766,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     };
 
     const enum macho_file_parse_result verify_first_arch_result =
-        verify_fat_64_arch(info_in,
-                           first_arch,
+        verify_fat_64_arch(first_arch,
                            macho_range.begin,
                            available_range,
                            is_big_endian,
@@ -832,8 +787,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         struct range arch_range = {};
 
         const enum macho_file_parse_result verify_arch_result =
-            verify_fat_64_arch(info_in,
-                               arch,
+            verify_fat_64_arch(arch,
                                macho_range.begin,
                                available_range,
                                is_big_endian,
@@ -918,10 +872,6 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                     }
                 }
             } else if (is_invalid_filetype(header.filetype)) {
-                if (options & O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES) {
-                    continue;
-                }
-
                 if (!(options & O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE)) {
                     const bool should_continue =
                         call_callback(info_in,
@@ -1053,16 +1003,14 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
-            if (tbd_uses_targets(info_in->version)) {
-                if (info_in->fields.symbols.item_count == 0 &&
-                    info_in->fields.at.targets.metadata.item_count == 0)
-                {
-                    return E_MACHO_FILE_PARSE_NO_DATA;
-                }
-            } else {
-                if (info_in->fields.symbols.item_count == 0) {
-                    return E_MACHO_FILE_PARSE_NO_DATA;
-                }
+            if (info_in->fields.symbols.item_count == 0 &&
+                info_in->fields.metadata.item_count == 0)
+            {
+                return E_MACHO_FILE_PARSE_NO_DATA;
+            }
+        } else {
+            if (info_in->fields.symbols.item_count == 0) {
+                return E_MACHO_FILE_PARSE_NO_DATA;
             }
         }
 
@@ -1093,23 +1041,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         const struct arch_info *arch = NULL;
-        const enum tbd_version version = info_in->version;
-
         if (!(tbd_options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
             arch = arch_info_for_cputype(header.cputype, header.cpusubtype);
             if (arch == NULL) {
                 return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
-            }
-
-            if (!tbd_uses_targets(info_in->version)) {
-                const struct arch_info *const arch_info_list =
-                    arch_info_get_list();
-
-                const uint64_t arch_index = (uint64_t)(arch - arch_info_list);
-                const uint64_t arch_bit = (1ull << arch_index);
-
-                info_in->fields.at.archs.data = arch_bit;
-                info_in->fields.at.archs.count = 1;
             }
 
             info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
@@ -1134,16 +1069,14 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
-            if (tbd_uses_targets(version)) {
-                if (info_in->fields.symbols.item_count == 0 &&
-                    info_in->fields.at.targets.metadata.item_count == 0)
-                {
-                    return E_MACHO_FILE_PARSE_NO_DATA;
-                }
-            } else {
-                if (info_in->fields.symbols.item_count == 0) {
-                    return E_MACHO_FILE_PARSE_NO_DATA;
-                }
+            if (info_in->fields.symbols.item_count == 0 &&
+                info_in->fields.metadata.item_count == 0)
+            {
+                return E_MACHO_FILE_PARSE_NO_DATA;
+            }
+        } else {
+            if (info_in->fields.symbols.item_count == 0) {
+                return E_MACHO_FILE_PARSE_NO_DATA;
             }
         }
     }

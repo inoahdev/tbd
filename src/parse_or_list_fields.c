@@ -13,29 +13,25 @@
 #include "parse_or_list_fields.h"
 #include "target_list.h"
 
-uint64_t
+struct target_list
 parse_architectures_list(int index,
                          const int argc,
                          char *const *__notnull const argv,
-                         uint64_t *__notnull const count_out,
                          int *__notnull const index_out)
 {
-    uint64_t archs = 0;
-    uint64_t count = 0;
-
-    const struct arch_info *const arch_info_list = arch_info_get_list();
+    struct target_list list = {};
 
     do {
-        const char *const arch = argv[index];
-        const char arch_front = arch[0];
+        const char *const arg = argv[index];
+        const char arg_front = arg[0];
 
         /*
          * Quickly check if our arch-string is either a path-string or an option
          * to avoid an unnecessary arch-info lookup.
          */
 
-        if (arch_front == '-' || arch_front == '/') {
-            if (archs == 0) {
+        if (arg_front == '-' || arg_front == '/') {
+            if (list.set_count == 0) {
                 fputs("Please provide a list of architectures\n", stderr);
                 exit(1);
             }
@@ -43,16 +39,16 @@ parse_architectures_list(int index,
             break;
         }
 
-        const struct arch_info *const arch_info = arch_info_for_name(arch);
-        if (arch_info == NULL) {
+        const struct arch_info *const arch = arch_info_for_name(arg);
+        if (arch == NULL) {
             /*
              * At least one architecture must be provided for the list.
              */
 
-            if (archs == 0) {
+            if (list.set_count == 0) {
                 fprintf(stderr,
                         "Unrecognized architecture (with name %s)\n",
-                        arch);
+                        arg);
 
                 exit(1);
             }
@@ -60,16 +56,21 @@ parse_architectures_list(int index,
             break;
         }
 
-        const uint64_t arch_info_index = (uint64_t)(arch_info - arch_info_list);
-        const uint64_t arch_info_mask = (1ull << arch_info_index);
+        const enum tbd_platform platform = TBD_PLATFORM_NONE;
+        const bool has_arch = target_list_has_target(&list, arch, platform);
 
-        if (archs & arch_info_mask) {
-            fprintf(stderr,
-                    "Note: Arch %s has been provided multiple times\n",
-                    arch);
+        if (!has_arch) {
+            const enum target_list_result add_target_result =
+                target_list_add_target(&list, arch, platform);
+
+            if (add_target_result != E_TARGET_LIST_OK) {
+                fprintf(stderr,
+                        "INTERNAL: Failed to add arch %s to list\n",
+                        arg);
+                exit(1);
+            }
         } else {
-            archs |= arch_info_mask;
-            count++;
+            fprintf(stderr, "Note: Arch %s has been provided twice\n", arg);
         }
 
         index++;
@@ -84,10 +85,8 @@ parse_architectures_list(int index,
      * to the last argument.
      */
 
-    *count_out = count;
     *index_out = index - 1;
-
-    return archs;
+    return list;
 }
 
 uint32_t
@@ -245,7 +244,7 @@ parse_targets_list(int index,
          */
 
         if (*arg == '-') {
-            if (list.count == 0) {
+            if (list.set_count == 0) {
                 fputs("Please provide a list of targets\n", stderr);
                 exit(1);
             }
@@ -255,7 +254,7 @@ parse_targets_list(int index,
 
         char *const sep_dash = find_dash(arg);
         if (sep_dash == NULL) {
-            if (list.count == 0) {
+            if (list.set_count == 0) {
                 fprintf(stderr, "Unrecognized target: %s\n", arg);
                 exit(1);
             }
@@ -298,7 +297,10 @@ parse_targets_list(int index,
                 target_list_add_target(&list, arch, platform);
 
             if (add_target_result != E_TARGET_LIST_OK) {
-                fputs("INTERNAL: Failed to add target to list\n", stderr);
+                fprintf(stderr,
+                        "INTERNAL: Failed to add target %s to list\n",
+                        arg);
+
                 exit(1);
             }
         } else {

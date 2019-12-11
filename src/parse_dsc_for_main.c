@@ -1199,6 +1199,8 @@ parse_dsc_for_main_while_recursing(
 
         .dsc_dir_path = args.dsc_dir_path,
         .dsc_name = args.dsc_name,
+
+        .print_paths = args.print_paths
     };
 
     struct dsc_iterate_images_info iterate_info = {

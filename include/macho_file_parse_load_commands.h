@@ -26,9 +26,8 @@ enum mf_parse_load_commands_flags {
 
 struct mf_parse_lc_from_file_info {
     int fd;
+    
     const struct arch_info *arch;
-
-    uint64_t arch_bit;
     uint64_t arch_index;
 
     struct range macho_range;
@@ -64,8 +63,6 @@ struct mf_parse_lc_from_map_info {
     uint64_t macho_size;
 
     const struct arch_info *arch;
-
-    uint64_t arch_bit;
     uint64_t arch_index;
 
     struct range available_map_range;

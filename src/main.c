@@ -373,44 +373,57 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             break;
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION) {
         if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION) {
             fprintf(stderr,
-                    "Please only provide either --ignore-current-version or "
-                    "--replace-current-version for file from: %s\n",
+                    "Please exclusively provide either "
+                    "--ignore-current-version or --replace-current-version for "
+                    "file from: %s\n",
                     path);
 
             result = 1;
         }
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION) {
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION) {
         if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION) {
             fprintf(stderr,
-                    "Please only provide either --ignore-compat-version or "
-                    "--replace-compat-version for file from: %s\n",
+                    "Please exclusively provide either --ignore-compat-version "
+                    "or --replace-compat-version for file from: %s\n",
                     path);
 
             result = 1;
         }
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_FLAGS) {
+            fprintf(stderr,
+                    "Please exclusively provide either --ignore-flags or "
+                    "--replace-flags for file from: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT) {
         if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
             fprintf(stderr,
-                    "Please only provide either --ignore-objc-constraint or "
-                    "--replace-objc-constraint for file from: %s\n",
+                    "Please exclusively provide either "
+                    "--ignore-objc-constraint or --replace-objc-constraint for "
+                    "file from: %s\n",
                     path);
 
             result = 1;
         }
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-        if (tbd->info.fields.swift_version != 0) {
+    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_SWIFT_VERSION) {
             fprintf(stderr,
-                    "Please only provide either --ignore-swift-version or "
-                    "--replace-swift-version for file from: %s\n",
+                    "Please exclusively provide either --ignore-swift-version "
+                    "or --replace-swift-version for file from: %s\n",
                     path);
 
             result = 1;
@@ -446,10 +459,9 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         struct stat info = {};
         if (stat(full_path, &info) != 0) {
             /*
-             * ENOTDIR will be returned if a directory in the
-             * path hierarchy isn't a directory at all, which still
-             * means that no file/directory exists at the provided
-             * path.
+             * ENOTDIR will be returned if a directory in the path hierarchy
+             * isn't a directory at all, which still means that no
+             * file/directory exists at the provided path.
              */
 
             if (errno == ENOENT || errno == ENOTDIR) {
@@ -554,7 +566,7 @@ int main(const int argc, char *const argv[]) {
     uint64_t current_tbd_index = 0;
 
     bool has_stdout = false;
-    bool will_parse_exports = false;
+    bool will_parse_export_trie = false;
 
     for (int index = 1; index != argc; index++) {
         /*
@@ -943,7 +955,7 @@ int main(const int argc, char *const argv[]) {
             }
 
             if (!(tbd.parse_options & O_TBD_PARSE_IGNORE_EXPORTS)) {
-                will_parse_exports = true;
+                will_parse_export_trie = true;
             }
 
             const enum array_result add_tbd_result =
@@ -1125,7 +1137,7 @@ int main(const int argc, char *const argv[]) {
     }
 
     struct string_buffer export_trie_sb = {};
-    if (will_parse_exports) {
+    if (will_parse_export_trie) {
         const enum string_buffer_result reserve_sb_result =
             sb_reserve_space(&export_trie_sb, 32);
 
@@ -1238,6 +1250,9 @@ int main(const int argc, char *const argv[]) {
 
                 fclose(recurse_info.combine_file);
             }
+
+            tbd_for_main_destroy(&copy);
+            memset(tbd, 0, sizeof(*tbd));
         } else {
             char *const parse_path = tbd->parse_path;
             const int fd = our_open(parse_path, O_RDONLY, 0);
@@ -1277,7 +1292,6 @@ int main(const int argc, char *const argv[]) {
 
                     .dont_handle_non_macho_error = false,
                     .print_paths = should_print_paths,
-
 
                     .export_trie_sb = &export_trie_sb,
                     .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH

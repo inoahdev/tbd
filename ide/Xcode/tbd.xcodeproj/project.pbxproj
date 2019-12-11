@@ -36,6 +36,7 @@
 		C39372B8235A78B6003F3CB7 /* our_io.c in Sources */ = {isa = PBXBuildFile; fileRef = C39372B7235A78B6003F3CB7 /* our_io.c */; };
 		C397818B238B9E9900AFDA14 /* target_list.c in Sources */ = {isa = PBXBuildFile; fileRef = C3978189238B9E9900AFDA14 /* target_list.c */; };
 		C397818C238B9E9900AFDA14 /* bit_list.c in Sources */ = {isa = PBXBuildFile; fileRef = C397818A238B9E9900AFDA14 /* bit_list.c */; };
+		C3B2FA0223A0D0880051501A /* macho_file_parse_single_lc.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B2FA0123A0D0880051501A /* macho_file_parse_single_lc.c */; };
 		C3B715FF2381E1AE00E1AEBA /* macho_file_parse_symtab.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */; };
 		C3B716002381E1AE00E1AEBA /* string_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FD2381E1AE00E1AEBA /* string_buffer.c */; };
 		C3B716012381E1AE00E1AEBA /* macho_file_parse_export_trie.c in Sources */ = {isa = PBXBuildFile; fileRef = C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */; };
@@ -124,6 +125,8 @@
 		C397818A238B9E9900AFDA14 /* bit_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bit_list.c; path = ../../src/bit_list.c; sourceTree = "<group>"; };
 		C397818D238B9EA600AFDA14 /* bit_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bit_list.h; path = ../../include/bit_list.h; sourceTree = "<group>"; };
 		C397818E238B9EA600AFDA14 /* target_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = target_list.h; path = ../../include/target_list.h; sourceTree = "<group>"; };
+		C3B2FA0123A0D0880051501A /* macho_file_parse_single_lc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_single_lc.c; path = ../../src/macho_file_parse_single_lc.c; sourceTree = "<group>"; };
+		C3B2FA0323A0D0920051501A /* macho_file_parse_single_lc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macho_file_parse_single_lc.h; path = ../../include/macho_file_parse_single_lc.h; sourceTree = "<group>"; };
 		C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_symtab.c; path = ../../src/macho_file_parse_symtab.c; sourceTree = "<group>"; };
 		C3B715FD2381E1AE00E1AEBA /* string_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = string_buffer.c; path = ../../src/string_buffer.c; sourceTree = "<group>"; };
 		C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = macho_file_parse_export_trie.c; path = ../../src/macho_file_parse_export_trie.c; sourceTree = "<group>"; };
@@ -188,6 +191,7 @@
 				C3C6D21422D7DC7900760FC6 /* likely.h */,
 				C3B716042381E1EB00E1AEBA /* macho_file_parse_export_trie.h */,
 				C361A51D2248946B001BD07A /* macho_file_parse_load_commands.h */,
+				C3B2FA0323A0D0920051501A /* macho_file_parse_single_lc.h */,
 				C3B716022381E1EB00E1AEBA /* macho_file_parse_symtab.h */,
 				C361A5212248946B001BD07A /* macho_file.h */,
 				C31AB6F4239CC41800F0DDB2 /* magic_buffer.h */,
@@ -248,6 +252,7 @@
 				C361A4E622489453001BD07A /* handle_macho_file_parse_result.c */,
 				C3B715FE2381E1AE00E1AEBA /* macho_file_parse_export_trie.c */,
 				C361A4DA22489452001BD07A /* macho_file_parse_load_commands.c */,
+				C3B2FA0123A0D0880051501A /* macho_file_parse_single_lc.c */,
 				C3B715FC2381E1AE00E1AEBA /* macho_file_parse_symtab.c */,
 				C361A4E722489453001BD07A /* macho_file.c */,
 				C31AB6F5239CC4E300F0DDB2 /* magic_buffer.c */,
@@ -360,6 +365,7 @@
 				C361A4FE22489453001BD07A /* dyld_shared_cache.c in Sources */,
 				C361A50022489453001BD07A /* macho_file.c in Sources */,
 				C361A4F222489453001BD07A /* array.c in Sources */,
+				C3B2FA0223A0D0880051501A /* macho_file_parse_single_lc.c in Sources */,
 				C367ACFA23621BD90059EF14 /* util.c in Sources */,
 				C397818C238B9E9900AFDA14 /* bit_list.c in Sources */,
 			);

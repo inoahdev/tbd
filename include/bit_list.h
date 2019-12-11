@@ -47,4 +47,7 @@ void bit_list_set_first_n(struct bit_list *__notnull list, uint64_t n);
 
 int bit_list_equal_counts_compare(struct bit_list left, struct bit_list right);
 
+void bit_list_clear(struct bit_list *__notnull list);
+void bit_list_destroy(struct bit_list *__notnull list);
+
 #endif /* BIT_LIST_H */

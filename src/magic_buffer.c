@@ -20,12 +20,14 @@ magic_buffer_read_n(struct magic_buffer *__notnull const buffer,
     }
 
     void *const buff = buffer->buff + buff_read;
-    const uint64_t read_size = n - buff_read;
 
-    if (read(fd, buff, read_size) < 0) {
+    const uint64_t read_size = n - buff_read;
+    const ssize_t read_ret = read(fd, buff, read_size);
+
+    if (read_ret < 0) {
         return E_MAGIC_BUFFER_READ_FAIL;
     }
 
-    buffer->read = n;
+    buffer->read = buff_read + read_ret;
     return E_MAGIC_BUFFER_OK;
 }

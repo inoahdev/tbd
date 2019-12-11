@@ -147,18 +147,8 @@ enum tbd_data_info_flags {
     F_TBD_DATA_INFO_STRING_NEEDS_QUOTES = 1ull << 0
 };
 
-struct tbd_archs_pair {
-    uint64_t data;
-    uint64_t count;
-};
-
-union tbd_archs_or_targets {
-    struct tbd_archs_pair archs;
-    struct bit_list targets;
-};
-
 struct tbd_metadata_info {
-    struct bit_list bits;
+    struct bit_list targets;
 
     char *string;
     uint64_t length;
@@ -168,7 +158,7 @@ struct tbd_metadata_info {
 };
 
 struct tbd_symbol_info {
-    union tbd_archs_or_targets at;
+    struct bit_list targets;
 
     char *string;
     uint64_t length;
@@ -180,11 +170,7 @@ struct tbd_symbol_info {
 };
 
 struct tbd_uuid_info {
-    union {
-        const struct arch_info *arch;
-        uint64_t target;
-    } at;
-
+    uint64_t target;
     uint8_t uuid[16];
 };
 
@@ -195,7 +181,7 @@ bool
 tbd_should_parse_swift_version(uint64_t options, enum tbd_version version);
 
 bool tbd_should_parse_flags(uint64_t options, enum tbd_version version);
-bool tbd_uses_targets(enum tbd_version version);
+bool tbd_uses_archs(enum tbd_version version);
 
 enum tbd_create_info_flags {
     F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1ull << 0,
@@ -216,23 +202,11 @@ enum tbd_create_info_flags {
 };
 
 struct tbd_create_info_fields {
-    union {
-        struct {
-            uint64_t data;
-            uint64_t count;
+    struct target_list targets;
 
-            enum tbd_objc_constraint objc_constraint;
-            enum tbd_platform platform;
-
-            const char *parent_umbrella;
-            uint64_t parent_umbrella_length;
-        } archs;
-
-        struct {
-            struct array metadata;
-            struct target_list list;
-        } targets;
-    } at;
+    struct {
+        enum tbd_objc_constraint objc_constraint;
+    } archs;
 
     uint32_t flags;
 
@@ -243,6 +217,7 @@ struct tbd_create_info_fields {
     uint32_t compatibility_version;
     uint32_t swift_version;
 
+    struct array metadata;
     struct array symbols;
     struct array uuids;
 };
@@ -276,8 +251,10 @@ tbd_ci_add_parent_umbrella(struct tbd_create_info *__notnull info_in,
                            const char *__notnull string,
                            uint64_t length,
                            uint64_t arch_index,
-                           bool copy_string,
                            uint64_t options);
+
+struct tbd_metadata_info *
+tbd_ci_get_single_parent_umbrella(const struct tbd_create_info *__notnull info);
 
 enum tbd_ci_add_data_result {
     E_TBD_CI_ADD_DATA_OK,
@@ -299,7 +276,6 @@ enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull info_in,
                             const char *__notnull string,
                             uint64_t length,
-                            uint64_t arch_bit,
                             uint64_t arch_index,
                             enum tbd_symbol_type type,
                             enum tbd_symbol_meta_type meta_type,
@@ -309,7 +285,6 @@ enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
                             const char *__notnull string,
                             uint64_t max_len,
-                            uint64_t arch_bit,
                             uint64_t arch_index,
                             enum tbd_symbol_type predefined_type,
                             enum tbd_symbol_meta_type meta_type,
@@ -320,12 +295,19 @@ enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info_and_len(struct tbd_create_info *__notnull info_in,
                                     const char *__notnull string,
                                     uint64_t len,
-                                    uint64_t arch_bit,
                                     uint64_t arch_index,
                                     enum tbd_symbol_type predefined_type,
                                     enum tbd_symbol_meta_type meta_type,
                                     bool is_exported,
                                     uint64_t options);
+
+
+enum tbd_platform
+tbd_ci_get_single_platform(const struct tbd_create_info *__notnull info);
+
+void
+tbd_ci_set_single_platform(struct tbd_create_info *__notnull info,
+                           enum tbd_platform platform);
 
 void tbd_ci_sort_info(struct tbd_create_info *__notnull info_in);
 

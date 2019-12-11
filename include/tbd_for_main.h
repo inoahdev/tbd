@@ -86,13 +86,18 @@ enum tbd_for_main_flags {
     F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 12,
     F_TBD_FOR_MAIN_PROVIDED_FLAGS           = 1ull << 13,
     F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT = 1ull << 14,
+    F_TBD_FOR_MAIN_PROVIDED_PLATFORM        = 1ull << 15,
+    F_TBD_FOR_MAIN_PROVIDED_SWIFT_VERSION   = 1ull << 16,
+    F_TBD_FOR_MAIN_PROVIDED_TARGETS         = 1ull << 17,
 
-    F_TBD_FOR_MAIN_PROVIDED_PLATFORM = 1ull << 15,
-    F_TBD_FOR_MAIN_PROVIDED_TARGETS  = 1ull << 16,
+    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 18,
 
-    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 17,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS = 1ull << 18,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT = 1ull << 19
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION = 1ull << 19,
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION  = 1ull << 20,
+
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS           = 1ull << 21,
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT = 1ull << 22,
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION   = 1ull << 23
 };
 
 enum tbd_for_main_filetype {
@@ -187,10 +192,6 @@ tbd_for_main_create_dsc_image_write_path(
     const char *__notnull extension,
     uint64_t extension_length,
     uint64_t *length_out);
-
-void
-tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull dst,
-                                const struct tbd_for_main *__notnull src);
 
 enum tbd_for_main_open_write_file_result {
     E_TBD_FOR_MAIN_OPEN_WRITE_FILE_OK,

@@ -28,11 +28,9 @@ static const uint64_t dsc_magic_64_arm64_32 = 7003509047616633188;
 
 static int
 get_arch_info_from_magic(const char magic[16],
-                         const struct arch_info **__notnull const arch_info_out,
-                         uint64_t *__notnull const arch_bit_out)
+                         const struct arch_info **__notnull const arch_info_out)
 {
     const struct arch_info *arch = NULL;
-    uint64_t arch_bit = 0;
 
     const uint64_t first_part = *(const uint64_t *)magic;
     const uint64_t second_part = *((const uint64_t *)magic + 1);
@@ -48,8 +46,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 6;
-            arch_bit = 1ull << 6;
-
             break;
 
         case 14696481348417568:
@@ -62,8 +58,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 49;
-            arch_bit = 1ull << 49;
-
             break;
 
         case 29330805708175480:
@@ -76,8 +70,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 50;
-            arch_bit = 1ull << 50;
-
             break;
 
         case 15048386208145440:
@@ -90,8 +82,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 20;
-            arch_bit = 1ull << 20;
-
             break;
 
         case 15329861184856096:
@@ -104,8 +94,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 19;
-            arch_bit = 1ull << 19;
-
             break;
 
         case 15611336161566752:
@@ -118,8 +106,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 22;
-            arch_bit = 1ull << 22;
-
             break;
 
         case 3996502057361088544:
@@ -132,8 +118,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 23;
-            arch_bit = 1ull << 23;
-
             break;
 
         case 7725773898219855904:
@@ -146,8 +130,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 25;
-            arch_bit = 1ull << 25;
-
             break;
 
         case 8302234650523279392:
@@ -160,8 +142,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 24;
-            arch_bit = 1ull << 24;
-
             break;
 
         case 7869889086295711776:
@@ -174,8 +154,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 26;
-            arch_bit = 1ull << 26;
-
             break;
 
         case 14696542487257120:
@@ -188,8 +166,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 51;
-            arch_bit = 1ull << 51;
-
             break;
 
         case 28486381016867104:
@@ -202,8 +178,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 53;
-            arch_bit = 1ull << 53;
-
             break;
 
         case 14130232826424690:
@@ -216,8 +190,6 @@ get_arch_info_from_magic(const char magic[16],
              */
 
             arch = arch_info_get_list() + 56;
-            arch_bit = 1ull << 56;
-
             break;
 
         default:
@@ -225,8 +197,6 @@ get_arch_info_from_magic(const char magic[16],
     }
 
     *arch_info_out = arch;
-    *arch_bit_out = arch_bit;
-
     return 0;
 }
 
@@ -243,9 +213,7 @@ dyld_shared_cache_parse_from_file(
      */
 
     const struct arch_info *arch = NULL;
-    uint64_t arch_bit = 0;
-
-    if (get_arch_info_from_magic(magic, &arch, &arch_bit)) {
+    if (get_arch_info_from_magic(magic, &arch)) {
         return E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE;
     }
 
@@ -377,8 +345,8 @@ dyld_shared_cache_parse_from_file(
         const uint64_t mapping_file_begin = mapping->fileOffset;
 
         /*
-         * We skip validation of mapping's address-range we don't use it,
-         * and because we aim to be lenient.
+         * We skip validation of mapping's address-range we don't use it, and
+         * because we aim to be lenient.
          */
 
         uint64_t mapping_file_end = mapping_file_begin;
@@ -487,7 +455,6 @@ dyld_shared_cache_parse_from_file(
     info_in->mappings_count = header.mappingCount;
 
     info_in->arch = arch;
-    info_in->arch_bit = arch_bit;
 
     info_in->map = map;
     info_in->size = dsc_size;
@@ -513,5 +480,4 @@ dyld_shared_cache_info_destroy(
     info->images = NULL;
 
     info->arch = NULL;
-    info->arch_bit = 0;
 }

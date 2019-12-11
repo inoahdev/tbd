@@ -62,7 +62,7 @@ struct dyld_shared_cache_info {
     const struct arch_info *arch;
     struct range available_range;
 
-    uint64_t arch_bit;
+    uint64_t arch_index;
     uint64_t flags;
 };
 

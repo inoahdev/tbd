@@ -235,3 +235,13 @@ bit_list_set_first_n(struct bit_list *__notnull const list, const uint64_t n) {
 
     list->set_count = n;
 }
+
+void bit_list_clear(struct bit_list *__notnull const list) {
+    list->set_count = 0;
+}
+
+void bit_list_destroy(struct bit_list *__notnull const list) {
+    if (unlikely(bit_list_is_on_heap(*list))) {
+        free(get_bits_ptr(*list));
+    }
+}

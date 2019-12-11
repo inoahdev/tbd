@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 11/21/19.
-//  Copyright © 2018 - 2019 inoahdev. All rights reserved.
+//  Copyright © 2019 inoahdev. All rights reserved.
 //
 
 #ifndef TARGET_LIST_H
@@ -14,10 +14,16 @@
 
 struct target_list {
     uint64_t *data;
-    uint64_t *data_end;
-    uint64_t *alloc_end;
 
-    uint64_t count;
+    /*
+     * Keep space for 2 more (3 total after incuding data), so allocs aren't
+     * necessary.
+     */
+
+    uint64_t stack[2];
+
+    uint64_t alloc_count;
+    uint64_t set_count;
 };
 
 enum target_list_result {
@@ -54,13 +60,19 @@ static const uint64_t TARGET_PLATFORM_MASK  = (~TARGET_ARCH_INFO_MASK);
 
 void
 target_list_get_target(const struct target_list *__notnull list,
-                       const uint64_t index,
+                       uint64_t index,
                        const struct arch_info **__notnull arch_out,
                        enum tbd_platform *__notnull platform_out);
+
+void
+target_list_replace_platform(struct target_list *__notnull list,
+                             enum tbd_platform platform);
+
 
 enum target_list_result
 target_list_reserve_count(struct target_list *__notnull list, uint64_t count);
 
+void target_list_clear(struct target_list *__notnull list);
 void target_list_destroy(struct target_list *__notnull list);
 
 #endif /* TARGET_LIST_H */

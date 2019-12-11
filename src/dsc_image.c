@@ -246,13 +246,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
     }
 
-    const uint64_t arch_bit = dsc_info->arch_bit;
-
-    if (!tbd_uses_targets(info_in->version)) {
-        info_in->fields.at.archs.data = arch_bit;
-        info_in->fields.at.archs.count = 1;
-    }
-
     info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
 
     /*
@@ -277,8 +270,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         .macho_size = max_image_size,
 
         .arch = dsc_info->arch,
-        .arch_bit = arch_bit,
-
         .available_map_range = dsc_info->available_range,
 
         .ncmds = header->ncmds,
@@ -321,8 +312,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     {
         const struct macho_file_parse_export_trie_args args = {
             .info_in = info_in,
-            .arch_bit = arch_bit,
-
             .available_range = dsc_info->available_range,
 
             .is_64 = is_64,
@@ -350,7 +339,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .info_in = info_in,
             .available_range = dsc_info->available_range,
 
-            .arch_bit = arch_bit,
             .is_big_endian = is_big_endian,
 
             .symoff = lc_info.symtab.symoff,

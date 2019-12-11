@@ -9,92 +9,53 @@
 #include <inttypes.h>
 #include "tbd_write.h"
 
+static const uint64_t MAX_ARCH_ON_LINE = 7;
+static const uint64_t MAX_TARGET_ON_LINE = 5;
+
 int
 tbd_write_archs_for_header(FILE *__notnull const file,
-                           const uint64_t archs,
-                           const uint64_t archs_count)
+                           const struct target_list list)
 {
-    if (archs_count == 0) {
+    if (list.set_count == 0) {
         return 1;
     }
 
-    /*
-     * We need to find the first arch-info to print the list, and then print
-     * subsequent archs with a preceding comma.
-     */
+    const struct arch_info *arch = NULL;
+    enum tbd_platform platform = TBD_PLATFORM_NONE;
 
-    const struct arch_info *arch_info_list = arch_info_get_list();
+    target_list_get_target(&list, 0, &arch, &platform);
+    if (fprintf(file, "archs:%-17s[ %s", "", arch->name) < 0) {
+        return 1;
+    }
 
-    uint64_t index = 0;
-    uint64_t archs_iter = archs;
+    int counter = 1;
+    for (int i = 1; i != list.set_count; i++) {
+        target_list_get_target(&list, i, &arch, &platform);
 
-    do {
-        if (archs_iter & 1) {
-            const struct arch_info *const arch = arch_info_list + index;
-            if (fprintf(file, "archs:%-17s[ %s", "", arch->name) < 0) {
+        /*
+         * Go to the next line after having printed two targets.
+         */
+
+        const bool write_comma = (counter != 0);
+        if (write_comma) {
+            if (fputs(", ", file) < 0) {
                 return 1;
             }
-
-            archs_iter >>= 1;
-            break;
         }
 
-        archs_iter >>= 1;
-        if (archs_iter == 0) {
-            /*
-             * If we're already at the end, simply write the end bracket for
-             * the arch-info list and return.
-             */
-
-            if (fputs(" ]\n", file) < 0) {
-                return 1;
-            }
-
-            return 0;
+        if (fwrite(arch->name, arch->name_length, 1, file) != 1) {
+            return 1;
         }
 
-        index += 1;
-    } while (true);
-
-    /*
-     * After writing the first arch, write the following archs with a preceding
-     * comma.
-     *
-     * Count the amount of archs on one line, starting off with one as we just
-     * wrote one before looping over the rest.
-     *
-     * Break lines for every seven archs written out.
-     */
-
-    int i = 1;
-    uint64_t counter = 1;
-
-    while (i != archs_count) {
-        index += 1;
-
-        if (archs_iter & 1) {
-            const struct arch_info *const arch = arch_info_list + index;
-            if (fprintf(file, ", %s", arch->name) < 0) {
+        if (counter == MAX_ARCH_ON_LINE && i != (list.set_count - 1)) {
+            if (fprintf(file, ",\n%-28s", "") < 0) {
                 return 1;
             }
 
-            /*
-             * Break lines for every seven archs written out.
-             */
-
-            i++;
+            counter = 0;
+        } else {
             counter++;
-
-            if (counter == 7) {
-                if (fprintf(file, "\n%-19s", "") < 0) {
-                    return 1;
-                }
-
-                counter = 0;
-            }
         }
-
-        archs_iter >>= 1;
     }
 
     /*
@@ -142,7 +103,7 @@ tbd_write_targets_for_header(FILE *__notnull const file,
                              const struct target_list list,
                              const enum tbd_version version)
 {
-    if (list.count == 0) {
+    if (list.set_count == 0) {
         return 1;
     }
 
@@ -154,13 +115,12 @@ tbd_write_targets_for_header(FILE *__notnull const file,
     enum tbd_platform platform = TBD_PLATFORM_NONE;
 
     target_list_get_target(&list, 0, &arch, &platform);
-
     if (write_target(file, arch, platform, version, false) < 0) {
         return 1;
     }
 
     int counter = 1;
-    for (int i = 1; i != list.count; i++) {
+    for (int i = 1; i != list.set_count; i++) {
         target_list_get_target(&list, i, &arch, &platform);
 
         /*
@@ -172,8 +132,8 @@ tbd_write_targets_for_header(FILE *__notnull const file,
             return 1;
         }
 
-        if (counter == 4) {
-            if (fprintf(file, ",\n%-25s", "") < 0) {
+        if (counter == MAX_TARGET_ON_LINE && i != (list.set_count - 1)) {
+            if (fprintf(file, ",\n%-28s", "") < 0) {
                 return 1;
             }
 
@@ -192,88 +152,52 @@ tbd_write_targets_for_header(FILE *__notnull const file,
 
 static int
 write_archs_for_symbol_arrays(FILE *__notnull const file,
-                              const uint64_t archs,
-                              const uint64_t archs_count)
+                              const struct target_list list,
+                              const struct bit_list bits)
 {
-    if (archs_count == 0) {
+    if (bits.set_count == 0) {
         return 1;
     }
 
-    /*
-     * We need to find the first arch-info to print the list, and then print
-     * subsequent archs with a preceding comma.
-     */
+    const struct arch_info *arch = NULL;
+    enum tbd_platform platform = TBD_PLATFORM_NONE;
 
-    const struct arch_info *arch_info_list = arch_info_get_list();
+    uint64_t first = bit_list_find_first_bit(bits);
+    target_list_get_target(&list, first, &arch, &platform);
 
-    uint64_t index = 0;
-    uint64_t archs_iter = archs;
+    if (fprintf(file, "  - archs:%-16s[ %s", "", arch->name) < 0) {
+        return 1;
+    }
 
-    do {
-        if (archs_iter & 1) {
-            const struct arch_info *const arch = arch_info_list + index;
-            if (fprintf(file, "  - archs:%-16s[ %s", "", arch->name) < 0) {
+    int counter = 1;
+    for (int i = 1; i != bits.set_count; i++) {
+        first = bit_list_find_bit_after_last(bits, first);
+        target_list_get_target(&list, i, &arch, &platform);
+
+        /*
+         * Go to the next line after having printed two targets.
+         */
+
+        const bool write_comma = (counter != 0);
+        if (write_comma) {
+            if (fputs(", ", file) < 0) {
                 return 1;
             }
-
-            archs_iter >>= 1;
-            break;
         }
 
-        archs_iter >>= 1;
-        if (archs_iter == 0) {
-            /*
-             * Write the end bracket for the arch-info list and return.
-             */
-
-            if (fputs(" ]\n", file) < 0) {
-                return 1;
-            }
-
-            return 0;
+        if (fwrite(arch->name, arch->name_length, 1, file) != 1) {
+            return 1;
         }
 
-        index += 1;
-    } while (true);
-
-    /*
-     * After writing the first arch, write the following archs with a preceding
-     * comma.
-     *
-     * Count the amount of archs on one line, starting off with one as we just
-     * wrote one before looping over the rest. When the counter reaches 7, print
-     * a newline and reset the counter.
-     */
-
-    uint64_t counter = 1;
-    uint64_t i = 1;
-
-    while (i != archs_count) {
-        index += 1;
-
-        if (archs_iter & 1) {
-            const struct arch_info *const arch = arch_info_list + index;
-            if (fprintf(file, ", %s", arch->name) < 0) {
+        if (counter == MAX_ARCH_ON_LINE && i != (bits.set_count - 1)) {
+            if (fprintf(file, ",\n%-28s", "") < 0) {
                 return 1;
             }
 
-            /*
-             * Break lines for every seven archs written out.
-             */
-
-            i++;
+            counter = 0;
+        } else {
             counter++;
-
-            if (counter == 7) {
-                if (fprintf(file, "\n%-28s", "") < 0) {
-                    return 1;
-                }
-
-                counter = 0;
-            }
         }
-
-        archs_iter >>= 1;
     }
 
     /*
@@ -293,7 +217,7 @@ write_targets_as_dict_key(FILE *__notnull const file,
                           const struct bit_list bits,
                           const enum tbd_version version)
 {
-    if (list.count == 0) {
+    if (bits.set_count == 0) {
         return 1;
     }
 
@@ -325,8 +249,8 @@ write_targets_as_dict_key(FILE *__notnull const file,
             return 1;
         }
 
-        if (counter == 5) {
-            if (fprintf(file, ",\n%-11s", "") < 0) {
+        if (counter == MAX_TARGET_ON_LINE && i != (bits.set_count != 1)) {
+            if (fprintf(file, ",\n%-28s", "") < 0) {
                 return 1;
             }
 
@@ -594,18 +518,29 @@ tbd_write_parent_umbrella_for_archs(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info)
 {
-    const char *const umbrella = info->fields.at.archs.parent_umbrella;
-    if (umbrella == NULL) {
+    if (info->fields.metadata.item_count == 0) {
         return 0;
+    }
+
+    const struct tbd_metadata_info *const umbrella_info =
+        (const struct tbd_metadata_info *)info->fields.metadata.data;
+
+    if (umbrella_info->type != TBD_METADATA_TYPE_PARENT_UMBRELLA) {
+        return 0;
+    }
+
+    const char *const umbrella = umbrella_info->string;
+    if (umbrella == NULL) {
+        return 1;
     }
 
     if (fprintf(file, "parent-umbrella:%-7s", "") < 0) {
         return 1;
     }
 
-    const uint64_t length = info->fields.at.archs.parent_umbrella_length;
+    const uint64_t length = umbrella_info->length;
     const bool needs_quotes =
-        (info->flags & F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES);
+        (umbrella_info->flags & F_TBD_DATA_INFO_STRING_NEEDS_QUOTES);
 
     if (write_yaml_string(file, umbrella, length, needs_quotes)) {
         return 1;
@@ -620,9 +555,14 @@ tbd_write_parent_umbrella_for_archs(
 
 int
 tbd_write_platform(FILE *__notnull const file,
-                   const enum tbd_platform platform,
+                   const struct tbd_create_info *__notnull const info,
                    const enum tbd_version version)
 {
+    const struct arch_info *arch = NULL;
+    enum tbd_platform platform = TBD_PLATFORM_NONE;
+
+    target_list_get_target(&info->fields.targets, 0, &arch, &platform);
+
     const char *const platform_str = tbd_platform_to_string(platform, version);
     if (fprintf(file, "platform:%-14s%s\n", "", platform_str) < 0) {
         return 1;
@@ -720,11 +660,14 @@ write_uuid(FILE *__notnull const file, const uint8_t *__notnull const uuid) {
 }
 
 static inline int
-write_uuid_with_arch(FILE *__notnull const file,
-                     const struct arch_info *__notnull const arch,
-                     const uint8_t *__notnull const uuid,
-                     const bool has_comma)
+write_single_uuid_for_archs(FILE *__notnull const file,
+                            const uint64_t target,
+                            const uint8_t *__notnull const uuid,
+                            const bool has_comma)
 {
+    const struct arch_info *const arch =
+        (const struct arch_info *)(target & TARGET_ARCH_INFO_MASK);
+
     int ret = 0;
     if (has_comma) {
         ret = fprintf(file, ", '%s: ", arch->name);
@@ -744,8 +687,8 @@ write_uuid_with_arch(FILE *__notnull const file,
 }
 
 int
-tbd_write_uuids_with_archs(FILE *__notnull const file,
-                           const struct array *__notnull const uuids)
+tbd_write_uuids_for_archs(FILE *__notnull const file,
+                          const struct array *__notnull const uuids)
 {
     if (uuids->item_count == 0) {
         return 0;
@@ -755,10 +698,10 @@ tbd_write_uuids_with_archs(FILE *__notnull const file,
         return 1;
     }
 
-    const struct tbd_uuid_info *uuid = uuids->data;
+    const struct tbd_uuid_info *info = uuids->data;
     const struct tbd_uuid_info *const end = uuids->data_end;
 
-    if (write_uuid_with_arch(file, uuid->at.arch, uuid->uuid, false)) {
+    if (write_single_uuid_for_archs(file, info->target, info->uuid, false)) {
         return 1;
     }
 
@@ -775,13 +718,15 @@ tbd_write_uuids_with_archs(FILE *__notnull const file,
     bool needs_comma = true;
 
     do {
-        uuid = uuid + 1;
-        if (uuid == end) {
+        info = info + 1;
+        if (info == end) {
             break;
         }
 
-        const struct arch_info *const arch = uuid->at.arch;
-        if (write_uuid_with_arch(file, arch, uuid->uuid, needs_comma)) {
+        const uint64_t target = info->target;
+        const uint8_t *const uuid = info->uuid;
+
+        if (write_single_uuid_for_archs(file, target, uuid, needs_comma)) {
             return 1;
         }
 
@@ -844,9 +789,9 @@ write_uuid_with_target(FILE *__notnull const file,
 }
 
 int
-tbd_write_uuids_with_targets(FILE *__notnull const file,
-                             const struct array *__notnull const uuids,
-                             const enum tbd_version version)
+tbd_write_uuids_for_targets(FILE *__notnull const file,
+                            const struct array *__notnull const uuids,
+                            const enum tbd_version version)
 {
     if (uuids->item_count == 0) {
         return 0;
@@ -860,7 +805,7 @@ tbd_write_uuids_with_targets(FILE *__notnull const file,
     const struct tbd_uuid_info *const end = uuids->data_end;
 
     for (; uuid != end; uuid++) {
-        const uint64_t target = uuid->at.target;
+        const uint64_t target = uuid->target;
         if (write_uuid_with_target(file, target, uuid->uuid, version)) {
             return 1;
         }
@@ -1037,11 +982,11 @@ write_umbrella_list(FILE *__notnull const file,
                     const struct tbd_metadata_info *__notnull const end,
                     const struct tbd_metadata_info **__notnull const m_info_out)
 {
-    const struct target_list targets = info->fields.at.targets.list;
+    const struct target_list targets = info->fields.targets;
     const enum tbd_version version = info->version;
 
     do {
-        if (write_targets_as_dict_key(file, targets, m_info->bits, version)) {
+        if (write_targets_as_dict_key(file, targets, m_info->targets, version)) {
             return 1;
         }
 
@@ -1076,8 +1021,8 @@ tbd_write_metadata(FILE *__notnull const file,
                    const struct tbd_create_info *__notnull const info_in,
                    const uint64_t create_options)
 {
-    const struct array *const metadata = &info_in->fields.at.targets.metadata;
-    const struct target_list targets = info_in->fields.at.targets.list;
+    const struct array *const metadata = &info_in->fields.metadata;
+    const struct target_list targets = info_in->fields.targets;
 
     const struct tbd_metadata_info *info = metadata->data;
     const struct tbd_metadata_info *const end = metadata->data_end;
@@ -1087,7 +1032,7 @@ tbd_write_metadata(FILE *__notnull const file,
     }
 
     const enum tbd_version version = info_in->version;
-    enum tbd_metadata_type type = info->type;
+    enum tbd_metadata_type type = TBD_METADATA_TYPE_NONE;
 
     do {
     meta:
@@ -1125,7 +1070,7 @@ tbd_write_metadata(FILE *__notnull const file,
                 break;
         }
 
-        struct bit_list bits = info->bits;
+        struct bit_list bits = info->targets;
         uint64_t line_length = 0;
 
         do {
@@ -1162,7 +1107,7 @@ tbd_write_metadata(FILE *__notnull const file,
                 }
 
                 if (!bit_list_equal_counts_is_equal(bits, bits)) {
-                    bits = info->bits;
+                    bits = info->targets;
                     break;
                 }
 
@@ -1204,7 +1149,7 @@ write_full_targets(FILE *__notnull file,
                    const struct target_list list,
                    const enum tbd_version version)
 {
-    if (list.count == 0) {
+    if (list.set_count == 0) {
         return 1;
     }
 
@@ -1221,7 +1166,7 @@ write_full_targets(FILE *__notnull file,
     }
 
     int counter = 1;
-    for (int i = 1; i != list.count; i++) {
+    for (int i = 1; i != list.set_count; i++) {
         target_list_get_target(&list, i, &arch, &platform);
 
         /*
@@ -1233,7 +1178,7 @@ write_full_targets(FILE *__notnull file,
             return 1;
         }
 
-        if (i == 5) {
+        if (counter == MAX_TARGET_ON_LINE && (i != list.set_count - 1)) {
             if (fprintf(file, ",\n%-11s", "") < 0) {
                 return 1;
             }
@@ -1264,7 +1209,7 @@ write_umbrella_list_with_full_targets(
     const struct tbd_metadata_info *__notnull const end,
     const struct tbd_metadata_info **__notnull const m_info_out)
 {
-    const struct target_list targets = info->fields.at.targets.list;
+    const struct target_list targets = info->fields.targets;
     const enum tbd_version version = info->version;
 
     do {
@@ -1304,8 +1249,8 @@ tbd_write_metadata_with_full_targets(
     const struct tbd_create_info *__notnull const info_in,
     const uint64_t create_options)
 {
-    const struct array *const metadata = &info_in->fields.at.targets.metadata;
-    const struct target_list targets = info_in->fields.at.targets.list;
+    const struct array *const metadata = &info_in->fields.metadata;
+    const struct target_list targets = info_in->fields.targets;
 
     const struct tbd_metadata_info *info = metadata->data;
     const struct tbd_metadata_info *const end = metadata->data_end;
@@ -1315,7 +1260,7 @@ tbd_write_metadata_with_full_targets(
     }
 
     const enum tbd_version version = info_in->version;
-    enum tbd_metadata_type type = info->type;
+    enum tbd_metadata_type type = TBD_METADATA_TYPE_NONE;
 
     do {
         if (skip_metadata_if_needed(info, end, create_options, &info)) {
@@ -1593,9 +1538,9 @@ skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
 }
 
 int
-tbd_write_symbols_with_archs(FILE *__notnull const file,
-                             const struct tbd_create_info *__notnull const info,
-                             const uint64_t create_options)
+tbd_write_symbols_for_archs(FILE *__notnull const file,
+                            const struct tbd_create_info *__notnull const info,
+                            const uint64_t create_options)
 {
     const struct array *const symbol_list = &info->fields.symbols;
 
@@ -1611,6 +1556,7 @@ tbd_write_symbols_with_archs(FILE *__notnull const file,
      * beginning spaces).
      */
 
+    const struct target_list targets = info->fields.targets;
     const enum tbd_version version = info->version;
     enum tbd_symbol_meta_type m_type = sym->meta_type;
 
@@ -1628,10 +1574,8 @@ tbd_write_symbols_with_archs(FILE *__notnull const file,
         }
 
         do {
-            const uint64_t archs = sym->at.archs.data;
-            const uint64_t archs_count = sym->at.archs.count;
-
-            if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
+            const struct bit_list bits = sym->targets;
+            if (write_archs_for_symbol_arrays(file, targets, bits)) {
                 return 1;
             }
 
@@ -1684,8 +1628,18 @@ tbd_write_symbols_with_archs(FILE *__notnull const file,
                  * previous ones, end the current sym-type array and break out.
                  */
 
-                const uint64_t inner_archs = sym->at.archs.data;
-                if (inner_archs != archs) {
+                const struct bit_list inner_bits = sym->targets;
+                const uint64_t inner_count = inner_bits.set_count;
+
+                if (inner_count != bits.set_count) {
+                    if (end_written_sequence(file)) {
+                        return 1;
+                    }
+
+                    break;
+                }
+
+                if (!bit_list_equal_counts_is_equal(bits, inner_bits)) {
                     if (end_written_sequence(file)) {
                         return 1;
                     }
@@ -1758,7 +1712,7 @@ tbd_write_symbols_with_archs(FILE *__notnull const file,
 }
 
 int
-tbd_write_symbols_with_targets(
+tbd_write_symbols_for_targets(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info,
     const uint64_t create_options)
@@ -1772,7 +1726,7 @@ tbd_write_symbols_with_targets(
         return 0;
     }
 
-    const struct target_list targets = info->fields.at.targets.list;
+    const struct target_list targets = info->fields.targets;
     const enum tbd_version version = info->version;
 
     enum tbd_symbol_meta_type m_type = sym->meta_type;
@@ -1790,7 +1744,7 @@ meta:
         }
 
         do {
-            const struct bit_list bits = sym->at.targets;
+            const struct bit_list bits = sym->targets;
             if (write_targets_as_dict_key(file, targets, bits, version)) {
                 return 1;
             }
@@ -1807,17 +1761,17 @@ meta:
             line_length = line_length_initial + sym->length;
 
             /*
-            * Iterate over the rest of the sym-infos, writing all the
-            * sym-type arrays until we reach different archs.
-            */
+             * Iterate over the rest of the sym-infos, writing all the
+             * sym-type arrays until we reach different archs.
+             */
 
             do {
                 sym++;
 
                 /*
-                * If we've written out all symbols, simply end the current
-                * sym-type array and return.
-                */
+                 * If we've written out all symbols, simply end the current
+                 * sym-type array and return.
+                 */
 
                 if (sym == end) {
                     if (end_written_sequence(file)) {
@@ -1840,11 +1794,11 @@ meta:
                 }
 
                 /*
-                * If the current sym-info doesn't have matching archs to the
-                * previous ones, end the current sym-type array and break out.
-                */
+                 * If the current sym-info doesn't have matching archs to the
+                 * previous ones, end the current sym-type array and break out.
+                 */
 
-                const struct bit_list inner_bits = sym->at.targets;
+                const struct bit_list inner_bits = sym->targets;
                 const uint64_t inner_count = inner_bits.set_count;
 
                 if (inner_count != bits.set_count) {
@@ -1864,10 +1818,10 @@ meta:
                 }
 
                 /*
-                * If the current sym-info has a different type from the
-                * previous ones written out, end the current-sym-info array
-                * and create the new one of the current sym-info.
-                */
+                 * If the current sym-info has a different type from the
+                 * previous ones written out, end the current-sym-info array
+                 * and create the new one of the current sym-info.
+                 */
 
                 const enum tbd_symbol_type in_type = sym->type;
                 if (in_type != type) {
@@ -1884,9 +1838,9 @@ meta:
                     }
 
                     /*
-                    * Reset the line-length after ending the previous
-                    * sym-type array.
-                    */
+                     * Reset the line-length after ending the previous
+                     * sym-type array.
+                     */
 
                     line_length = line_length_initial + sym->length;
                     type = in_type;
@@ -1895,9 +1849,9 @@ meta:
                 }
 
                 /*
-                * Write either a comma or a newline before writing the next
-                * sym to preserve a limit on line-lengths.
-                */
+                 * Write either a comma or a newline before writing the next
+                 * sym to preserve a limit on line-lengths.
+                 */
 
                 const uint64_t length = sym->length;
                 const enum write_comma_result write_comma_result =
@@ -1927,6 +1881,62 @@ meta:
     return 0;
 }
 
+static
+int write_full_archs(FILE *__notnull file, const struct target_list list) {
+    if (list.set_count == 0) {
+        return 1;
+    }
+
+    const struct arch_info *arch = NULL;
+    enum tbd_platform platform = TBD_PLATFORM_NONE;
+
+    target_list_get_target(&list, 0, &arch, &platform);
+
+    if (fprintf(file, "  - targets:%-14s[ %s", "", arch->name) < 0) {
+        return 1;
+    }
+
+    int counter = 1;
+    for (int i = 1; i != list.set_count; i++) {
+        target_list_get_target(&list, i, &arch, &platform);
+
+        /*
+         * Go to the next line after having printed two targets.
+         */
+
+        const bool write_comma = (counter != 0);
+        if (write_comma) {
+            if (fputs(", ", stdout) < 0) {
+                return 1;
+            }
+        }
+
+        if (fwrite(arch->name, arch->name_length, 1, file) < 0) {
+            return 1;
+        }
+
+        if (counter == MAX_TARGET_ON_LINE && (i != list.set_count - 1)) {
+            if (fprintf(file, ",\n%-11s", "") < 0) {
+                return 1;
+            }
+
+            counter = 0;
+        } else {
+            counter++;
+        }
+    }
+
+    /*
+     * Write the end bracket for the target-list and return.
+     */
+
+    if (fputs(" ]\n", file) < 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int
 tbd_write_symbols_with_full_archs(
     FILE *__notnull const file,
@@ -1942,6 +1952,7 @@ tbd_write_symbols_with_full_archs(
         return 0;
     }
 
+    const struct target_list targets = info->fields.targets;
     enum tbd_symbol_meta_type m_type = sym->meta_type;
 
     do {
@@ -1955,10 +1966,7 @@ tbd_write_symbols_with_full_archs(
             return 1;
         }
 
-        const uint64_t archs = sym->at.archs.data;
-        const uint64_t archs_count = sym->at.archs.count;
-
-        if (write_archs_for_symbol_arrays(file, archs, archs_count)) {
+        if (write_full_archs(file, targets)) {
             return 1;
         }
 
@@ -1979,9 +1987,9 @@ tbd_write_symbols_with_full_archs(
             sym++;
 
             /*
-            * If we've written out all symbols, simply end the current
-            * sym-type array and return.
-            */
+             * If we've written out all symbols, simply end the current
+             * sym-type array and return.
+             */
 
             if (sym == end) {
                 if (end_written_sequence(file)) {
@@ -2002,10 +2010,10 @@ tbd_write_symbols_with_full_archs(
             }
 
             /*
-            * If the current sym-info has a different type from the previous
-            * ones written out, end the current-sym-info array and create the
-            * new one of the current sym-info.
-            */
+             * If the current sym-info has a different type from the previous
+             * ones written out, end the current-sym-info array and create the
+             * new one of the current sym-info.
+             */
 
             const enum tbd_symbol_type inner_type = sym->type;
             if (inner_type != type) {
@@ -2022,9 +2030,9 @@ tbd_write_symbols_with_full_archs(
                 }
 
                 /*
-                * Reset the line-length after ending the previous sym-type
-                * array.
-                */
+                 * Reset the line-length after ending the previous sym-type
+                 * array.
+                 */
 
                 line_length = line_length_initial + sym->length;
                 type = inner_type;
@@ -2033,9 +2041,9 @@ tbd_write_symbols_with_full_archs(
             }
 
             /*
-            * Write either a comma or a newline before writing the next export
-            * to preserve a limit on line-lengths.
-            */
+             * Write either a comma or a newline before writing the next export
+             * to preserve a limit on line-lengths.
+             */
 
             const uint64_t length = sym->length;
             const enum write_comma_result write_comma_result =
@@ -2092,7 +2100,7 @@ tbd_write_symbols_with_full_targets(
             return 1;
         }
 
-        const struct target_list targets = info->fields.at.targets.list;
+        const struct target_list targets = info->fields.targets;
         const enum tbd_version version = info->version;
 
         if (write_full_targets(file, targets, version)) {
@@ -2114,9 +2122,9 @@ tbd_write_symbols_with_full_targets(
             sym++;
 
             /*
-            * If we've written out all symbols, simply end the current
-            * sym-type array and return.
-            */
+             * If we've written out all symbols, simply end the current
+             * sym-type array and return.
+             */
 
             if (sym == end) {
                 if (end_written_sequence(file)) {
@@ -2137,10 +2145,10 @@ tbd_write_symbols_with_full_targets(
             }
 
             /*
-            * If the current sym-info has a different type from the previous
-            * ones written out, end the current-sym-info array and create the
-            * new one of the current sym-info.
-            */
+             * If the current sym-info has a different type from the previous
+             * ones written out, end the current-sym-info array and create the
+             * new one of the current sym-info.
+             */
 
             const enum tbd_symbol_type inner_type = sym->type;
             if (inner_type != type) {
@@ -2157,9 +2165,9 @@ tbd_write_symbols_with_full_targets(
                 }
 
                 /*
-                * Reset the line-length after ending the previous sym-type
-                * array.
-                */
+                 * Reset the line-length after ending the previous sym-type
+                 * array.
+                 */
 
                 line_length = line_length_initial + sym->length;
                 type = inner_type;
@@ -2168,9 +2176,9 @@ tbd_write_symbols_with_full_targets(
             }
 
             /*
-            * Write either a comma or a newline before writing the next sym to
-            * preserve a limit on line-lengths.
-            */
+             * Write either a comma or a newline before writing the next sym to
+             * preserve a limit on line-lengths.
+             */
 
             const uint64_t length = sym->length;
             const enum write_comma_result write_comma_result =

@@ -14,14 +14,17 @@
 #include "our_io.h"
 #include "string_buffer.h"
 
+static inline bool is_uleb_byte_done(const uint8_t byte) {
+    return ((byte & 0x80) == 0);
+}
+
 const uint8_t *
 read_uleb128(const uint8_t *__notnull iter,
              const uint8_t *__notnull const end,
-             const uint8_t first,
              uint64_t *__notnull const result_out)
 {
-    uint64_t shift = 7;
-    uint64_t result = (first & 0x7f);
+    uint8_t shift = 0;
+    uint64_t result = 0;
 
     /*
      * uleb128 format is as follows:
@@ -53,21 +56,36 @@ read_uleb128(const uint8_t *__notnull iter,
      * are stored in the 1st component.
      */
 
-    uint8_t byte = *(++iter);
+    uint8_t byte = *iter;
+
+    /*
+     * Quick check to shortcut if we don't have a full uleb128.
+     */
+
+    bool is_done = is_uleb_byte_done(byte);
+    if (is_done) {
+        iter++;
+        if (iter == end) {
+            return NULL;
+        }
+
+        *result_out = byte;
+        return iter;
+    }
 
     do {
         /*
          * Get the lower 7 bits.
          */
 
-        const uint64_t bits = (byte & 0x7f);
+        const uint8_t bits = (byte & 0x7f);
 
         /*
          * Make sure we actually have the bit-space on a 64-bit integer to store
          * the lower 7-bits.
          */
 
-        const uint64_t shifted_bits = (bits << shift);
+        const uint64_t shifted_bits = ((uint64_t)bits << shift);
         const uint64_t shifted_back_bits = (shifted_bits >> shift);
 
         if (bits != shifted_back_bits) {
@@ -78,15 +96,16 @@ read_uleb128(const uint8_t *__notnull iter,
         shift += 7;
 
         iter++;
-        if (!(byte & 0x80)) {
-            break;
-        }
-
         if (iter == end) {
             return NULL;
         }
 
+        if (is_done) {
+            break;
+        }
+
         byte = *iter;
+        is_done = is_uleb_byte_done(byte);
     } while (true);
 
     *result_out = result;
@@ -96,17 +115,17 @@ read_uleb128(const uint8_t *__notnull iter,
 const uint8_t *
 skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
 {
-    uint8_t i = 1;
+    uint8_t i = 0;
     uint8_t byte = *iter;
 
     do {
         iter++;
-        if (!(byte & 0x80)) {
-            break;
-        }
-
         if (iter == end || i == 9) {
             return NULL;
+        }
+
+        if (is_uleb_byte_done(byte)) {
+            break;
         }
 
         byte = *iter;
@@ -251,7 +270,6 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
 
 enum macho_file_parse_result
 parse_trie_node(struct tbd_create_info *__notnull const info_in,
-                const uint64_t arch_bit,
                 const uint64_t arch_index,
                 const uint8_t *__notnull const start,
                 const uint64_t offset,
@@ -264,16 +282,8 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
     const uint8_t *iter = start + offset;
     uint64_t iter_size = *iter;
 
-    if (iter_size > 127) {
-        /*
-         * The iter-size is stored in a uleb128.
-         */
-
-        if ((iter = read_uleb128(iter, end, iter_size, &iter_size)) == NULL) {
-            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
-        }
-    } else {
-        iter++;
+    if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
     const uint8_t *const node_start = iter;
@@ -314,15 +324,11 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         }
 
         uint64_t flags = *iter;
-        if (flags > 127) {
-            if ((iter = read_uleb128(iter, end, flags, &flags)) == NULL) {
-                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
-            }
-        } else {
-            iter++;
+        if ((iter = read_uleb128(iter, end, &flags)) == NULL) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
-        const uint64_t kind = (flags & EXPORT_SYMBOL_FLAGS_KIND_MASK);
+        const uint8_t kind = (flags & EXPORT_SYMBOL_FLAGS_KIND_MASK);
         if (flags != 0) {
             if (kind != EXPORT_SYMBOL_FLAGS_KIND_REGULAR &&
                 kind != EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE &&
@@ -346,15 +352,15 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                  * to strnlen in the hopes of better performance.
                  */
 
-                const uint64_t max_length = (uint64_t)(end - iter);
-                const uint64_t length = strnlen((char *)iter, max_length);
+                const uint32_t maxlen = (uint32_t)(end - iter);
+                const uint32_t length = (uint32_t)strnlen((char *)iter, maxlen);
 
                 /*
                  * We can't have a re-export whose install-name reaches the end
                  * of the export-trie.
                  */
 
-                if (unlikely(length == max_length)) {
+                if (unlikely(length == maxlen)) {
                     return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
                 }
 
@@ -406,7 +412,6 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             tbd_ci_add_symbol_with_info_and_len(info_in,
                                                 sb_buffer->data,
                                                 sb_buffer->length,
-                                                arch_bit,
                                                 arch_index,
                                                 predefined_type,
                                                 meta_type,
@@ -434,8 +439,8 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
      * after every loop.
      */
 
-    const uint64_t orig_buff_length = sb_buffer->length;
-    const uint64_t orig_node_ranges_count = node_ranges->item_count;
+    const uint32_t orig_buff_length = (uint32_t)sb_buffer->length;
+    const uint8_t orig_node_ranges_count = (uint8_t)node_ranges->item_count;
 
     for (uint8_t i = 0; i != children_count; i++) {
         /*
@@ -468,12 +473,8 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         iter += (length + 1);
 
         uint64_t next = *iter;
-        if (next > 127) {
-            if ((iter = read_uleb128(iter, end, next, &next)) == NULL) {
-                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
-            }
-        } else {
-            iter++;
+        if ((iter = read_uleb128(iter, end, &next)) == NULL) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
         if (unlikely(next >= export_size)) {
@@ -490,7 +491,6 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
 
         const enum macho_file_parse_result parse_export_result =
             parse_trie_node(info_in,
-                            arch_bit,
                             arch_index,
                             start,
                             next,
@@ -571,7 +571,6 @@ macho_file_parse_export_trie_from_file(
 
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
-                        args.arch_bit,
                         args.arch_index,
                         export_trie,
                         0,
@@ -624,7 +623,6 @@ macho_file_parse_export_trie_from_map(
     struct array node_ranges = {};
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
-                        args.arch_bit,
                         args.arch_index,
                         export_trie,
                         0,

@@ -32,7 +32,6 @@ call_callback(const macho_file_parse_error_callback callback,
 
 static enum macho_file_parse_result
 add_export_to_info(struct tbd_create_info *__notnull const info_in,
-                   const uint64_t arch_bit,
                    const uint64_t arch_index,
                    const enum tbd_symbol_type type,
                    const char *__notnull const string,
@@ -43,7 +42,6 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
         tbd_ci_add_symbol_with_type(info_in,
                                     string,
                                     length,
-                                    arch_bit,
                                     arch_index,
                                     type,
                                     TBD_SYMBOL_META_TYPE_EXPORT,
@@ -62,7 +60,7 @@ set_platform_if_allowed(const enum tbd_platform parsed_platform,
                         const uint64_t flags,
                         enum tbd_platform *__notnull const platform_out)
 {
-    if (!(flags & O_MF_PARSE_SLC_IS_BIG_ENDIAN)) {
+    if (!(flags & F_MF_PARSE_SLC_FOUND_BUILD_VERSION)) {
         *platform_out = platform;
         return true;
     }
@@ -158,7 +156,7 @@ parse_bv_platform(
         return E_MACHO_FILE_PARSE_OK;
     }
 
-    if (!tbd_uses_targets(info_in->version)) {
+    if (tbd_uses_archs(info_in->version)) {
         const bool should_continue =
             call_callback(callback,
                           info_in,
@@ -203,7 +201,7 @@ parse_bv_platform(
     return E_MACHO_FILE_PARSE_OK;
 }
 
-static inline  enum macho_file_parse_result
+static inline enum macho_file_parse_result
 parse_version_min_lc(
     const struct macho_file_parse_single_lc_info *__notnull const parse_info,
     struct tbd_create_info *__notnull const info_in,
@@ -560,7 +558,6 @@ macho_file_parse_single_lc(
 
             const enum macho_file_parse_result add_reexport_result =
                 add_export_to_info(info_in,
-                                   parse_info->arch_bit,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_REEXPORT,
                                    string,
@@ -637,7 +634,6 @@ macho_file_parse_single_lc(
 
             const enum macho_file_parse_result add_client_result =
                 add_export_to_info(info_in,
-                                   parse_info->arch_bit,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_CLIENT,
                                    string,
@@ -725,15 +721,11 @@ macho_file_parse_single_lc(
                 break;
             }
 
-            const bool copy_string =
-                (lc_parse_options & O_MF_PARSE_SLC_COPY_STRINGS);
-
             const enum tbd_ci_add_parent_umbrella_result add_umbrella_result =
                 tbd_ci_add_parent_umbrella(info_in,
                                            umbrella,
                                            length,
                                            parse_info->arch_index,
-                                           copy_string,
                                            tbd_options);
 
             switch (add_umbrella_result) {

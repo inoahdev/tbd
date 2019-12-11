@@ -16,7 +16,6 @@ struct macho_file_parse_export_trie_args {
     struct tbd_create_info *info_in;
     struct range available_range;
 
-    uint64_t arch_bit;
     uint64_t arch_index;
 
     bool is_64;

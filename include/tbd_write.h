@@ -13,9 +13,8 @@
 #include "tbd.h"
 
 int
-tbd_write_archs_for_header(FILE *__notnull file,
-                           uint64_t archs,
-                           uint64_t archs_count);
+tbd_write_archs_for_header(FILE *__notnull const file,
+                           const struct target_list list);
 
 int
 tbd_write_targets_for_header(FILE *__notnull file,
@@ -40,7 +39,7 @@ tbd_write_parent_umbrella_for_archs(
 
 int
 tbd_write_platform(FILE *__notnull file,
-                   enum tbd_platform platform,
+                   const struct tbd_create_info *__notnull info,
                    enum tbd_version version);
 
 int
@@ -64,23 +63,23 @@ tbd_write_metadata_with_full_targets(
     uint64_t create_options);
 
 int
-tbd_write_uuids_with_archs(FILE *__notnull file,
-                           const struct array *__notnull uuids);
+tbd_write_uuids_for_archs(FILE *__notnull file,
+                          const struct array *__notnull uuids);
 
 int
-tbd_write_uuids_with_targets(FILE *__notnull file,
-                             const struct array *__notnull uuids,
-                             enum tbd_version version);
+tbd_write_uuids_for_targets(FILE *__notnull file,
+                            const struct array *__notnull uuids,
+                            enum tbd_version version);
 
 int
-tbd_write_symbols_with_archs(FILE *__notnull file,
-                             const struct tbd_create_info *__notnull info,
-                             uint64_t create_options);
+tbd_write_symbols_for_archs(FILE *__notnull file,
+                            const struct tbd_create_info *__notnull info,
+                            uint64_t create_options);
 
 int
-tbd_write_symbols_with_targets(FILE *__notnull const file,
-                               const struct tbd_create_info *__notnull info,
-                               uint64_t create_options);
+tbd_write_symbols_for_targets(FILE *__notnull const file,
+                              const struct tbd_create_info *__notnull info,
+                              uint64_t create_options);
 
 int
 tbd_write_symbols_with_full_archs(FILE *__notnull file,

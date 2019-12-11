@@ -215,7 +215,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
         }
 
         const enum tbd_objc_constraint info_objc_constraint =
-            info_in->fields.at.archs.objc_constraint;
+            info_in->fields.archs.objc_constraint;
 
         if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
             if (info_objc_constraint != objc_constraint) {
@@ -230,7 +230,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
                 }
             }
         } else {
-            info_in->fields.at.archs.objc_constraint = objc_constraint;
+            info_in->fields.archs.objc_constraint = objc_constraint;
         }
     }
 
@@ -342,89 +342,57 @@ handle_at_platform_and_uuid(
     const uint64_t parse_lc_flags,
     const uint64_t tbd_options)
 {
-    if (tbd_uses_targets(info_in->version)) {
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
-            if (platform == TBD_PLATFORM_NONE) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_NO_PLATFORM,
-                                  cb_info);
+    if (!(tbd_options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
+        if (platform == TBD_PLATFORM_NONE) {
+            const bool should_continue =
+                call_callback(callback,
+                                info_in,
+                                ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+                                cb_info);
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
             }
+        }
 
-            /*
-             * After getting the platform, we can now start verifying
-             * arch-targets.
-             */
+        /*
+         * After getting the platform, we can now start verifying
+         * arch-targets.
+         */
 
-            const bool has_target =
-                target_list_has_target(&info_in->fields.at.targets.list,
-                                       arch,
-                                       platform);
+        const bool has_target =
+            target_list_has_target(&info_in->fields.targets,
+                                   arch,
+                                   platform);
 
-            if (has_target) {
-                return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_PLATFORM;
-            }
+        if (has_target) {
+            return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_PLATFORM;
+        }
 
-            const enum target_list_result add_target_result =
-                target_list_add_target(&info_in->fields.at.targets.list,
-                                       arch,
-                                       platform);
+        const enum target_list_result add_target_result =
+            target_list_add_target(&info_in->fields.targets,
+                                    arch,
+                                    platform);
 
-            if (add_target_result != E_TARGET_LIST_OK) {
-                return E_MACHO_FILE_PARSE_CREATE_TARGET_LIST_FAIL;
-            }
+        if (add_target_result != E_TARGET_LIST_OK) {
+            return E_MACHO_FILE_PARSE_CREATE_TARGET_LIST_FAIL;
+        }
 
-            const enum macho_file_parse_result handle_uuid_result =
-                handle_uuid(info_in,
-                            arch,
-                            platform,
-                            uuid,
-                            callback,
-                            cb_info,
-                            parse_lc_flags,
-                            tbd_options);
+        const enum macho_file_parse_result handle_uuid_result =
+            handle_uuid(info_in,
+                        arch,
+                        platform,
+                        uuid,
+                        callback,
+                        cb_info,
+                        parse_lc_flags,
+                        tbd_options);
 
-            if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
-                return handle_uuid_result;
-            }
+        if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
+            return handle_uuid_result;
         }
     } else {
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_PLATFORM)) {
-            if (platform == TBD_PLATFORM_NONE) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_NO_PLATFORM,
-                                  cb_info);
-
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
-            }
-
-            info_in->fields.at.archs.platform = platform;
-        }
-
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
-            const enum macho_file_parse_result handle_uuid_result =
-                handle_uuid(info_in,
-                            arch,
-                            platform,
-                            uuid,
-                            callback,
-                            cb_info,
-                            parse_lc_flags,
-                            tbd_options);
-
-            if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
-                return handle_uuid_result;
-            }
-        }
+        tbd_ci_set_single_platform(info_in, platform);
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -514,9 +482,7 @@ macho_file_parse_load_commands_from_file(
 
     info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
 
-    const uint64_t arch_bit = parse_info->arch_bit;
     const uint64_t arch_index = parse_info->arch_index;
-
     const uint64_t options = parse_info->options;
     const uint64_t tbd_options = parse_info->tbd_options;
 
@@ -536,7 +502,6 @@ macho_file_parse_load_commands_from_file(
         .platform_in = &platform,
         .uuid_in = uuid,
 
-        .arch_bit = arch_bit,
         .arch_index = arch_index,
 
         .tbd_options = tbd_options,
@@ -889,7 +854,6 @@ macho_file_parse_load_commands_from_file(
                 .info_in = info_in,
                 .available_range = available_range,
 
-                .arch_bit = arch_bit,
                 .arch_index = arch_index,
 
                 .is_64 = is_64,
@@ -939,9 +903,7 @@ macho_file_parse_load_commands_from_file(
             .info_in = info_in,
             .available_range = available_range,
 
-            .arch_bit = arch_bit,
             .arch_index = arch_index,
-
             .is_big_endian = is_big_endian,
 
             .symoff = symtab.symoff,
@@ -1035,7 +997,7 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
         }
 
         const enum tbd_objc_constraint info_objc_constraint =
-            info_in->fields.at.archs.objc_constraint;
+            info_in->fields.archs.objc_constraint;
 
         if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
             if (info_objc_constraint != objc_constraint) {
@@ -1050,7 +1012,7 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
                 }
             }
         } else {
-            info_in->fields.at.archs.objc_constraint = objc_constraint;
+            info_in->fields.archs.objc_constraint = objc_constraint;
         }
     }
 
@@ -1157,8 +1119,6 @@ macho_file_parse_load_commands_from_map(
     }
 
     const uint8_t *const map = parse_info->map;
-
-    const uint64_t arch_bit = parse_info->arch_bit;
     const uint64_t arch_index = parse_info->arch_index;
 
     const struct range available_map_range = parse_info->available_map_range;
@@ -1171,7 +1131,6 @@ macho_file_parse_load_commands_from_map(
         .platform_in = &platform,
         .uuid_in = uuid,
 
-        .arch_bit = arch_bit,
         .arch_index = arch_index,
 
         .tbd_options = tbd_options,
@@ -1501,11 +1460,9 @@ macho_file_parse_load_commands_from_map(
 
         const struct macho_file_parse_export_trie_args args = {
             .info_in = info_in,
-
-            .arch_bit = arch_bit,
-            .arch_index = arch_index,
-
             .available_range = parse_info->available_map_range,
+
+            .arch_index = arch_index,
 
             .is_64 = is_64,
             .is_big_endian = is_big_endian,
@@ -1517,6 +1474,9 @@ macho_file_parse_load_commands_from_map(
         };
 
         ret = macho_file_parse_export_trie_from_map(args, map);
+        if (ret != E_MACHO_FILE_PARSE_OK) {
+            return ret;
+        }
 
         parsed_dyld_info = true;
         parse_symtab = should_parse_symtab(options, tbd_options);
@@ -1546,9 +1506,7 @@ macho_file_parse_load_commands_from_map(
                 .info_in = info_in,
                 .available_range = parse_info->available_map_range,
 
-                .arch_bit = arch_bit,
                 .arch_index = arch_index,
-
                 .is_big_endian = is_big_endian,
 
                 .symoff = symtab.symoff,

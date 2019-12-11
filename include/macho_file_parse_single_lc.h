@@ -31,9 +31,7 @@ struct macho_file_parse_single_lc_info {
     const uint8_t *load_cmd_iter;
     struct load_command load_cmd;
 
-    uint64_t arch_bit;
     uint64_t arch_index;
-
     uint64_t tbd_options;
     uint64_t options;
 

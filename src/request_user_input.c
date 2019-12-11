@@ -393,10 +393,10 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
 
     if (orig->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
         const enum tbd_objc_constraint orig_objc_constraint =
-            orig->info.fields.at.archs.objc_constraint;
+            orig->info.fields.archs.objc_constraint;
 
         if (orig_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
-            tbd->info.fields.at.archs.objc_constraint = orig_objc_constraint;
+            tbd->info.fields.archs.objc_constraint = orig_objc_constraint;
             tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         }
 
@@ -443,7 +443,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
             continue;
         }
 
-        tbd->info.fields.at.archs.objc_constraint = objc_constraint;
+        tbd->info.fields.archs.objc_constraint = objc_constraint;
         free(input);
 
         break;
@@ -451,7 +451,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        orig->info.fields.at.archs.objc_constraint = objc_constraint;
+        orig->info.fields.archs.objc_constraint = objc_constraint;
         orig->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
     }
 
@@ -479,13 +479,23 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
     }
 
     if (orig->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
-        const char *const orig_parent_umbrella =
-            orig->info.fields.at.archs.parent_umbrella;
+        const struct tbd_metadata_info *const orig_umbrella_info =
+            tbd_ci_get_single_parent_umbrella(&orig->info);
 
-        if (orig_parent_umbrella != NULL) {
-            tbd->info.fields.at.archs.parent_umbrella = orig_parent_umbrella;
+        if (orig_umbrella_info != NULL) {
+            const enum tbd_ci_add_parent_umbrella_result add_umbrella_result =
+                tbd_ci_add_parent_umbrella(&tbd->info,
+                                           orig_umbrella_info->string,
+                                           orig_umbrella_info->length,
+                                           0,
+                                           0);
+
+            if (add_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
+                fputs("Failed to add missing parent-umbrella\n", stderr);
+                exit(1);
+            }
+
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
-
             return true;
         }
     }
@@ -512,14 +522,32 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                       indent,
                       &parent_umbrella_length);
 
-    tbd->info.fields.at.archs.parent_umbrella = parent_umbrella;
-    tbd->info.fields.at.archs.parent_umbrella_length = parent_umbrella_length;
+    const enum tbd_ci_add_parent_umbrella_result add_umbrella_result =
+        tbd_ci_add_parent_umbrella(&tbd->info,
+                                   parent_umbrella,
+                                   parent_umbrella_length,
+                                   0,
+                                   0);
+
+    if (add_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
+        fputs("Failed to set provided parent-umbrella\n", stderr);
+        exit(1);
+    }
+
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        orig->info.fields.at.archs.parent_umbrella = parent_umbrella;
-        orig->info.fields.at.archs.parent_umbrella_length =
-            parent_umbrella_length;
+        const enum tbd_ci_add_parent_umbrella_result add_orig_umbrella_result =
+            tbd_ci_add_parent_umbrella(&tbd->info,
+                                       parent_umbrella,
+                                       parent_umbrella_length,
+                                       0,
+                                       0);
+
+        if (add_orig_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
+            fputs("Failed to set provided parent-umbrella to all\n", stderr);
+            exit(1);
+        }
 
         orig->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
     } else {
@@ -555,10 +583,10 @@ request_platform(struct tbd_for_main *__notnull const orig,
 
     if (orig->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
         const enum tbd_platform orig_platform =
-            orig->info.fields.at.archs.platform;
+            tbd_ci_get_single_platform(&orig->info);
 
         if (orig_platform != TBD_PLATFORM_NONE) {
-            tbd->info.fields.at.archs.platform = orig_platform;
+            tbd_ci_set_single_platform(&tbd->info, orig_platform);
             tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         }
 
@@ -605,7 +633,7 @@ request_platform(struct tbd_for_main *__notnull const orig,
             continue;
         }
 
-        tbd->info.fields.at.archs.platform = platform;
+        tbd_ci_set_single_platform(&tbd->info, platform);
         free(input);
 
         break;
@@ -613,7 +641,7 @@ request_platform(struct tbd_for_main *__notnull const orig,
 
     tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        orig->info.fields.at.archs.platform = platform;
+        tbd_ci_set_single_platform(&orig->info, platform);
         orig->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
     }
 

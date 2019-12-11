@@ -41,7 +41,6 @@ static inline bool is_exported_symbol(const uint8_t n_type) {
 
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *__notnull const info_in,
-              const uint64_t arch_bit,
               const uint64_t arch_index,
               const uint32_t index,
               const uint32_t strsize,
@@ -89,7 +88,6 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
         tbd_ci_add_symbol_with_info(info_in,
                                     string,
                                     max_len,
-                                    arch_bit,
                                     arch_index,
                                     predefined_type,
                                     meta_type,
@@ -239,7 +237,6 @@ macho_file_parse_symtab_from_file(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_index = args->arch_index;
-    const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist *nlist = symbol_table;
@@ -295,7 +292,6 @@ macho_file_parse_symtab_from_file(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -362,7 +358,6 @@ macho_file_parse_symtab_from_file(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -503,7 +498,6 @@ macho_file_parse_symtab_64_from_file(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_index = args->arch_index;
-    const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
     const struct nlist_64 *nlist = symbol_table;
@@ -559,7 +553,6 @@ macho_file_parse_symtab_64_from_file(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -626,7 +619,6 @@ macho_file_parse_symtab_64_from_file(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -661,10 +653,12 @@ macho_file_parse_symtab_from_map(
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    const uint32_t stroff = args->stroff;
     const uint32_t strsize = args->strsize;
+
     const struct range string_table_range = {
-        .begin = args->stroff,
-        .end = string_table_range.begin + strsize
+        .begin = stroff,
+        .end = stroff + strsize
     };
 
     const struct range available_range = args->available_range;
@@ -710,7 +704,6 @@ macho_file_parse_symtab_from_map(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_index = args->arch_index;
-    const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
     const char *const string_table =
@@ -769,7 +762,6 @@ macho_file_parse_symtab_from_map(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -833,7 +825,6 @@ macho_file_parse_symtab_from_map(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -862,10 +853,12 @@ macho_file_parse_symtab_64_from_map(
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    const uint32_t stroff = args->stroff;
     const uint32_t strsize = args->strsize;
+
     const struct range string_table_range = {
-        .begin = args->stroff,
-        .end = string_table_range.begin + strsize
+        .begin = stroff,
+        .end = stroff + strsize
     };
 
     const struct range available_range = args->available_range;
@@ -911,7 +904,6 @@ macho_file_parse_symtab_64_from_map(
     const enum tbd_version version = info_in->version;
 
     const uint64_t arch_index = args->arch_index;
-    const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
     const char *const string_table =
@@ -970,7 +962,6 @@ macho_file_parse_symtab_64_from_map(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,
@@ -1034,7 +1025,6 @@ macho_file_parse_symtab_64_from_map(
 
             const enum macho_file_parse_result handle_symbol_result =
                 handle_symbol(info_in,
-                              arch_bit,
                               arch_index,
                               index,
                               strsize,

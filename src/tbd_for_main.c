@@ -159,10 +159,10 @@ add_image_path(int *__notnull const index_in,
 
 bool
 tbd_for_main_parse_option(int *const __notnull index_in,
-                          struct tbd_for_main *const tbd,
+                          struct tbd_for_main *__notnull const tbd,
                           const int argc,
-                          char *const *const argv,
-                          const char *const option)
+                          char *__notnull const *__notnull const argv,
+                          const char *__notnull const option)
 {
     int index = *index_in;
     if (strcmp(option, "allow-private-objc-symbols") == 0) {
@@ -178,9 +178,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "ignore-clients") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_CLIENTS;
     } else if (strcmp(option, "ignore-compat-version") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION;
     } else if (strcmp(option, "ignore-current-version") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION;
     } else if (strcmp(option, "ignore-flags") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS;
@@ -201,6 +201,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->flags |= F_TBD_FOR_MAIN_NO_REQUESTS;
     } else if (strcmp(option, "ignore-swift-version") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION;
     } else if (strcmp(option, "ignore-undefineds") == 0) {
         tbd->parse_options |= O_TBD_PARSE_IGNORE_UNDEFINEDS;
     } else if (strcmp(option, "ignore-warnings") == 0) {
@@ -250,18 +251,17 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.at.archs.data != 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_ARCHS) {
             fputs("Note: Option --replace-archs has been provided multiple "
                   "times.\nOlder option's list of architectures will be "
                   "overriden\n",
                   stderr);
         }
 
-        tbd->info.fields.at.archs.data =
+        tbd->info.fields.targets =
             parse_architectures_list(index,
                                      argc,
                                      argv,
-                                     &tbd->info.fields.at.archs.count,
                                      &index);
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
@@ -351,10 +351,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        const enum tbd_objc_constraint info_objc_constraint =
-            tbd->info.fields.at.archs.objc_constraint;
-
-        if (info_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
             fputs("Note: Option --replace-objc-constraint has been provided "
                   "multiple times.\nOlder option's objc-constraint will be "
                   "overriden\n",
@@ -375,7 +372,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.fields.at.archs.objc_constraint = objc_constraint;
+        tbd->info.fields.archs.objc_constraint = objc_constraint;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT;
     } else if (strcmp(option, "replace-platform") == 0) {
@@ -388,7 +385,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.at.archs.platform != TBD_PLATFORM_NONE) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM) {
             fputs("Note: Option --replace-platform has been provided multiple "
                   "times.\nOlder option's platform will be overriden\n",
                   stderr);
@@ -406,7 +403,6 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        tbd->info.fields.at.archs.platform = platform;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_PLATFORM;
     } else if (strcmp(option, "replace-swift-version") == 0) {
@@ -446,14 +442,14 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.at.targets.list.count != 0) {
+        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TARGETS) {
             fputs("Note: Option --replace-targets has been provided multiple "
                   "times.\nOlder option's list of targets will be "
                   "overriden\n",
                   stderr);
         }
 
-        tbd->info.fields.at.targets.list =
+        tbd->info.fields.targets =
             parse_targets_list(index, argc, argv, &index);
 
         tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
@@ -873,166 +869,6 @@ tbd_for_main_write_to_stdout_for_dsc_image(
             }
         }
     }
-}
-
-static bool
-dsc_image_filter_equals_comparator(const void *__notnull const array_item,
-                                   const void *__notnull const item)
-{
-    const struct tbd_for_main_dsc_image_filter *const array_filter =
-        (const struct tbd_for_main_dsc_image_filter *)array_item;
-
-    const struct tbd_for_main_dsc_image_filter *const filter =
-        (const struct tbd_for_main_dsc_image_filter *)item;
-
-    const enum tbd_for_main_dsc_image_filter_type type = filter->type;
-    const enum tbd_for_main_dsc_image_filter_type array_type =
-        array_filter->type;
-
-    if (array_type != type) {
-        return false;
-    }
-
-    const uint64_t array_filter_length = array_filter->length;
-    const uint64_t filter_length = filter->length;
-
-    const char *const array_string = array_filter->string;
-    const char *const string = filter->string;
-
-    if (array_filter_length > filter_length) {
-        return (memcmp(array_string, string, filter_length + 1) == 0);
-    } else if (array_filter_length < filter_length) {
-        return (memcmp(array_string, string, array_filter_length + 1) == 0);
-    }
-
-    return (memcmp(array_string, string, filter_length) == 0);
-}
-
-static bool
-dsc_image_number_equals_comparator(const void *__notnull const array_item,
-                                   const void *__notnull const item)
-{
-    const uint32_t array_number = *(const uint32_t *)array_item;
-    const uint32_t number = *(const uint32_t *)item;
-
-    return (array_number == number);
-}
-
-static uint64_t count_paths(const struct array *__notnull const filters) {
-    uint64_t count = 0;
-
-    const struct tbd_for_main_dsc_image_filter *filter = filters->data;
-    const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
-
-    for (; filter != end; filter++) {
-        if (filter->type == TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_PATH) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
-void
-tbd_for_main_apply_missing_from(struct tbd_for_main *__notnull const dst,
-                                const struct tbd_for_main *__notnull const src)
-{
-    if (dst->info.fields.at.archs.count == 0) {
-        dst->info.fields.at.archs.data = src->info.fields.at.archs.data;
-        dst->info.fields.at.archs.count = src->info.fields.at.archs.count;
-    }
-
-    if (!(dst->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION)) {
-        dst->info.fields.current_version = src->info.fields.current_version;
-    }
-
-    if (!(dst->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION)) {
-        const uint32_t comp_version = src->info.fields.compatibility_version;
-        dst->info.fields.compatibility_version = comp_version;
-    }
-
-    if (dst->info.fields.flags == 0) {
-        dst->info.fields.flags = src->info.fields.flags;
-    }
-
-    if (dst->info.fields.install_name == NULL) {
-        dst->info.fields.install_name = src->info.fields.install_name;
-    }
-
-    if (dst->info.fields.at.archs.parent_umbrella == NULL) {
-        const char *const src_parent_umbrella =
-            src->info.fields.at.archs.parent_umbrella;;
-
-        dst->info.fields.at.archs.parent_umbrella = src_parent_umbrella;
-    }
-
-    if (dst->info.fields.at.archs.platform == TBD_PLATFORM_NONE) {
-        dst->info.fields.at.archs.platform = src->info.fields.at.archs.platform;
-    }
-
-    const enum tbd_objc_constraint dst_objc_constraint =
-        dst->info.fields.at.archs.objc_constraint;
-
-    if (dst_objc_constraint == TBD_OBJC_CONSTRAINT_NO_VALUE) {
-        const enum tbd_objc_constraint src_objc_constraint =
-            src->info.fields.at.archs.objc_constraint;
-
-        dst->info.fields.at.archs.objc_constraint = src_objc_constraint;
-    }
-
-    if (dst->info.fields.swift_version == 0) {
-        dst->info.fields.swift_version = src->info.fields.swift_version;
-    }
-
-    if (dst->info.version == TBD_VERSION_NONE) {
-        dst->info.version = src->info.version;
-    }
-
-    if (tbd_for_main_has_filetype(dst, TBD_FOR_MAIN_FILETYPE_DSC)) {
-        const struct array *const src_filters = &src->dsc_image_filters;
-        const enum array_result add_filters_result =
-            array_add_and_unique_items_from_array(
-                &dst->dsc_image_filters,
-                sizeof(struct tbd_for_main_dsc_image_filter),
-                src_filters,
-                dsc_image_filter_equals_comparator);
-
-        if (add_filters_result != E_ARRAY_OK) {
-            fputs("Experienced an array failure when trying to add dsc "
-                  "image-filters\n",
-                  stderr);
-
-            exit(1);
-        }
-
-        dst->dsc_filter_paths_count = count_paths(&dst->dsc_image_filters);
-
-        const struct array *const src_numbers = &src->dsc_image_numbers;
-        const enum array_result add_numbers_result =
-            array_add_and_unique_items_from_array(
-                &dst->dsc_image_numbers,
-                sizeof(uint32_t),
-                src_numbers,
-                dsc_image_number_equals_comparator);
-
-        if (add_numbers_result != E_ARRAY_OK) {
-            fputs("Experienced an array failure when trying to add dsc "
-                  "image-numbers\n",
-                  stderr);
-
-            exit(1);
-        }
-    }
-
-    dst->macho_options |= src->macho_options;
-    dst->dsc_options |= src->dsc_options;
-
-    dst->parse_options |= src->parse_options;
-    dst->write_options |= src->write_options;
-
-    dst->flags |= src->flags;
-    dst->filetypes |= src->filetypes;
-    dst->info.flags |= src->info.flags;
 }
 
 void tbd_for_main_destroy(struct tbd_for_main *__notnull const tbd) {

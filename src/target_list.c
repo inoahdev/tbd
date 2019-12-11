@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 11/21/19.
-//  Copyright © 2018 - 2019 inoahdev. All rights reserved.
+//  Copyright © 2019 inoahdev. All rights reserved.
 //
 
 #include <stdint.h>
@@ -33,54 +33,45 @@ realloc_to_heap(struct target_list *__notnull const list, const uint64_t new) {
         return NULL;
     }
 
-    /*
-     * The first three fields in list store the first three targets.
-     */
-
-    void *const data_end = data + list->count;
-    memcpy(data, list, sizeof(uint64_t) * 3);
+    data[0] = (uint64_t)list->data;
+    data[1] = list->stack[0];
+    data[2] = list->stack[1];
 
     list->data = data;
-    list->data_end = data_end;
-    list->alloc_end = data + new;
+    list->alloc_count = new;
 
+    void *const data_end = data + list->set_count;
     return data_end;
 }
 
 static enum target_list_result
 add_to_heap(struct target_list *__notnull const list, const uint64_t new_target)
 {
-    uint64_t *const data_end = list->data_end;
-    uint64_t *const alloc_end = list->alloc_end;
-
     uint64_t *data = list->data;
-    const uint64_t count = list->count;
 
-    const uint64_t used_size = sizeof(uint64_t) * count;
-    const uint64_t free_space = (uint64_t)(alloc_end - data_end);
+    const uint64_t set_count = list->set_count;
+    const uint64_t free_count = list->alloc_count - set_count;
 
-    if (free_space == 0) {
-        const uint64_t item_capacity = (uint64_t)(alloc_end - data);
-        const uint64_t byte_capacity = sizeof(uint64_t) * item_capacity;
+    if (free_count == 0) {
+        const uint64_t cap = set_count + free_count;
+        const uint64_t new_cap = cap * 2;
 
-        uint64_t *const new_data = malloc(byte_capacity * 2);
+        uint64_t *const new_data = malloc(new_cap);
         if (new_data == NULL) {
             return E_TARGET_LIST_ALLOC_FAIL;
         }
 
-        memcpy(new_data, data, used_size);
+        memcpy(new_data, data, sizeof(uint64_t) * set_count);
         free(data);
 
         list->data = new_data;
-        list->alloc_end = new_data + item_capacity;
+        list->alloc_count = new_cap;
 
         data = new_data;
     }
 
-    data[count] = new_target;
-
-    list->data_end = data + count + 1;
-    list->count = count + 1;
+    data[set_count] = new_target;
+    list->set_count = set_count + 1;
 
     return E_TARGET_LIST_OK;
 }
@@ -91,37 +82,39 @@ target_list_add_target(struct target_list *__notnull const list,
                        const enum tbd_platform platform)
 {
     const uint64_t target = target_list_create_target(arch, platform);
-    switch (list->count) {
-        case 0:
-            list->data = (uint64_t *)target;
-            list->count = 1;
+    if (list->alloc_count == 0) {
+        switch (list->set_count) {
+            case 0:
+                list->data = (uint64_t *)target;
+                list->set_count = 1;
 
-            return E_TARGET_LIST_OK;
+                return E_TARGET_LIST_OK;
 
-        case 1:
-            list->data_end = (uint64_t *)target;
-            list->count = 2;
+            case 1:
+                list->stack[0] = target;
+                list->set_count = 2;
 
-            return E_TARGET_LIST_OK;
+                return E_TARGET_LIST_OK;
 
-        case 2:
-            list->alloc_end = (uint64_t *)target;
-            list->count = 3;
+            case 2:
+                list->stack[1] = target;
+                list->set_count = 3;
 
-            return E_TARGET_LIST_OK;
+                return E_TARGET_LIST_OK;
 
-        case 3: {
-            uint64_t *const ptr = realloc_to_heap(list, target);
-            if (ptr == NULL) {
-                return E_TARGET_LIST_ALLOC_FAIL;
+            case 3: {
+                uint64_t *const ptr = realloc_to_heap(list, 6);
+                if (ptr == NULL) {
+                    return E_TARGET_LIST_ALLOC_FAIL;
+                }
+
+                *ptr = target;
+                break;
             }
 
-            *ptr = target;
-            break;
+            default:
+                break;
         }
-
-        default:
-            break;
     }
 
     const enum target_list_result add_target_result = add_to_heap(list, target);
@@ -134,9 +127,10 @@ target_list_add_target(struct target_list *__notnull const list,
 
 static bool
 has_target_in_range(const uint64_t *ptr,
-                    const uint64_t *const end,
+                    const uint64_t count,
                     const uint64_t item)
 {
+    const uint64_t *const end = ptr + count;
     for (; ptr != end; ptr++) {
         if (*ptr == item) {
             return true;
@@ -153,23 +147,23 @@ target_list_has_target(const struct target_list *__notnull const list,
                        const enum tbd_platform platform)
 {
     const uint64_t target = target_list_create_target(arch, platform);
-    if (list->count < 4) {
+    if (list->alloc_count == 0) {
         if (target == (uint64_t)list->data) {
             return true;
         }
 
-        if (target == (uint64_t)list->data_end) {
+        if (target == list->stack[0]) {
             return true;
         }
 
-        if (target == (uint64_t)list->alloc_end) {
+        if (target == list->stack[1]) {
             return true;
         }
 
         return false;
     }
 
-    return has_target_in_range(list->data, list->data_end, target);
+    return has_target_in_range(list->data, list->set_count, target);
 }
 
 void
@@ -178,21 +172,19 @@ target_list_get_target(const struct target_list *__notnull const list,
                        const struct arch_info **__notnull const arch_out,
                        enum tbd_platform *__notnull const platform_out)
 {
-    const uint64_t count = list->count;
     uint64_t target = 0;
-
-    if (count < 4) {
+    if (list->alloc_count == 0) {
         switch (index) {
             case 0:
                 target = (uint64_t)list->data;
                 break;
 
             case 1:
-                target = (uint64_t)list->data_end;
+                target = list->stack[0];
                 break;
 
             case 2:
-                target = (uint64_t)list->alloc_end;
+                target = list->stack[1];
                 break;
 
             default:
@@ -206,9 +198,63 @@ target_list_get_target(const struct target_list *__notnull const list,
     *platform_out = (const enum tbd_platform)(target & TARGET_PLATFORM_MASK);
 }
 
+static inline uint64_t *
+replace_platform_cast(uint64_t *__notnull const target,
+                      const enum tbd_platform platform)
+{
+    return (uint64_t *)((uint64_t)target | platform);
+}
+
+static inline void
+replace_platform_ptr(uint64_t *__notnull const target,
+                     const enum tbd_platform platform)
+{
+    *target |= platform;
+}
+
+void
+target_list_replace_platform(struct target_list *__notnull const list,
+                             const enum tbd_platform platform)
+{
+    const uint64_t set_count = list->set_count;
+    if (list->alloc_count == 0) {
+        switch (set_count) {
+            case 0:
+                return;
+
+            case 1:
+                list->data = replace_platform_cast(list->data, platform);
+                return;
+
+            case 2:
+                list->data = replace_platform_cast(list->data, platform);
+                replace_platform_ptr(&list->stack[0], platform);
+
+                return;
+
+            case 3:
+                list->data = replace_platform_cast(list->data, platform);
+
+                replace_platform_ptr(&list->stack[0], platform);
+                replace_platform_ptr(&list->stack[1], platform);
+
+                return;
+
+            default:
+                break;
+        }
+    }
+
+    uint64_t *target = list->data;
+    const uint64_t *const end = target + set_count;
+
+    for (; target != end; target++) {
+        replace_platform_ptr(target, platform);
+    }
+}
+
 static void *
-expand_heap_to_cap(struct target_list *__notnull const list,
-                   const uint64_t cap)
+expand_heap_to_cap(struct target_list *__notnull const list, const uint64_t cap)
 {
     uint64_t *const data = malloc(sizeof(uint64_t) * cap);
     if (data == NULL) {
@@ -220,13 +266,13 @@ expand_heap_to_cap(struct target_list *__notnull const list,
      */
 
     void *const old_data = list->data;
-    const uint64_t old_count = list->count;
+    const uint64_t old_count = list->set_count;
 
     memcpy(data, old_data, sizeof(uint64_t) * old_count);
+    free(old_data);
 
     list->data = data;
-    list->data_end = data + old_count;
-    list->alloc_end = data + cap;
+    list->alloc_count = cap;
 
     return data;
 }
@@ -235,37 +281,49 @@ enum target_list_result
 target_list_reserve_count(struct target_list *__notnull const list,
                           const uint64_t count)
 {
-    const uint64_t list_count = list->count;
-    if (list_count < 4) {
-        if (count < 4) {
-            return E_TARGET_LIST_OK;
-        }
+    if (count < 4) {
+        return E_TARGET_LIST_OK;
+    }
 
+    const uint64_t alloc_count = list->alloc_count;
+    if (alloc_count > count) {
+        return E_TARGET_LIST_OK;
+    }
+
+    if (alloc_count == 0) {
         if (realloc_to_heap(list, count) == NULL) {
             return E_TARGET_LIST_ALLOC_FAIL;
         }
-
-        return E_TARGET_LIST_OK;
-    }
-
-    if (list_count > count) {
-        return E_TARGET_LIST_OK;
-    }
-
-    if (expand_heap_to_cap(list, count) == NULL) {
-        return E_TARGET_LIST_ALLOC_FAIL;
+    } else {
+        if (expand_heap_to_cap(list, count) == NULL) {
+            return E_TARGET_LIST_ALLOC_FAIL;
+        }
     }
 
     return E_TARGET_LIST_OK;
 }
 
+void target_list_clear(struct target_list *__notnull const list) {
+    if (list->alloc_count == 0) {
+        list->data = NULL;
+
+        list->stack[0] = 0;
+        list->stack[1] = 0;
+    }
+    
+    list->set_count = 0;
+}
+
 void target_list_destroy(struct target_list *__notnull const list) {
-    if (list->count > 3) {
+    if (list->alloc_count != 0) {
         free(list->data);
     }
 
     list->data = NULL;
-    list->data_end = NULL;
-    list->alloc_end = NULL;
-    list->count = 0;
+
+    list->stack[0] = 0;
+    list->stack[1] = 0;
+
+    list->set_count = 0;
+    list->alloc_count = 0;
 }
