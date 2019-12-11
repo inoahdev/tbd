@@ -15,12 +15,13 @@
 #include "string_buffer.h"
 
 const uint8_t *
-read_uleb128(const uint8_t *iter,
-             const uint8_t *const end,
-             uint64_t *const result_out)
+read_uleb128(const uint8_t *__notnull iter,
+             const uint8_t *__notnull const end,
+             const uint8_t first,
+             uint64_t *__notnull const result_out)
 {
-    uint64_t shift = 0;
-    uint64_t result = 0;
+    uint64_t shift = 7;
+    uint64_t result = (first & 0x7f);
 
     /*
      * uleb128 format is as follows:
@@ -52,17 +53,14 @@ read_uleb128(const uint8_t *iter,
      * are stored in the 1st component.
      */
 
+    uint8_t byte = *(++iter);
 
     do {
-        if (iter == end) {
-            return NULL;
-        }
-
         /*
          * Get the lower 7 bits.
          */
 
-        const uint64_t bits = (*iter & 0x7f);
+        const uint64_t bits = (byte & 0x7f);
 
         /*
          * Make sure we actually have the bit-space on a 64-bit integer to store
@@ -78,22 +76,42 @@ read_uleb128(const uint8_t *iter,
 
         result |= (bits << shift);
         shift += 7;
-    } while (*iter++ & 0x80);
+
+        iter++;
+        if (!(byte & 0x80)) {
+            break;
+        }
+
+        if (iter == end) {
+            return NULL;
+        }
+
+        byte = *iter;
+    } while (true);
 
     *result_out = result;
     return iter;
 }
 
-const uint8_t *skip_uleb128(const uint8_t *iter, const uint8_t *const end) {
-    uint64_t shift = 0;
+const uint8_t *
+skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
+{
+    uint8_t i = 1;
+    uint8_t byte = *iter;
 
     do {
-        if (iter == end || shift == 63) {
+        iter++;
+        if (!(byte & 0x80)) {
+            break;
+        }
+
+        if (iter == end || i == 9) {
             return NULL;
         }
 
-        shift += 7;
-    } while (*iter++ & 0x80);
+        byte = *iter;
+        i++;
+    } while (true);
 
     return iter;
 }
@@ -234,7 +252,7 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
 enum macho_file_parse_result
 parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint64_t arch_bit,
-                const int arch_index,
+                const uint64_t arch_index,
                 const uint8_t *__notnull const start,
                 const uint64_t offset,
                 const uint8_t *__notnull const end,
@@ -251,7 +269,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
          * The iter-size is stored in a uleb128.
          */
 
-        if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
+        if ((iter = read_uleb128(iter, end, iter_size, &iter_size)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
     } else {
@@ -295,9 +313,13 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
-        uint64_t flags = 0;
-        if ((iter = read_uleb128(iter, end, &flags)) == NULL) {
-            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        uint64_t flags = *iter;
+        if (flags > 127) {
+            if ((iter = read_uleb128(iter, end, flags, &flags)) == NULL) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+        } else {
+            iter++;
         }
 
         const uint64_t kind = (flags & EXPORT_SYMBOL_FLAGS_KIND_MASK);
@@ -421,8 +443,8 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
          * better performance.
          */
 
-        const uint64_t max_length = (uint64_t)(end - iter);
-        const uint64_t length = strnlen((char *)iter, max_length);
+        const uint32_t max_length = (uint32_t)(end - iter);
+        const uint32_t length = (uint32_t)strnlen((char *)iter, max_length);
 
         /*
          * We can't have the string reach the end of the export-trie.
@@ -447,7 +469,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
 
         uint64_t next = *iter;
         if (next > 127) {
-            if ((iter = read_uleb128(iter, end, &next)) == NULL) {
+            if ((iter = read_uleb128(iter, end, next, &next)) == NULL) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
             }
         } else {
