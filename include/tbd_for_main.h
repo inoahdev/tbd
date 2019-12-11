@@ -97,7 +97,9 @@ enum tbd_for_main_flags {
 
     F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS           = 1ull << 21,
     F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT = 1ull << 22,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION   = 1ull << 23
+    F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION   = 1ull << 23,
+
+    F_TBD_FOR_MAIN_ADDED_FILETYPES = 1ull << 24
 };
 
 enum tbd_for_main_filetype {
@@ -142,8 +144,8 @@ struct tbd_for_main {
     uint64_t flags;
 };
 
-bool
-tbd_for_main_has_filetype(const struct tbd_for_main *__notnull tbd,
+void
+tbd_for_main_add_filetype(struct tbd_for_main *__notnull tbd,
                           enum tbd_for_main_filetype filetype);
 
 bool

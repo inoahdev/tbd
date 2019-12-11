@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdint.h>
 #include <sys/stat.h>
 
 #include <errno.h>
@@ -217,11 +218,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(&index, tbd, argc, argv);
     } else if (strcmp(option, "dsc") == 0) {
-        tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_DSC;
-        tbd->filetypes_count++;
+        tbd_for_main_add_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC);
     } else if (strcmp(option, "macho") == 0) {
-        tbd->filetypes |= TBD_FOR_MAIN_FILETYPE_MACHO;
-        tbd->filetypes_count++;
+        tbd_for_main_add_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO);
     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
         tbd->flags |= F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
 
@@ -534,21 +533,18 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     return true;
 }
 
-bool
-tbd_for_main_has_filetype(const struct tbd_for_main *const tbd,
-                          const enum tbd_for_main_filetype filetype)
+void
+tbd_for_main_add_filetype(struct tbd_for_main *__notnull tbd,
+                          enum tbd_for_main_filetype filetype)
 {
-    const uint64_t filetypes = tbd->filetypes;
-
-    /*
-     * We support all filetypes if no filetypes were provided by the user.
-     */
-
-    if (filetypes == 0) {
-        return true;
+    if (tbd->flags & F_TBD_FOR_MAIN_ADDED_FILETYPES) {
+        tbd->filetypes |= filetype;
+        tbd->filetypes_count += 1;
+    } else {
+        tbd->filetypes = filetype;
+        tbd->filetypes_count = 1;
+        tbd->flags |= F_TBD_FOR_MAIN_ADDED_FILETYPES;
     }
-
-    return (filetypes & filetype);
 }
 
 char *

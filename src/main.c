@@ -64,7 +64,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     const char *const name = dirent->d_name;
     const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
 
-    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
+    if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_MACHO) {
         struct parse_macho_for_main_args args = {
             .fd = fd,
             .magic_buffer = &magic_buffer,
@@ -113,7 +113,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
         }
     }
 
-    if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+    if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC) {
         struct parse_dsc_for_main_args args = {
             .fd = fd,
 
@@ -226,8 +226,10 @@ static void destroy_tbds_array(struct array *const tbds) {
     array_destroy(tbds);
 }
 
-static void set_default_options(struct tbd_for_main *__notnull const tbd) {
+static void setup_tbd_for_main(struct tbd_for_main *__notnull const tbd) {
     tbd->info.version = TBD_VERSION_V2;
+    tbd->filetypes = ~0ull;
+    tbd->filetypes_count = 64;
 }
 
 static void
@@ -523,7 +525,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     }
 
     if (tbd->dsc_image_filters.item_count != 0) {
-        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+        if (!(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC)) {
             fprintf(stderr,
                     "dsc image-filters have been provided for file from (%s) "
                     "that will not be parsed as a dyld_shared_cache file.\n"
@@ -536,7 +538,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     }
 
     if (tbd->dsc_image_numbers.item_count != 0) {
-        if (!tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+        if (!(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC)) {
             fprintf(stderr,
                     "--filter-image-number has been provided for file "
                     "from (%s) that will not be parsed as a dyld_shared_cache "
@@ -598,6 +600,8 @@ int main(const int argc, char *const argv[]) {
         if (strcmp(option, "h") == 0 || strcmp(option, "help") == 0) {
             if (index != 1 || argc != 2) {
                 fprintf(stderr, "%s needs to be run by itself\n", argument);
+                destroy_tbds_array(&tbds);
+
                 return 1;
             }
 
@@ -710,12 +714,9 @@ int main(const int argc, char *const argv[]) {
                  * multiple mach-o images.
                  */
 
-                const bool has_dsc =
-                    tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC);
-
                 const uint64_t options = tbd->flags;
                 if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                    !has_dsc)
+                    !(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC))
                 {
                     if (options & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
                         fputs("Option --preserve-subdirs can only be provided "
@@ -798,7 +799,7 @@ int main(const int argc, char *const argv[]) {
                         }
                     } else if (S_ISDIR(info.st_mode)) {
                         if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                            !has_dsc)
+                            !(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC))
                         {
                             fputs("Writing to a directory while parsing a "
                                   "single mach-o file is not supported.\n"
@@ -876,7 +877,7 @@ int main(const int argc, char *const argv[]) {
             }
 
             struct tbd_for_main tbd = {};
-            set_default_options(&tbd);
+            setup_tbd_for_main(&tbd);
 
             bool found_path = false;
             for (; index != argc; index++) {
@@ -1278,7 +1279,7 @@ int main(const int argc, char *const argv[]) {
              */
 
             struct magic_buffer magic_buffer = {};
-            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO)) {
+            if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_MACHO) {
                 struct parse_macho_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
@@ -1314,7 +1315,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd_for_main_has_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC)) {
+            if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC) {
                 struct parse_dsc_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
@@ -1350,7 +1351,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd->filetypes == 0) {
+            if (tbd->filetypes == ~0ull) {
                 if (should_print_paths) {
                     fputs("File (at path %s) is not among any of the supported "
                           "filetypes\n",
