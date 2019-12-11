@@ -72,6 +72,11 @@ static inline enum macho_file_open_result open_result_from_read_fail(void) {
     return E_MACHO_FILE_OPEN_READ_FAIL;
 }
 
+struct macho_magic_info {
+    uint32_t magic;
+    uint32_t other;
+};
+
 enum macho_file_open_result
 macho_file_open(struct macho_file *__notnull const macho,
                 struct magic_buffer *__notnull const buffer,
@@ -79,7 +84,7 @@ macho_file_open(struct macho_file *__notnull const macho,
                 struct range range)
 {
     const enum magic_buffer_result read_magic_result =
-        magic_buffer_read_n(buffer, fd, sizeof(uint32_t));
+        magic_buffer_read_n(buffer, fd, sizeof(struct macho_magic_info));
 
     if (read_magic_result != E_MAGIC_BUFFER_OK) {
         return E_MACHO_FILE_OPEN_READ_FAIL;
@@ -88,17 +93,21 @@ macho_file_open(struct macho_file *__notnull const macho,
     uint32_t nfat_arch = 1;
     struct mach_header header = {};
 
-    const uint32_t magic = *(uint32_t *)buffer->buff;
-    if (magic_is_fat(magic)) {
-        if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
-            return open_result_from_read_fail();
-        }
+    const struct macho_magic_info *const magic_info =
+        (const struct macho_magic_info *)buffer->buff;
 
+    const uint32_t magic = magic_info->magic;
+    if (magic_is_fat(magic)) {
+        nfat_arch = magic_info->other;
         if (magic_is_big_endian(magic)) {
             nfat_arch = swap_uint32(nfat_arch);
         }
     } else if (magic_is_thin(magic)) {
-        if (our_read(fd, &header, sizeof(header)) < 0) {
+        header.magic = magic;
+        header.cputype = (cpu_type_t)magic_info->other;
+
+        const uint32_t read_size = sizeof(header) - sizeof(magic_info);
+        if (our_read(fd, &header.cpusubtype, read_size) < 0) {
             return open_result_from_read_fail();
         }
 
@@ -1003,13 +1012,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
-            if (info_in->fields.symbols.item_count == 0 &&
-                info_in->fields.metadata.item_count == 0)
-            {
-                return E_MACHO_FILE_PARSE_NO_DATA;
-            }
-        } else {
-            if (info_in->fields.symbols.item_count == 0) {
+            const struct array *const metadata = &info_in->fields.metadata;
+            const struct array *const symbols = &info_in->fields.symbols;
+
+            if (metadata->item_count == 0 && symbols->item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_DATA;
             }
         }
@@ -1046,8 +1052,6 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             if (arch == NULL) {
                 return E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE;
             }
-
-            info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
         }
 
         ret = parse_thin_file(info_in,
@@ -1069,16 +1073,15 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
 
         if ((tbd_options & ignore_missing_exports_flags) == 0) {
-            if (info_in->fields.symbols.item_count == 0 &&
-                info_in->fields.metadata.item_count == 0)
-            {
-                return E_MACHO_FILE_PARSE_NO_DATA;
-            }
-        } else {
-            if (info_in->fields.symbols.item_count == 0) {
+            const struct array *const metadata = &info_in->fields.metadata;
+            const struct array *const symbols = &info_in->fields.symbols;
+
+            if (metadata->item_count == 0 && symbols->item_count == 0) {
                 return E_MACHO_FILE_PARSE_NO_DATA;
             }
         }
+
+        info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
     }
 
     return E_MACHO_FILE_PARSE_OK;
