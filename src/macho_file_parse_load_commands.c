@@ -515,7 +515,7 @@ macho_file_parse_load_commands_from_file(
     info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
 
     const uint64_t arch_bit = parse_info->arch_bit;
-    const int arch_index = parse_info->arch_index;
+    const uint64_t arch_index = parse_info->arch_index;
 
     const uint64_t options = parse_info->options;
     const uint64_t tbd_options = parse_info->tbd_options;

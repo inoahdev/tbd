@@ -33,7 +33,7 @@ call_callback(const macho_file_parse_error_callback callback,
 static enum macho_file_parse_result
 add_export_to_info(struct tbd_create_info *__notnull const info_in,
                    const uint64_t arch_bit,
-                   const int arch_index,
+                   const uint64_t arch_index,
                    const enum tbd_symbol_type type,
                    const char *__notnull const string,
                    const uint32_t length,

@@ -42,7 +42,7 @@ static inline bool is_exported_symbol(const uint8_t n_type) {
 static enum macho_file_parse_result
 handle_symbol(struct tbd_create_info *__notnull const info_in,
               const uint64_t arch_bit,
-              const int arch_index,
+              const uint64_t arch_index,
               const uint32_t index,
               const uint32_t strsize,
               const char *__notnull string,
@@ -238,7 +238,7 @@ macho_file_parse_symtab_from_file(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
-    const int arch_index = args->arch_index;
+    const uint64_t arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
@@ -502,7 +502,7 @@ macho_file_parse_symtab_64_from_file(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
-    const int arch_index = args->arch_index;
+    const uint64_t arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
@@ -709,7 +709,7 @@ macho_file_parse_symtab_from_map(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
-    const int arch_index = args->arch_index;
+    const uint64_t arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 
@@ -910,7 +910,7 @@ macho_file_parse_symtab_64_from_map(
     struct tbd_create_info *const info_in = args->info_in;
     const enum tbd_version version = info_in->version;
 
-    const int arch_index = args->arch_index;
+    const uint64_t arch_index = args->arch_index;
     const uint64_t arch_bit = args->arch_bit;
     const uint64_t tbd_options = args->tbd_options;
 

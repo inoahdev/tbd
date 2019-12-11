@@ -17,7 +17,7 @@ struct macho_file_parse_export_trie_args {
     struct range available_range;
 
     uint64_t arch_bit;
-    int arch_index;
+    uint64_t arch_index;
 
     bool is_64;
     bool is_big_endian;

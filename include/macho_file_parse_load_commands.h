@@ -29,7 +29,7 @@ struct mf_parse_lc_from_file_info {
     const struct arch_info *arch;
 
     uint64_t arch_bit;
-    int arch_index;
+    uint64_t arch_index;
 
     struct range macho_range;
     struct range available_range;
@@ -66,7 +66,7 @@ struct mf_parse_lc_from_map_info {
     const struct arch_info *arch;
 
     uint64_t arch_bit;
-    int arch_index;
+    uint64_t arch_index;
 
     struct range available_map_range;
 

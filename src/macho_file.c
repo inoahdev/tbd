@@ -177,7 +177,7 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
                 const struct arch_info *const arch,
                 struct macho_file_parse_extra_args extra,
                 const bool is_big_endian,
-                const int arch_index,
+                const uint64_t arch_index,
                 const uint64_t tbd_options,
                 const uint64_t options)
 {
