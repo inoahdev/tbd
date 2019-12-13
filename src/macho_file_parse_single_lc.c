@@ -708,16 +708,6 @@ macho_file_parse_single_lc(
             const uint32_t length = (uint32_t)strnlen(umbrella, max_length);
 
             if (length == 0) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
-                                  cb_info);
-
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
-
                 break;
             }
 
