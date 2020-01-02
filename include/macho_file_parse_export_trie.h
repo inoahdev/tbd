@@ -21,9 +21,10 @@ struct macho_file_parse_export_trie_args {
     bool is_64;
     bool is_big_endian;
 
-    struct dyld_info_command dyld_info;
-    struct string_buffer *sb_buffer;
+    uint32_t export_off;
+    uint32_t export_size;
 
+    struct string_buffer *sb_buffer;
     uint64_t tbd_options;
 };
 

@@ -317,9 +317,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .is_64 = is_64,
             .is_big_endian = is_big_endian,
 
-            .dyld_info = lc_info.dyld_info,
-            .sb_buffer = extra.export_trie_sb,
+            .export_off = lc_info.dyld_info.export_off,
+            .export_size = lc_info.dyld_info.export_size,
 
+            .sb_buffer = extra.export_trie_sb,
             .tbd_options = tbd_options
         };
 

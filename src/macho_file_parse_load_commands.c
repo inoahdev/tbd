@@ -859,9 +859,10 @@ macho_file_parse_load_commands_from_file(
                 .is_64 = is_64,
                 .is_big_endian = is_big_endian,
 
-                .dyld_info = dyld_info,
-                .sb_buffer = extra.export_trie_sb,
+                .export_off = dyld_info.export_off,
+                .export_size = dyld_info.export_size,
 
+                .sb_buffer = extra.export_trie_sb,
                 .tbd_options = tbd_options
             };
 
@@ -1467,9 +1468,10 @@ macho_file_parse_load_commands_from_map(
             .is_64 = is_64,
             .is_big_endian = is_big_endian,
 
-            .dyld_info = dyld_info,
-            .sb_buffer = extra.export_trie_sb,
+            .export_off = dyld_info.export_off,
+            .export_size = dyld_info.export_size,
 
+            .sb_buffer = extra.export_trie_sb,
             .tbd_options = tbd_options
         };
 

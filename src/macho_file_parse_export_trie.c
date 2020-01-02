@@ -524,17 +524,17 @@ macho_file_parse_export_trie_from_file(
      * Validate the dyld-info exports-range.
      */
 
-    if (args.dyld_info.export_size < 2) {
+    if (args.export_size < 2) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
-    uint64_t export_end = args.dyld_info.export_off;
-    if (guard_overflow_add(&export_end, args.dyld_info.export_size)) {
+    uint64_t export_end = args.export_off;
+    if (guard_overflow_add(&export_end, args.export_size)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
     uint64_t full_export_off = base_offset;
-    if (guard_overflow_add(&full_export_off, args.dyld_info.export_off)) {
+    if (guard_overflow_add(&full_export_off, args.export_off)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
@@ -556,18 +556,18 @@ macho_file_parse_export_trie_from_file(
         return E_MACHO_FILE_PARSE_SEEK_FAIL;
     }
 
-    uint8_t *const export_trie = malloc(args.dyld_info.export_size);
+    uint8_t *const export_trie = malloc(args.export_size);
     if (export_trie == NULL) {
         return E_MACHO_FILE_PARSE_ALLOC_FAIL;
     }
 
-    if (our_read(fd, export_trie, args.dyld_info.export_size) < 0) {
+    if (our_read(fd, export_trie, args.export_size) < 0) {
         free(export_trie);
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
     struct array node_ranges = {};
-    const uint8_t *const end = export_trie + args.dyld_info.export_size;
+    const uint8_t *const end = export_trie + args.export_size;
 
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
@@ -576,7 +576,7 @@ macho_file_parse_export_trie_from_file(
                         0,
                         end,
                         &node_ranges,
-                        args.dyld_info.export_size,
+                        args.export_size,
                         args.sb_buffer,
                         args.tbd_options);
 
@@ -599,17 +599,17 @@ macho_file_parse_export_trie_from_map(
      * Validate the dyld-info exports-range.
      */
 
-    if (args.dyld_info.export_size < 2) {
+    if (args.export_size < 2) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
-    uint64_t export_end = args.dyld_info.export_off;
-    if (guard_overflow_add(&export_end, args.dyld_info.export_size)) {
+    uint64_t export_end = args.export_off;
+    if (guard_overflow_add(&export_end, args.export_size)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
     const struct range export_range = {
-        .begin = args.dyld_info.export_off,
+        .begin = args.export_off,
         .end = export_end
     };
 
@@ -617,8 +617,8 @@ macho_file_parse_export_trie_from_map(
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
-    const uint8_t *const export_trie = map + args.dyld_info.export_off;
-    const uint8_t *const end = export_trie + args.dyld_info.export_size;
+    const uint8_t *const export_trie = map + args.export_off;
+    const uint8_t *const end = export_trie + args.export_size;
 
     struct array node_ranges = {};
     const enum macho_file_parse_result parse_node_result =
@@ -628,7 +628,7 @@ macho_file_parse_export_trie_from_map(
                         0,
                         end,
                         &node_ranges,
-                        args.dyld_info.export_size,
+                        args.export_size,
                         args.sb_buffer,
                         args.tbd_options);
 
