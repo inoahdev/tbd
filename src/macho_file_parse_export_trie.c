@@ -280,7 +280,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint64_t options)
 {
     const uint8_t *iter = start + offset;
-    uint64_t iter_size = *iter;
+    uint64_t iter_size = 0;
 
     if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
@@ -323,7 +323,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
-        uint64_t flags = *iter;
+        uint64_t flags = 0;
         if ((iter = read_uleb128(iter, end, &flags)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
@@ -472,7 +472,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
 
         iter += (length + 1);
 
-        uint64_t next = *iter;
+        uint64_t next = 0;
         if ((iter = read_uleb128(iter, end, &next)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
