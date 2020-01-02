@@ -139,6 +139,7 @@ struct tbd_for_main {
     struct array dsc_image_numbers;
 
     struct retained_user_info retained;
+    enum tbd_platform platform;
 
     uint64_t dsc_filter_paths_count;
     uint64_t flags;
@@ -154,6 +155,8 @@ tbd_for_main_parse_option(int *__notnull const index_in,
                           int argc,
                           char *__notnull const *__notnull argv,
                           const char *__notnull option);
+
+void tbd_for_main_handle_post_parse(struct tbd_for_main *__notnull tbd);
 
 char *__notnull
 tbd_for_main_create_write_path(const struct tbd_for_main *__notnull tbd,

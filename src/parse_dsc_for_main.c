@@ -24,6 +24,7 @@
 #include "path.h"
 
 #include "recursive.h"
+#include "tbd_for_main.h"
 #include "tbd_write.h"
 #include "unused.h"
 
@@ -463,6 +464,8 @@ actually_parse_image(
 
         return 1;
     }
+
+    tbd_for_main_handle_post_parse(tbd);
 
     uint64_t image_path_length = iterate_info->image_path_length;
     if (image_path_length == 0) {

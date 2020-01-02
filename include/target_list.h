@@ -26,6 +26,11 @@ struct target_list {
     uint64_t set_count;
 };
 
+enum tbd_platform;
+
+uint64_t
+replace_platform_for_target(uint64_t target, enum tbd_platform platform);
+
 enum target_list_result {
     E_TARGET_LIST_OK,
     E_TARGET_LIST_ALLOC_FAIL
@@ -34,8 +39,6 @@ enum target_list_result {
 /*
  * Forward-declare this enum as tbd.h includes this file as well.
  */
-
-enum tbd_platform;
 
 enum target_list_result
 target_list_add_target(struct target_list *__notnull list,

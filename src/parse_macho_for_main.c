@@ -20,6 +20,7 @@
 #include "our_io.h"
 #include "parse_macho_for_main.h"
 #include "recursive.h"
+#include "tbd_for_main.h"
 
 static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
     const char *const write_path = tbd->write_path;
@@ -370,6 +371,8 @@ parse_macho_file_for_main_while_recursing(
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
+
+    tbd_for_main_handle_post_parse(args.tbd);
 
     char *write_path = NULL;
     uint64_t write_path_length = 0;

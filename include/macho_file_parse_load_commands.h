@@ -26,7 +26,7 @@ enum mf_parse_load_commands_flags {
 
 struct mf_parse_lc_from_file_info {
     int fd;
-    
+
     const struct arch_info *arch;
     uint64_t arch_index;
 

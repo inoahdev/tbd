@@ -402,6 +402,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
+        tbd->platform = platform;
         tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
         tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_PLATFORM;
     } else if (strcmp(option, "replace-swift-version") == 0) {
@@ -534,8 +535,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 }
 
 void
-tbd_for_main_add_filetype(struct tbd_for_main *__notnull tbd,
-                          enum tbd_for_main_filetype filetype)
+tbd_for_main_add_filetype(struct tbd_for_main *__notnull const tbd,
+                          const enum tbd_for_main_filetype filetype)
 {
     if (tbd->flags & F_TBD_FOR_MAIN_ADDED_FILETYPES) {
         tbd->filetypes |= filetype;
@@ -547,8 +548,16 @@ tbd_for_main_add_filetype(struct tbd_for_main *__notnull tbd,
     }
 }
 
+void tbd_for_main_handle_post_parse(struct tbd_for_main *__notnull const tbd) {
+    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM)) {
+        return;
+    }
+
+    tbd_ci_set_single_platform(&tbd->info, tbd->platform);
+}
+
 char *
-tbd_for_main_create_write_path(const struct tbd_for_main *const tbd,
+tbd_for_main_create_write_path(const struct tbd_for_main *__notnull const tbd,
                                const char *const file_name,
                                const uint64_t file_name_length,
                                const char *const extension,

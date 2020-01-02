@@ -9,9 +9,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "copy.h"
 #include "likely.h"
+#include "target_list.h"
 #include "tbd.h"
 #include "tbd_write.h"
 #include "yaml.h"
@@ -562,8 +564,13 @@ void
 tbd_ci_set_single_platform(struct tbd_create_info *__notnull const info,
                            const enum tbd_platform platform)
 {
-    if (tbd_uses_archs(info->version)) {
-        target_list_replace_platform(&info->fields.targets, platform);
+    target_list_replace_platform(&info->fields.targets, platform);
+
+    struct tbd_uuid_info *uuid = info->fields.uuids.data;
+    const struct tbd_uuid_info *const end = info->fields.uuids.data_end;
+
+    for (; uuid != end; uuid++) {
+        uuid->target = replace_platform_for_target(uuid->target, platform);
     }
 }
 

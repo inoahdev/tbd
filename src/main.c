@@ -305,19 +305,6 @@ check_objc_constraint(const struct tbd_for_main *__notnull const tbd,
 }
 
 static int
-check_platform(const struct tbd_for_main *__notnull const tbd,
-               const enum tbd_version version,
-               const int result)
-{
-    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM)) {
-        return result;
-    }
-
-    print_not_supported_error(tbd, "--replace-platform", version);
-    return 1;
-}
-
-static int
 check_targets(const struct tbd_for_main *__notnull const tbd,
               const enum tbd_version version,
               const int result)
@@ -370,7 +357,6 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         case TBD_VERSION_V4:
             result = check_archs(tbd, version, result);
             result = check_objc_constraint(tbd, version, result);
-            result = check_platform(tbd, version, result);
 
             break;
     }
