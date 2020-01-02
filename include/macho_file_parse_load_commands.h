@@ -44,7 +44,9 @@ struct mf_parse_lc_from_file_info {
 };
 
 struct macho_file_lc_info_out {
-    struct dyld_info_command dyld_info;
+    uint32_t export_off;
+    uint32_t export_size;
+
     struct symtab_command symtab;
 };
 

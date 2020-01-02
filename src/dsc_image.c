@@ -307,9 +307,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      */
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
-    if (lc_info.dyld_info.export_off != 0 &&
-        lc_info.dyld_info.export_size != 0)
-    {
+    if (lc_info.export_off != 0 && lc_info.export_size != 0) {
         const struct macho_file_parse_export_trie_args args = {
             .info_in = info_in,
             .available_range = dsc_info->available_range,
@@ -317,8 +315,8 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             .is_64 = is_64,
             .is_big_endian = is_big_endian,
 
-            .export_off = lc_info.dyld_info.export_off,
-            .export_size = lc_info.dyld_info.export_size,
+            .export_off = lc_info.export_off,
+            .export_size = lc_info.export_size,
 
             .sb_buffer = extra.export_trie_sb,
             .tbd_options = tbd_options

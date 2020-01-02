@@ -846,7 +846,8 @@ macho_file_parse_load_commands_from_file(
             }
 
             if (lc_info_out != NULL) {
-                lc_info_out->dyld_info = dyld_info;
+                lc_info_out->export_off = dyld_info.export_off;
+                lc_info_out->export_size = dyld_info.export_size;
             }
 
             const uint64_t base_offset = macho_range.begin;
@@ -1455,8 +1456,9 @@ macho_file_parse_load_commands_from_map(
             dyld_info.export_size = swap_uint32(dyld_info.export_size);
         }
 
-        if (lc_info_out) {
-            lc_info_out->dyld_info = dyld_info;
+        if (lc_info_out != NULL) {
+            lc_info_out->export_off = dyld_info.export_off;
+            lc_info_out->export_size = dyld_info.export_size;
         }
 
         const struct macho_file_parse_export_trie_args args = {
