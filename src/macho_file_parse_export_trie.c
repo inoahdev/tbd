@@ -6,10 +6,12 @@
 //  Copyright © 2019 inoahdev. All rights reserved.
 //
 
+#include <stdint.h>
 #include <string.h>
 
 #include "guard_overflow.h"
 #include "likely.h"
+#include "macho_file.h"
 #include "macho_file_parse_export_trie.h"
 #include "our_io.h"
 #include "string_buffer.h"
@@ -272,10 +274,10 @@ enum macho_file_parse_result
 parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint64_t arch_index,
                 const uint8_t *__notnull const start,
-                const uint64_t offset,
+                const uint32_t offset,
                 const uint8_t *__notnull const end,
                 struct array *__notnull const node_ranges,
-                const uint64_t export_size,
+                const uint32_t export_size,
                 struct string_buffer *__notnull const sb_buffer,
                 const uint64_t options)
 {
@@ -283,6 +285,11 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
     uint64_t iter_size = 0;
 
     if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    uint32_t iter_off_end = offset;
+    if (guard_overflow_add(&iter_off_end, iter_size)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
