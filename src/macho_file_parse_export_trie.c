@@ -14,8 +14,8 @@
 #include "our_io.h"
 #include "string_buffer.h"
 
-static inline bool is_uleb_byte_done(const uint8_t byte) {
-    return ((byte & 0x80) == 0);
+static inline int get_msb(const uint8_t byte) {
+    return (byte & 0x80);
 }
 
 const uint8_t *
@@ -62,8 +62,8 @@ read_uleb128(const uint8_t *__notnull iter,
      * Quick check to shortcut if we don't have a full uleb128.
      */
 
-    bool is_done = is_uleb_byte_done(byte);
-    if (is_done) {
+    int has_next = get_msb(byte);
+    if (has_next == 0) {
         iter++;
         if (iter == end) {
             return NULL;
@@ -100,12 +100,12 @@ read_uleb128(const uint8_t *__notnull iter,
             return NULL;
         }
 
-        if (is_done) {
+        if (has_next == 0) {
             break;
         }
 
         byte = *iter;
-        is_done = is_uleb_byte_done(byte);
+        has_next = get_msb(byte);
     } while (true);
 
     *result_out = result;
@@ -124,7 +124,7 @@ skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
             return NULL;
         }
 
-        if (is_uleb_byte_done(byte)) {
+        if (get_msb(byte) == 0) {
             break;
         }
 
