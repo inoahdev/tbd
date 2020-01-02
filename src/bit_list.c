@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <sys/types.h>
 
 #include "bit_list.h"
@@ -35,21 +36,37 @@ bit_list_create_with_capacity(struct bit_list *__notnull const list,
     return E_BIT_LIST_OK;
 }
 
-static uint64_t
-find_first_bit(const uint64_t *ptr,
-               const uint64_t *const end,
-               const uint64_t start)
-{
-    for (int i = 0; ptr != end; i++, ptr++) {
-        const uint64_t data = *ptr;
-        for (uint64_t j = start; j != 64; j++) {
-            if (data & (1ull << j)) {
-                return ((i + j) - 1);
-            }
-        }
+static uint64_t find_first_bit_stack(uint64_t stack, const uint64_t start) {
+    stack >>= start;
+
+    const uint64_t loc = ffsll(stack);
+    if (loc == 0) {
+        return UINT64_MAX;
     }
 
-    return -1;
+    return (loc - 1);
+}
+
+static uint64_t
+find_first_bit_heap(const uint64_t *ptr,
+                    const uint64_t *const end,
+                    uint64_t start)
+{
+    if (start > 64) {
+        start >>= 6;
+        ptr += start;
+    }
+
+    for (; ptr != end; ptr++) {
+        const uint64_t loc = ffsll(*ptr);
+        if (loc == 0) {
+            continue;
+        }
+
+        return (loc - 1);
+    }
+
+    return UINT64_MAX;
 }
 
 uint64_t *get_bits_ptr(const struct bit_list list) {
@@ -61,40 +78,34 @@ bool bit_list_is_on_heap(const struct bit_list list) {
 }
 
 uint64_t bit_list_find_first_bit(const struct bit_list list) {
-    int start = 1;
-
-    const uint64_t *ptr = &list.data;
-    const uint64_t *end = ptr + 1;
-
     if (unlikely(bit_list_is_on_heap(list))) {
-        ptr = get_bits_ptr(list);
-        end = ptr + list.alloc_count;
+        const uint64_t *const ptr = get_bits_ptr(list);
+        const uint64_t *const end = ptr + list.alloc_count;
 
-        start = 0;
+        return find_first_bit_heap(ptr, end, 0);
     }
 
-    return find_first_bit(ptr, end, start);
+    return find_first_bit_stack(list.data, 1);
 }
 
 uint64_t
 bit_list_find_bit_after_last(const struct bit_list list, const uint64_t last) {
-    uint64_t index = last + 2;
-
-    const uint64_t *ptr = &list.data;
-    const uint64_t *end = ptr + 1;
-
     if (unlikely(bit_list_is_on_heap(list))) {
-        ptr = get_bits_ptr(list);
-        end = ptr + list.alloc_count;
+        const uint64_t *const ptr = get_bits_ptr(list);
+        const uint64_t *const end = ptr + list.alloc_count;
 
         /*
-         * We don't have to worry about the LSB flag.
+         * Only add one as we don't have to worry about the LSB flag.
          */
 
-        index -= 1;
+        return find_first_bit_heap(ptr, end, last + 1);
     }
 
-    return find_first_bit(ptr, end, index);
+    /*
+     * Add one for the LSB bit, and one to move past the last bit.
+     */
+
+    return find_first_bit_stack(list.data, last + 2);
 }
 
 static int
