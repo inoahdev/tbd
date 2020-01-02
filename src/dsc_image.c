@@ -374,6 +374,5 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         return translate_macho_file_parse_result(ret);
     }
 
-    tbd_ci_sort_info(info_in);
     return E_DSC_IMAGE_PARSE_OK;
 }
