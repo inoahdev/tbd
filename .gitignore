@@ -6,6 +6,7 @@
 *.gcda
 
 .ccls-cache
+.idea/
 .vs/
 .vscode/
 .clangd/
