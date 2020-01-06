@@ -119,7 +119,7 @@ array_ensure_item_capacity(struct array *__notnull const array,
     const uint64_t old_capacity = (uint64_t)(array->alloc_end - array->data);
     const uint64_t wanted_capacity = item_count * item_size;
 
-    if (old_capacity > wanted_capacity) {
+    if (old_capacity >= wanted_capacity) {
         return E_ARRAY_OK;
     }
 
