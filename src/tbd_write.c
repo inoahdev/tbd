@@ -277,19 +277,19 @@ int write_packed_version(FILE *__notnull const file, const uint32_t version) {
      * The revision for a packed-version is stored in the LSB.
      */
 
-    const uint8_t revision = version & 0xff;
+    const uint8_t revision = (version & 0xff);
 
     /*
      * The minor for a packed-version is stored in the second LSB.
      */
 
-    const uint8_t minor = (version & 0xff00) >> 8;
+    const uint8_t minor = ((version & 0xff00) >> 8);
 
     /*
      * The major for a packed-version is stored in the two MSB.
      */
 
-    const uint16_t major = (version & 0xffff0000) >> 16;
+    const uint16_t major = ((version & 0xffff0000) >> 16);
     if (fprintf(file, "%" PRIu16, major) < 0) {
         return 1;
     }
@@ -805,8 +805,7 @@ tbd_write_uuids_for_targets(FILE *__notnull const file,
     const struct tbd_uuid_info *const end = uuids->data_end;
 
     for (; uuid != end; uuid++) {
-        const uint64_t target = uuid->target;
-        if (write_uuid_with_target(file, target, uuid->uuid, version)) {
+        if (write_uuid_with_target(file, uuid->target, uuid->uuid, version)) {
             return 1;
         }
     }
@@ -1781,15 +1780,13 @@ meta:
                     return 0;
                 }
 
-                const enum tbd_symbol_meta_type inner_meta_type =
-                    sym->meta_type;
-
-                if (inner_meta_type != m_type) {
+                const enum tbd_symbol_meta_type inner_m_type = sym->meta_type;
+                if (inner_m_type != m_type) {
                     if (end_written_sequence(file)) {
                         return 1;
                     }
 
-                    m_type = inner_meta_type;
+                    m_type = inner_m_type;
                     goto meta;
                 }
 

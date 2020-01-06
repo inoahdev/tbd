@@ -13,6 +13,7 @@
 #include "macho_file.h"
 
 #include "swap.h"
+#include "tbd.h"
 #include "yaml.h"
 
 static bool
@@ -128,20 +129,33 @@ parse_bv_platform(
         platform = swap_uint32(platform);
     }
 
-    if (platform < TBD_PLATFORM_MACOS ||
-        platform > TBD_PLATFORM_WATCHOS_SIMULATOR)
-    {
-        const bool should_continue =
-            call_callback(callback,
-                          info_in,
-                          ERR_MACHO_FILE_PARSE_INVALID_PLATFORM,
-                          cb_info);
+    switch (platform) {
+        case TBD_PLATFORM_NONE:
+        case TBD_PLATFORM_MACOS:
+        case TBD_PLATFORM_IOS:
+        case TBD_PLATFORM_TVOS:
+        case TBD_PLATFORM_WATCHOS:
+        case TBD_PLATFORM_BRIDGEOS:
+        case TBD_PLATFORM_MACCATALYST:
+        case TBD_PLATFORM_IOS_SIMULATOR:
+        case TBD_PLATFORM_TVOS_SIMULATOR:
+        case TBD_PLATFORM_WATCHOS_SIMULATOR:
+        case TBD_PLATFORM_ZIPPERED:
+            break;
 
-        if (!should_continue) {
-            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+        default: {
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_INVALID_PLATFORM,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+
+            return E_MACHO_FILE_PARSE_OK;
         }
-
-        return E_MACHO_FILE_PARSE_OK;
     }
 
     const enum tbd_platform parsed_platform = *parse_info->platform_in;

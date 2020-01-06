@@ -150,21 +150,21 @@ recurse_dir_fd(const int dir_fd,
         bool should_exit = false;
         switch (entry->d_type) {
             case DT_DIR: {
+                const char *const name = entry->d_name;
                 if (!found_dot) {
-                    if (memcmp(entry->d_name, ".", sizeof(".")) == 0) {
+                    if (memcmp(name, ".", sizeof(".")) == 0) {
                         found_dot = true;
                         continue;
                     }
                 }
 
                 if (!found_two_dot) {
-                    if (memcmp(entry->d_name, "..", sizeof("..")) == 0) {
+                    if (memcmp(name, "..", sizeof("..")) == 0) {
                         found_two_dot = true;
                         continue;
                     }
                 }
 
-                const char *const name = entry->d_name;
                 const uint64_t name_length = get_name_length(entry, name);
                 uint64_t subdir_path_length = 0;
 

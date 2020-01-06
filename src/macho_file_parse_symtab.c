@@ -121,7 +121,7 @@ should_parse_undef(const enum tbd_version version,
     return true;
 }
 
-static enum macho_file_parse_result
+static inline enum macho_file_parse_result
 loop_nlist_32(struct tbd_create_info *__notnull const info_in,
               const struct nlist *__notnull const symbol_table,
               const char *__notnull const string_table,
@@ -267,7 +267,7 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
     return E_MACHO_FILE_PARSE_OK;
 }
 
-static enum macho_file_parse_result
+static inline enum macho_file_parse_result
 loop_nlist_64(struct tbd_create_info *__notnull const info_in,
               const struct nlist_64 *__notnull const symbol_table,
               const char *__notnull const string_table,

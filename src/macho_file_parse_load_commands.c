@@ -6,6 +6,7 @@
 //  Copyright © 2018 - 2019 inoahdev. All rights reserved.
 //
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,13 +28,15 @@
 
 static inline bool segment_has_image_info_sect(const char name[16]) {
     const uint64_t first = *(const uint64_t *)name;
+    const uint64_t *const second_ptr = (const uint64_t *)name + 1;
+
     switch (first) {
         /*
          * case "__DATA" with 2 null characters.
          */
 
         case 71830128058207: {
-            const uint64_t second = *((const uint64_t *)name + 1);
+            const uint64_t second = *second_ptr;
             if (second == 0) {
                 return true;
             }
@@ -46,7 +49,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
          */
 
         case 4926728347494670175: {
-            const uint64_t second = *((const uint64_t *)name + 1);
+            const uint64_t second = *second_ptr;
             if (second == 1498698313) {
                 /*
                  * if (second == "IRTY") with 4 null characters.
@@ -63,7 +66,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
          */
 
         case 4854670753456742239: {
-            const uint64_t second = *((const uint64_t *)name + 1);
+            const uint64_t second = *second_ptr;
             if (second == 1414745679) {
                 /*
                  * if (second == "ONST") with 4 null characters.
@@ -80,7 +83,7 @@ static inline bool segment_has_image_info_sect(const char name[16]) {
              * if name == "__OBJC".
              */
 
-            const uint64_t second = *((const uint64_t *)name + 1);
+            const uint64_t second = *second_ptr;
             if (second == 0) {
                 return true;
             }
