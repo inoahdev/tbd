@@ -33,7 +33,6 @@ bit_list_create_with_capacity(struct bit_list *__notnull list,
 uint64_t bit_list_find_first_bit(struct bit_list list);
 uint64_t bit_list_find_bit_after_last(struct bit_list list, uint64_t last);
 
-bool bit_list_is_on_heap(struct bit_list list);
 bool
 bit_list_equal_counts_is_equal(struct bit_list left, struct bit_list right);
 
