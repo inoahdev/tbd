@@ -62,9 +62,9 @@ recurse_directory_callback(const char *__notnull const dir_path,
     struct magic_buffer magic_buffer = {};
 
     const char *const name = dirent->d_name;
-    const bool should_combine = (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
+    const bool should_combine = tbd->flags.combine_tbds;
 
-    if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_MACHO) {
+    if (tbd->filetypes.macho) {
         struct parse_macho_for_main_args args = {
             .fd = fd,
             .magic_buffer = &magic_buffer,
@@ -113,7 +113,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
         }
     }
 
-    if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC) {
+    if (tbd->filetypes.dyld_shared_cache) {
         struct parse_dsc_for_main_args args = {
             .fd = fd,
 
@@ -228,8 +228,8 @@ static void destroy_tbds_array(struct array *const tbds) {
 
 static void setup_tbd_for_main(struct tbd_for_main *__notnull const tbd) {
     tbd->info.version = TBD_VERSION_V2;
-    tbd->filetypes = ~0ull;
-    tbd->filetypes_count = 64;
+    tbd->filetypes.macho = true;
+    tbd->filetypes.dyld_shared_cache = true;
 }
 
 static void
@@ -242,7 +242,7 @@ print_not_supported_error(const struct tbd_for_main *__notnull const tbd,
             option,
             tbd_version_to_string(version));
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+    if (tbd->flags.provided_tbd_version) {
         fputs("Please either provide a different .tbd version or remove the "
               "option from the argument-list\n",
               stderr);
@@ -258,7 +258,7 @@ check_archs(const struct tbd_for_main *__notnull const tbd,
             const enum tbd_version version,
             const int result)
 {
-    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_ARCHS)) {
+    if (!tbd->flags.provided_archs) {
         return result;
     }
 
@@ -272,12 +272,12 @@ check_flags(const struct tbd_for_main *__notnull const tbd,
             const int result)
 {
     int return_value = result;
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_FLAGS) {
+    if (tbd->flags.provided_flags) {
         print_not_supported_error(tbd, "--replace-flags", version);
         return_value = 1;
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS) {
+    if (tbd->flags.provided_ignore_flags) {
         print_not_supported_error(tbd, "--ignore-flags", version);
         return_value = 1;
     }
@@ -291,12 +291,12 @@ check_objc_constraint(const struct tbd_for_main *__notnull const tbd,
                       const int result)
 {
     int return_value = result;
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
+    if (tbd->flags.provided_objc_constraint) {
         print_not_supported_error(tbd, "--replace-objc-constraint", version);
         return_value = 1;
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT) {
+    if (tbd->flags.provided_ignore_objc_constraint) {
         print_not_supported_error(tbd, "--ignore-objc-constraint", version);
         return_value = 1;
     }
@@ -309,7 +309,7 @@ check_targets(const struct tbd_for_main *__notnull const tbd,
               const enum tbd_version version,
               const int result)
 {
-    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TARGETS)) {
+    if (!tbd->flags.provided_targets) {
         return result;
     }
 
@@ -338,7 +338,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             result = check_flags(tbd, version, result);
             result = check_targets(tbd, version, result);
 
-            if (tbd->parse_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
+            if (tbd->parse_options.ignore_undefineds) {
                 fprintf(stderr,
                         "Undefined-symbols are already ignored for tbd with "
                         "file from: %s\n",
@@ -361,8 +361,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             break;
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION) {
+    if (tbd->flags.provided_ignore_current_version) {
+        if (tbd->flags.provided_current_version) {
             fprintf(stderr,
                     "Please exclusively provide either "
                     "--ignore-current-version or --replace-current-version for "
@@ -373,8 +373,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         }
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION) {
+    if (tbd->flags.provided_ignore_compat_version) {
+        if (tbd->flags.provided_compat_version) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-compat-version "
                     "or --replace-compat-version for file from: %s\n",
@@ -384,8 +384,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         }
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_FLAGS) {
+    if (tbd->flags.provided_ignore_flags) {
+        if (tbd->flags.provided_flags) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-flags or "
                     "--replace-flags for file from: %s\n",
@@ -395,8 +395,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         }
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
+    if (tbd->flags.provided_ignore_objc_constraint) {
+        if (tbd->flags.provided_objc_constraint) {
             fprintf(stderr,
                     "Please exclusively provide either "
                     "--ignore-objc-constraint or --replace-objc-constraint for "
@@ -407,8 +407,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         }
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_SWIFT_VERSION) {
+    if (tbd->flags.provided_ignore_swift_version) {
+        if (tbd->flags.provided_swift_version) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-swift-version "
                     "or --replace-swift-version for file from: %s\n",
@@ -469,7 +469,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
 
             result = 1;
         } else if (S_ISREG(info.st_mode)) {
-            if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+            if (tbd->flags.recurse_directories) {
                 fprintf(stderr, "Cannot recurse file at path: %s\n", path);
                 if (full_path != path) {
                     free(full_path);
@@ -478,9 +478,9 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
                 result = 1;
             }
         } else if (S_ISDIR(info.st_mode)) {
-            if (!(tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES)) {
-                fputs("Please provide option '-r' to if you want to recurse "
-                      "the provided directory\n",
+            if (!tbd->flags.recurse_directories) {
+                fputs("Please provide option '-r' if you want to recurse the "
+                      "provided directory\n",
                       stderr);
 
                 if (full_path != path) {
@@ -501,7 +501,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         tbd->parse_path = full_path;
         tbd->parse_path_length = full_path_length;
     } else {
-        if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+        if (tbd->flags.recurse_directories) {
             fputs("Recursing the input file is not supported.\nPlease provide "
                   "a path to a directory for recursing\n",
                   stderr);
@@ -511,7 +511,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     }
 
     if (tbd->dsc_image_filters.item_count != 0) {
-        if (!(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC)) {
+        if (!tbd->filetypes.dyld_shared_cache) {
             fprintf(stderr,
                     "dsc image-filters have been provided for file from (%s) "
                     "that will not be parsed as a dyld_shared_cache file.\n"
@@ -524,7 +524,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     }
 
     if (tbd->dsc_image_numbers.item_count != 0) {
-        if (!(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC)) {
+        if (!tbd->filetypes.dyld_shared_cache) {
             fprintf(stderr,
                     "--filter-image-number has been provided for file "
                     "from (%s) that will not be parsed as a dyld_shared_cache "
@@ -642,13 +642,13 @@ int main(const int argc, char *const argv[]) {
                     }
 
                     if (strcmp(in_opt, "preserve-subdirs") == 0) {
-                        tbd->flags |= F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS;
+                        tbd->flags.preserve_directory_subdirs = true;
                     } else if (strcmp(in_opt, "no-overwrite") == 0) {
-                        tbd->flags |= F_TBD_FOR_MAIN_NO_OVERWRITE;
+                        tbd->flags.no_overwrite = true;
                     } else if (strcmp(in_opt, "replace-path-extension") == 0) {
-                        tbd->flags |= F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION;
+                        tbd->flags.replace_path_extension = true;
                     } else if (strcmp(in_opt, "combine-tbds") == 0) {
-                        tbd->flags |= F_TBD_FOR_MAIN_COMBINE_TBDS;
+                        tbd->flags.combine_tbds = true;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", in_arg);
                         destroy_tbds_array(&tbds);
@@ -666,7 +666,7 @@ int main(const int argc, char *const argv[]) {
 
                 const char *const path = in_arg;
                 if (strcmp(path, "stdout") == 0) {
-                    if (tbd->flags & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+                    if (tbd->flags.recurse_directories) {
                         fputs("Writing to stdout (terminal) while recursing "
                               "a directory is not supported.\nPlease provide "
                               "a directory to write all created files to\n",
@@ -700,11 +700,11 @@ int main(const int argc, char *const argv[]) {
                  * multiple mach-o images.
                  */
 
-                const uint64_t options = tbd->flags;
-                if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                    !(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC))
+                const struct tbd_for_main_flags options = tbd->flags;
+                if (!options.recurse_directories &&
+                    !tbd->filetypes.dyld_shared_cache)
                 {
-                    if (options & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+                    if (options.preserve_directory_subdirs) {
                         fputs("Option --preserve-subdirs can only be provided "
                               "for either recursing directoriess, or parsing "
                               "dyld_shared_cache files\n",
@@ -714,7 +714,7 @@ int main(const int argc, char *const argv[]) {
                         return 1;
                     }
 
-                    if (options & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+                    if (options.replace_path_extension) {
                         fputs("Option --replace-path-extension can only be "
                               "provided for recursing directories.\nYou can "
                               "change the extension of your write-file when "
@@ -726,7 +726,7 @@ int main(const int argc, char *const argv[]) {
                         return 1;
                     }
 
-                    if (options & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+                    if (options.combine_tbds) {
                         fputs("Option --combine-tbds can only be provided "
                               "recursing directories and parsing "
                               "dyld_shared_cache files\n",
@@ -765,8 +765,8 @@ int main(const int argc, char *const argv[]) {
                 struct stat info = {};
                 if (stat(full_path, &info) == 0) {
                     if (S_ISREG(info.st_mode)) {
-                        if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES &&
-                            !(tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS))
+                        if (options.recurse_directories &&
+                            !tbd->flags.combine_tbds)
                         {
                             fputs("Writing to a regular file while recursing a "
                                   "directory is not supported.\nTo combine all "
@@ -784,8 +784,8 @@ int main(const int argc, char *const argv[]) {
                             return 1;
                         }
                     } else if (S_ISDIR(info.st_mode)) {
-                        if (!(options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) &&
-                            !(tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC))
+                        if (!options.recurse_directories &&
+                            !tbd->filetypes.dyld_shared_cache)
                         {
                             fputs("Writing to a directory while parsing a "
                                   "single mach-o file is not supported.\n"
@@ -801,7 +801,7 @@ int main(const int argc, char *const argv[]) {
                             return 1;
                         }
 
-                        if (options & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+                        if (options.combine_tbds) {
                             fputs("We cannot combine all tbds to a single file "
                                   "and write to a directory.\nPlease provide a "
                                   "path to a file to write the created .tbd(s)"
@@ -941,8 +941,10 @@ int main(const int argc, char *const argv[]) {
                 return 1;
             }
 
-            if (!(tbd.parse_options & O_TBD_PARSE_IGNORE_EXPORTS)) {
-                will_parse_export_trie = true;
+            if (!tbd.parse_options.ignore_exports) {
+                if (!tbd.macho_options.use_symbol_table) {
+                    will_parse_export_trie = true;
+                }
             }
 
             const enum array_result add_tbd_result =
@@ -1146,10 +1148,15 @@ int main(const int argc, char *const argv[]) {
     const struct tbd_for_main *const end = tbds.data_end;
 
     for (; tbd != end; tbd++) {
-        struct tbd_for_main copy = *tbd;
-        const uint64_t options = tbd->flags;
+        /*
+         * To allow user-input to modify tbd-info for single files, we create a
+         * copy of tbd to separate the initial info from the user-input info.
+         */
 
-        if (options & F_TBD_FOR_MAIN_RECURSE_DIRECTORIES) {
+        struct tbd_for_main copy = *tbd;
+        const struct tbd_for_main_flags options = tbd->flags;
+
+        if (options.recurse_directories) {
             /*
              * We have to check write_path here, as its possible the
              * output-command was not provided, leaving the write_path NULL.
@@ -1173,7 +1180,7 @@ int main(const int argc, char *const argv[]) {
             };
 
             enum dir_recurse_result recurse_dir_result = E_DIR_RECURSE_OK;
-            if (options & F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES) {
+            if (options.recurse_subdirectories) {
                 recurse_dir_result =
                     dir_recurse_with_subdirs(tbd->parse_path,
                                              tbd->parse_path_length,
@@ -1219,7 +1226,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+            if (tbd->flags.combine_tbds) {
                 if (tbd_write_footer(recurse_info.combine_file)) {
                     if (should_print_paths) {
                         fprintf(stderr,
@@ -1237,6 +1244,18 @@ int main(const int argc, char *const argv[]) {
 
                 fclose(recurse_info.combine_file);
             }
+
+            /*
+             * Since user-input can modify tbd (orig) to set info for all
+             * created .tbd files, there may be some shared (and allocated) info
+             * between both copy and `tbd`.
+             *
+             * To handle this situation, we destroy copy, because copy will
+             * likely have more allocated information than `tbd`.
+             *
+             * tbd on the other hand is cleared with memset(), and not
+             * destroyed, to avoid a double-free.
+             */
 
             tbd_for_main_destroy(&copy);
             memset(tbd, 0, sizeof(*tbd));
@@ -1265,7 +1284,7 @@ int main(const int argc, char *const argv[]) {
              */
 
             struct magic_buffer magic_buffer = {};
-            if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_MACHO) {
+            if (tbd->filetypes.macho) {
                 struct parse_macho_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
@@ -1281,7 +1300,7 @@ int main(const int argc, char *const argv[]) {
                     .print_paths = should_print_paths,
 
                     .export_trie_sb = &export_trie_sb,
-                    .options = O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH
+                    .options.verify_write_path = true
                 };
 
                 /*
@@ -1289,7 +1308,7 @@ int main(const int argc, char *const argv[]) {
                  * filetypes are enabled.
                  */
 
-                if (tbd->filetypes_count != 1) {
+                if (tbd->filetypes.dyld_shared_cache) {
                     args.dont_handle_non_macho_error = true;
                 }
 
@@ -1301,7 +1320,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd->filetypes & TBD_FOR_MAIN_FILETYPE_DSC) {
+            if (tbd->filetypes.dyld_shared_cache) {
                 struct parse_dsc_for_main_args args = {
                     .fd = fd,
                     .magic_buffer = &magic_buffer,
@@ -1317,17 +1336,8 @@ int main(const int argc, char *const argv[]) {
                     .print_paths = should_print_paths,
 
                     .export_trie_sb = &export_trie_sb,
-                    .options = O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH
+                    .options.verify_write_path = true
                 };
-
-                /*
-                 * If other filetypes are enabled, we don't print out the
-                 * non-filetype error.
-                 */
-
-                if (tbd->filetypes_count != 1) {
-                    args.dont_handle_non_dsc_error = true;
-                }
 
                 const enum parse_dsc_for_main_result parse_result =
                     parse_dsc_for_main(args);
@@ -1337,17 +1347,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd->filetypes == ~0ull) {
-                if (should_print_paths) {
-                    fputs("File (at path %s) is not among any of the supported "
-                          "filetypes\n",
-                          stderr);
-                } else {
-                    fputs("File at the provided path is not among any of the "
-                          "supported filetypes\n",
-                          stderr);
-                }
-            } else if (tbd->filetypes_count != 1) {
+            if (!tbd->filetypes.user_provided) {
                 if (should_print_paths) {
                     fputs("File (at path %s) is not among any of the provided "
                           "filetypes\n",
@@ -1357,12 +1357,30 @@ int main(const int argc, char *const argv[]) {
                           "provided filetypes\n",
                           stderr);
                 }
+            } else {
+                if (should_print_paths) {
+                    fputs("File (at path %s) is not among any of the supported "
+                          "filetypes\n",
+                          stderr);
+                } else {
+                    fputs("File at the provided path is not among any of the "
+                          "supported filetypes\n",
+                          stderr);
+                }
             }
+
+            tbd_for_main_destroy(tbd);
         }
     }
 
+    /*
+     * Since we called tbd_for_main_destroy() on all tbds in the for loop above,
+     * we can avoid calling destroy_tbds_array() in favor of just calling
+     * array_destroy().
+     */
+
     sb_destroy(&export_trie_sb);
-    destroy_tbds_array(&tbds);
+    array_destroy(&tbds);
 
     return 0;
 }

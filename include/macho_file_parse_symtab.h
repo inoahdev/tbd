@@ -36,9 +36,9 @@ struct macho_file_parse_symtab_args {
     uint32_t nsyms;
     uint32_t stroff;
     uint32_t strsize;
-
     uint64_t arch_index;
-    uint64_t tbd_options;
+
+    struct tbd_parse_options tbd_options;
 };
 
 enum macho_file_parse_result

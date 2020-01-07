@@ -57,6 +57,10 @@ enum dsc_image_parse_result {
     E_DSC_IMAGE_PARSE_CREATE_TARGET_LIST_FAIL
 };
 
+struct dsc_image_parse_options {
+
+};
+
 enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *__notnull info_in,
                 struct dyld_shared_cache_info *__notnull dsc_info,
@@ -64,8 +68,8 @@ dsc_image_parse(struct tbd_create_info *__notnull info_in,
                 const macho_file_parse_error_callback callback,
                 void *const callback_info,
                 struct string_buffer *__notnull export_trie_sb,
-                uint64_t macho_options,
-                uint64_t tbd_options,
-                uint64_t options);
+                struct macho_file_parse_options macho_options,
+                struct tbd_parse_options tbd_options,
+                struct dsc_image_parse_options options);
 
 #endif /* DSC_IMAGE_H */

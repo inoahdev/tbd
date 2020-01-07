@@ -48,7 +48,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
               const uint16_t n_desc,
               const uint8_t n_type,
               const bool is_undef,
-              const uint64_t options)
+              const struct tbd_parse_options options)
 {
     /*
      * We can exit this function quickly if the symbol isn't external and no
@@ -61,12 +61,12 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_OK;
         }
 
-        const uint64_t allow_priv_symbols_flags =
-            (O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS |
-             O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS |
-             O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS);
+        const bool allow_priv_symbols =
+            (options.allow_priv_objc_class_syms ||
+             options.allow_priv_objc_ivar_syms ||
+             options.allow_priv_objc_ehtype_syms);
 
-        if ((options & allow_priv_symbols_flags) == 0) {
+        if (!allow_priv_symbols) {
             return E_MACHO_FILE_PARSE_OK;
         }
     }
@@ -104,21 +104,14 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
 static bool
 should_parse_undef(const enum tbd_version version,
                    const uint64_t n_value,
-                   const uint64_t tbd_options)
+                   const struct tbd_parse_options options)
 {
-    if (version == TBD_VERSION_V1) {
-        return false;
-    }
+    const bool should_parse =
+        (version != TBD_VERSION_V1 &&
+         !options.ignore_undefineds &&
+         n_value == 0);
 
-    if (tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS) {
-        return false;
-    }
-
-    if (n_value != 0) {
-        return false;
-    }
-
-    return true;
+    return should_parse;
 }
 
 static inline enum macho_file_parse_result
@@ -128,7 +121,7 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
               const uint32_t nsyms,
               const uint32_t strsize,
               const uint64_t arch_index,
-              const uint64_t tbd_options,
+              const struct tbd_parse_options options,
               const bool is_big_endian)
 {
     const enum tbd_version version = info_in->version;
@@ -151,15 +144,15 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        break;
+                    if (options.ignore_exports) {
+                        continue;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_options)) {
+                    if (!should_parse_undef(version, n_value, options)) {
                         continue;
                     }
 
@@ -193,7 +186,7 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -214,15 +207,15 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        break;
+                    if (options.ignore_exports) {
+                        continue;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_options)) {
+                    if (!should_parse_undef(version, n_value, options)) {
                         continue;
                     }
 
@@ -256,7 +249,7 @@ loop_nlist_32(struct tbd_create_info *__notnull const info_in,
                               (uint16_t)n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -274,7 +267,7 @@ loop_nlist_64(struct tbd_create_info *__notnull const info_in,
               const uint32_t nsyms,
               const uint32_t strsize,
               const uint64_t arch_index,
-              const uint64_t tbd_options,
+              const struct tbd_parse_options options,
               const bool is_big_endian)
 {
     const enum tbd_version version = info_in->version;
@@ -297,15 +290,15 @@ loop_nlist_64(struct tbd_create_info *__notnull const info_in,
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        break;
+                    if (options.ignore_exports) {
+                        continue;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_options)) {
+                    if (!should_parse_undef(version, n_value, options)) {
                         continue;
                     }
 
@@ -339,7 +332,7 @@ loop_nlist_64(struct tbd_create_info *__notnull const info_in,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;
@@ -360,15 +353,15 @@ loop_nlist_64(struct tbd_create_info *__notnull const info_in,
             switch (type) {
                 case N_SECT:
                 case N_INDR:
-                    if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
-                        break;
+                    if (options.ignore_exports) {
+                        continue;
                     }
 
                     break;
 
                 case N_UNDF: {
                     const uint64_t n_value = nlist->n_value;
-                    if (!should_parse_undef(version, n_value, tbd_options)) {
+                    if (!should_parse_undef(version, n_value, options)) {
                         continue;
                     }
 
@@ -402,7 +395,7 @@ loop_nlist_64(struct tbd_create_info *__notnull const info_in,
                               n_desc,
                               n_type,
                               is_undef,
-                              tbd_options);
+                              options);
 
             if (unlikely(handle_symbol_result != E_MACHO_FILE_PARSE_OK)) {
                 return handle_symbol_result;

@@ -17,13 +17,13 @@
 #include "notnull.h"
 #include "range.h"
 
-enum dyld_shared_cache_parse_options {
-    O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS           = 1 << 0,
-    O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS = 1 << 1
+struct dyld_shared_cache_parse_options {
+    bool zero_image_pads : 1;
+    bool verify_image_path_offsets : 1;
 };
 
-enum dyld_shared_cache_flags {
-    F_DYLD_SHARED_CACHE_UNMAP_MAP = 1ull << 0
+struct dyld_shared_cache_flags {
+    bool unmap_map : 1;
 };
 
 enum dyld_shared_cache_parse_result {
@@ -58,12 +58,12 @@ struct dyld_shared_cache_info {
 
     uint8_t *map;
     uint64_t size;
+    uint64_t arch_index;
 
     const struct arch_info *arch;
     struct range available_range;
 
-    uint64_t arch_index;
-    uint64_t flags;
+    struct dyld_shared_cache_flags flags;
 };
 
 enum dyld_shared_cache_parse_result
@@ -71,7 +71,7 @@ dyld_shared_cache_parse_from_file(
     struct dyld_shared_cache_info *__notnull info_in,
     int fd,
     const char magic[16],
-    uint64_t options);
+    struct dyld_shared_cache_parse_options options);
 
 enum dyld_shared_cache_parse_result
 dyld_shared_cache_parse_from_range(
@@ -79,7 +79,7 @@ dyld_shared_cache_parse_from_range(
     int fd,
     uint64_t start,
     uint64_t end,
-    uint64_t options);
+    struct dyld_shared_cache_parse_options options);
 
 void
 dyld_shared_cache_print_list_of_images(int fd,

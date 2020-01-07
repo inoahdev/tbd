@@ -16,27 +16,27 @@
 #include "range.h"
 #include "tbd.h"
 
-enum macho_file_options {
+struct macho_file_parse_options {
     /*
      * Ignore any errors where an invalid field was produced.
      */
 
-    O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES = 1ull << 0,
-    O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS         = 1ull << 1,
+    bool skip_invalid_archs : 1;
+    bool dont_parse_exports : 1;
 
     /*
      * By default, strings are not copied for a mapped mach-o file.
      */
 
-    O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP = 1ull << 2,
+    bool copy_strings_in_map : 1;
 
     /*
      * Treat a section's offset as absolute.
      */
 
-    O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE     = 1ull << 3,
-    O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE = 1ull << 4,
-    O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE      = 1ull << 5
+    bool sect_off_absolute : 1;
+    bool ignore_wrong_filetype : 1;
+    bool use_symbol_table : 1;
 };
 
 struct macho_file {
@@ -154,8 +154,8 @@ enum macho_file_parse_result
 macho_file_parse_from_file(struct tbd_create_info *__notnull info_in,
                            struct macho_file *__notnull macho,
                            struct macho_file_parse_extra_args extra,
-                           uint64_t parse_options,
-                           uint64_t options);
+                           struct tbd_parse_options tbd_options,
+                           struct macho_file_parse_options options);
 
 void macho_file_print_archs(int fd);
 

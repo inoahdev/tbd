@@ -205,7 +205,7 @@ dyld_shared_cache_parse_from_file(
     struct dyld_shared_cache_info *__notnull const info_in,
     const int fd,
     const char magic[16],
-    const uint64_t options)
+    const struct dyld_shared_cache_parse_options options)
 {
     /*
      * For performance, check magic and verify headers before mapping file to
@@ -415,8 +415,8 @@ dyld_shared_cache_parse_from_file(
      * do everything in only one loop.
      */
 
-    if (options & O_DYLD_SHARED_CACHE_PARSE_ZERO_IMAGE_PADS) {
-        if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
+    if (options.zero_image_pads) {
+        if (options.verify_image_path_offsets) {
             for (uint32_t i = 0; i != header.imagesCount; i++) {
                 struct dyld_cache_image_info *const image = images + i;
                 const uint32_t location = image->pathFileOffset;
@@ -434,7 +434,7 @@ dyld_shared_cache_parse_from_file(
                 image->pad = 0;
             }
         }
-    } else if (options & O_DYLD_SHARED_CACHE_PARSE_VERIFY_IMAGE_PATH_OFFSETS) {
+    } else if (options.verify_image_path_offsets) {
         for (uint32_t i = 0; i != header.imagesCount; i++) {
             struct dyld_cache_image_info *const image = images + i;
             const uint32_t location = image->pathFileOffset;
@@ -460,7 +460,7 @@ dyld_shared_cache_parse_from_file(
     info_in->size = dsc_size;
 
     info_in->available_range = available_range;
-    info_in->flags |= F_DYLD_SHARED_CACHE_UNMAP_MAP;
+    info_in->flags.unmap_map = true;
 
     return E_DYLD_SHARED_CACHE_PARSE_OK;
 }
@@ -469,7 +469,7 @@ void
 dyld_shared_cache_info_destroy(
     struct dyld_shared_cache_info *__notnull const info)
 {
-    if (info->flags & F_DYLD_SHARED_CACHE_UNMAP_MAP) {
+    if (info->flags.unmap_map) {
         munmap(info->map, info->size);
     }
 

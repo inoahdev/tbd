@@ -13,8 +13,8 @@
 #include "string_buffer.h"
 #include "tbd_for_main.h"
 
-enum parse_macho_for_main_options {
-    O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH = 1ull << 0
+struct parse_macho_for_main_options {
+    bool verify_write_path : 1;
 };
 
 struct parse_macho_for_main_args {
@@ -47,7 +47,7 @@ struct parse_macho_for_main_args {
     bool print_paths;
 
     struct string_buffer *export_trie_sb;
-    uint64_t options;
+    struct parse_macho_for_main_options options;
 };
 
 enum parse_macho_for_main_result {

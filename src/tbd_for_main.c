@@ -167,48 +167,48 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 {
     int index = *index_in;
     if (strcmp(option, "allow-private-objc-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS;
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS;
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
+        tbd->parse_options.allow_priv_objc_class_syms = true;
+        tbd->parse_options.allow_priv_objc_ehtype_syms = true;
+        tbd->parse_options.allow_priv_objc_ivar_syms = true;
     } else if (strcmp(option, "allow-private-objc-class-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS;
+        tbd->parse_options.allow_priv_objc_class_syms = true;
     } else if (strcmp(option, "allow-private-objc-ehtype-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS;
+        tbd->parse_options.allow_priv_objc_ehtype_syms = true;
     } else if (strcmp(option, "allow-private-objc-ivar-symbols") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS;
+        tbd->parse_options.allow_priv_objc_ivar_syms = true;
     } else if (strcmp(option, "ignore-clients") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_CLIENTS;
+        tbd->parse_options.ignore_clients = true;
     } else if (strcmp(option, "ignore-compat-version") == 0) {
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION;
+        tbd->flags.provided_ignore_compat_version = true;
     } else if (strcmp(option, "ignore-current-version") == 0) {
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION;
+        tbd->flags.provided_ignore_current_version = true;
     } else if (strcmp(option, "ignore-flags") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS;
+        tbd->parse_options.ignore_flags = true;
+        tbd->flags.provided_ignore_flags = true;
     } else if (strcmp(option, "ignore-missing-exports") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_EXPORTS;
+        tbd->parse_options.ignore_missing_exports = true;
     } else if (strcmp(option, "ignore-missing-uuids") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_MISSING_UUIDS;
+        tbd->parse_options.ignore_missing_uuids = true;
     } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
+        tbd->parse_options.ignore_non_unique_uuids = true;
     } else if (strcmp(option, "ignore-objc-constraint") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT;
+        tbd->parse_options.ignore_objc_constraint = true;
+        tbd->flags.provided_ignore_objc_constraint = true;
     } else if (strcmp(option, "ignore-parent-umbrella") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+        tbd->parse_options.ignore_parent_umbrellas = true;
     } else if (strcmp(option, "ignore-reexports") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_REEXPORTS;
+        tbd->parse_options.ignore_reexports = true;
     } else if (strcmp(option, "ignore-requests") == 0) {
-        tbd->flags |= F_TBD_FOR_MAIN_NO_REQUESTS;
+        tbd->flags.no_requests = true;
     } else if (strcmp(option, "ignore-swift-version") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION;
+        tbd->parse_options.ignore_swift_version = true;
+        tbd->flags.provided_ignore_swift_version = true;
     } else if (strcmp(option, "ignore-undefineds") == 0) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_UNDEFINEDS;
+        tbd->parse_options.ignore_undefineds = true;
     } else if (strcmp(option, "ignore-warnings") == 0) {
-        tbd->flags |= F_TBD_FOR_MAIN_IGNORE_WARNINGS;
+        tbd->flags.ignore_warnings = true;
     } else if (strcmp(option, "ignore-wrong-filetype") == 0) {
-        tbd->macho_options |= O_MACHO_FILE_PARSE_IGNORE_WRONG_FILETYPE;
+        tbd->macho_options.ignore_wrong_filetype = true;
     } else if (strcmp(option, "filter-image-directory") == 0) {
         add_image_filter(&index, tbd, argc, argv, true);
     } else if (strcmp(option, "filter-image-filename") == 0) {
@@ -218,11 +218,21 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "image-path") == 0) {
         add_image_path(&index, tbd, argc, argv);
     } else if (strcmp(option, "dsc") == 0) {
-        tbd_for_main_add_filetype(tbd, TBD_FOR_MAIN_FILETYPE_DSC);
+        if (!tbd->filetypes.user_provided) {
+            tbd->filetypes.value = 0;
+        }
+
+        tbd->filetypes.dyld_shared_cache = true;
+        tbd->filetypes.user_provided = true;
     } else if (strcmp(option, "macho") == 0) {
-        tbd_for_main_add_filetype(tbd, TBD_FOR_MAIN_FILETYPE_MACHO);
+        if (!tbd->filetypes.user_provided) {
+            tbd->filetypes.value = 0;
+        }
+
+        tbd->filetypes.macho = true;
+        tbd->filetypes.user_provided = true;
     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-        tbd->flags |= F_TBD_FOR_MAIN_RECURSE_DIRECTORIES;
+        tbd->flags.recurse_directories = true;
 
         /*
          * -r/--recurse may have an extra argument specifying
@@ -235,7 +245,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             const char *const spec = argv[spec_index];
             if (strcmp(spec, "all") == 0) {
                 index += 1;
-                tbd->flags |= F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES;
+                tbd->flags.recurse_subdirectories = true;
             } else if (strcmp(spec, "once") == 0) {
                 index += 1;
             }
@@ -250,7 +260,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_ARCHS) {
+        if (tbd->flags.provided_archs) {
             fputs("Note: Option --replace-archs has been provided multiple "
                   "times.\nOlder option's list of architectures will be "
                   "overriden\n",
@@ -263,9 +273,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                                      argv,
                                      &index);
 
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
-        tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_ARCHS;
+        tbd->parse_options.ignore_at_and_uuids = true;
+        tbd->write_options.ignore_uuids = true;
+        tbd->flags.provided_archs = true;
     } else if (strcmp(option, "replace-current-version") == 0) {
         index += 1;
         if (index == argc) {
@@ -276,7 +286,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION) {
+        if (tbd->flags.provided_current_version) {
             fputs("Note: Option --replace-current-version has been provided "
                   "multiple times.\nOlder option's current-version will be "
                   "overriden\n",
@@ -292,8 +302,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.current_version = (uint32_t)packed_version;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION;
+        tbd->parse_options.ignore_current_version = true;
+        tbd->flags.provided_current_version = true;
     } else if (strcmp(option, "replace-compat-version") == 0) {
         index += 1;
         if (index == argc) {
@@ -303,7 +313,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION) {
+        if (tbd->flags.provided_compat_version) {
             fputs("Note: Option --replace-compat-version has been provided "
                   "multiple times.\nOlder option's compatibility-version will "
                   "be overriden\n",
@@ -319,8 +329,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.compatibility_version = (uint32_t)packed_version;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION;
+        tbd->parse_options.ignore_compat_version = true;
+        tbd->flags.provided_compat_version = true;
     } else if (strcmp(option, "replace-flags") == 0) {
         index += 1;
         if (index == argc) {
@@ -331,15 +341,15 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->info.fields.flags != 0) {
+        if (tbd->info.fields.flags.value != 0) {
             fputs("Note: Option --replace-flags has been provided multiple "
                   "times.\nOlder option's list of flags will be overriden\n",
                   stderr);
         }
 
         tbd->info.fields.flags = parse_flags_list(index, argc, argv, &index);
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_FLAGS;
+        tbd->parse_options.ignore_flags = true;
+        tbd->flags.provided_flags = true;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
         if (index == argc) {
@@ -350,7 +360,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT) {
+        if (tbd->flags.provided_objc_constraint) {
             fputs("Note: Option --replace-objc-constraint has been provided "
                   "multiple times.\nOlder option's objc-constraint will be "
                   "overriden\n",
@@ -372,8 +382,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.archs.objc_constraint = objc_constraint;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT;
+        tbd->parse_options.ignore_objc_constraint = true;
+        tbd->flags.provided_objc_constraint = true;
     } else if (strcmp(option, "replace-platform") == 0) {
         index += 1;
         if (index == argc) {
@@ -384,7 +394,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM) {
+        if (tbd->flags.provided_platform) {
             fputs("Note: Option --replace-platform has been provided multiple "
                   "times.\nOlder option's platform will be overriden\n",
                   stderr);
@@ -403,8 +413,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->platform = platform;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_PLATFORM;
+        tbd->parse_options.ignore_platform = true;
+        tbd->flags.provided_platform = true;
     } else if (strcmp(option, "replace-swift-version") == 0) {
         index += 1;
         if (index == argc) {
@@ -431,7 +441,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.swift_version = swift_version;
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+        tbd->parse_options.ignore_swift_version = true;
     } else if (strcmp(option, "replace-targets") == 0) {
         index += 1;
         if (index == argc) {
@@ -442,7 +452,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TARGETS) {
+        if (tbd->flags.provided_targets) {
             fputs("Note: Option --replace-targets has been provided multiple "
                   "times.\nOlder option's list of targets will be "
                   "overriden\n",
@@ -452,13 +462,13 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->info.fields.targets =
             parse_targets_list(index, argc, argv, &index);
 
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_AT_AND_UUIDS;
-        tbd->write_options |= O_TBD_CREATE_IGNORE_UUIDS;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TARGETS;
+        tbd->parse_options.ignore_at_and_uuids = true;
+        tbd->write_options.ignore_uuids = true;
+        tbd->flags.provided_targets = true;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
-        tbd->macho_options |= O_MACHO_FILE_PARSE_SKIP_INVALID_ARCHITECTURES;
+        tbd->macho_options.skip_invalid_archs = true;
     } else if (strcmp(option, "use-symbol-table") == 0) {
-        tbd->macho_options |= O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE;
+        tbd->macho_options.use_symbol_table = true;
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
         index += 1;
         if (index == argc) {
@@ -469,7 +479,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
             exit(1);
         }
 
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        if (tbd->flags.provided_tbd_version) {
             fprintf(stderr,
                     "Note: Option %s has been provided multiple times.\nOlder "
                     "option's .tbd version will be overriden\n",
@@ -489,43 +499,43 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.version = version;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+        tbd->flags.provided_tbd_version = true;
     } else if (strcmp(option, "v1") == 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        if (tbd->flags.provided_tbd_version) {
             fputs("Note: Option -v has been provided multiple times.\nOlder "
                   "option's .tbd version will be overriden\n",
                   stderr);
         }
 
         tbd->info.version = TBD_VERSION_V1;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+        tbd->flags.provided_tbd_version = true;
     } else if (strcmp(option, "v2") == 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        if (tbd->flags.provided_tbd_version) {
             fputs("Note: Option -v has been provided multiple times.\nOlder "
                   "option's .tbd version will be overriden\n",
                   stderr);
         }
 
         tbd->info.version = TBD_VERSION_V2;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+        tbd->flags.provided_tbd_version = true;
     } else if (strcmp(option, "v3") == 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        if (tbd->flags.provided_tbd_version) {
             fputs("Note: Option -v has been provided multiple times.\nOlder "
                   "option's .tbd version will be overriden\n",
                   stderr);
         }
 
         tbd->info.version = TBD_VERSION_V3;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+        tbd->flags.provided_tbd_version = true;
     } else if (strcmp(option, "v4") == 0) {
-        if (tbd->flags & F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION) {
+        if (tbd->flags.provided_tbd_version) {
             fputs("Note: Option -v has been provided multiple times.\nOlder "
                   "option's .tbd version will be overriden\n",
                   stderr);
         }
 
         tbd->info.version = TBD_VERSION_V4;
-        tbd->flags |= F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION;
+        tbd->flags.provided_tbd_version = true;
     } else {
         return false;
     }
@@ -534,22 +544,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     return true;
 }
 
-void
-tbd_for_main_add_filetype(struct tbd_for_main *__notnull const tbd,
-                          const enum tbd_for_main_filetype filetype)
-{
-    if (tbd->flags & F_TBD_FOR_MAIN_ADDED_FILETYPES) {
-        tbd->filetypes |= filetype;
-        tbd->filetypes_count += 1;
-    } else {
-        tbd->filetypes = filetype;
-        tbd->filetypes_count = 1;
-        tbd->flags |= F_TBD_FOR_MAIN_ADDED_FILETYPES;
-    }
-}
-
 void tbd_for_main_handle_post_parse(struct tbd_for_main *__notnull const tbd) {
-    if (!(tbd->flags & F_TBD_FOR_MAIN_PROVIDED_PLATFORM)) {
+    if (!tbd->flags.provided_platform) {
         return;
     }
 
@@ -593,7 +589,7 @@ tbd_for_main_create_write_path_for_recursing(
     uint64_t *const length_out)
 {
     char *write_path = NULL;
-    if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+    if (tbd->flags.preserve_directory_subdirs) {
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
@@ -609,7 +605,7 @@ tbd_for_main_create_write_path_for_recursing(
         const char *subdirs_iter = folder_path + parse_path_length;
         uint64_t new_file_name_length = file_name_length;
 
-        if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+        if (tbd->flags.replace_path_extension) {
             new_file_name_length =
                 path_remove_extension(file_name, file_name_length);
         }
@@ -655,7 +651,7 @@ tbd_for_main_create_dsc_image_write_path(
     uint64_t *const length_out)
 {
     uint64_t new_image_path_length = image_path_length;
-    if (tbd->flags & F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION) {
+    if (tbd->flags.replace_path_extension) {
         new_image_path_length =
             path_remove_extension(image_path, image_path_length);
     }
@@ -689,7 +685,7 @@ tbd_for_main_create_dsc_folder_path(
     uint64_t *const length_out)
 {
     char *write_path = NULL;
-    if (tbd->flags & F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS) {
+    if (tbd->flags.preserve_directory_subdirs) {
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
@@ -742,9 +738,9 @@ tbd_for_main_open_write_file_for_path(
     char **__notnull const terminator_out)
 {
     char *terminator = NULL;
-    const uint64_t tbd_flags = tbd->flags;
+    const struct tbd_for_main_flags tbd_flags = tbd->flags;
 
-    const int flags = (tbd_flags & F_TBD_FOR_MAIN_NO_OVERWRITE) ? O_EXCL : 0;
+    const int flags = tbd_flags.no_overwrite ? O_EXCL : 0;
     const int write_fd =
         open_r(path,
                path_length,
@@ -801,7 +797,7 @@ tbd_for_main_write_to_file(const struct tbd_for_main *__notnull const tbd,
         tbd_create_with_info(create_info, file, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!tbd->flags.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to write-file (at path %s)\n",
@@ -827,7 +823,7 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull const tbd,
         tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!tbd->flags.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to stdout (the terminal) (for "
@@ -855,7 +851,7 @@ tbd_for_main_write_to_stdout_for_dsc_image(
         tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!(tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS)) {
+        if (!tbd->flags.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to stdout (the terminal), for image "
@@ -887,13 +883,4 @@ void tbd_for_main_destroy(struct tbd_for_main *__notnull const tbd) {
 
     tbd->parse_path = NULL;
     tbd->write_path = NULL;
-
-    tbd->macho_options = 0;
-    tbd->dsc_options = 0;
-
-    tbd->write_options = 0;
-    tbd->parse_options = 0;
-
-    tbd->filetypes = 0;
-    tbd->flags = 0;
 }

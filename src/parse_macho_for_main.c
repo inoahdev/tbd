@@ -92,7 +92,7 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
             break;
 
         case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
-            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            if (tbd->flags.ignore_warnings) {
                 break;
             }
 
@@ -146,7 +146,7 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
             return NULL;
 
         case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
-            if (tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS) {
+            if (tbd->flags.ignore_warnings) {
                 return NULL;
             }
 
@@ -157,7 +157,7 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
             return NULL;
     }
 
-    if (tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS) {
+    if (tbd->flags.combine_tbds) {
         args->combine_file = file;
     }
 
@@ -234,21 +234,18 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
                                    args.tbd->macho_options);
 
     if (parse_macho_result != E_MACHO_FILE_PARSE_OK) {
-        const bool ignore_warnings =
-            (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
-
         tbd_create_info_clear_fields_and_create_from(info, orig);
         handle_macho_file_parse_result(args.dir_path,
                                        args.name,
                                        parse_macho_result,
                                        args.print_paths,
                                        false,
-                                       ignore_warnings);
+                                       args.tbd->flags.ignore_warnings);
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.options & O_PARSE_MACHO_FOR_MAIN_VERIFY_WRITE_PATH) {
+    if (args.options.verify_write_path) {
         verify_write_path(args.tbd);
     }
 
@@ -358,16 +355,13 @@ parse_macho_file_for_main_while_recursing(
                                    args.tbd->macho_options);
 
     if (parse_macho_result != E_MACHO_FILE_PARSE_OK) {
-        const bool ignore_warnings =
-            (args.tbd->flags & F_TBD_FOR_MAIN_IGNORE_WARNINGS);
-
         tbd_create_info_clear_fields_and_create_from(info, orig);
         handle_macho_file_parse_result(args.dir_path,
                                        args.name,
                                        parse_macho_result,
                                        args.print_paths,
                                        true,
-                                       ignore_warnings);
+                                       args.tbd->flags.ignore_warnings);
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
@@ -377,7 +371,7 @@ parse_macho_file_for_main_while_recursing(
     char *write_path = NULL;
     uint64_t write_path_length = 0;
 
-    const bool should_combine = (args.tbd->flags & F_TBD_FOR_MAIN_COMBINE_TBDS);
+    const bool should_combine = args.tbd->flags.combine_tbds;
     if (!should_combine) {
         write_path =
             tbd_for_main_create_write_path_for_recursing(args.tbd,
@@ -392,7 +386,7 @@ parse_macho_file_for_main_while_recursing(
         write_path = args.tbd->write_path;
         write_path_length = args.tbd->write_path_length;
 
-        args.tbd->write_options |= O_TBD_CREATE_IGNORE_FOOTER;
+        args.tbd->write_options.ignore_footer = true;
     }
 
     char *terminator = NULL;

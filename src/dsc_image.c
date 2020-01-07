@@ -183,9 +183,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 const macho_file_parse_error_callback callback,
                 void *const callback_info,
                 struct string_buffer *__notnull const export_trie_sb,
-                const uint64_t macho_options,
-                const uint64_t tbd_options,
-                __unused const uint64_t options)
+                struct macho_file_parse_options macho_options,
+                const struct tbd_parse_options tbd_options,
+                __unused const struct dsc_image_parse_options options)
 {
     uint64_t max_image_size = 0;
     const uint64_t file_offset =
@@ -204,7 +204,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         (const struct mach_header *)(map + file_offset);
 
     const uint32_t magic = header->magic;
-    uint64_t lc_flags = 0;
+    struct macho_file_parse_lc_flags lc_flags = {};
 
     const bool is_64 = (magic == MH_MAGIC_64 || magic == MH_CIGAM_64);
     const bool is_big_endian = (magic == MH_CIGAM || magic == MH_CIGAM_64);
@@ -215,10 +215,10 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         }
 
         if (is_big_endian) {
-            lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
+            lc_flags.is_big_endian = true;
         }
 
-        lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_64;
+        lc_flags.is_64 = true;
     } else {
         const bool is_fat =
             magic == FAT_MAGIC || magic == FAT_MAGIC_64 ||
@@ -233,20 +233,20 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
             }
         } else {
-            lc_flags |= F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN;
+            lc_flags.is_big_endian = true;
         }
     }
 
     const uint32_t flags = header->flags;
     if (flags & MH_TWOLEVEL) {
-        info_in->fields.flags |= TBD_FLAG_FLAT_NAMESPACE;
+        info_in->fields.flags.flat_namespace = true;
     }
 
     if (!(flags & MH_APP_EXTENSION_SAFE)) {
-        info_in->fields.flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+        info_in->fields.flags.not_app_extension_safe = true;
     }
 
-    info_in->flags |= F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT;
+    info_in->flags.exports_have_full_at = true;
 
     /*
      * The symbol-table and string-table's file-offsets are relative to the
@@ -257,10 +257,8 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      * string tables separately.
      */
 
-    const uint64_t lc_options =
-        (O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS |
-         O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE |
-         macho_options);
+    macho_options.dont_parse_exports = true;
+    macho_options.sect_off_absolute = true;
 
     struct mf_parse_lc_from_map_info info = {
         .map = map,
@@ -276,7 +274,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         .sizeofcmds = header->sizeofcmds,
 
         .tbd_options = tbd_options,
-        .options = lc_options,
+        .options = macho_options,
 
         .flags = lc_flags
     };
@@ -328,7 +326,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         }
 
         parsed_dyld_info = true;
-        parse_symtab = !(tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS);
+        parse_symtab = !tbd_options.ignore_undefineds;
     } else {
         parse_symtab = true;
     }
@@ -355,15 +353,15 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
             ret = macho_file_parse_symtab_from_map(&args, map);
         }
     } else if (!parsed_dyld_info) {
-        const uint64_t ignore_missing_flags =
-            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
-
         /*
-         * If we have either O_TBD_PARSE_IGNORE_EXPORTS, or
-         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         * If we have either ignore_exports, or ignore_missing_exports, we don't
+         * have an error.
          */
 
-        if ((tbd_options & ignore_missing_flags) == 0) {
+        const bool can_ignore_missing_exports =
+            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
+
+        if (can_ignore_missing_exports) {
             return E_DSC_IMAGE_PARSE_OK;
         }
 

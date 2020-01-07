@@ -8,32 +8,33 @@
 
 #include "macho_file.h"
 
-enum macho_file_parse_single_lc_flags {
-    F_MF_PARSE_SLC_FOUND_BUILD_VERSION  = 1ull << 0,
-    F_MF_PARSE_SLC_FOUND_IDENTIFICATION = 1ull << 1,
-    F_MF_PARSE_SLC_FOUND_UUID           = 1ull << 2,
+struct macho_file_parse_slc_flags {
+    bool found_build_version : 1;
+    bool found_identification : 1;
+    bool found_uuid : 1;
 
-    F_MF_PARSE_SLC_FOUND_CATALYST_PLATFORM = 1ull << 3
+    bool found_catalyst_platform : 1;
 };
 
-enum macho_file_parse_single_lc_options {
-    O_MF_PARSE_SLC_COPY_STRINGS  = 1ull << 0,
-    O_MF_PARSE_SLC_IS_BIG_ENDIAN = 1ull << 1
+struct macho_file_parse_slc_options {
+    bool copy_strings : 1;
+    bool is_big_endian : 1;
 };
 
 struct macho_file_parse_single_lc_info {
     struct tbd_create_info *info_in;
     enum tbd_platform *platform_in;
 
-    uint64_t *flags_in;
+    struct macho_file_parse_slc_flags *flags_in;
     uint8_t *uuid_in;
 
     const uint8_t *load_cmd_iter;
     struct load_command load_cmd;
 
     uint64_t arch_index;
-    uint64_t tbd_options;
-    uint64_t options;
+
+    struct tbd_parse_options tbd_options;
+    struct macho_file_parse_slc_options options;
 
     struct dyld_info_command *dyld_info_out;
     struct symtab_command *symtab_out;

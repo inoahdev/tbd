@@ -138,11 +138,11 @@ target_list_add_target(struct target_list *__notnull const list,
 static bool
 has_target_in_range(const uint64_t *ptr,
                     const uint64_t count,
-                    const uint64_t item)
+                    const uint64_t target)
 {
     const uint64_t *const end = ptr + count;
     for (; ptr != end; ptr++) {
-        if (*ptr == item) {
+        if (*ptr == target) {
             return true;
         }
     }

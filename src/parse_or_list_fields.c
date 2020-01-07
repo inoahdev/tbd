@@ -89,32 +89,32 @@ parse_architectures_list(int index,
     return list;
 }
 
-uint32_t
+struct tbd_flags
 parse_flags_list(int index,
                  const int argc,
                  char *const *__notnull const argv,
                  int *__notnull const index_out)
 {
-    uint32_t flags = 0;
+    struct tbd_flags flags = {};
     for (; index != argc; index++) {
         const char *const arg = argv[index];
         if (strcmp(arg, "flat_namespace") == 0) {
-            if (flags & TBD_FLAG_FLAT_NAMESPACE) {
+            if (flags.flat_namespace) {
                 fputs("Note: tbd-flag flat_namespace was provided twice\n",
                       stdout);
             } else {
-                flags |= TBD_FLAG_FLAT_NAMESPACE;
+                flags.flat_namespace = true;
             }
         } else if (strcmp(arg, "not_app_extension_safe") == 0) {
-            if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+            if (flags.not_app_extension_safe) {
                 fputs("Note: tbd-flag not_app_extension_safe was provided "
                       "twice\n",
                       stdout);
             } else {
-                flags |= TBD_FLAG_NOT_APP_EXTENSION_SAFE;
+                flags.not_app_extension_safe = true;
             }
         } else {
-            if (flags != 0) {
+            if (flags.value != 0) {
                 break;
             }
 

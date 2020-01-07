@@ -20,7 +20,7 @@ parse_architectures_list(int index,
                          char *const *__notnull argv,
                          int *__notnull index_out);
 
-uint32_t
+struct tbd_flags
 parse_flags_list(int index,
                  int argc,
                  char *const *__notnull argv,

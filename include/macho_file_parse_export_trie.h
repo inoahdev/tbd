@@ -25,7 +25,7 @@ struct macho_file_parse_export_trie_args {
     uint32_t export_size;
 
     struct string_buffer *sb_buffer;
-    uint64_t tbd_options;
+    struct tbd_parse_options tbd_options;
 };
 
 enum macho_file_parse_result

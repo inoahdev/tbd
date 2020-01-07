@@ -168,8 +168,8 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
                         const off_t position,
                         const macho_file_parse_error_callback callback,
                         void *const cb_info,
-                        const uint64_t tbd_options,
-                        const uint64_t options)
+                        const struct tbd_parse_options tbd_options,
+                        const struct macho_file_parse_options options)
 {
     if (sect_size != sizeof(struct objc_image_info)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
@@ -189,7 +189,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
      * its original protection after we're done.
      */
 
-    if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
+    if (options.sect_off_absolute) {
         if (our_lseek(fd, sect_offset, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
@@ -237,7 +237,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION)) {
+    if (!tbd_options.ignore_swift_version) {
         const uint32_t existing_swift_version = *swift_version_in;
         const uint32_t image_swift_version =
             (image_info.flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >>
@@ -268,16 +268,10 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
 }
 
 static inline bool
-should_parse_symtab(const uint64_t macho_options, const uint64_t tbd_options) {
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_UNDEFINEDS)) {
-        return true;
-    }
-
-    if (macho_options & O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE) {
-        return true;
-    }
-
-    return false;
+should_parse_symtab(const struct macho_file_parse_options macho_options,
+                    const struct tbd_parse_options tbd_options)
+{
+    return (!tbd_options.ignore_undefineds || macho_options.use_symbol_table);
 }
 
 static enum macho_file_parse_result
@@ -287,11 +281,11 @@ handle_uuid(struct tbd_create_info *__notnull const info_in,
             const uint8_t uuid[16],
             __notnull const macho_file_parse_error_callback callback,
             void *const cb_info,
-            const uint64_t parse_lc_flags,
-            const uint64_t tbd_options)
+            const struct macho_file_parse_slc_flags parse_slc_flags,
+            const struct tbd_parse_options tbd_options)
 {
-    if (!(parse_lc_flags & F_MF_PARSE_SLC_FOUND_UUID)) {
-        if (!(tbd_options & O_TBD_PARSE_IGNORE_MISSING_UUIDS)) {
+    if (!parse_slc_flags.found_uuid) {
+        if (!tbd_options.ignore_missing_uuids) {
             const bool should_continue =
                 call_callback(callback,
                               info_in,
@@ -342,10 +336,10 @@ handle_at_platform_and_uuid(
     const uint8_t uuid[16],
     __notnull const macho_file_parse_error_callback callback,
     void *const cb_info,
-    const uint64_t parse_lc_flags,
-    const uint64_t tbd_options)
+    const struct macho_file_parse_slc_flags parse_slc_flags,
+    const struct tbd_parse_options tbd_options)
 {
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
+    if (!tbd_options.ignore_at_and_uuids) {
         if (platform == TBD_PLATFORM_NONE) {
             const bool should_continue =
                 call_callback(callback,
@@ -388,7 +382,7 @@ handle_at_platform_and_uuid(
                         uuid,
                         callback,
                         cb_info,
-                        parse_lc_flags,
+                        parse_slc_flags,
                         tbd_options);
 
         if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
@@ -471,23 +465,21 @@ macho_file_parse_load_commands_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    const uint64_t flags = parse_info->flags;
+    const struct macho_file_parse_lc_flags flags = parse_info->flags;
 
-    const bool is_64 = (flags & F_MF_PARSE_LOAD_COMMANDS_IS_64);
-    const bool is_big_endian = (flags & F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN);
+    struct macho_file_parse_slc_flags parse_slc_flags = {};
+    struct macho_file_parse_slc_options parse_slc_opts =
+        { .copy_strings = true};
 
-    uint64_t parse_lc_flags = 0;
-    uint64_t parse_lc_opts = O_MF_PARSE_SLC_COPY_STRINGS;
-
-    if (is_big_endian) {
-        parse_lc_opts |= O_MF_PARSE_SLC_IS_BIG_ENDIAN;
+    if (flags.is_big_endian) {
+        parse_slc_opts.is_big_endian = true;
     }
 
-    info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
+    info_in->flags.install_name_was_allocated = true;
 
     const uint64_t arch_index = parse_info->arch_index;
-    const uint64_t options = parse_info->options;
-    const uint64_t tbd_options = parse_info->tbd_options;
+    const struct macho_file_parse_options options = parse_info->options;
+    const struct tbd_parse_options tbd_options = parse_info->tbd_options;
 
     uint8_t *load_cmd_iter = load_cmd_buffer;
 
@@ -501,14 +493,14 @@ macho_file_parse_load_commands_from_file(
     struct macho_file_parse_single_lc_info parse_lc_info = {
         .info_in = info_in,
 
-        .flags_in = &parse_lc_flags,
+        .flags_in = &parse_slc_flags,
         .platform_in = &platform,
         .uuid_in = uuid,
 
         .arch_index = arch_index,
 
         .tbd_options = tbd_options,
-        .options = parse_lc_opts,
+        .options = parse_slc_opts,
 
         .dyld_info_out = &dyld_info,
         .symtab_out = &symtab
@@ -525,7 +517,7 @@ macho_file_parse_load_commands_from_file(
         }
 
         struct load_command load_cmd = *(struct load_command *)load_cmd_iter;
-        if (is_big_endian) {
+        if (flags.is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
         }
@@ -561,11 +553,11 @@ macho_file_parse_load_commands_from_file(
                  * unnecessary parsing.
                  */
 
-                const uint64_t ignore_all_mask =
-                    (O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
-                     O_TBD_PARSE_IGNORE_SWIFT_VERSION);
+                const uint64_t should_ignore =
+                    (tbd_options.ignore_objc_constraint &&
+                     tbd_options.ignore_swift_version);
 
-                if ((tbd_options & ignore_all_mask) == ignore_all_mask) {
+                if (should_ignore) {
                     break;
                 }
 
@@ -574,7 +566,7 @@ macho_file_parse_load_commands_from_file(
                  * word-size.
                  */
 
-                if (is_64) {
+                if (flags.is_64) {
                     break;
                 }
 
@@ -595,7 +587,7 @@ macho_file_parse_load_commands_from_file(
                     break;
                 }
 
-                if (is_big_endian) {
+                if (flags.is_big_endian) {
                     nsects = swap_uint32(nsects);
                 }
 
@@ -630,8 +622,7 @@ macho_file_parse_load_commands_from_file(
                     }
 
                     /*
-                     * We have an empty section if our section-offset or
-                     * section-size is zero.
+                     * We have an empty section if its offset or size is zero.
                      */
 
                     uint32_t sect_offset = sect->offset;
@@ -641,7 +632,7 @@ macho_file_parse_load_commands_from_file(
                         continue;
                     }
 
-                    if (is_big_endian) {
+                    if (flags.is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint32(sect_size);
                     }
@@ -677,11 +668,11 @@ macho_file_parse_load_commands_from_file(
                  * needed.
                  */
 
-                const uint64_t ignore_all_mask =
-                    (O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
-                     O_TBD_PARSE_IGNORE_SWIFT_VERSION);
+                const uint64_t should_ignore =
+                    (tbd_options.ignore_objc_constraint &&
+                     tbd_options.ignore_swift_version);
 
-                if ((tbd_options & ignore_all_mask) == ignore_all_mask) {
+                if (should_ignore) {
                     break;
                 }
 
@@ -690,7 +681,7 @@ macho_file_parse_load_commands_from_file(
                  * word-size.
                  */
 
-                if (!is_64) {
+                if (!flags.is_64) {
                     break;
                 }
 
@@ -711,7 +702,7 @@ macho_file_parse_load_commands_from_file(
                     break;
                 }
 
-                if (is_big_endian) {
+                if (flags.is_big_endian) {
                     nsects = swap_uint32(nsects);
                 }
 
@@ -746,8 +737,7 @@ macho_file_parse_load_commands_from_file(
                     }
 
                     /*
-                     * We have an empty section if our section-offset or
-                     * section-size is zero.
+                     * We have an empty section if its offset or size is zero.
                      */
 
                     uint32_t sect_offset = sect->offset;
@@ -757,7 +747,7 @@ macho_file_parse_load_commands_from_file(
                         continue;
                     }
 
-                    if (is_big_endian) {
+                    if (flags.is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint64(sect_size);
                     }
@@ -810,7 +800,7 @@ macho_file_parse_load_commands_from_file(
     }
 
     free(load_cmd_buffer);
-    if (!(parse_lc_flags & F_MF_PARSE_SLC_FOUND_IDENTIFICATION)) {
+    if (!parse_slc_flags.found_identification) {
         const bool should_continue =
             call_callback(extra.callback,
                           info_in,
@@ -829,7 +819,7 @@ macho_file_parse_load_commands_from_file(
                                     uuid,
                                     extra.callback,
                                     extra.cb_info,
-                                    parse_lc_flags,
+                                    parse_slc_flags,
                                     tbd_options);
 
     if (handle_at_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
@@ -841,9 +831,9 @@ macho_file_parse_load_commands_from_file(
     bool parsed_dyld_info = false;
     bool parse_symtab = true;
 
-    if (!(options & O_MACHO_FILE_PARSE_USE_SYMBOL_TABLE)) {
+    if (!options.use_symbol_table) {
         if (dyld_info.export_off != 0 && dyld_info.export_size != 0) {
-            if (is_big_endian) {
+            if (flags.is_big_endian) {
                 dyld_info.export_off = swap_uint32(dyld_info.export_off);
                 dyld_info.export_size = swap_uint32(dyld_info.export_size);
             }
@@ -860,8 +850,8 @@ macho_file_parse_load_commands_from_file(
 
                 .arch_index = arch_index,
 
-                .is_64 = is_64,
-                .is_big_endian = is_big_endian,
+                .is_64 = flags.is_64,
+                .is_big_endian = flags.is_big_endian,
 
                 .export_off = dyld_info.export_off,
                 .export_size = dyld_info.export_size,
@@ -887,7 +877,7 @@ macho_file_parse_load_commands_from_file(
     }
 
     if (parse_symtab) {
-        if (is_big_endian) {
+        if (flags.is_big_endian) {
             symtab.symoff = swap_uint32(symtab.symoff);
             symtab.nsyms = swap_uint32(symtab.nsyms);
 
@@ -899,7 +889,7 @@ macho_file_parse_load_commands_from_file(
             lc_info_out->symtab = symtab;
         }
 
-        if (options & O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS) {
+        if (options.dont_parse_exports) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
@@ -909,7 +899,7 @@ macho_file_parse_load_commands_from_file(
             .available_range = available_range,
 
             .arch_index = arch_index,
-            .is_big_endian = is_big_endian,
+            .is_big_endian = flags.is_big_endian,
 
             .symoff = symtab.symoff,
             .nsyms = symtab.nsyms,
@@ -920,21 +910,21 @@ macho_file_parse_load_commands_from_file(
             .tbd_options = tbd_options
         };
 
-        if (is_64) {
+        if (flags.is_64) {
             ret = macho_file_parse_symtab_64_from_file(&args, fd, base_offset);
         } else {
             ret = macho_file_parse_symtab_from_file(&args, fd, base_offset);
         }
     } else if (!parsed_dyld_info) {
-        const uint64_t ignore_missing_flags =
-            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+        const uint64_t ignore_missing_exports =
+            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 
         /*
-         * If we have either O_TBD_PARSE_IGNORE_EXPORTS, or
-         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         * If we have either ignore_exports or ignore_missing_exports, we don't
+         * have an error.
          */
 
-        if ((tbd_options & ignore_missing_flags) != 0) {
+        if (ignore_missing_exports) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
@@ -958,8 +948,8 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
                        const uint64_t sect_size,
                        const macho_file_parse_error_callback callback,
                        void *const cb_info,
-                       const uint64_t tbd_options,
-                       const uint64_t options)
+                       const struct tbd_parse_options tbd_options,
+                       const struct macho_file_parse_options options)
 {
     if (sect_size != sizeof(struct objc_image_info)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
@@ -971,7 +961,7 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
         .end = sect_offset + sect_size
     };
 
-    if (options & O_MACHO_FILE_PARSE_SECT_OFF_ABSOLUTE) {
+    if (options.sect_off_absolute) {
         if (!range_contains_other(map_range, sect_range)) {
             return E_MACHO_FILE_PARSE_INVALID_SECTION;
         }
@@ -1021,7 +1011,7 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    if (!(tbd_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION)) {
+    if (!tbd_options.ignore_swift_version) {
         const uint32_t existing_swift_version = info_in->fields.swift_version;
         const uint32_t image_swift_version =
             (flags & OBJC_IMAGE_INFO_SWIFT_VERSION_MASK) >>
@@ -1077,13 +1067,9 @@ macho_file_parse_load_commands_from_map(
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
-    const uint64_t flags = parse_info->flags;
-
-    const bool is_64 = (flags & F_MF_PARSE_LOAD_COMMANDS_IS_64);
-    const bool is_big_endian = (flags & F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN);
-
+    const struct macho_file_parse_lc_flags flags = parse_info->flags;
     const uint32_t header_size =
-        (is_64) ?
+        (flags.is_64) ?
             sizeof(struct mach_header_64) :
             sizeof(struct mach_header);
 
@@ -1108,19 +1094,19 @@ macho_file_parse_load_commands_from_map(
     const uint8_t *const macho = parse_info->macho;
     const uint8_t *load_cmd_iter = macho + header_size;
 
-    const uint64_t options = parse_info->options;
-    const uint64_t tbd_options = parse_info->tbd_options;
+    const struct macho_file_parse_options options = parse_info->options;
+    const struct tbd_parse_options tbd_options = parse_info->tbd_options;
 
-    uint64_t parse_lc_opts = 0;
-    uint64_t parse_lc_flags = 0;
+    struct macho_file_parse_slc_flags parse_slc_flags = {};
+    struct macho_file_parse_slc_options parse_slc_opts = {};
 
-    if (options & O_MACHO_FILE_PARSE_COPY_STRINGS_IN_MAP) {
-        info_in->flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
-        parse_lc_opts |= O_MF_PARSE_SLC_COPY_STRINGS;
+    if (options.copy_strings_in_map) {
+        info_in->flags.install_name_was_allocated = true;
+        parse_slc_opts.copy_strings = true;
     }
 
-    if (is_big_endian) {
-        parse_lc_opts |= O_MF_PARSE_SLC_IS_BIG_ENDIAN;
+    if (flags.is_big_endian) {
+        parse_slc_opts.is_big_endian = true;
     }
 
     const uint8_t *const map = parse_info->map;
@@ -1132,14 +1118,14 @@ macho_file_parse_load_commands_from_map(
     struct macho_file_parse_single_lc_info parse_lc_info = {
         .info_in = info_in,
 
-        .flags_in = &parse_lc_flags,
+        .flags_in = &parse_slc_flags,
         .platform_in = &platform,
         .uuid_in = uuid,
 
         .arch_index = arch_index,
 
         .tbd_options = tbd_options,
-        .options = parse_lc_opts,
+        .options = parse_slc_opts,
 
         .dyld_info_out = &dyld_info,
         .symtab_out = &symtab
@@ -1157,7 +1143,7 @@ macho_file_parse_load_commands_from_map(
         struct load_command load_cmd =
             *(const struct load_command *)load_cmd_iter;
 
-        if (is_big_endian) {
+        if (flags.is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
         }
@@ -1193,11 +1179,11 @@ macho_file_parse_load_commands_from_map(
                  * segment-information.
                  */
 
-                const uint64_t ignore_all_mask =
-                    (O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
-                     O_TBD_PARSE_IGNORE_SWIFT_VERSION);
+                const uint64_t should_ignore =
+                    (tbd_options.ignore_objc_constraint &&
+                     tbd_options.ignore_swift_version);
 
-                if ((tbd_options & ignore_all_mask) == ignore_all_mask) {
+                if (should_ignore) {
                     break;
                 }
 
@@ -1206,7 +1192,7 @@ macho_file_parse_load_commands_from_map(
                  * word-size.
                  */
 
-                if (is_64) {
+                if (flags.is_64) {
                     break;
                 }
 
@@ -1226,7 +1212,7 @@ macho_file_parse_load_commands_from_map(
                     break;
                 }
 
-                if (is_big_endian) {
+                if (flags.is_big_endian) {
                     nsects = swap_uint32(nsects);
                 }
 
@@ -1266,7 +1252,7 @@ macho_file_parse_load_commands_from_map(
                         continue;
                     }
 
-                    if (is_big_endian) {
+                    if (flags.is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint32(sect_size);
                     }
@@ -1298,11 +1284,11 @@ macho_file_parse_load_commands_from_map(
                  * segment-information.
                  */
 
-                const uint64_t ignore_all_mask =
-                    (O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT |
-                     O_TBD_PARSE_IGNORE_SWIFT_VERSION);
+                const uint64_t should_ignore =
+                    (tbd_options.ignore_objc_constraint &&
+                     tbd_options.ignore_swift_version);
 
-                if ((tbd_options & ignore_all_mask) == ignore_all_mask) {
+                if (should_ignore) {
                     break;
                 }
 
@@ -1311,7 +1297,7 @@ macho_file_parse_load_commands_from_map(
                  * word-size.
                  */
 
-                if (!is_64) {
+                if (!flags.is_64) {
                     break;
                 }
 
@@ -1331,7 +1317,7 @@ macho_file_parse_load_commands_from_map(
                     break;
                 }
 
-                if (is_big_endian) {
+                if (flags.is_big_endian) {
                     nsects = swap_uint32(nsects);
                 }
 
@@ -1372,7 +1358,7 @@ macho_file_parse_load_commands_from_map(
                         continue;
                     }
 
-                    if (is_big_endian) {
+                    if (flags.is_big_endian) {
                         sect_offset = swap_uint32(sect_offset);
                         sect_size = swap_uint64(sect_size);
                     }
@@ -1418,7 +1404,7 @@ macho_file_parse_load_commands_from_map(
         load_cmd_iter += load_cmd.cmdsize;
     }
 
-    if (!(parse_lc_flags & F_MF_PARSE_SLC_FOUND_IDENTIFICATION)) {
+    if (!parse_slc_flags.found_identification) {
         const bool should_continue =
             call_callback(extra.callback,
                           info_in,
@@ -1437,7 +1423,7 @@ macho_file_parse_load_commands_from_map(
                                     uuid,
                                     extra.callback,
                                     extra.cb_info,
-                                    parse_lc_flags,
+                                    parse_slc_flags,
                                     tbd_options);
 
     if (handle_at_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
@@ -1450,11 +1436,11 @@ macho_file_parse_load_commands_from_map(
     bool parse_symtab = false;
 
     if (dyld_info.export_off != 0 && dyld_info.export_size != 0) {
-        if (tbd_options & O_TBD_PARSE_IGNORE_EXPORTS) {
+        if (tbd_options.ignore_exports) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
-        if (is_big_endian) {
+        if (flags.is_big_endian) {
             dyld_info.export_off = swap_uint32(dyld_info.export_off);
             dyld_info.export_size = swap_uint32(dyld_info.export_size);
         }
@@ -1470,8 +1456,8 @@ macho_file_parse_load_commands_from_map(
 
             .arch_index = arch_index,
 
-            .is_64 = is_64,
-            .is_big_endian = is_big_endian,
+            .is_64 = flags.is_64,
+            .is_big_endian = flags.is_big_endian,
 
             .export_off = dyld_info.export_off,
             .export_size = dyld_info.export_size,
@@ -1492,7 +1478,7 @@ macho_file_parse_load_commands_from_map(
     }
 
     if (symtab.nsyms != 0) {
-        if (is_big_endian) {
+        if (flags.is_big_endian) {
             symtab.symoff = swap_uint32(symtab.symoff);
             symtab.nsyms = swap_uint32(symtab.nsyms);
 
@@ -1504,7 +1490,7 @@ macho_file_parse_load_commands_from_map(
             lc_info_out->symtab = symtab;
         }
 
-        if (options & O_MACHO_FILE_PARSE_DONT_PARSE_EXPORTS) {
+        if (options.dont_parse_exports) {
             return E_MACHO_FILE_PARSE_OK;
         }
 
@@ -1514,7 +1500,7 @@ macho_file_parse_load_commands_from_map(
                 .available_range = parse_info->available_map_range,
 
                 .arch_index = arch_index,
-                .is_big_endian = is_big_endian,
+                .is_big_endian = flags.is_big_endian,
 
                 .symoff = symtab.symoff,
                 .nsyms = symtab.nsyms,
@@ -1525,22 +1511,22 @@ macho_file_parse_load_commands_from_map(
                 .tbd_options = tbd_options
             };
 
-            if (is_64) {
+            if (flags.is_64) {
                 ret = macho_file_parse_symtab_64_from_map(&args, map);
             } else {
                 ret = macho_file_parse_symtab_from_map(&args, map);
             }
         }
     } else if (!parsed_dyld_info) {
-        const uint64_t ignore_missing_flags =
-            (O_TBD_PARSE_IGNORE_EXPORTS | O_TBD_PARSE_IGNORE_MISSING_EXPORTS);
+        const uint64_t ignore_missing_exports =
+            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 
         /*
-         * If we have either O_TBD_PARSE_IGNORE_EXPORTS, or
-         * O_TBD_PARSE_IGNORE_MISSING_EXPORTS, or both, we don't have an error.
+         * If we have either ignore_exports or ignore_missing_exports, we don't
+         * have an error.
          */
 
-        if ((tbd_options & ignore_missing_flags) != 0) {
+        if (ignore_missing_exports) {
             return E_MACHO_FILE_PARSE_OK;
         }
 

@@ -279,7 +279,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 struct array *__notnull const node_ranges,
                 const uint32_t export_size,
                 struct string_buffer *__notnull const sb_buffer,
-                const uint64_t options)
+                const struct tbd_parse_options options)
 {
     const uint8_t *iter = start + offset;
     uint64_t iter_size = 0;
@@ -500,7 +500,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             parse_trie_node(info_in,
                             arch_index,
                             start,
-                            next,
+                            (uint32_t)next,
                             end,
                             node_ranges,
                             export_size,

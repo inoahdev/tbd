@@ -160,9 +160,7 @@ request_current_version(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_current_version)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_current_version) {
         va_list args;
         va_start(args, prompt);
 
@@ -172,11 +170,11 @@ request_current_version(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_CURRENT_VERSION) {
+    if (orig->parse_options.ignore_current_version) {
         const uint32_t orig_current_version = orig->info.fields.current_version;
         if (orig_current_version != 0) {
             tbd->info.fields.current_version = orig_current_version;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+            tbd->parse_options.ignore_current_version = true;
 
             return true;
         }
@@ -215,11 +213,11 @@ request_current_version(struct tbd_for_main *__notnull const orig,
     } while (true);
 
     tbd->info.fields.current_version = (uint32_t)current_version;
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+    tbd->parse_options.ignore_current_version = true;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         orig->info.fields.current_version = (uint32_t)current_version;
-        orig->parse_options |= O_TBD_PARSE_IGNORE_CURRENT_VERSION;
+        orig->parse_options.ignore_current_version = true;
     }
 
     return true;
@@ -233,9 +231,7 @@ request_compat_version(struct tbd_for_main *__notnull const orig,
                        const char *__notnull const prompt,
                        ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_compat_version)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_compat_version) {
         va_list args;
         va_start(args, prompt);
 
@@ -245,13 +241,13 @@ request_compat_version(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_COMPAT_VERSION) {
+    if (orig->parse_options.ignore_compat_version) {
         const uint32_t orig_compat_version =
             orig->info.fields.compatibility_version;
 
         if (orig_compat_version != 0) {
             tbd->info.fields.compatibility_version = orig_compat_version;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
+            tbd->parse_options.ignore_compat_version = true;
 
             return true;
         }
@@ -292,11 +288,11 @@ request_compat_version(struct tbd_for_main *__notnull const orig,
     } while (true);
 
     tbd->info.fields.compatibility_version = (uint32_t)compat_version;
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
+    tbd->parse_options.ignore_compat_version = true;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         orig->info.fields.compatibility_version = (uint32_t)compat_version;
-        orig->parse_options |= O_TBD_PARSE_IGNORE_COMPAT_VERSION;
+        orig->parse_options.ignore_compat_version = true;
     }
 
     return true;
@@ -310,9 +306,7 @@ request_install_name(struct tbd_for_main *__notnull const orig,
                      const char *__notnull const prompt,
                      ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_install_name)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_install_name) {
         va_list args;
         va_start(args, prompt);
 
@@ -322,11 +316,11 @@ request_install_name(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_INSTALL_NAME) {
+    if (orig->parse_options.ignore_install_name) {
         const char *const orig_install_name = orig->info.fields.install_name;
         if (orig_install_name != NULL) {
             tbd->info.fields.install_name = orig_install_name;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+            tbd->parse_options.ignore_install_name = true;
 
             return true;
         }
@@ -354,18 +348,18 @@ request_install_name(struct tbd_for_main *__notnull const orig,
 
     tbd->info.fields.install_name = install_name;
     tbd->info.fields.install_name_length = install_name_length;
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+    tbd->parse_options.ignore_install_name = true;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         orig->info.fields.install_name = install_name;
         orig->info.fields.install_name_length = install_name_length;
-        orig->parse_options |= O_TBD_PARSE_IGNORE_INSTALL_NAME;
+        orig->parse_options.ignore_install_name = true;
     } else {
         /*
-         * Don't have install-name freed if we're giving it to orig.
+         * Have install-name freed only if we're not giving it to orig.
          */
 
-        tbd->info.flags |= F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED;
+        tbd->info.flags.install_name_was_allocated = true;
     }
 
     return true;
@@ -379,9 +373,7 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_objc_constraint)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_objc_constraint) {
         va_list args;
         va_start(args, prompt);
 
@@ -391,13 +383,13 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+    if (orig->parse_options.ignore_objc_constraint) {
         const enum tbd_objc_constraint orig_objc_constraint =
             orig->info.fields.archs.objc_constraint;
 
         if (orig_objc_constraint != TBD_OBJC_CONSTRAINT_NO_VALUE) {
             tbd->info.fields.archs.objc_constraint = orig_objc_constraint;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+            tbd->parse_options.ignore_objc_constraint = true;
         }
 
         return true;
@@ -449,10 +441,10 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
         break;
     } while (true);
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+    tbd->parse_options.ignore_objc_constraint = true;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         orig->info.fields.archs.objc_constraint = objc_constraint;
-        orig->parse_options |= O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT;
+        orig->parse_options.ignore_objc_constraint = true;
     }
 
     return true;
@@ -466,9 +458,7 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_parent_umbrella)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_parent_umbrella) {
         va_list args;
         va_start(args, prompt);
 
@@ -478,7 +468,8 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
+    struct tbd_parse_options tbd_options = {};
+    if (orig->parse_options.ignore_parent_umbrellas) {
         const struct tbd_metadata_info *const orig_umbrella_info =
             tbd_ci_get_single_parent_umbrella(&orig->info);
 
@@ -488,14 +479,14 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                                            orig_umbrella_info->string,
                                            orig_umbrella_info->length,
                                            0,
-                                           0);
+                                           tbd_options);
 
             if (add_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
                 fputs("Failed to add missing parent-umbrella\n", stderr);
                 exit(1);
             }
 
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+            tbd->parse_options.ignore_parent_umbrellas = true;
             return true;
         }
     }
@@ -527,14 +518,14 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                                    parent_umbrella,
                                    parent_umbrella_length,
                                    0,
-                                   0);
+                                   tbd_options);
 
     if (add_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
         fputs("Failed to set provided parent-umbrella\n", stderr);
         exit(1);
     }
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
+    tbd->parse_options.ignore_parent_umbrellas = true;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         const enum tbd_ci_add_parent_umbrella_result add_orig_umbrella_result =
@@ -542,20 +533,14 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                                        parent_umbrella,
                                        parent_umbrella_length,
                                        0,
-                                       0);
+                                       tbd_options);
 
         if (add_orig_umbrella_result != E_TBD_CI_ADD_PARENT_UMBRELLA_OK) {
             fputs("Failed to set provided parent-umbrella to all\n", stderr);
             exit(1);
         }
 
-        orig->parse_options |= O_TBD_PARSE_IGNORE_PARENT_UMBRELLA;
-    } else {
-        /*
-         * Don't have parent-umbrella freed if we're giving it to orig.
-         */
-
-        tbd->info.flags |= F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED;
+        orig->parse_options.ignore_parent_umbrellas = true;
     }
 
     return true;
@@ -569,9 +554,7 @@ request_platform(struct tbd_for_main *__notnull const orig,
                  const char *__notnull const prompt,
                  ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_platform)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_platform) {
         va_list args;
         va_start(args, prompt);
 
@@ -581,13 +564,13 @@ request_platform(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_PLATFORM) {
+    if (orig->parse_options.ignore_platform) {
         const enum tbd_platform orig_platform =
             tbd_ci_get_single_platform(&orig->info);
 
         if (orig_platform != TBD_PLATFORM_NONE) {
             tbd_ci_set_single_platform(&tbd->info, orig_platform);
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+            tbd->parse_options.ignore_platform = true;
         }
 
         return true;
@@ -639,10 +622,10 @@ request_platform(struct tbd_for_main *__notnull const orig,
         break;
     } while (true);
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+    tbd->parse_options.ignore_platform = true;;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         tbd_ci_set_single_platform(&orig->info, platform);
-        orig->parse_options |= O_TBD_PARSE_IGNORE_PLATFORM;
+        orig->parse_options.ignore_platform = true;
     }
 
     return true;
@@ -656,9 +639,7 @@ request_swift_version(struct tbd_for_main *__notnull const orig,
                       const char *__notnull const prompt,
                       ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_replace_swift_version)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_replace_swift_version) {
         va_list args;
         va_start(args, prompt);
 
@@ -668,11 +649,11 @@ request_swift_version(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
+    if (orig->parse_options.ignore_swift_version) {
         const uint32_t orig_swift_version = orig->info.fields.swift_version;
         if (orig_swift_version != 0) {
             tbd->info.fields.swift_version = orig_swift_version;
-            tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+            tbd->parse_options.ignore_swift_version = true;
         }
 
         return true;
@@ -714,11 +695,11 @@ request_swift_version(struct tbd_for_main *__notnull const orig,
         break;
     } while (true);
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+    tbd->parse_options.ignore_swift_version = true;
 
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
         orig->info.fields.swift_version = swift_version;
-        orig->parse_options |= O_TBD_PARSE_IGNORE_SWIFT_VERSION;
+        orig->parse_options.ignore_swift_version = true;
     }
 
     return true;
@@ -732,9 +713,7 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const orig,
                                const char *__notnull const prompt,
                                ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_ignore_flags)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_ignore_flags) {
         va_list args;
         va_start(args, prompt);
 
@@ -744,8 +723,8 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    if (orig->parse_options & O_TBD_PARSE_IGNORE_FLAGS) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+    if (orig->parse_options.ignore_flags) {
+        tbd->parse_options.ignore_flags = true;
         return true;
     }
 
@@ -765,9 +744,9 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const orig,
         return false;
     }
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+    tbd->parse_options.ignore_flags = true;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        orig->parse_options |= O_TBD_PARSE_IGNORE_FLAGS;
+        orig->parse_options.ignore_flags = true;
     }
 
     return true;
@@ -782,9 +761,7 @@ request_if_should_ignore_non_unique_uuids(
     const char *__notnull const prompt,
     ...)
 {
-    if ((tbd->flags & F_TBD_FOR_MAIN_NO_REQUESTS) ||
-        tbd->retained.never_ignore_non_unique_uuids)
-    {
+    if (tbd->flags.no_requests || tbd->retained.never_ignore_non_unique_uuids) {
         va_list args;
         va_start(args, prompt);
 
@@ -794,8 +771,8 @@ request_if_should_ignore_non_unique_uuids(
         return false;
     }
 
-    if (tbd->parse_options & O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS) {
-        tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
+    if (orig->parse_options.ignore_non_unique_uuids) {
+        tbd->parse_options.ignore_non_unique_uuids = true;
         return true;
     }
 
@@ -815,9 +792,9 @@ request_if_should_ignore_non_unique_uuids(
         return false;
     }
 
-    tbd->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
+    tbd->parse_options.ignore_non_unique_uuids = true;
     if (choice_index == DEFAULT_CHOICE_INDEX_FOR_ALL) {
-        orig->parse_options |= O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS;
+        orig->parse_options.ignore_non_unique_uuids = true;
     }
 
     return true;

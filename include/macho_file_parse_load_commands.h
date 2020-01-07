@@ -19,9 +19,9 @@
 #include "range.h"
 #include "tbd.h"
 
-enum mf_parse_load_commands_flags {
-    F_MF_PARSE_LOAD_COMMANDS_IS_64 = (1ull << 0),
-    F_MF_PARSE_LOAD_COMMANDS_IS_BIG_ENDIAN = (1ull << 1)
+struct macho_file_parse_lc_flags {
+    bool is_64 : 1;
+    bool is_big_endian : 1;
 };
 
 struct mf_parse_lc_from_file_info {
@@ -37,10 +37,9 @@ struct mf_parse_lc_from_file_info {
     uint32_t sizeofcmds;
     uint32_t header_size;
 
-    uint64_t tbd_options;
-    uint64_t options;
-
-    uint64_t flags;
+    struct tbd_parse_options tbd_options;
+    struct macho_file_parse_options options;
+    struct macho_file_parse_lc_flags flags;
 };
 
 struct macho_file_lc_info_out {
@@ -72,10 +71,9 @@ struct mf_parse_lc_from_map_info {
     uint32_t ncmds;
     uint32_t sizeofcmds;
 
-    uint64_t tbd_options;
-    uint64_t options;
-
-    uint64_t flags;
+    struct tbd_parse_options tbd_options;
+    struct macho_file_parse_options options;
+    struct macho_file_parse_lc_flags flags;
 };
 
 enum macho_file_parse_result

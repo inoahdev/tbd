@@ -11,13 +11,11 @@
 
 #include <stdint.h>
 
+#include "dsc_image.h"
+#include "macho_file.h"
 #include "notnull.h"
 #include "request_user_input.h"
 #include "tbd.h"
-
-enum tbd_for_main_dsc_image_flags {
-    F_TBD_FOR_MAIN_DSC_IMAGE_CURRENTLY_PARSING = 1ull << 0,
-};
 
 enum tbd_for_main_dsc_image_filter_type {
     TBD_FOR_MAIN_DSC_IMAGE_FILTER_TYPE_FILE,
@@ -60,51 +58,57 @@ struct tbd_for_main_dsc_image_filter {
     enum tbd_for_main_dsc_image_filter_parse_status status;
 };
 
-enum tbd_for_main_flags {
-    F_TBD_FOR_MAIN_RECURSE_DIRECTORIES    = 1ull << 0,
-    F_TBD_FOR_MAIN_RECURSE_SUBDIRECTORIES = 1ull << 1,
+struct tbd_for_main_flags {
+    bool recurse_directories    : 1;
+    bool recurse_subdirectories : 1;
 
-    F_TBD_FOR_MAIN_REPLACE_PATH_EXTENSION     = 1ull << 2,
-    F_TBD_FOR_MAIN_PRESERVE_DIRECTORY_SUBDIRS = 1ull << 3,
+    bool replace_path_extension     : 1;
+    bool preserve_directory_subdirs : 1;
 
-    F_TBD_FOR_MAIN_REMOVE_ARCHS = 1ull << 4,
-    F_TBD_FOR_MAIN_NO_OVERWRITE = 1ull << 5,
-    F_TBD_FOR_MAIN_COMBINE_TBDS = 1ull << 6,
+    bool remove_archs : 1;
+    bool no_overwrite : 1;
+    bool combine_tbds : 1;
 
-    F_TBD_FOR_MAIN_NO_REQUESTS     = 1ull << 7,
-    F_TBD_FOR_MAIN_IGNORE_WARNINGS = 1ull << 8,
+    bool no_requests     : 1;
+    bool ignore_warnings : 1;
 
     /*
      * dyld_shared_cache extractions can be stored in either a file.
      * (Depending on the configuration)
      */
 
-    F_TBD_FOR_MAIN_DSC_WRITE_PATH_IS_FILE = 1ull << 9,
+    bool dsc_write_path_is_file : 1;
 
-    F_TBD_FOR_MAIN_PROVIDED_ARCHS = 1ull << 10,
-    F_TBD_FOR_MAIN_PROVIDED_CURRENT_VERSION = 1ull << 11,
-    F_TBD_FOR_MAIN_PROVIDED_COMPAT_VERSION  = 1ull << 12,
-    F_TBD_FOR_MAIN_PROVIDED_FLAGS           = 1ull << 13,
-    F_TBD_FOR_MAIN_PROVIDED_OBJC_CONSTRAINT = 1ull << 14,
-    F_TBD_FOR_MAIN_PROVIDED_PLATFORM        = 1ull << 15,
-    F_TBD_FOR_MAIN_PROVIDED_SWIFT_VERSION   = 1ull << 16,
-    F_TBD_FOR_MAIN_PROVIDED_TARGETS         = 1ull << 17,
+    bool provided_archs           : 1;
+    bool provided_current_version : 1;
+    bool provided_compat_version  : 1;
+    bool provided_flags           : 1;
+    bool provided_objc_constraint : 1;
+    bool provided_platform        : 1;
+    bool provided_swift_version   : 1;
+    bool provided_targets         : 1;
 
-    F_TBD_FOR_MAIN_PROVIDED_TBD_VERSION = 1ull << 18,
+    bool provided_tbd_version : 1;
 
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_CURRENT_VERSION = 1ull << 19,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_COMPAT_VERSION  = 1ull << 20,
+    bool provided_ignore_current_version : 1;
+    bool provided_ignore_compat_version  : 1;
 
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_FLAGS           = 1ull << 21,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_OBJC_CONSTRAINT = 1ull << 22,
-    F_TBD_FOR_MAIN_PROVIDED_IGNORE_SWIFT_VERSION   = 1ull << 23,
+    bool provided_ignore_flags           : 1;
+    bool provided_ignore_objc_constraint : 1;
+    bool provided_ignore_swift_version   : 1;
 
-    F_TBD_FOR_MAIN_ADDED_FILETYPES = 1ull << 24
+    bool added_filetypes : 1;
 };
 
-enum tbd_for_main_filetype {
-    TBD_FOR_MAIN_FILETYPE_MACHO = 1ull << 0,
-    TBD_FOR_MAIN_FILETYPE_DSC   = 1ull << 1
+struct tbd_for_main_filetypes {
+    union {
+        uint32_t value;
+        struct {
+            bool macho : 1;
+            bool dyld_shared_cache : 1;
+            bool user_provided : 1;
+        };
+    };
 };
 
 struct tbd_for_main {
@@ -121,33 +125,28 @@ struct tbd_for_main {
     uint64_t parse_path_length;
     uint64_t write_path_length;
 
-    uint64_t filetypes;
-    uint64_t filetypes_count;
+    struct tbd_for_main_filetypes filetypes;
 
     /*
      * We store an option-set for each of the filetypes, as we need differing
      * sets for different options.
      */
 
-    uint64_t macho_options;
-    uint64_t dsc_options;
+    struct macho_file_parse_options macho_options;
+    struct dyld_shared_cache_parse_options dsc_options;
 
-    uint64_t parse_options;
-    uint64_t write_options;
+    struct tbd_parse_options parse_options;
+    struct tbd_create_options write_options;
 
     struct array dsc_image_filters;
     struct array dsc_image_numbers;
 
-    struct retained_user_info retained;
     enum tbd_platform platform;
-
     uint64_t dsc_filter_paths_count;
-    uint64_t flags;
-};
 
-void
-tbd_for_main_add_filetype(struct tbd_for_main *__notnull tbd,
-                          enum tbd_for_main_filetype filetype);
+    struct retained_user_info retained;
+    struct tbd_for_main_flags flags;
+};
 
 bool
 tbd_for_main_parse_option(int *__notnull const index_in,

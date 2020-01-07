@@ -17,15 +17,8 @@
  * magic_in should be atleast 16 bytes large.
  */
 
-enum parse_dsc_for_main_result {
-    E_PARSE_DSC_FOR_MAIN_OK,
-    E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE,
-    E_PARSE_DSC_FOR_MAIN_OTHER_ERROR,
-    E_PARSE_DSC_FOR_MAIN_CLOSE_COMBINE_FILE_FAIL
-};
-
-enum parse_dsc_for_main_options {
-    O_PARSE_DSC_FOR_MAIN_VERIFY_WRITE_PATH = 1ull << 0
+struct parse_dsc_for_main_options {
+    bool verify_write_path : 1;
 };
 
 struct parse_dsc_for_main_args {
@@ -49,7 +42,14 @@ struct parse_dsc_for_main_args {
     bool print_paths;
 
     struct string_buffer *export_trie_sb;
-    uint64_t options;
+    struct parse_dsc_for_main_options options;
+};
+
+enum parse_dsc_for_main_result {
+    E_PARSE_DSC_FOR_MAIN_OK,
+    E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE,
+    E_PARSE_DSC_FOR_MAIN_OTHER_ERROR,
+    E_PARSE_DSC_FOR_MAIN_CLOSE_COMBINE_FILE_FAIL
 };
 
 enum parse_dsc_for_main_result

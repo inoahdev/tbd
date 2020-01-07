@@ -23,38 +23,44 @@
  * Options to handle when parsing out information for tbd_create_info.
  */
 
-enum tbd_parse_options {
-    O_TBD_PARSE_IGNORE_AT_AND_UUIDS    = 1ull << 0,
-    O_TBD_PARSE_IGNORE_CLIENTS         = 1ull << 1,
-    O_TBD_PARSE_IGNORE_CURRENT_VERSION = 1ull << 2,
-    O_TBD_PARSE_IGNORE_COMPAT_VERSION  = 1ull << 3,
-    O_TBD_PARSE_IGNORE_EXPORTS         = 1ull << 4,
-    O_TBD_PARSE_IGNORE_FLAGS           = 1ull << 5,
-    O_TBD_PARSE_IGNORE_INSTALL_NAME    = 1ull << 6,
-    O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT = 1ull << 7,
-    O_TBD_PARSE_IGNORE_PARENT_UMBRELLA = 1ull << 8,
-    O_TBD_PARSE_IGNORE_PLATFORM        = 1ull << 9,
-    O_TBD_PARSE_IGNORE_REEXPORTS       = 1ull << 10,
-    O_TBD_PARSE_IGNORE_SWIFT_VERSION   = 1ull << 11,
-    O_TBD_PARSE_IGNORE_UNDEFINEDS      = 1ull << 12,
+struct tbd_parse_options {
+    bool ignore_at_and_uuids : 1;
+    bool ignore_clients : 1;
+    bool ignore_current_version : 1;
+    bool ignore_compat_version : 1;
+    bool ignore_exports : 1;
+    bool ignore_flags : 1;
+    bool ignore_install_name : 1;
+    bool ignore_objc_constraint : 1;
+    bool ignore_parent_umbrellas : 1;
+    bool ignore_platform : 1;
+    bool ignore_reexports : 1;
+    bool ignore_swift_version : 1;
+    bool ignore_undefineds : 1;
 
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
      */
 
-    O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS  = 1ull << 13,
-    O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS = 1ull << 14,
-    O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS   = 1ull << 15,
+    bool allow_priv_objc_class_syms : 1;
+    bool allow_priv_objc_ehtype_syms : 1;
+    bool allow_priv_objc_ivar_syms : 1;
 
-    O_TBD_PARSE_IGNORE_MISSING_EXPORTS  = 1ull << 16,
-    O_TBD_PARSE_IGNORE_MISSING_UUIDS    = 1ull << 17,
-    O_TBD_PARSE_IGNORE_NON_UNIQUE_UUIDS = 1ull << 18
+    bool ignore_missing_exports : 1;
+    bool ignore_missing_uuids : 1;
+    bool ignore_non_unique_uuids : 1;
 };
 
-enum tbd_flags {
-    TBD_FLAG_FLAT_NAMESPACE         = 1ull << 0,
-    TBD_FLAG_NOT_APP_EXTENSION_SAFE = 1ull << 1
+struct tbd_flags {
+    union {
+        uint32_t value;
+
+        struct {
+            bool flat_namespace : 1;
+            bool not_app_extension_safe : 1;
+        };
+    };
 };
 
 enum tbd_objc_constraint {
@@ -143,8 +149,8 @@ enum tbd_symbol_type {
     TBD_SYMBOL_TYPE_THREAD_LOCAL
 };
 
-enum tbd_data_info_flags {
-    F_TBD_DATA_INFO_STRING_NEEDS_QUOTES = 1ull << 0
+struct tbd_data_info_flags {
+    bool needs_quotes : 1;
 };
 
 struct tbd_metadata_info {
@@ -154,7 +160,7 @@ struct tbd_metadata_info {
     uint64_t length;
 
     enum tbd_metadata_type type;
-    uint32_t flags;
+    struct tbd_data_info_flags flags;
 };
 
 struct tbd_symbol_info {
@@ -166,7 +172,7 @@ struct tbd_symbol_info {
     enum tbd_symbol_meta_type meta_type;
     enum tbd_symbol_type type;
 
-    uint32_t flags;
+    struct tbd_data_info_flags flags;
 };
 
 struct tbd_uuid_info {
@@ -175,20 +181,24 @@ struct tbd_uuid_info {
 };
 
 bool
-tbd_should_parse_objc_constraint(uint64_t options, enum tbd_version version);
+tbd_should_parse_objc_constraint(struct tbd_parse_options options,
+                                 enum tbd_version version);
 
 bool
-tbd_should_parse_swift_version(uint64_t options, enum tbd_version version);
+tbd_should_parse_swift_version(struct tbd_parse_options options,
+                               enum tbd_version version);
 
-bool tbd_should_parse_flags(uint64_t options, enum tbd_version version);
+bool
+tbd_should_parse_flags(struct tbd_parse_options options,
+                       enum tbd_version version);
+
 bool tbd_uses_archs(enum tbd_version version);
 
-enum tbd_create_info_flags {
-    F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES    = 1ull << 0,
-    F_TBD_CREATE_INFO_PARENT_UMBRELLA_NEEDS_QUOTES = 1ull << 1,
+struct tbd_create_info_flags {
+    bool install_name_needs_quotes : 1;
+    bool parent_umbrella_needs_quotes : 1;
 
-    F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED    = 1ull << 2,
-    F_TBD_CREATE_INFO_PARENT_UMBRELLA_WAS_ALLOCATED = 1ull << 3,
+    bool install_name_was_allocated : 1;
 
     /*
      * Indicte that all exports have the same arch-set as the tbd.
@@ -197,8 +207,8 @@ enum tbd_create_info_flags {
      * does not check for archs.
      */
 
-    F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT    = 1ull << 4,
-    F_TBD_CREATE_INFO_UNDEFINEDS_HAVE_FULL_AT = 1ull << 5
+    bool exports_have_full_at : 1;
+    bool undefineds_have_full_at : 1;
 };
 
 struct tbd_create_info_fields {
@@ -208,7 +218,7 @@ struct tbd_create_info_fields {
         enum tbd_objc_constraint objc_constraint;
     } archs;
 
-    uint32_t flags;
+    struct tbd_flags flags;
 
     const char *install_name;
     uint64_t install_name_length;
@@ -226,7 +236,7 @@ struct tbd_create_info {
     enum tbd_version version;
     struct tbd_create_info_fields fields;
 
-    uint32_t flags;
+    struct tbd_create_info_flags flags;
 };
 
 enum tbd_ci_set_at_count_result {
@@ -251,7 +261,7 @@ tbd_ci_add_parent_umbrella(struct tbd_create_info *__notnull info_in,
                            const char *__notnull string,
                            uint64_t length,
                            uint64_t arch_index,
-                           uint64_t options);
+                           struct tbd_parse_options options);
 
 struct tbd_metadata_info *
 tbd_ci_get_single_parent_umbrella(const struct tbd_create_info *__notnull info);
@@ -270,7 +280,7 @@ tbd_ci_add_metadata(struct tbd_create_info *__notnull info_in,
                     uint64_t arch_index,
                     enum tbd_metadata_type type,
                     bool copy_string,
-                    uint64_t options);
+                    struct tbd_parse_options options);
 
 enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull info_in,
@@ -279,7 +289,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull info_in,
                             uint64_t arch_index,
                             enum tbd_symbol_type type,
                             enum tbd_symbol_meta_type meta_type,
-                            uint64_t options);
+                            struct tbd_parse_options options);
 
 enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
@@ -289,7 +299,7 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull info_in,
                             enum tbd_symbol_type predefined_type,
                             enum tbd_symbol_meta_type meta_type,
                             bool is_exported,
-                            uint64_t options);
+                            struct tbd_parse_options options);
 
 enum tbd_ci_add_data_result
 tbd_ci_add_symbol_with_info_and_len(struct tbd_create_info *__notnull info_in,
@@ -299,7 +309,7 @@ tbd_ci_add_symbol_with_info_and_len(struct tbd_create_info *__notnull info_in,
                                     enum tbd_symbol_type predefined_type,
                                     enum tbd_symbol_meta_type meta_type,
                                     bool is_exported,
-                                    uint64_t options);
+                                    struct tbd_parse_options options);
 
 
 enum tbd_platform
@@ -328,26 +338,32 @@ enum tbd_create_result {
     E_TBD_CREATE_WRITE_FAIL
 };
 
-enum tbd_create_options {
-    O_TBD_CREATE_IGNORE_CLIENTS               = 1ull << 0,
-    O_TBD_CREATE_IGNORE_CURRENT_VERSION       = 1ull << 1,
-    O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION = 1ull << 2,
-    O_TBD_CREATE_IGNORE_EXPORTS               = 1ull << 3,
-    O_TBD_CREATE_IGNORE_FLAGS                 = 1ull << 4,
-    O_TBD_CREATE_IGNORE_FOOTER                = 1ull << 5,
-    O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT       = 1ull << 6,
-    O_TBD_CREATE_IGNORE_PARENT_UMBRELLAS      = 1ull << 7,
-    O_TBD_CREATE_IGNORE_REEXPORTS             = 1ull << 8,
-    O_TBD_CREATE_IGNORE_SWIFT_VERSION         = 1ull << 9,
-    O_TBD_CREATE_IGNORE_UNDEFINEDS            = 1ull << 10,
-    O_TBD_CREATE_IGNORE_UUIDS                 = 1ull << 11,
-    O_TBD_CREATE_IGNORE_UNNECESSARY_FIELDS    = 1ull << 12
+struct tbd_create_options {
+    union {
+        uint32_t value;
+
+        struct {
+            bool ignore_clients : 1;
+            bool ignore_current_version : 1;
+            bool ignore_compat_version : 1;
+            bool ignore_exports : 1;
+            bool ignore_flags : 1;
+            bool ignore_footer : 1;
+            bool ignore_objc_constraint : 1;
+            bool ignore_parent_umbrellas : 1;
+            bool ignore_reexports : 1;
+            bool ignore_swift_version : 1;
+            bool ignore_undefineds : 1;
+            bool ignore_uuids : 1;
+            bool ignore_unnecessary_fields : 1;
+        };
+    };
 };
 
 enum tbd_create_result
 tbd_create_with_info(const struct tbd_create_info *__notnull info,
                      FILE *__notnull file,
-                     uint64_t options);
+                     struct tbd_create_options options);
 
 void
 tbd_create_info_clear_fields_and_create_from(

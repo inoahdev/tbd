@@ -7,6 +7,7 @@
 //
 
 #include <inttypes.h>
+#include "tbd.h"
 #include "tbd_write.h"
 
 static const uint64_t MAX_ARCH_ON_LINE = 7;
@@ -352,17 +353,13 @@ int tbd_write_footer(FILE *__notnull const file) {
     return 0;
 }
 
-int tbd_write_flags(FILE *__notnull const file, const uint64_t flags) {
-    if (flags == 0) {
-        return 0;
-    }
-
-    if (flags & TBD_FLAG_FLAT_NAMESPACE) {
+int tbd_write_flags(FILE *__notnull const file, const struct tbd_flags flags) {
+    if (flags.flat_namespace) {
         if (fprintf(file, "flags:%-17s[ flat_namespace", "") < 0) {
             return 1;
         }
 
-        if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+        if (flags.not_app_extension_safe) {
             if (fputs(", not_app_extension_safe", file) < 0) {
                 return 1;
             }
@@ -371,10 +368,12 @@ int tbd_write_flags(FILE *__notnull const file, const uint64_t flags) {
         if (fputs(" ]\n", file) < 0) {
             return 1;
         }
-    } else if (flags & TBD_FLAG_NOT_APP_EXTENSION_SAFE) {
+    } else if (flags.not_app_extension_safe) {
         if (fprintf(file, "flags:%-17s[ not_app_extension_safe ]\n", "") < 0) {
             return 1;
         }
+    } else {
+        return 0;
     }
 
     return 0;
@@ -410,9 +409,7 @@ tbd_write_install_name(FILE *__notnull const file,
     const char *const install_name = info->fields.install_name;
     const uint64_t length = info->fields.install_name_length;
 
-    const bool needs_quotes =
-        (info->flags & F_TBD_CREATE_INFO_INSTALL_NAME_NEEDS_QUOTES);
-
+    const bool needs_quotes = info->flags.install_name_was_allocated;
     if (write_yaml_string(file, install_name, length, needs_quotes)) {
         return 1;
     }
@@ -539,8 +536,7 @@ tbd_write_parent_umbrella_for_archs(
     }
 
     const uint64_t length = umbrella_info->length;
-    const bool needs_quotes =
-        (umbrella_info->flags & F_TBD_DATA_INFO_STRING_NEEDS_QUOTES);
+    const bool needs_quotes = umbrella_info->flags.needs_quotes;
 
     if (write_yaml_string(file, umbrella, length, needs_quotes)) {
         return 1;
@@ -927,7 +923,7 @@ static inline int end_written_sequence(FILE *__notnull const file) {
 static int
 skip_metadata_if_needed(const struct tbd_metadata_info *__notnull info,
                         const struct tbd_metadata_info *__notnull const end,
-                        const uint64_t create_options,
+                        const struct tbd_create_options options,
                         const struct tbd_metadata_info **__notnull info_out)
 {
     for (; info != end; info++) {
@@ -936,7 +932,7 @@ skip_metadata_if_needed(const struct tbd_metadata_info *__notnull info,
                 return 0;
 
             case TBD_METADATA_TYPE_PARENT_UMBRELLA:
-                if (create_options & O_TBD_CREATE_IGNORE_PARENT_UMBRELLAS) {
+                if (options.ignore_parent_umbrellas) {
                     break;
                 }
 
@@ -944,7 +940,7 @@ skip_metadata_if_needed(const struct tbd_metadata_info *__notnull info,
                 return 0;
 
             case TBD_METADATA_TYPE_CLIENT:
-                if (create_options & O_TBD_CREATE_IGNORE_CLIENTS) {
+                if (options.ignore_clients) {
                     break;
                 }
 
@@ -952,7 +948,7 @@ skip_metadata_if_needed(const struct tbd_metadata_info *__notnull info,
                 return 0;
 
             case TBD_METADATA_TYPE_REEXPORTED_LIBRARY:
-                if (create_options & O_TBD_CREATE_IGNORE_REEXPORTS) {
+                if (options.ignore_reexports) {
                     break;
                 }
 
@@ -968,9 +964,7 @@ static inline int
 write_metadata_info(FILE *__notnull const file,
                     const struct tbd_metadata_info *__notnull const info)
 {
-    const bool needs_quotes =
-        (info->flags & F_TBD_DATA_INFO_STRING_NEEDS_QUOTES);
-
+    const bool needs_quotes = info->flags.needs_quotes;
     return write_yaml_string(file, info->string, info->length, needs_quotes);
 }
 
@@ -1018,7 +1012,7 @@ write_umbrella_list(FILE *__notnull const file,
 int
 tbd_write_metadata(FILE *__notnull const file,
                    const struct tbd_create_info *__notnull const info_in,
-                   const uint64_t create_options)
+                   const struct tbd_create_options options)
 {
     const struct array *const metadata = &info_in->fields.metadata;
     const struct target_list targets = info_in->fields.targets;
@@ -1035,7 +1029,7 @@ tbd_write_metadata(FILE *__notnull const file,
 
     do {
     meta:
-        if (skip_metadata_if_needed(info, end, create_options, &info)) {
+        if (skip_metadata_if_needed(info, end, options, &info)) {
             return 1;
         }
 
@@ -1246,7 +1240,7 @@ int
 tbd_write_metadata_with_full_targets(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info_in,
-    const uint64_t create_options)
+    const struct tbd_create_options options)
 {
     const struct array *const metadata = &info_in->fields.metadata;
     const struct target_list targets = info_in->fields.targets;
@@ -1262,7 +1256,7 @@ tbd_write_metadata_with_full_targets(
     enum tbd_metadata_type type = TBD_METADATA_TYPE_NONE;
 
     do {
-        if (skip_metadata_if_needed(info, end, create_options, &info)) {
+        if (skip_metadata_if_needed(info, end, options, &info)) {
             return 1;
         }
 
@@ -1489,9 +1483,7 @@ static inline int
 write_symbol_info(FILE *__notnull const file,
                   const struct tbd_symbol_info *__notnull const info)
 {
-    const bool needs_quotes =
-        (info->flags & F_TBD_DATA_INFO_STRING_NEEDS_QUOTES);
-
+    const bool needs_quotes = info->flags.needs_quotes;
     return write_yaml_string(file, info->string, info->length, needs_quotes);
 }
 
@@ -1499,7 +1491,7 @@ static int
 skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
                      const struct tbd_symbol_info *__notnull const end,
                      const enum tbd_symbol_meta_type type,
-                     const uint64_t create_options,
+                     const struct tbd_create_options options,
                      const struct tbd_symbol_info **__notnull symbol_out)
 {
     for (; sym != end; sym++) {
@@ -1508,7 +1500,7 @@ skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
                 return 1;
 
             case TBD_SYMBOL_META_TYPE_EXPORT:
-                if (create_options & O_TBD_CREATE_IGNORE_EXPORTS) {
+                if (options.ignore_exports) {
                     break;
                 }
 
@@ -1516,7 +1508,7 @@ skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
                 return 0;
 
             case TBD_SYMBOL_META_TYPE_REEXPORT:
-                if (create_options & O_TBD_CREATE_IGNORE_REEXPORTS) {
+                if (options.ignore_reexports) {
                     break;
                 }
 
@@ -1524,7 +1516,7 @@ skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
                 return 0;
 
             case TBD_SYMBOL_META_TYPE_UNDEFINED:
-                if (create_options & O_TBD_CREATE_IGNORE_UNDEFINEDS) {
+                if (options.ignore_undefineds) {
                     break;
                 }
 
@@ -1539,7 +1531,7 @@ skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
 int
 tbd_write_symbols_for_archs(FILE *__notnull const file,
                             const struct tbd_create_info *__notnull const info,
-                            const uint64_t create_options)
+                            const struct tbd_create_options options)
 {
     const struct array *const symbol_list = &info->fields.symbols;
 
@@ -1563,7 +1555,7 @@ tbd_write_symbols_for_archs(FILE *__notnull const file,
 
     do {
     meta:
-        if (skip_syms_with_mtype(sym, end, m_type, create_options, &sym)) {
+        if (skip_syms_with_mtype(sym, end, m_type, options, &sym)) {
             return 0;
         }
 
@@ -1714,7 +1706,7 @@ int
 tbd_write_symbols_for_targets(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info,
-    const uint64_t create_options)
+    const struct tbd_create_options options)
 {
     const struct array *const symbol_list = &info->fields.symbols;
 
@@ -1733,7 +1725,7 @@ tbd_write_symbols_for_targets(
 
     do {
 meta:
-        if (skip_syms_with_mtype(sym, end, m_type, create_options, &sym)) {
+        if (skip_syms_with_mtype(sym, end, m_type, options, &sym)) {
             return 0;
         }
 
@@ -1938,7 +1930,7 @@ int
 tbd_write_symbols_with_full_archs(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info,
-    const uint64_t create_options)
+    const struct tbd_create_options options)
 {
     const struct array *const symbol_list = &info->fields.symbols;
 
@@ -1954,7 +1946,7 @@ tbd_write_symbols_with_full_archs(
 
     do {
     meta:
-        if (skip_syms_with_mtype(sym, end, m_type, create_options, &sym)) {
+        if (skip_syms_with_mtype(sym, end, m_type, options, &sym)) {
             return 0;
         }
 
@@ -2073,7 +2065,7 @@ int
 tbd_write_symbols_with_full_targets(
     FILE *__notnull const file,
     const struct tbd_create_info *__notnull const info,
-    const uint64_t create_options)
+    const struct tbd_create_options options)
 {
     const struct array *const symbol_list = &info->fields.symbols;
 
@@ -2088,7 +2080,7 @@ tbd_write_symbols_with_full_targets(
 
     do {
     meta:
-        if (skip_syms_with_mtype(sym, end, m_type, create_options, &sym)) {
+        if (skip_syms_with_mtype(sym, end, m_type, options, &sym)) {
             return 0;
         }
 

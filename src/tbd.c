@@ -86,10 +86,10 @@ tbd_platform_to_string(const enum tbd_platform platform,
 }
 
 bool
-tbd_should_parse_objc_constraint(const uint64_t options,
+tbd_should_parse_objc_constraint(const struct tbd_parse_options options,
                                  const enum tbd_version version)
 {
-    if (options & O_TBD_PARSE_IGNORE_OBJC_CONSTRAINT) {
+    if (options.ignore_objc_constraint) {
         return false;
     }
 
@@ -101,31 +101,17 @@ tbd_should_parse_objc_constraint(const uint64_t options,
 }
 
 bool
-tbd_should_parse_swift_version(const uint64_t options,
+tbd_should_parse_swift_version(const struct tbd_parse_options options,
                                const enum tbd_version version)
 {
-    if (options & O_TBD_PARSE_IGNORE_SWIFT_VERSION) {
-        return false;
-    }
-
-    if (version == TBD_VERSION_V1) {
-        return false;
-    }
-
-    return true;
+    return (!options.ignore_swift_version && version != TBD_VERSION_V1);
 }
 
 bool
-tbd_should_parse_flags(const uint64_t options, const enum tbd_version version) {
-    if (options & O_TBD_PARSE_IGNORE_FLAGS) {
-        return false;
-    }
-
-    if (version == TBD_VERSION_V1) {
-        return false;
-    }
-
-    return true;
+tbd_should_parse_flags(const struct tbd_parse_options options,
+                       const enum tbd_version version)
+{
+    return (!options.ignore_flags && version != TBD_VERSION_V1);
 }
 
 bool tbd_uses_archs(const enum tbd_version version) {
@@ -403,7 +389,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
                        const uint64_t length,
                        const uint64_t bit_index,
                        const enum tbd_metadata_type type,
-                       const uint64_t options)
+                       const struct tbd_parse_options options)
 {
     struct tbd_metadata_info metadata_info = {
         .string = (char *)string,
@@ -420,7 +406,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS) {
+        if (options.ignore_at_and_uuids) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -443,7 +429,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
 
     const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
-        metadata_info.flags |= F_TBD_DATA_INFO_STRING_NEEDS_QUOTES;
+        metadata_info.flags.needs_quotes = true;
     }
 
     const uint64_t targets_count = info_in->fields.targets.set_count;
@@ -455,7 +441,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (unlikely(options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS)) {
+    if (unlikely(options.ignore_at_and_uuids)) {
         bit_list_set_first_n(&metadata_info.targets, targets_count);
     } else {
         bit_list_set_bit(&metadata_info.targets, bit_index);
@@ -498,9 +484,9 @@ tbd_ci_add_parent_umbrella(struct tbd_create_info *__notnull const info_in,
                            const char *__notnull string,
                            const uint64_t length,
                            const uint64_t arch_index,
-                           const uint64_t options)
+                           const struct tbd_parse_options options)
 {
-    if (options & O_TBD_PARSE_IGNORE_PARENT_UMBRELLA) {
+    if (options.ignore_parent_umbrellas) {
         return E_TBD_CI_ADD_PARENT_UMBRELLA_OK;
     }
 
@@ -590,7 +576,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                             const uint64_t arch_index,
                             const enum tbd_symbol_type type,
                             enum tbd_symbol_meta_type meta_type,
-                            const uint64_t options)
+                            const struct tbd_parse_options options)
 {
     const enum tbd_version version = info_in->version;
     switch (version) {
@@ -603,7 +589,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                     return E_TBD_CI_ADD_DATA_OK;
 
                 case TBD_SYMBOL_META_TYPE_EXPORT:
-                    if (options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                    if (options.ignore_exports) {
                         return E_TBD_CI_ADD_DATA_OK;
                     }
 
@@ -626,7 +612,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                     return E_TBD_CI_ADD_DATA_OK;
 
                 case TBD_SYMBOL_META_TYPE_EXPORT:
-                    if (options & O_TBD_PARSE_IGNORE_EXPORTS) {
+                    if (options.ignore_exports) {
                         return E_TBD_CI_ADD_DATA_OK;
                     }
 
@@ -703,7 +689,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS) {
+        if (options.ignore_at_and_uuids) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -725,7 +711,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
 
     const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
-        symbol_info.flags |= F_TBD_DATA_INFO_STRING_NEEDS_QUOTES;
+        symbol_info.flags.needs_quotes = true;
     }
 
     const uint64_t targets_count = info_in->fields.targets.set_count;
@@ -737,7 +723,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (options & O_TBD_PARSE_IGNORE_AT_AND_UUIDS) {
+    if (options.ignore_at_and_uuids) {
         bit_list_set_first_n(&symbol_info.targets, targets_count);
     } else {
         bit_list_set_bit(&symbol_info.targets, arch_index);
@@ -973,7 +959,7 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                             const enum tbd_symbol_type predefined_type,
                             const enum tbd_symbol_meta_type meta_type,
                             const bool is_exported,
-                            const uint64_t options)
+                            const struct tbd_parse_options options)
 {
     uint64_t length = 0;
     enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
@@ -991,10 +977,8 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
             const enum tbd_version vers = info_in->version;
 
             if ((offset = is_objc_class_symbol(str, first, lnmax)) != 0) {
-                if (!is_exported) {
-                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
-                        return E_TBD_CI_ADD_DATA_OK;
-                    }
+                if (!is_exported && !options.allow_priv_objc_class_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
                 }
 
                 string += offset;
@@ -1014,10 +998,8 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                     type = TBD_SYMBOL_TYPE_OBJC_CLASS;
                 }
             } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
-                if (!is_exported) {
-                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
-                        return E_TBD_CI_ADD_DATA_OK;
-                    }
+                if (!is_exported && !options.allow_priv_objc_ivar_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
                 }
 
                 string += offset;
@@ -1037,6 +1019,10 @@ tbd_ci_add_symbol_with_info(struct tbd_create_info *__notnull const info_in,
                     type = TBD_SYMBOL_TYPE_OBJC_IVAR;
                 }
             } else if ((offset = is_objc_ehtype_sym(str, first, lnmax, vers))) {
+                if (!is_exported && !options.allow_priv_objc_ehtype_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
+                }
+
                 string += offset;
                 length = strnlen(string, lnmax - offset);
 
@@ -1101,7 +1087,7 @@ tbd_ci_add_symbol_with_info_and_len(
     const enum tbd_symbol_type predefined_type,
     const enum tbd_symbol_meta_type meta_type,
     const bool is_exported,
-    const uint64_t options)
+    const struct tbd_parse_options options)
 {
     enum tbd_symbol_type type = TBD_SYMBOL_TYPE_NORMAL;
 
@@ -1118,10 +1104,8 @@ tbd_ci_add_symbol_with_info_and_len(
             const enum tbd_version vers = info_in->version;
 
             if ((offset = is_objc_class_symbol(str, first, len)) != 0) {
-                if (!is_exported) {
-                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_CLASS_SYMS)) {
-                        return E_TBD_CI_ADD_DATA_OK;
-                    }
+                if (!is_exported && !options.allow_priv_objc_class_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
                 }
 
                 string += offset;
@@ -1143,10 +1127,8 @@ tbd_ci_add_symbol_with_info_and_len(
 
                 type = TBD_SYMBOL_TYPE_OBJC_CLASS;
             } else if ((offset = is_objc_ivar_symbol(str, first)) != 0) {
-                if (!is_exported) {
-                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_IVAR_SYMS)) {
-                        return E_TBD_CI_ADD_DATA_OK;
-                    }
+                if (!is_exported && !options.allow_priv_objc_ivar_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
                 }
 
                 string += offset;
@@ -1168,10 +1150,8 @@ tbd_ci_add_symbol_with_info_and_len(
 
                 type = TBD_SYMBOL_TYPE_OBJC_IVAR;
             } else if ((offset = is_objc_ehtype_sym(str, first, len, vers))) {
-                if (!is_exported) {
-                    if (!(options & O_TBD_PARSE_ALLOW_PRIV_OBJC_EHTYPE_SYMS)) {
-                        return E_TBD_CI_ADD_DATA_OK;
-                    }
+                if (!is_exported && !options.allow_priv_objc_ehtype_syms) {
+                    return E_TBD_CI_ADD_DATA_OK;
                 }
 
                 string += offset;
@@ -1304,7 +1284,7 @@ tbd_ci_add_uuid(struct tbd_create_info *__notnull const info_in,
 enum tbd_create_result
 tbd_create_with_info(const struct tbd_create_info *__notnull const info,
                      FILE *__notnull const file,
-                     const uint64_t options)
+                     const struct tbd_create_options options)
 {
     const enum tbd_version version = info->version;
     if (tbd_write_magic(file, version)) {
@@ -1324,7 +1304,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
     }
 
-    if (!(options & O_TBD_CREATE_IGNORE_UUIDS)) {
+    if (!options.ignore_uuids) {
         const struct array *const uuids = &info->fields.uuids;
         if (!uses_archs) {
             if (tbd_write_uuids_for_targets(file, uuids, version)) {
@@ -1343,11 +1323,9 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
     }
 
-    if (version != TBD_VERSION_V1) {
-        if (!(options & O_TBD_CREATE_IGNORE_FLAGS)) {
-            if (tbd_write_flags(file, info->fields.flags)) {
-                return E_TBD_CREATE_WRITE_FAIL;
-            }
+    if (version != TBD_VERSION_V1 && !options.ignore_flags) {
+        if (tbd_write_flags(file, info->fields.flags)) {
+            return E_TBD_CREATE_WRITE_FAIL;
         }
     }
 
@@ -1355,13 +1333,13 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         return E_TBD_CREATE_WRITE_FAIL;
     }
 
-    if (!(options & O_TBD_CREATE_IGNORE_CURRENT_VERSION)) {
+    if (!options.ignore_current_version) {
         if (tbd_write_current_version(file, info->fields.current_version)) {
             return E_TBD_CREATE_WRITE_FAIL;
         }
     }
 
-    if (!(options & O_TBD_CREATE_IGNORE_COMPATIBILITY_VERSION)) {
+    if (!options.ignore_compat_version) {
         const uint32_t compatibility_version =
             info->fields.compatibility_version;
 
@@ -1371,7 +1349,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (version != TBD_VERSION_V1) {
-        if (!(options & O_TBD_CREATE_IGNORE_SWIFT_VERSION)) {
+        if (!options.ignore_swift_version) {
             const uint32_t swift_version = info->fields.swift_version;
             if (tbd_write_swift_version(file, version, swift_version)) {
                 return E_TBD_CREATE_WRITE_FAIL;
@@ -1379,7 +1357,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
 
         if (uses_archs) {
-            if (!(options & O_TBD_CREATE_IGNORE_OBJC_CONSTRAINT)) {
+            if (!options.ignore_objc_constraint) {
                 const enum tbd_objc_constraint objc_constraint =
                     info->fields.archs.objc_constraint;
 
@@ -1388,7 +1366,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
                 }
             }
 
-            if (!(options & O_TBD_CREATE_IGNORE_PARENT_UMBRELLAS)) {
+            if (!options.ignore_parent_umbrellas) {
                 if (tbd_write_parent_umbrella_for_archs(file, info)) {
                     return E_TBD_CREATE_WRITE_FAIL;
                 }
@@ -1397,7 +1375,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (!uses_archs) {
-        if (info->flags & F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT) {
+        if (info->flags.exports_have_full_at) {
             if (tbd_write_metadata_with_full_targets(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
@@ -1415,7 +1393,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
             }
         }
     } else {
-        if (info->flags & F_TBD_CREATE_INFO_EXPORTS_HAVE_FULL_AT) {
+        if (info->flags.exports_have_full_at) {
             if (tbd_write_symbols_with_full_archs(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
@@ -1426,7 +1404,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
         }
     }
 
-    if (!(options & O_TBD_CREATE_IGNORE_FOOTER)) {
+    if (!options.ignore_footer) {
         if (tbd_write_footer(file)) {
             return E_TBD_CREATE_WRITE_FAIL;
         }
@@ -1464,8 +1442,7 @@ tbd_create_info_clear_fields_and_create_from(
     struct tbd_create_info *__notnull const dst,
     const struct tbd_create_info *__notnull const src)
 {
-    const uint64_t flags = dst->flags;
-    if (flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
+    if (dst->flags.install_name_was_allocated) {
         free((char *)dst->fields.install_name);
     }
 
@@ -1510,8 +1487,7 @@ static void destroy_symbols_array(struct array *__notnull const list) {
 }
 
 void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
-    const uint64_t flags = info->flags;
-    if (flags & F_TBD_CREATE_INFO_INSTALL_NAME_WAS_ALLOCATED) {
+    if (info->flags.install_name_was_allocated) {
         free((char *)info->fields.install_name);
     }
 
@@ -1522,6 +1498,6 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     array_destroy(&info->fields.uuids);
 
     memset(&info->fields, 0, sizeof(info->fields));
-    info->flags = 0;
+    info->flags.install_name_was_allocated = false;
 }
 
