@@ -884,11 +884,7 @@ is_objc_ehtype_sym(const char *__notnull const symbol,
      * type symbols belonging to the normal-symbols group in previous versions.
      */
 
-    if (version > TBD_VERSION_V2) {
-        return 0;
-    }
-
-    if (max_len < 16) {
+    if (version < TBD_VERSION_V3 || max_len < 16) {
         return 0;
     }
 
