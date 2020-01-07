@@ -29,14 +29,23 @@
 #include "tbd.h"
 #include "yaml.h"
 
-static inline bool is_weak_symbol(const uint16_t n_desc) {
-    const uint64_t check_flags = (N_WEAK_DEF | N_WEAK_REF);
-    return ((n_desc & check_flags) != 0);
+/*
+ * Faster implementation with int instead of bool, according to (godbolt.org).
+ */
+
+static inline int is_weak_symbol(const uint16_t n_desc) {
+    const uint16_t mask = (N_WEAK_DEF | N_WEAK_REF);
+    return (n_desc & mask);
 }
 
-static inline bool is_exported_symbol(const uint8_t n_type) {
-    const uint64_t check_flags = (N_EXT | N_STAB);
-    return ((n_type & check_flags) == N_EXT);
+/*
+ * Odd function impl (int instead of bool, subraction instead of !=), but the
+ * most efficient in compiler-explorer (godbolt.org).
+ */
+
+static inline int is_not_exported_symbol(const uint8_t n_type) {
+    const uint8_t mask = (N_EXT | N_STAB);
+    return ((n_type & mask) - N_EXT);
 }
 
 static enum macho_file_parse_result
@@ -55,8 +64,8 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
      * flags for private-symbols were provided.
      */
 
-    const bool is_exported = is_exported_symbol(n_type);
-    if (!is_exported) {
+    const int is_not_exported = is_not_exported_symbol(n_type);
+    if (is_not_exported != 0) {
         if (is_undef) {
             return E_MACHO_FILE_PARSE_OK;
         }
@@ -76,7 +85,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
     enum tbd_symbol_type predefined_type = TBD_SYMBOL_TYPE_NONE;
     enum tbd_symbol_meta_type meta_type = TBD_SYMBOL_META_TYPE_EXPORT;
 
-    if (is_weak_symbol(n_desc)) {
+    if (is_weak_symbol(n_desc) != 0) {
         predefined_type = TBD_SYMBOL_TYPE_WEAK_DEF;
     }
 
@@ -91,7 +100,7 @@ handle_symbol(struct tbd_create_info *__notnull const info_in,
                                     arch_index,
                                     predefined_type,
                                     meta_type,
-                                    is_exported,
+                                    (is_not_exported == 0),
                                     options);
 
     if (add_symbol_result != E_TBD_CI_ADD_DATA_OK) {
