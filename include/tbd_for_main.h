@@ -73,7 +73,7 @@ struct tbd_for_main_flags {
     bool ignore_warnings : 1;
 
     /*
-     * dyld_shared_cache extractions can be stored in either a file.
+     * dyld_shared_cache extractions can be stored in a file.
      * (Depending on the configuration)
      */
 
@@ -83,6 +83,7 @@ struct tbd_for_main_flags {
     bool provided_current_version : 1;
     bool provided_compat_version  : 1;
     bool provided_flags           : 1;
+    bool provided_install_name    : 1;
     bool provided_objc_constraint : 1;
     bool provided_platform        : 1;
     bool provided_swift_version   : 1;

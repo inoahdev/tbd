@@ -459,7 +459,10 @@ macho_file_parse_single_lc(
             }
 
             const struct dylib dylib = dylib_command->dylib;
-            if (info_in->fields.install_name == NULL) {
+            struct macho_file_parse_slc_flags *const flags_in =
+                parse_info->flags_in;
+
+            if (!flags_in->found_identification) {
                 if (!tbd_options.ignore_current_version) {
                     info_in->fields.current_version = dylib.current_version;
                 }
@@ -555,7 +558,7 @@ macho_file_parse_single_lc(
                 }
             }
 
-            parse_info->flags_in->found_identification = true;
+            flags_in->found_identification = true;
             break;
         }
 

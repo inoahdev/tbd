@@ -475,11 +475,13 @@ macho_file_parse_load_commands_from_file(
         parse_slc_opts.is_big_endian = true;
     }
 
-    info_in->flags.install_name_was_allocated = true;
+    const struct tbd_parse_options tbd_options = parse_info->tbd_options;
+    if (!tbd_options.ignore_install_name) {
+        info_in->flags.install_name_was_allocated = true;
+    }
 
     const uint64_t arch_index = parse_info->arch_index;
     const struct macho_file_parse_options options = parse_info->options;
-    const struct tbd_parse_options tbd_options = parse_info->tbd_options;
 
     uint8_t *load_cmd_iter = load_cmd_buffer;
 
@@ -1101,7 +1103,10 @@ macho_file_parse_load_commands_from_map(
     struct macho_file_parse_slc_options parse_slc_opts = {};
 
     if (options.copy_strings_in_map) {
-        info_in->flags.install_name_was_allocated = true;
+        if (!tbd_options.ignore_install_name) {
+            info_in->flags.install_name_was_allocated = true;
+        }
+
         parse_slc_opts.copy_strings = true;
     }
 

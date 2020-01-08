@@ -350,6 +350,30 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->info.fields.flags = parse_flags_list(index, argc, argv, &index);
         tbd->parse_options.ignore_flags = true;
         tbd->flags.provided_flags = true;
+    } else if (strcmp(option, "replace-install-name") == 0) {
+        index += 1;
+        if (index == argc) {
+            fputs("Please provide an install-name to replace the one found in "
+                  "the provided input file(s)\n",
+                  stderr);
+
+            exit(1);
+        }
+
+        if (tbd->flags.provided_install_name) {
+            fputs("Note: Option --replace-install-name has been provided "
+                  "multiple times.\nOlder option's install-name will be "
+                  "overriden\n",
+                  stderr);
+        }
+
+        const char *const argument = argv[index];
+
+        tbd->info.fields.install_name = argument;
+        tbd->info.fields.install_name_length = strlen(argument);
+
+        tbd->parse_options.ignore_install_name = true;
+        tbd->flags.provided_install_name = true;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
         index += 1;
         if (index == argc) {
