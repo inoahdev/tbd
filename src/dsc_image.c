@@ -148,12 +148,12 @@ get_offset_from_addr(struct dyld_shared_cache_info *__notnull const info,
                      const uint64_t address,
                      uint64_t *__notnull const max_size_out)
 {
-    const struct dyld_cache_mapping_info *const mappings = info->mappings;
     const uint64_t count = info->mappings_count;
 
-    for (uint64_t i = 0; i != count; i++) {
-        const struct dyld_cache_mapping_info *const mapping = mappings + i;
+    const struct dyld_cache_mapping_info *mapping = info->mappings;
+    const struct dyld_cache_mapping_info *const end = mapping + count;
 
+    for (; mapping != end; mapping++) {
         const uint64_t mapping_begin = mapping->address;
         const uint64_t mapping_end = mapping_begin + mapping->size;
 

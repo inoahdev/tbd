@@ -11,9 +11,11 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "mach/machine.h"
 #include "mach-o/fat.h"
 #include "guard_overflow.h"
 
@@ -467,10 +469,11 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         return verify_first_arch_result;
     }
 
-    for (uint32_t i = 1; i != nfat_arch; i++) {
-        struct fat_arch *const arch = arch_list + i;
-        struct range arch_range = {};
+    struct fat_arch *arch = first_arch + 1;
+    const struct fat_arch *const end = arch_list + nfat_arch;
 
+    for (; arch != end; arch++) {
+        struct range arch_range = {};
         const enum macho_file_parse_result verify_arch_result =
             verify_fat_32_arch(arch,
                                macho_range.begin,
@@ -488,11 +491,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
          * Make sure the arch doesn't overlap with any previous archs.
          */
 
-        for (uint32_t j = 0; j != i; j++) {
-            struct fat_arch inner = arch_list[j];
+        const struct fat_arch *inner = arch_list;
+        for (; inner != arch; inner++) {
+            const uint64_t inner_offset = inner->offset;
             const struct range inner_range = {
-                .begin = inner.offset,
-                .end = inner.offset + inner.size
+                .begin = inner_offset,
+                .end = inner_offset + inner->size
             };
 
             if (ranges_overlap(arch_range, inner_range)) {
@@ -507,10 +511,9 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
     bool ignore_filetype = false;
     bool parsed_one_arch = false;
 
-    for (uint32_t i = 0; i != nfat_arch; i++) {
-        const struct fat_arch arch = arch_list[i];
-        const off_t arch_offset = (off_t)(macho_range.begin + arch.offset);
-
+    uint32_t arch_index = 0;
+    for (arch = arch_list; arch != end; arch++, arch_index++) {
+        const off_t arch_offset = (off_t)(macho_range.begin + arch->offset);
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
             free(arch_list);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -585,7 +588,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 
         const struct arch_info *arch_info = NULL;
         if (!tbd_options.ignore_at_and_uuids) {
-            arch_info = *(const struct arch_info **)&arch.cputype;
+            arch_info = *(const struct arch_info **)&arch->cputype;
             if (header.cputype != arch_info->cputype) {
                 free(arch_list);
                 return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
@@ -599,7 +602,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
 
         const struct range arch_range = {
             .begin = arch_offset,
-            .end = arch_offset + arch.size
+            .end = arch_offset + arch->size
         };
 
         const enum macho_file_parse_result handle_arch_result =
@@ -610,7 +613,7 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
                             arch_info,
                             extra,
                             arch_is_big_endian,
-                            i,
+                            arch_index,
                             tbd_options,
                             options);
 
@@ -791,10 +794,11 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
      * Before parsing, verify each architecture.
      */
 
-    for (uint32_t i = 1; i != nfat_arch; i++) {
-        struct fat_arch_64 *const arch = arch_list + i;
-        struct range arch_range = {};
+    struct fat_arch_64 *arch = first_arch + 1;
+    const struct fat_arch_64 *const end = arch_list + nfat_arch;
 
+    for (; arch != end; arch++) {
+        struct range arch_range = {};
         const enum macho_file_parse_result verify_arch_result =
             verify_fat_64_arch(arch,
                                macho_range.begin,
@@ -808,11 +812,12 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
             return verify_arch_result;
         }
 
-        for (uint32_t j = 0; j != i; j++) {
-            struct fat_arch_64 inner = arch_list[j];
+        struct fat_arch_64 *inner = arch_list;
+        for (; inner != arch; inner++) {
+            const uint64_t inner_offset = inner->offset;
             const struct range inner_range = {
-                .begin = inner.offset,
-                .end = inner.offset + inner.size
+                .begin = inner_offset,
+                .end = inner_offset + inner->size
             };
 
             if (ranges_overlap(arch_range, inner_range)) {
@@ -827,10 +832,9 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
     bool parsed_one_arch = false;
     bool ignore_filetype = false;
 
-    for (uint32_t i = 0; i != nfat_arch; i++) {
-        const struct fat_arch_64 arch = arch_list[i];
-        const off_t arch_offset = (off_t)(macho_range.begin + arch.offset);
-
+    uint32_t arch_index = 0;
+    for (arch = arch_list; arch != end; arch++, arch_index++) {
+        const off_t arch_offset = (off_t)(macho_range.begin + arch->offset);
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
             free(arch_list);
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
@@ -906,7 +910,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
         const struct arch_info *arch_info = NULL;
         if (!tbd_options.ignore_at_and_uuids) {
-            arch_info = *(const struct arch_info **)&arch.cputype;
+            arch_info = *(const struct arch_info **)&arch->cputype;
             if (header.cputype != arch_info->cputype) {
                 free(arch_list);
                 return E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO;
@@ -920,7 +924,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
 
         const struct range arch_range = {
             .begin = arch_offset,
-            .end = arch_offset + arch.size
+            .end = arch_offset + arch->size
         };
 
         const enum macho_file_parse_result handle_arch_result =
@@ -931,7 +935,7 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
                             arch_info,
                             extra,
                             arch_is_big_endian,
-                            i,
+                            arch_index,
                             tbd_options,
                             options);
 
@@ -1143,14 +1147,14 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        struct fat_arch_64 *const archs = malloc(archs_size);
-        if (archs == NULL) {
+        struct fat_arch_64 *const arch_list = malloc(archs_size);
+        if (arch_list == NULL) {
             fputs("Failed to allocate space for architectures\n", stderr);
             exit(1);
         }
 
-        if (our_read(fd, archs, archs_size) < 0) {
-            free(archs);
+        if (our_read(fd, arch_list, archs_size) < 0) {
+            free(arch_list);
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
                     strerror(errno));
@@ -1158,29 +1162,37 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        for (uint32_t i = 0; i != nfat_arch; i++) {
-            struct fat_arch_64 arch = archs[i];
+        fprintf(stdout, "%" PRIu32 " architecture(s):\n", nfat_arch);
+
+        struct fat_arch_64 *arch = arch_list;
+        const struct fat_arch_64 *const end = arch + nfat_arch;
+
+        uint32_t arch_index = 0;
+        for (; arch != end; arch++, arch_index++) {
+            cpu_type_t cputype = arch->cputype;
+            cpu_subtype_t cpusubtype = arch->cpusubtype;
+
             if (is_big_endian) {
-                arch.cputype = swap_int32(arch.cputype);
-                arch.cpusubtype = swap_int32(arch.cpusubtype);
+                cputype = swap_int32(cputype);
+                cpusubtype = swap_int32(cpusubtype);
             }
 
             const struct arch_info *const arch_info =
-                arch_info_for_cputype(arch.cputype, arch.cpusubtype);
+                arch_info_for_cputype(cputype, cpusubtype);
 
             if (arch_info == NULL) {
                 fprintf(stdout,
                         "\t%" PRIu32 ". (Unsupported architecture)\r\n",
-                        i + 1);
+                        arch_index + 1);
             } else {
                 fprintf(stdout,
                         "\t%" PRIu32 ". %s\r\n",
-                        i + 1,
+                        arch_index + 1,
                         arch_info->name);
             }
         }
 
-        free(archs);
+        free(arch_list);
     } else if (magic_is_fat_32(magic)) {
         uint32_t nfat_arch = 0;
         if (our_read(fd, &nfat_arch, sizeof(nfat_arch)) < 0) {
@@ -1211,14 +1223,14 @@ void macho_file_print_archs(const int fd) {
             exit(1);
         }
 
-        struct fat_arch *const archs = malloc(archs_size);
-        if (archs == NULL) {
+        struct fat_arch *const arch_list = malloc(archs_size);
+        if (arch_list == NULL) {
             fputs("Failed to allocate space for architectures\n", stderr);
             exit(1);
         }
 
-        if (our_read(fd, archs, archs_size) < 0) {
-            free(archs);
+        if (our_read(fd, arch_list, archs_size) < 0) {
+            free(arch_list);
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
                     strerror(errno));
@@ -1227,29 +1239,36 @@ void macho_file_print_archs(const int fd) {
         }
 
         fprintf(stdout, "%" PRIu32 " architecture(s):\n", nfat_arch);
-        for (uint32_t i = 0; i != nfat_arch; i++) {
-            struct fat_arch arch = archs[i];
+
+        struct fat_arch *arch = arch_list;
+        const struct fat_arch *const end = arch + nfat_arch;
+
+        uint32_t arch_index = 0;
+        for (; arch != end; arch++, arch_index++) {
+            cpu_type_t cputype = arch->cputype;
+            cpu_subtype_t cpusubtype = arch->cpusubtype;
+
             if (is_big_endian) {
-                arch.cputype = swap_int32(arch.cputype);
-                arch.cpusubtype = swap_int32(arch.cpusubtype);
+                cputype = swap_int32(cputype);
+                cpusubtype = swap_int32(cpusubtype);
             }
 
             const struct arch_info *const arch_info =
-                arch_info_for_cputype(arch.cputype, arch.cpusubtype);
+                arch_info_for_cputype(cputype, cpusubtype);
 
             if (arch_info == NULL) {
                 fprintf(stdout,
                         "\t%" PRIu32 ". (Unsupported architecture)\r\n",
-                        i + 1);
+                        arch_index + 1);
             } else {
                 fprintf(stdout,
                         "\t%" PRIu32 ". %s\r\n",
-                        i + 1,
+                        arch_index + 1,
                         arch_info->name);
             }
         }
 
-        free(archs);
+        free(arch_list);
     } else if (magic_is_thin(magic)) {
         struct mach_header header = {};
         const uint32_t read_size =

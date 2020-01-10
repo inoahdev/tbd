@@ -13,6 +13,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -82,21 +83,17 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
                   const char *__notnull const image_path,
                   const enum dsc_image_parse_result result)
 {
-    /*
-     * E_DSC_IMAGE_PARSE_NO_EXPORTS is classified as a warning when recursing.
-     */
-
     switch (result) {
         case E_DSC_IMAGE_PARSE_OK:
         case E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK:
             return;
 
         case E_DSC_IMAGE_PARSE_NO_DATA: {
-            const uint64_t should_return =
+            const uint64_t should_ignore =
                 (iterate_info->tbd->flags.ignore_warnings ||
                  iterate_info->tbd->flags.recurse_directories);
 
-            if (should_return) {
+            if (should_ignore) {
                 return;
             }
 
@@ -699,9 +696,12 @@ dsc_iterate_images(
 {
     const struct tbd_for_main *const tbd = info->tbd;
     const struct array *const filters = &tbd->dsc_image_filters;
+    const uint64_t images_count = dsc_info->images_count;
 
-    for (uint64_t i = 0; i != dsc_info->images_count; i++) {
-        struct dyld_cache_image_info *const image = dsc_info->images + i;
+    struct dyld_cache_image_info *image = dsc_info->images;
+    const struct dyld_cache_image_info *const end = image + images_count;
+
+    for (uint32_t i = 0; image != end; i++, image++) {
         if (image->pad & F_DYLD_CACHE_IMAGE_INFO_PAD_ALREADY_EXTRACTED) {
             continue;
         }
@@ -1363,12 +1363,16 @@ void print_list_of_dsc_images(const int fd) {
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",
             dsc_info.images_count);
 
-    for (uint64_t i = 0; i != dsc_info.images_count; i++) {
-        const struct dyld_cache_image_info *const image = dsc_info.images + i;
+    const uint64_t images_count = dsc_info.images_count;
+
+    const struct dyld_cache_image_info *image = dsc_info.images;
+    const struct dyld_cache_image_info *const end = image + images_count;
+
+    for (uint32_t index = 0; image != end; image++, index++) {
         const char *const image_path =
             (const char *)(dsc_info.map + image->pathFileOffset);
 
-        fprintf(stdout, "\t%" PRIu64 ". %s\r\n", i + 1, image_path);
+        fprintf(stdout, "\t%" PRIu32 ". %s\r\n", index + 1, image_path);
     }
 }
 
@@ -1425,12 +1429,13 @@ void print_list_of_dsc_images_ordered(const int fd) {
     }
 
     const char **image_paths_ptr = image_paths.data;
-    for (uint64_t i = 0; i != dsc_info.images_count; i++, image_paths_ptr++) {
-        const struct dyld_cache_image_info *const image = dsc_info.images + i;
-        const char *const image_path =
-            (const char *)(dsc_info.map + image->pathFileOffset);
+    const uint64_t images_count = dsc_info.images_count;
 
-        *image_paths_ptr = image_path;
+    const struct dyld_cache_image_info *image = dsc_info.images;
+    const struct dyld_cache_image_info *const end = image + images_count;
+
+    for (; image != end; image++, image_paths_ptr++) {
+        *image_paths_ptr = (const char *)(dsc_info.map + image->pathFileOffset);
     }
 
     array_sort_with_comparator(&image_paths,
@@ -1441,9 +1446,11 @@ void print_list_of_dsc_images_ordered(const int fd) {
             "The provided dyld_shared_cache file has %" PRIu32 " images\n",
             dsc_info.images_count);
 
+    image = dsc_info.images;
     image_paths_ptr = image_paths.data;
-    for (uint64_t i = 0; i != dsc_info.images_count; i++, image_paths_ptr++) {
-        fprintf(stdout, "\t%" PRIu64 ". %s\r\n", i + 1, *image_paths_ptr);
+
+    for (uint32_t i = 0; image != end; i++, image++, image_paths_ptr++) {
+        fprintf(stdout, "\t%" PRIu32 ". %s\r\n", i + 1, *image_paths_ptr);
     }
 
     array_destroy(&image_paths);

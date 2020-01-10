@@ -45,11 +45,11 @@ static uint64_t find_first_bit_stack(uint64_t stack, const uint64_t start) {
     stack >>= start;
 
     const uint64_t loc = ffsll(stack);
-    if (loc == 0) {
-        return UINT64_MAX;
+    if (loc != 0) {
+        return (loc - 1);
     }
 
-    return (loc - 1);
+    return UINT64_MAX;
 }
 
 static uint64_t
@@ -64,11 +64,9 @@ find_first_bit_heap(const uint64_t *ptr,
 
     for (; ptr != end; ptr++) {
         const uint64_t loc = ffsll(*ptr);
-        if (loc == 0) {
-            continue;
+        if (loc != 0) {
+            return (loc - 1);
         }
-
-        return (loc - 1);
     }
 
     return UINT64_MAX;

@@ -151,8 +151,8 @@ parse_bv_platform(
     }
 
     /*
-     * Every build-version load-command should be large enough to store
-     * the build-version load-command's basic information.
+     * Every build-version load-command should be large enough to store the
+     * build-version load-command's basic information.
      */
 
     if (load_cmd.cmdsize < sizeof(struct build_version_command)) {
@@ -196,10 +196,12 @@ parse_bv_platform(
         }
     }
 
+    struct macho_file_parse_slc_flags *const flags_in = parse_info->flags_in;
     enum tbd_platform *const platform_in = parse_info->platform_in;
-    if (!parse_info->flags_in->found_build_version) {
+
+    if (!flags_in->found_build_version) {
         *platform_in = platform;
-        parse_info->flags_in->found_build_version = true;
+        flags_in->found_build_version = true;
 
         return E_MACHO_FILE_PARSE_OK;
     }
@@ -207,7 +209,7 @@ parse_bv_platform(
     const enum tbd_platform parsed_platform = *platform_in;
     if (parsed_platform == TBD_PLATFORM_NONE) {
         *platform_in = platform;
-        parse_info->flags_in->found_build_version = true;
+        flags_in->found_build_version = true;
 
         return E_MACHO_FILE_PARSE_OK;
     }

@@ -736,9 +736,9 @@ macho_file_parse_symtab_from_map(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const struct nlist *symbol_table = (const struct nlist *)(map + symoff);
-    const char *const string_table =
-        (const char *)(map + string_table_range.begin);
+    const char *const string_table = (const char *)(map + stroff);
+    const struct nlist *const symbol_table =
+        (const struct nlist *)(map + symoff);
 
     const enum macho_file_parse_result loop_nlist_result =
         loop_nlist_32(args->info_in,
@@ -814,11 +814,9 @@ macho_file_parse_symtab_64_from_map(
         return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
     }
 
-    const struct nlist_64 *symbol_table =
+    const char *const string_table = (const char *)(map + stroff);
+    const struct nlist_64 *const symbol_table =
         (const struct nlist_64 *)(map + symoff);
-
-    const char *const string_table =
-        (const char *)(map + string_table_range.begin);
 
     const enum macho_file_parse_result loop_nlist_result =
         loop_nlist_64(args->info_in,

@@ -408,8 +408,8 @@ tbd_write_install_name(FILE *__notnull const file,
 
     const char *const install_name = info->fields.install_name;
     const uint64_t length = info->fields.install_name_length;
-
     const bool needs_quotes = info->flags.install_name_was_allocated;
+
     if (write_yaml_string(file, install_name, length, needs_quotes)) {
         return 1;
     }
