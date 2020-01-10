@@ -58,6 +58,13 @@ find_first_bit_heap(const uint64_t *ptr,
                     uint64_t start)
 {
     if (start > 64) {
+        const uint64_t mask = (1ull << 6) - 1;
+        const uint64_t remainder = (start & mask);
+
+        if (remainder == 0) {
+            ptr += 1;
+        }
+
         start >>= 6;
         ptr += start;
     }
@@ -239,7 +246,7 @@ void
 bit_list_set_first_n(struct bit_list *__notnull const list, const uint64_t n) {
     if (unlikely(bit_list_is_on_heap(*list))) {
         uint64_t *ptr = get_bits_ptr(*list);
-        if (n > 64) {
+        if (n >= 64) {
             uint64_t i = n;
             do {
                 *ptr |= ~0ull;
