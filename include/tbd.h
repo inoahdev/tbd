@@ -204,10 +204,10 @@ struct tbd_create_info_flags {
      * Indicte that all exports have the same targets as the tbd.
      *
      * This can lead to a performance boost as a different function is used that
-     * does not check for archs.
+     * does not check for targets.
      */
 
-    bool use_full_targets : 1;
+    bool uses_full_targets : 1;
 };
 
 struct tbd_create_info_fields {
@@ -356,6 +356,7 @@ struct tbd_create_options {
             bool ignore_undefineds : 1;
             bool ignore_uuids : 1;
             bool ignore_unnecessary_fields : 1;
+            bool use_full_targets : 1;
         };
     };
 };

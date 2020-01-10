@@ -178,12 +178,18 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.allow_priv_objc_ivar_syms = true;
     } else if (strcmp(option, "ignore-clients") == 0) {
         tbd->parse_options.ignore_clients = true;
+        tbd->write_options.ignore_clients = true;
     } else if (strcmp(option, "ignore-compat-version") == 0) {
+        tbd->parse_options.ignore_compat_version = true;
+        tbd->write_options.ignore_compat_version = true;
         tbd->flags.provided_ignore_compat_version = true;
     } else if (strcmp(option, "ignore-current-version") == 0) {
+        tbd->parse_options.ignore_current_version = true;
+        tbd->write_options.ignore_current_version = true;
         tbd->flags.provided_ignore_current_version = true;
     } else if (strcmp(option, "ignore-flags") == 0) {
         tbd->parse_options.ignore_flags = true;
+        tbd->write_options.ignore_flags = true;
         tbd->flags.provided_ignore_flags = true;
     } else if (strcmp(option, "ignore-missing-exports") == 0) {
         tbd->parse_options.ignore_missing_exports = true;
@@ -193,11 +199,14 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.ignore_non_unique_uuids = true;
     } else if (strcmp(option, "ignore-objc-constraint") == 0) {
         tbd->parse_options.ignore_objc_constraint = true;
+        tbd->write_options.ignore_objc_constraint = true;
         tbd->flags.provided_ignore_objc_constraint = true;
     } else if (strcmp(option, "ignore-parent-umbrella") == 0) {
         tbd->parse_options.ignore_parent_umbrellas = true;
+        tbd->write_options.ignore_parent_umbrellas = true;
     } else if (strcmp(option, "ignore-reexports") == 0) {
         tbd->parse_options.ignore_reexports = true;
+        tbd->write_options.ignore_reexports = true;
     } else if (strcmp(option, "ignore-requests") == 0) {
         tbd->flags.no_requests = true;
     } else if (strcmp(option, "ignore-swift-version") == 0) {
@@ -205,6 +214,10 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->flags.provided_ignore_swift_version = true;
     } else if (strcmp(option, "ignore-undefineds") == 0) {
         tbd->parse_options.ignore_undefineds = true;
+        tbd->write_options.ignore_undefineds = true;
+    } else if (strcmp(option, "ignore-uuids") == 0) {
+        tbd->parse_options.ignore_uuids = true;
+        tbd->write_options.ignore_uuids = true;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->flags.ignore_warnings = true;
     } else if (strcmp(option, "ignore-wrong-filetype") == 0) {
@@ -273,7 +286,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                                      argv,
                                      &index);
 
-        tbd->parse_options.ignore_targets_and_uuids = true;
+        tbd->parse_options.ignore_targets = true;
+        tbd->parse_options.ignore_uuids = true;
         tbd->write_options.ignore_uuids = true;
         tbd->flags.provided_archs = true;
     } else if (strcmp(option, "replace-current-version") == 0) {
@@ -371,7 +385,6 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->info.fields.install_name = argument;
         tbd->info.fields.install_name_length = strlen(argument);
-
         tbd->parse_options.ignore_install_name = true;
         tbd->flags.provided_install_name = true;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {
@@ -486,7 +499,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->info.fields.targets =
             parse_targets_list(index, argc, argv, &index);
 
-        tbd->parse_options.ignore_targets_and_uuids = true;
+        tbd->parse_options.ignore_targets = true;
+        tbd->parse_options.ignore_uuids = true;
         tbd->write_options.ignore_uuids = true;
         tbd->flags.provided_targets = true;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {

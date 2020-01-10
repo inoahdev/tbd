@@ -247,7 +247,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         info_in->fields.flags.not_app_extension_safe = true;
     }
 
-    info_in->flags.use_full_targets = true;
+    info_in->flags.uses_full_targets = true;
 
     /*
      * The symbol-table and string-table's file-offsets are relative to the

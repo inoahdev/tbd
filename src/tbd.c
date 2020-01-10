@@ -406,7 +406,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options.ignore_targets_and_uuids) {
+        if (options.ignore_targets) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -441,7 +441,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (unlikely(options.ignore_targets_and_uuids)) {
+    if (options.ignore_targets) {
         bit_list_set_first_n(&metadata_info.targets, targets_count);
     } else {
         bit_list_set_bit(&metadata_info.targets, bit_index);
@@ -689,7 +689,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options.ignore_targets_and_uuids) {
+        if (options.ignore_targets) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -723,7 +723,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (options.ignore_targets_and_uuids) {
+    if (options.ignore_targets) {
         bit_list_set_first_n(&symbol_info.targets, targets_count);
     } else {
         bit_list_set_bit(&symbol_info.targets, arch_index);
@@ -1371,7 +1371,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (!uses_archs) {
-        if (info->flags.use_full_targets) {
+        if (info->flags.uses_full_targets) {
             if (tbd_write_metadata_with_full_targets(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
@@ -1389,7 +1389,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
             }
         }
     } else {
-        if (info->flags.use_full_targets) {
+        if (info->flags.uses_full_targets) {
             if (tbd_write_symbols_with_full_archs(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }

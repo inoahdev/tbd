@@ -339,28 +339,25 @@ handle_targets_platform_and_uuid(
     const struct macho_file_parse_slc_flags parse_slc_flags,
     const struct tbd_parse_options tbd_options)
 {
-    if (!tbd_options.ignore_targets_and_uuids) {
-        if (platform == TBD_PLATFORM_NONE) {
-            const bool should_continue =
-                call_callback(callback,
-                                info_in,
-                                ERR_MACHO_FILE_PARSE_NO_PLATFORM,
-                                cb_info);
+    if (platform == TBD_PLATFORM_NONE) {
+        const bool should_continue =
+            call_callback(callback,
+                          info_in,
+                          ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+                          cb_info);
 
-            if (!should_continue) {
-                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-            }
+        if (!should_continue) {
+            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
         }
+    }
 
+    if (!tbd_options.ignore_targets) {
         /*
-         * After getting the platform, we can now start verifying
-         * arch-targets.
+         * After getting the platform, we can now start verifying arch-targets.
          */
 
         const bool has_target =
-            target_list_has_target(&info_in->fields.targets,
-                                   arch,
-                                   platform);
+            target_list_has_target(&info_in->fields.targets, arch, platform);
 
         if (has_target) {
             return E_MACHO_FILE_PARSE_MULTIPLE_ARCHS_FOR_PLATFORM;

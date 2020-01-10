@@ -777,7 +777,7 @@ macho_file_parse_single_lc(
              * If uuids aren't needed, skip the unnecessary parsing.
              */
 
-            if (tbd_options.ignore_targets_and_uuids) {
+            if (tbd_options.ignore_uuids) {
                 break;
             }
 
