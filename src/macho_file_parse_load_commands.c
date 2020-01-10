@@ -329,7 +329,7 @@ handle_uuid(struct tbd_create_info *__notnull const info_in,
 }
 
 static enum macho_file_parse_result
-handle_at_platform_and_uuid(
+handle_targets_platform_and_uuid(
     struct tbd_create_info *__notnull const info_in,
     const struct arch_info *__notnull const arch,
     enum tbd_platform platform,
@@ -339,7 +339,7 @@ handle_at_platform_and_uuid(
     const struct macho_file_parse_slc_flags parse_slc_flags,
     const struct tbd_parse_options tbd_options)
 {
-    if (!tbd_options.ignore_at_and_uuids) {
+    if (!tbd_options.ignore_targets_and_uuids) {
         if (platform == TBD_PLATFORM_NONE) {
             const bool should_continue =
                 call_callback(callback,
@@ -814,18 +814,18 @@ macho_file_parse_load_commands_from_file(
         }
     }
 
-    const enum macho_file_parse_result handle_at_platform_uuid_result =
-        handle_at_platform_and_uuid(info_in,
-                                    parse_info->arch,
-                                    platform,
-                                    uuid,
-                                    extra.callback,
-                                    extra.cb_info,
-                                    parse_slc_flags,
-                                    tbd_options);
+    const enum macho_file_parse_result handle_targets_platform_uuid_result =
+        handle_targets_platform_and_uuid(info_in,
+                                         parse_info->arch,
+                                         platform,
+                                         uuid,
+                                         extra.callback,
+                                         extra.cb_info,
+                                         parse_slc_flags,
+                                         tbd_options);
 
-    if (handle_at_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
-        return handle_at_platform_uuid_result;
+    if (handle_targets_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
+        return handle_targets_platform_uuid_result;
     }
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
@@ -1425,18 +1425,18 @@ macho_file_parse_load_commands_from_map(
         }
     }
 
-    const enum macho_file_parse_result handle_at_platform_uuid_result =
-        handle_at_platform_and_uuid(info_in,
-                                    parse_info->arch,
-                                    platform,
-                                    uuid,
-                                    extra.callback,
-                                    extra.cb_info,
-                                    parse_slc_flags,
-                                    tbd_options);
+    const enum macho_file_parse_result handle_targets_platform_uuid_result =
+        handle_targets_platform_and_uuid(info_in,
+                                         parse_info->arch,
+                                         platform,
+                                         uuid,
+                                         extra.callback,
+                                         extra.cb_info,
+                                         parse_slc_flags,
+                                         tbd_options);
 
-    if (handle_at_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
-        return handle_at_platform_uuid_result;
+    if (handle_targets_platform_uuid_result != E_MACHO_FILE_PARSE_OK) {
+        return handle_targets_platform_uuid_result;
     }
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;

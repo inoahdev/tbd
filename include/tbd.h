@@ -24,7 +24,6 @@
  */
 
 struct tbd_parse_options {
-    bool ignore_at_and_uuids : 1;
     bool ignore_clients : 1;
     bool ignore_current_version : 1;
     bool ignore_compat_version : 1;
@@ -36,7 +35,9 @@ struct tbd_parse_options {
     bool ignore_platform : 1;
     bool ignore_reexports : 1;
     bool ignore_swift_version : 1;
+    bool ignore_targets : 1;
     bool ignore_undefineds : 1;
+    bool ignore_uuids : 1;
 
     /*
      * Options dictating what types of symbols should also be allowed in
@@ -197,18 +198,16 @@ bool tbd_uses_archs(enum tbd_version version);
 struct tbd_create_info_flags {
     bool install_name_needs_quotes : 1;
     bool parent_umbrella_needs_quotes : 1;
-
     bool install_name_was_allocated : 1;
 
     /*
-     * Indicte that all exports have the same arch-set as the tbd.
+     * Indicte that all exports have the same targets as the tbd.
      *
      * This can lead to a performance boost as a different function is used that
      * does not check for archs.
      */
 
-    bool exports_have_full_at : 1;
-    bool undefineds_have_full_at : 1;
+    bool use_full_targets : 1;
 };
 
 struct tbd_create_info_fields {
@@ -234,18 +233,19 @@ struct tbd_create_info_fields {
 
 struct tbd_create_info {
     enum tbd_version version;
-    struct tbd_create_info_fields fields;
 
+    struct tbd_create_info_fields fields;
     struct tbd_create_info_flags flags;
 };
 
-enum tbd_ci_set_at_count_result {
-    E_TBD_CI_SET_AT_COUNT_OK,
-    E_TBD_CI_SET_AT_COUNT_ALLOC_FAIL
+enum tbd_ci_set_target_count_result {
+    E_TBD_CI_SET_TARGET_COUNT_OK,
+    E_TBD_CI_SET_TARGET_COUNT_ALLOC_FAIL
 };
 
-enum tbd_ci_set_at_count_result
-tbd_ci_set_at_count(struct tbd_create_info *__notnull info_in, uint64_t count);
+enum tbd_ci_set_target_count_result
+tbd_ci_set_target_count(struct tbd_create_info *__notnull info_in,
+                        uint64_t count);
 
 enum tbd_ci_add_parent_umbrella_result {
     E_TBD_CI_ADD_PARENT_UMBRELLA_OK,

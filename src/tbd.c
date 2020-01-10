@@ -118,18 +118,18 @@ bool tbd_uses_archs(const enum tbd_version version) {
     return (version != TBD_VERSION_V4);
 }
 
-enum tbd_ci_set_at_count_result
-tbd_ci_set_at_count(struct tbd_create_info *__notnull const info_in,
-                    const uint64_t count)
+enum tbd_ci_set_target_count_result
+tbd_ci_set_target_count(struct tbd_create_info *__notnull const info_in,
+                        const uint64_t count)
 {
     const enum target_list_result reserve_count_result =
         target_list_reserve_count(&info_in->fields.targets, count);
 
     if (reserve_count_result != E_TARGET_LIST_OK) {
-        return E_TBD_CI_SET_AT_COUNT_ALLOC_FAIL;
+        return E_TBD_CI_SET_TARGET_COUNT_ALLOC_FAIL;
     }
 
-    return E_TBD_CI_SET_AT_COUNT_OK;
+    return E_TBD_CI_SET_TARGET_COUNT_OK;
 }
 
 static int
@@ -221,8 +221,8 @@ tbd_symbol_info_targets_comparator(const void *__notnull const array_item,
  */
 
 static int
-tbd_symbol_info_no_at_comparator(const void *__notnull const array_item,
-                                 const void *__notnull const item)
+tbd_symbol_info_no_targets_comparator(const void *__notnull const array_item,
+                                      const void *__notnull const item)
 {
     const struct tbd_symbol_info *const array_info =
         (const struct tbd_symbol_info *)array_item;
@@ -406,7 +406,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options.ignore_at_and_uuids) {
+        if (options.ignore_targets_and_uuids) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -441,7 +441,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (unlikely(options.ignore_at_and_uuids)) {
+    if (unlikely(options.ignore_targets_and_uuids)) {
         bit_list_set_first_n(&metadata_info.targets, targets_count);
     } else {
         bit_list_set_bit(&metadata_info.targets, bit_index);
@@ -685,11 +685,11 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
         array_find_item_in_sorted(&info_in->fields.symbols,
                                   sizeof(symbol_info),
                                   &symbol_info,
-                                  tbd_symbol_info_no_at_comparator,
+                                  tbd_symbol_info_no_targets_comparator,
                                   &cached_info);
 
     if (existing_info != NULL) {
-        if (options.ignore_at_and_uuids) {
+        if (options.ignore_targets_and_uuids) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 
@@ -723,7 +723,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    if (options.ignore_at_and_uuids) {
+    if (options.ignore_targets_and_uuids) {
         bit_list_set_first_n(&symbol_info.targets, targets_count);
     } else {
         bit_list_set_bit(&symbol_info.targets, arch_index);
@@ -1371,7 +1371,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
     }
 
     if (!uses_archs) {
-        if (info->flags.exports_have_full_at) {
+        if (info->flags.use_full_targets) {
             if (tbd_write_metadata_with_full_targets(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }
@@ -1389,7 +1389,7 @@ tbd_create_with_info(const struct tbd_create_info *__notnull const info,
             }
         }
     } else {
-        if (info->flags.exports_have_full_at) {
+        if (info->flags.use_full_targets) {
             if (tbd_write_symbols_with_full_archs(file, info, options)) {
                 return E_TBD_CREATE_WRITE_FAIL;
             }

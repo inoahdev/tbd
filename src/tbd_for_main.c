@@ -273,7 +273,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
                                      argv,
                                      &index);
 
-        tbd->parse_options.ignore_at_and_uuids = true;
+        tbd->parse_options.ignore_targets_and_uuids = true;
         tbd->write_options.ignore_uuids = true;
         tbd->flags.provided_archs = true;
     } else if (strcmp(option, "replace-current-version") == 0) {
@@ -486,7 +486,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->info.fields.targets =
             parse_targets_list(index, argc, argv, &index);
 
-        tbd->parse_options.ignore_at_and_uuids = true;
+        tbd->parse_options.ignore_targets_and_uuids = true;
         tbd->write_options.ignore_uuids = true;
         tbd->flags.provided_targets = true;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {

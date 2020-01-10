@@ -14,6 +14,7 @@
 #include "macho_file_parse_load_commands.h"
 #include "macho_file_parse_export_trie.h"
 #include "macho_file_parse_symtab.h"
+#include "tbd.h"
 
 /*
  * We avoid copying code by handing most of the mach-o parsing over to the
@@ -246,7 +247,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         info_in->fields.flags.not_app_extension_safe = true;
     }
 
-    info_in->flags.exports_have_full_at = true;
+    info_in->flags.use_full_targets = true;
 
     /*
      * The symbol-table and string-table's file-offsets are relative to the
