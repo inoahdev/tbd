@@ -318,8 +318,12 @@ request_install_name(struct tbd_for_main *__notnull const orig,
 
     if (orig->parse_options.ignore_install_name) {
         const char *const orig_install_name = orig->info.fields.install_name;
-        if (orig_install_name != NULL) {
+        const uint64_t orig_install_name_length =
+            orig->info.fields.install_name_length;
+
+        if (orig_install_name != NULL && orig_install_name_length != 0) {
             tbd->info.fields.install_name = orig_install_name;
+            tbd->info.fields.install_name_length = orig_install_name_length;
             tbd->parse_options.ignore_install_name = true;
 
             return true;
