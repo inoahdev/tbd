@@ -22,6 +22,7 @@
 #include "recursive.h"
 #include "tbd.h"
 #include "tbd_for_main.h"
+#include "yaml.h"
 
 static void
 add_image_filter(int *__notnull const index_in,
@@ -382,9 +383,14 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         const char *const argument = argv[index];
+        const uint64_t length = strlen(argument);
+
+        if (yaml_c_str_needs_quotes(argument, length)) {
+            tbd->info.flags.install_name_needs_quotes = true;
+        }
 
         tbd->info.fields.install_name = argument;
-        tbd->info.fields.install_name_length = strlen(argument);
+        tbd->info.fields.install_name_length = length;
         tbd->parse_options.ignore_install_name = true;
         tbd->flags.provided_install_name = true;
     } else if (strcmp(option, "replace-objc-constraint") == 0) {

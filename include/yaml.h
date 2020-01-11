@@ -9,11 +9,12 @@
 #ifndef YAML_H
 #define YAML_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "notnull.h"
 
-bool yaml_check_c_str(const char *__notnull string, uint64_t length);
+bool yaml_c_str_needs_quotes(const char *__notnull string, uint64_t length);
 
 #endif /* YAML_H */

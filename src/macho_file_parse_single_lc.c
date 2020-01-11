@@ -482,10 +482,7 @@ macho_file_parse_single_lc(
                         }
                     }
 
-                    const bool needs_quotes =
-                        yaml_check_c_str(install_name, length);
-
-                    if (needs_quotes) {
+                    if (yaml_c_str_needs_quotes(install_name, length)) {
                         info_in->flags.install_name_needs_quotes = true;
                     }
 

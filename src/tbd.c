@@ -419,8 +419,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    const bool needs_quotes = yaml_check_c_str(string, length);
-    if (needs_quotes) {
+    if (yaml_c_str_needs_quotes(string, length)) {
         info.flags.needs_quotes = true;
     }
 
@@ -694,8 +693,7 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
-    const bool needs_quotes = yaml_check_c_str(string, length);
-    if (needs_quotes) {
+    if (yaml_c_str_needs_quotes(string, length)) {
         symbol_info.flags.needs_quotes = true;
     }
 
@@ -1175,7 +1173,7 @@ tbd_ci_add_symbol_with_info_and_len(
 
 int
 tbd_uuid_info_comparator(const void *__notnull const array_item,
-                                 const void *__notnull const item)
+                         const void *__notnull const item)
 {
     const struct tbd_uuid_info *const array_uuid_info =
         (const struct tbd_uuid_info *)array_item;
