@@ -65,7 +65,6 @@ struct tbd_for_main_flags {
     bool replace_path_extension     : 1;
     bool preserve_directory_subdirs : 1;
 
-    bool remove_archs : 1;
     bool no_overwrite : 1;
     bool combine_tbds : 1;
 
