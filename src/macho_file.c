@@ -1178,15 +1178,15 @@ void macho_file_print_archs(const int fd) {
             const struct arch_info *const arch_info =
                 arch_info_for_cputype(cputype, cpusubtype);
 
-            if (arch_info == NULL) {
-                fprintf(stdout,
-                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
-                        arch_index + 1);
-            } else {
+            if (arch_info != NULL) {
                 fprintf(stdout,
                         "\t%" PRIu32 ". %s\r\n",
                         arch_index + 1,
                         arch_info->name);
+            } else {
+                fprintf(stdout,
+                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
+                        arch_index + 1);
             }
         }
 
@@ -1254,25 +1254,26 @@ void macho_file_print_archs(const int fd) {
             const struct arch_info *const arch_info =
                 arch_info_for_cputype(cputype, cpusubtype);
 
-            if (arch_info == NULL) {
-                fprintf(stdout,
-                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
-                        arch_index + 1);
-            } else {
+            if (arch_info != NULL) {
                 fprintf(stdout,
                         "\t%" PRIu32 ". %s\r\n",
                         arch_index + 1,
                         arch_info->name);
+            } else {
+                fprintf(stdout,
+                        "\t%" PRIu32 ". (Unsupported architecture)\r\n",
+                        arch_index + 1);
             }
         }
 
         free(arch_list);
     } else if (magic_is_thin(magic)) {
-        struct mach_header header = {};
-        const uint32_t read_size =
-            sizeof(header.cputype) + sizeof(header.cpusubtype);
+        struct {
+            cpu_type_t cputype;
+            cpu_subtype_t cpusubtype;
+        } info;
 
-        if (our_read(fd, &header.cputype, read_size) < 0) {
+        if (our_read(fd, &info, sizeof(info)) < 0) {
             fprintf(stderr,
                     "Failed to read data from mach-o, error: %s\n",
                     strerror(errno));
@@ -1282,17 +1283,17 @@ void macho_file_print_archs(const int fd) {
 
         const bool is_big_endian = magic_is_big_endian(magic);
         if (is_big_endian) {
-            header.cputype = swap_int32(header.cputype);
-            header.cpusubtype = swap_int32(header.cpusubtype);
+            info.cputype = swap_int32(info.cputype);
+            info.cpusubtype = swap_int32(info.cpusubtype);
         }
 
         const struct arch_info *const arch_info =
-            arch_info_for_cputype(header.cputype, header.cpusubtype);
+            arch_info_for_cputype(info.cputype, info.cpusubtype);
 
-        if (arch_info == NULL) {
-            fputs("(Unsupported architecture)\n", stdout);
-        } else {
+        if (arch_info != NULL) {
             fprintf(stdout, "%s\n", arch_info->name);
+        } else {
+            fputs("(Unsupported architecture)\n", stdout);
         }
     } else {
         fprintf(stderr,
