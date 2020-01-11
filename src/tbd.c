@@ -391,7 +391,7 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
                        const enum tbd_metadata_type type,
                        const struct tbd_parse_options options)
 {
-    struct tbd_metadata_info metadata_info = {
+    struct tbd_metadata_info info = {
         .string = (char *)string,
         .length = length,
         .type = type,
@@ -400,8 +400,8 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
     struct array_cached_index_info cached_info = {};
     struct tbd_metadata_info *const existing_info =
         array_find_item_in_sorted(&info_in->fields.metadata,
-                                  sizeof(metadata_info),
-                                  &metadata_info,
+                                  sizeof(info),
+                                  &info,
                                   tbd_metadata_info_no_targets_comparator,
                                   &cached_info);
 
@@ -410,53 +410,45 @@ add_metadata_with_type(struct tbd_create_info *__notnull const info_in,
             return E_TBD_CI_ADD_DATA_OK;
         }
 
-        const uint64_t bit =
-            bit_list_get_for_index(existing_info->targets, bit_index);
-
-        if (bit == 0) {
-            bit_list_set_bit(&existing_info->targets, bit_index);
-        }
-
+        bit_list_set_bit(&existing_info->targets, bit_index);
         return E_TBD_CI_ADD_DATA_OK;
     }
 
-    metadata_info.string =
-        alloc_and_copy(metadata_info.string, metadata_info.length);
-
-    if (unlikely(metadata_info.string == NULL)) {
+    info.string = alloc_and_copy(info.string, info.length);
+    if (unlikely(info.string == NULL)) {
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
     const bool needs_quotes = yaml_check_c_str(string, length);
     if (needs_quotes) {
-        metadata_info.flags.needs_quotes = true;
+        info.flags.needs_quotes = true;
     }
 
     const uint64_t targets_count = info_in->fields.targets.set_count;
     const enum bit_list_result create_bits_result =
-        bit_list_create_with_capacity(&metadata_info.targets, targets_count);
+        bit_list_create_with_capacity(&info.targets, targets_count);
 
     if (create_bits_result != E_BIT_LIST_OK) {
-        free(metadata_info.string);
+        free(info.string);
         return E_TBD_CI_ADD_DATA_ALLOC_FAIL;
     }
 
     if (options.ignore_targets) {
-        bit_list_set_first_n(&metadata_info.targets, targets_count);
+        bit_list_set_first_n(&info.targets, targets_count);
     } else {
-        bit_list_set_bit(&metadata_info.targets, bit_index);
+        bit_list_set_bit(&info.targets, bit_index);
     }
 
     struct array *const metadata = &info_in->fields.metadata;
     const enum array_result add_export_info_result =
         array_add_item_with_cached_index_info(metadata,
-                                              sizeof(metadata_info),
-                                              &metadata_info,
+                                              sizeof(info),
+                                              &info,
                                               &cached_info,
                                               NULL);
 
     if (unlikely(add_export_info_result != E_ARRAY_OK)) {
-        free(metadata_info.string);
+        free(info.string);
         return E_TBD_CI_ADD_DATA_ARRAY_FAIL;
     }
 
@@ -690,13 +682,6 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
 
     if (existing_info != NULL) {
         if (options.ignore_targets) {
-            return E_TBD_CI_ADD_DATA_OK;
-        }
-
-        const uint64_t bit =
-            bit_list_get_for_index(existing_info->targets, arch_index);
-
-        if (bit != 0) {
             return E_TBD_CI_ADD_DATA_OK;
         }
 

@@ -230,12 +230,23 @@ bit_list_set_bit(struct bit_list *__notnull const list, const uint64_t index) {
         uint64_t *const ptr = info + byte_index;
 
         bit_index &= ((1ull << 6) - 1);
-        *ptr |= (1ull << bit_index);
-    } else {
-        list->data |= (1ull << (index + 1));
-    }
 
-    list->set_count += 1;
+        const uint64_t integer = *ptr;
+        const uint64_t mask = (1ull << bit_index);
+
+        if (!(integer & mask)) {
+            *ptr = (integer | mask);
+            list->set_count += 1;
+        }
+    } else {
+        const uint64_t integer = list->data;
+        const uint64_t mask = (1ull << (index + 1));
+
+        if (!(integer & mask)) {
+            list->data = (integer | mask);
+            list->set_count += 1;
+        }
+    }
 }
 
 static inline uint64_t get_mask_for_first_n(const uint64_t n) {
