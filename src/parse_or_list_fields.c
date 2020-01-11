@@ -439,6 +439,7 @@ void print_tbd_flags_list(void) {
 void print_tbd_version_list(void) {
     fputs("v1\n"
           "v2\n"
-          "v3\n",
+          "v3\n"
+          "v4\n",
           stdout);
 }
