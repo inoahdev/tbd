@@ -401,12 +401,6 @@ macho_file_parse_single_lc(
                 name_offset = swap_uint32(name_offset);
             }
 
-            /*
-             * If our install-name is invalid, and our callback handles this for
-             * us, we have to ignore the install-name, but still parse out the
-             * current-version and compatibility-version.
-             */
-
             const char *install_name = NULL;
             uint32_t length = 0;
 
