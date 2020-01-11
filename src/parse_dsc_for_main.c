@@ -157,7 +157,7 @@ print_write_file_result(
             print_messages_header(iterate_info);
             fprintf(stderr,
                     "\tImage (with path %s) already has an existing file at "
-                    "(one of) its write-paths that could not be overwritten. "
+                    "(one of) its write-paths that could not be overwritten.\t"
                     "Skipping\r\n",
                     iterate_info->image_path);
 
