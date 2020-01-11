@@ -100,6 +100,7 @@ void print_usage(void) {
     fputs("        --replace-flags,           Provide flag(s) to replace flags found for .tbd files.\n", stdout);
     fputs("                                   This option is only supported for .tbd versions v2 (default version) and above.\n", stdout);
     fputs("                                   A list of flags can be found by using option --list-tbd-flags\n", stdout);
+    fputs("        --replace-install-name,    Provide an install-name to replace the one found in the provided input file(s)\n", stdout);
     fputs("        --replace-objc-constraint, Provide an objc-constraint to replace the one found in the provided input file(s)\n", stdout);
     fputs("                                   A list of objc-constraints can be found by using option --list-objc-constraints.\n", stdout);
     fputs("                                   This option is only supported for .tbd versions v2 and v3.\n", stdout);

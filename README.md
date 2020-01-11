@@ -88,6 +88,7 @@ Field options: (Subset of path options)
         --replace-flags,           Provide flag(s) to replace flags found for .tbd files.
                                    This option is only supported for .tbd versions v2 (default version) and above.
                                    A list of flags can be found by using option --list-tbd-flags
+        --replace-install-name,    Provide an install-name to replace the one found in the provided input file(s)
         --replace-objc-constraint, Provide an objc-constraint to replace the one found in the provided input file(s)
                                    A list of objc-constraints can be found by using option --list-objc-constraints.
                                    This option is only supported for .tbd versions v2 and v3.
