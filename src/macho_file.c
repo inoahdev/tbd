@@ -66,14 +66,6 @@ static bool magic_is_big_endian(const uint32_t magic) {
     }
 }
 
-static inline enum macho_file_open_result open_result_from_read_fail(void) {
-    if (errno == EOVERFLOW) {
-        return E_MACHO_FILE_OPEN_NOT_A_MACHO;
-    }
-
-    return E_MACHO_FILE_OPEN_READ_FAIL;
-}
-
 struct macho_magic_info {
     uint32_t magic;
     uint32_t other;
@@ -110,7 +102,11 @@ macho_file_open(struct macho_file *__notnull const macho,
 
         const uint32_t read_size = sizeof(header) - sizeof(magic_info);
         if (our_read(fd, &header.cpusubtype, read_size) < 0) {
-            return open_result_from_read_fail();
+            if (errno == EOVERFLOW) {
+                return E_MACHO_FILE_OPEN_NOT_A_MACHO;
+            }
+
+            return E_MACHO_FILE_OPEN_READ_FAIL;
         }
 
         /*
@@ -506,12 +502,12 @@ handle_fat_32_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
+    uint32_t arch_index = 0;
     uint32_t filetype = 0;
 
     bool ignore_filetype = false;
     bool parsed_one_arch = false;
 
-    uint32_t arch_index = 0;
     for (arch = arch_list; arch != end; arch++, arch_index++) {
         const off_t arch_offset = (off_t)(macho_range.begin + arch->offset);
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
@@ -827,12 +823,12 @@ handle_fat_64_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
+    uint32_t arch_index = 0;
     uint32_t filetype = 0;
 
     bool parsed_one_arch = false;
     bool ignore_filetype = false;
 
-    uint32_t arch_index = 0;
     for (arch = arch_list; arch != end; arch++, arch_index++) {
         const off_t arch_offset = (off_t)(macho_range.begin + arch->offset);
         if (our_lseek(fd, arch_offset, SEEK_SET) < 0) {
