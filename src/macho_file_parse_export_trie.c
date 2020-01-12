@@ -138,14 +138,15 @@ skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
 }
 
 static bool
-has_overlapping_range(struct array *__notnull const list,
+has_overlapping_range(const struct range list[static 128],
+                      const uint64_t count,
                       const struct range range)
 {
-    const struct range *list_range = list->data;
-    const struct range *const end = list->data_end;
+    const struct range *l_range = list;
+    const struct range *const end = list + count;
 
-    for (; list_range != end; list_range++) {
-        if (ranges_overlap(*list_range, range)) {
+    for (; l_range != end; l_range++) {
+        if (ranges_overlap(*l_range, range)) {
             return true;
         }
     }
@@ -276,7 +277,8 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint8_t *__notnull const start,
                 const uint32_t offset,
                 const uint8_t *__notnull const end,
-                struct array *__notnull const node_ranges,
+                struct range node_ranges[static const 128],
+                uint8_t node_ranges_count,
                 const uint32_t export_size,
                 struct string_buffer *__notnull const sb_buffer,
                 const struct tbd_parse_options options)
@@ -305,19 +307,15 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         .end = offset + iter_size
     };
 
-    if (unlikely(has_overlapping_range(node_ranges, export_range))) {
+    const bool has_overlap_range =
+        has_overlapping_range(node_ranges, node_ranges_count, export_range);
+
+    if (unlikely(has_overlap_range)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
-    const enum array_result add_range_result =
-        array_add_item(node_ranges,
-                       sizeof(export_range),
-                       &export_range,
-                       NULL);
-
-    if (unlikely(add_range_result != E_ARRAY_OK)) {
-        return E_MACHO_FILE_PARSE_ARRAY_FAIL;
-    }
+    node_ranges[node_ranges_count] = export_range;
+    node_ranges_count++;
 
     const bool is_export_info = (iter_size != 0);
     if (is_export_info) {
@@ -447,7 +445,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
      */
 
     const uint32_t orig_buff_length = (uint32_t)sb_buffer->length;
-    const uint8_t orig_node_ranges_count = (uint8_t)node_ranges->item_count;
+    const uint8_t orig_node_ranges_count = (uint8_t)node_ranges_count;
 
     for (uint8_t i = 0; i != children_count; i++) {
         /*
@@ -492,7 +490,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
          * From dyld, don't parse an export-trie that gets too deep.
          */
 
-        if (unlikely(node_ranges->item_count > 128)) {
+        if (unlikely(node_ranges_count == 128)) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
@@ -503,6 +501,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                             (uint32_t)next,
                             end,
                             node_ranges,
+                            node_ranges_count,
                             export_size,
                             sb_buffer,
                             options);
@@ -511,10 +510,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             return parse_export_result;
         }
 
-        array_trim_to_item_count(node_ranges,
-                                 sizeof(struct range),
-                                 orig_node_ranges_count);
-
+        node_ranges_count = orig_node_ranges_count;
         sb_buffer->length = orig_buff_length;
     }
 
@@ -573,7 +569,9 @@ macho_file_parse_export_trie_from_file(
         return E_MACHO_FILE_PARSE_READ_FAIL;
     }
 
-    struct array node_ranges = {};
+    struct range node_ranges[128] = {};
+
+    const uint8_t node_ranges_count = 0;
     const uint8_t *const end = export_trie + args.export_size;
 
     const enum macho_file_parse_result parse_node_result =
@@ -582,12 +580,12 @@ macho_file_parse_export_trie_from_file(
                         export_trie,
                         0,
                         end,
-                        &node_ranges,
+                        node_ranges,
+                        node_ranges_count,
                         args.export_size,
                         args.sb_buffer,
                         args.tbd_options);
 
-    array_destroy(&node_ranges);
     free(export_trie);
 
     if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
@@ -627,19 +625,20 @@ macho_file_parse_export_trie_from_map(
     const uint8_t *const export_trie = map + args.export_off;
     const uint8_t *const end = export_trie + args.export_size;
 
-    struct array node_ranges = {};
+    struct range node_ranges[128] = {};
+    uint8_t node_ranges_count = 0;
+
     const enum macho_file_parse_result parse_node_result =
         parse_trie_node(args.info_in,
                         args.arch_index,
                         export_trie,
                         0,
                         end,
-                        &node_ranges,
+                        node_ranges,
+                        node_ranges_count,
                         args.export_size,
                         args.sb_buffer,
                         args.tbd_options);
-
-    array_destroy(&node_ranges);
 
     if (parse_node_result != E_MACHO_FILE_PARSE_OK) {
         return parse_node_result;
