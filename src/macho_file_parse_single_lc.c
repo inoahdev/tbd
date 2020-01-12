@@ -45,7 +45,7 @@ verify_string_offset(const uint8_t *const load_cmd,
      */
 
     if (offset < load_cmd_min_size || offset >= load_cmdsize) {
-        return E_MACHO_FILE_PARSE_INVALID_CLIENT;
+        return false;
     }
 
     const char *const string = (const char *)load_cmd + offset;
