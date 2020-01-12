@@ -175,9 +175,14 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
 
+    uint32_t sect_end = sect_offset;
+    if (guard_overflow_add(&sect_end, sect_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+    }
+
     const struct range sect_range = {
         .begin = sect_offset,
-        .end = sect_offset + sect_size
+        .end = sect_end
     };
 
     if (!range_contains_other(macho_range, sect_range)) {
@@ -958,10 +963,15 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
 
+    uint32_t sect_end = sect_offset;
+    if (guard_overflow_add(&sect_end, sect_size)) {
+        return E_MACHO_FILE_PARSE_INVALID_SECTION;
+    }
+
     const struct objc_image_info *image_info = NULL;
     const struct range sect_range = {
         .begin = sect_offset,
-        .end = sect_offset + sect_size
+        .end = sect_end
     };
 
     if (options.sect_off_absolute) {
