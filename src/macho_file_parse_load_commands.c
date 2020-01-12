@@ -413,16 +413,12 @@ macho_file_parse_load_commands_from_file(
      * Verify the size and integrity of the load-commands.
      */
 
-    const uint32_t sizeofcmds = parse_info->sizeofcmds;
-    if (sizeofcmds < sizeof(struct load_command)) {
-        return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
-    }
-
     uint32_t minimum_size = sizeof(struct load_command);
     if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
+    const uint32_t sizeofcmds = parse_info->sizeofcmds;
     if (sizeofcmds < minimum_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
@@ -435,14 +431,16 @@ macho_file_parse_load_commands_from_file(
     const struct range available_range = parse_info->available_range;
 
     const uint64_t macho_size = range_get_size(macho_range);
-    const uint64_t max_sizeofcmds = range_get_size(available_range);
+    const uint64_t header_size = parse_info->header_size;
+    const uint64_t max_sizeofcmds =
+        range_get_size(available_range) - header_size;
 
     if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
     const struct range relative_range = {
-        .begin = parse_info->header_size,
+        .begin = header_size,
         .end = macho_size
     };
 
@@ -1066,27 +1064,18 @@ macho_file_parse_load_commands_from_map(
      * Verify the size and integrity of the load-commands.
      */
 
-    const uint32_t sizeofcmds = parse_info->sizeofcmds;
-    if (sizeofcmds < sizeof(struct load_command)) {
-        return E_MACHO_FILE_PARSE_LOAD_COMMANDS_AREA_TOO_SMALL;
-    }
-
     uint32_t minimum_size = sizeof(struct load_command);
     if (guard_overflow_mul(&minimum_size, ncmds)) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
+    const uint32_t sizeofcmds = parse_info->sizeofcmds;
     if (sizeofcmds < minimum_size) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
-    const struct macho_file_parse_lc_flags flags = parse_info->flags;
-    const uint32_t header_size =
-        (flags.is_64) ?
-            sizeof(struct mach_header_64) :
-            sizeof(struct mach_header);
-
     const uint64_t macho_size = parse_info->macho_size;
+    const uint32_t header_size = parse_info->header_size;
     const uint32_t max_sizeofcmds = (uint32_t)(macho_size - header_size);
 
     if (sizeofcmds > max_sizeofcmds) {
@@ -1121,6 +1110,7 @@ macho_file_parse_load_commands_from_map(
         parse_slc_opts.copy_strings = true;
     }
 
+    const struct macho_file_parse_lc_flags flags = parse_info->flags;
     if (flags.is_big_endian) {
         parse_slc_opts.is_big_endian = true;
     }

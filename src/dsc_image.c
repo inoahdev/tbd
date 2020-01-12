@@ -11,6 +11,7 @@
 #include "mach-o/fat.h"
 #include "dsc_image.h"
 
+#include "mach-o/loader.h"
 #include "macho_file_parse_load_commands.h"
 #include "macho_file_parse_export_trie.h"
 #include "macho_file_parse_symtab.h"
@@ -261,6 +262,9 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     macho_options.dont_parse_exports = true;
     macho_options.sect_off_absolute = true;
 
+    const uint32_t header_size =
+        (is_64) ? sizeof(struct mach_header_64) : sizeof(struct mach_header);
+
     struct mf_parse_lc_from_map_info info = {
         .map = map,
         .map_size = dsc_info->size,
@@ -273,6 +277,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
         .ncmds = header->ncmds,
         .sizeofcmds = header->sizeofcmds,
+        .header_size = header_size,
 
         .tbd_options = tbd_options,
         .options = macho_options,

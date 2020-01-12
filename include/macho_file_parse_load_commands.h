@@ -70,6 +70,7 @@ struct mf_parse_lc_from_map_info {
 
     uint32_t ncmds;
     uint32_t sizeofcmds;
+    uint32_t header_size;
 
     struct tbd_parse_options tbd_options;
     struct macho_file_parse_options options;
