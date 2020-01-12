@@ -30,15 +30,17 @@ capacity_for_length(struct string_buffer *__notnull sb, const uint64_t needed) {
     }
 
     uint64_t new_capacity = capacity;
+    uint64_t wanted_bytes = wanted + 1;
+
     do {
         new_capacity = get_new_capacity(new_capacity);
-    } while (new_capacity < wanted);
+    } while (new_capacity < wanted_bytes);
 
     /*
      * Add one to wanted for the null-terminator.
      */
 
-    return (new_capacity + 1);
+    return new_capacity;
 }
 
 static char *
@@ -54,7 +56,12 @@ expand_to_capacity(struct string_buffer *__notnull const sb,
     const uint64_t sb_length = sb->length;
 
     memcpy(new_data, data, sb_length);
-    free(data);
+
+    if (sb->was_alloced) {
+        free(data);
+    } else {
+        sb->was_alloced = true;
+    }
 
     sb->data = new_data;
     sb->capacity = new_cap;

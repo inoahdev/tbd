@@ -9,7 +9,9 @@
 #ifndef STRING_BUFFER_H
 #define STRING_BUFFER_H
 
+#include <stdbool.h>
 #include <stdlib.h>
+
 #include "notnull.h"
 
 struct string_buffer {
@@ -17,6 +19,8 @@ struct string_buffer {
 
     uint64_t length;
     uint64_t capacity;
+
+    bool was_alloced : 1;
 };
 
 enum string_buffer_result {

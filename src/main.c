@@ -1128,7 +1128,7 @@ int main(const int argc, char *const argv[]) {
     struct string_buffer export_trie_sb = {};
     if (will_parse_export_trie) {
         const enum string_buffer_result reserve_sb_result =
-            sb_reserve_space(&export_trie_sb, 32);
+            sb_reserve_space(&export_trie_sb, 512);
 
         if (reserve_sb_result != E_STRING_BUFFER_OK) {
             fputs("Failed to allocate memory\n", stderr);
