@@ -1229,7 +1229,7 @@ enum tbd_ci_add_uuid_result
 tbd_ci_add_uuid(struct tbd_create_info *__notnull const info_in,
                 const struct arch_info *__notnull const arch,
                 const enum tbd_platform platform,
-                const uint8_t uuid[const 16])
+                const uint8_t uuid[static const 16])
 {
     const struct tbd_uuid_info *const array_uuid =
         array_find_item(&info_in->fields.uuids,

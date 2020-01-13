@@ -138,7 +138,7 @@ skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
 }
 
 static bool
-has_overlapping_range(const struct range list[static 128],
+has_overlapping_range(const struct range list[static const 128],
                       const uint64_t count,
                       const struct range range)
 {

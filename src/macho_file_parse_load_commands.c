@@ -26,7 +26,8 @@
 #include "tbd.h"
 #include "yaml.h"
 
-static inline bool segment_has_image_info_sect(const char name[16]) {
+static inline
+bool segment_has_image_info_sect(const char name[static const 16]) {
     const uint64_t first = *(const uint64_t *)name;
     const uint64_t *const second_ptr = (const uint64_t *)name + 1;
 
@@ -873,10 +874,8 @@ macho_file_parse_load_commands_from_file(
             } else {
                 parse_symtab = false;
             }
-        } else {
-            if (symtab.nsyms == 0) {
-                return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
-            }
+        } else if (symtab.nsyms == 0) {
+            return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
         }
     } else if (symtab.nsyms == 0) {
         return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
@@ -1484,10 +1483,8 @@ macho_file_parse_load_commands_from_map(
             } else {
                 parse_symtab = false;
             }
-        } else {
-            if (symtab.nsyms == 0) {
-                return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
-            }
+        } else if (symtab.nsyms == 0) {
+            return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
         }
     } else if (symtab.nsyms == 0) {
         return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
