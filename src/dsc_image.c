@@ -8,10 +8,10 @@
 
 #include <unistd.h>
 
-#include "mach-o/fat.h"
-#include "dsc_image.h"
-
 #include "mach-o/loader.h"
+#include "mach-o/fat.h"
+
+#include "dsc_image.h"
 #include "macho_file_parse_load_commands.h"
 #include "macho_file_parse_export_trie.h"
 #include "macho_file_parse_symtab.h"
@@ -64,6 +64,11 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_UNSUPPORTED_CPUTYPE:
             return E_DSC_IMAGE_PARSE_NOT_A_MACHO;
 
+        /*
+         * Because a dsc-image is never a fat mach-o, we will never receive the
+         * following error-codes.
+         */
+
         case E_MACHO_FILE_PARSE_NO_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_TOO_MANY_ARCHITECTURES:
         case E_MACHO_FILE_PARSE_INVALID_ARCHITECTURE:
@@ -105,7 +110,7 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
 
         /*
          * Because a dsc-image is never a fat mach-o, we will never receive the
-         * following error-codes.
+         * following error-code.
          */
 
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
@@ -303,7 +308,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
     }
 
     bool parsed_dyld_info = false;
-    bool parse_symtab = false;
+    bool parse_symtab = true;
 
     /*
      * Parse dyld_info if available, and if not, parse symtab instead. However,
@@ -311,33 +316,41 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
      */
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
-    if (lc_info.export_off != 0 && lc_info.export_size != 0) {
-        const struct macho_file_parse_export_trie_args args = {
-            .info_in = info_in,
-            .available_range = dsc_info->available_range,
+    if (!macho_options.use_symbol_table) {
+        if (lc_info.export_off != 0 && lc_info.export_size != 0) {
+            const struct macho_file_parse_export_trie_args args = {
+                .info_in = info_in,
+                .available_range = dsc_info->available_range,
 
-            .is_64 = is_64,
-            .is_big_endian = is_big_endian,
+                .is_64 = is_64,
+                .is_big_endian = is_big_endian,
 
-            .export_off = lc_info.export_off,
-            .export_size = lc_info.export_size,
+                .export_off = lc_info.export_off,
+                .export_size = lc_info.export_size,
 
-            .sb_buffer = extra.export_trie_sb,
-            .tbd_options = tbd_options
-        };
+                .sb_buffer = extra.export_trie_sb,
+                .tbd_options = tbd_options
+            };
 
-        ret = macho_file_parse_export_trie_from_map(args, map);
-        if (ret != E_MACHO_FILE_PARSE_OK) {
-            return translate_macho_file_parse_result(ret);
+            ret = macho_file_parse_export_trie_from_map(args, map);
+            if (ret != E_MACHO_FILE_PARSE_OK) {
+                return translate_macho_file_parse_result(ret);
+            }
+
+            parsed_dyld_info = true;
+            if (lc_info.symtab.nsyms != 0) {
+                parse_symtab = !tbd_options.ignore_undefineds;
+            } else {
+                parse_symtab = false;
+            }
+        } else if (lc_info.symtab.nsyms == 0) {
+            return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
         }
-
-        parsed_dyld_info = true;
-        parse_symtab = !tbd_options.ignore_undefineds;
-    } else {
-        parse_symtab = true;
+    } else if (lc_info.symtab.nsyms == 0) {
+        return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
     }
 
-    if (lc_info.symtab.nsyms != 0 && parse_symtab) {
+    if (parse_symtab) {
         const struct macho_file_parse_symtab_args args = {
             .info_in = info_in,
             .available_range = dsc_info->available_range,
