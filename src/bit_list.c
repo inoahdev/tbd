@@ -174,6 +174,23 @@ bit_list_equal_counts_compare(const struct bit_list left,
     return compare_int_ptrs(l_ptr, r_ptr, l_ptr + set_integer_count);
 }
 
+static bool
+int_ptrs_is_equal(const uint64_t *__notnull l_ptr,
+                  const uint64_t *__notnull r_ptr,
+                  const uint64_t *__notnull const l_end)
+{
+    for (; l_ptr != l_end; l_ptr++, r_ptr++) {
+        const uint64_t l_data = *l_ptr;
+        const uint64_t r_data = *r_ptr;
+
+        if (l_data == r_data) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool
 bit_list_equal_counts_is_equal(const struct bit_list left,
                                const struct bit_list right)
@@ -187,7 +204,7 @@ bit_list_equal_counts_is_equal(const struct bit_list left,
     const uint64_t *const l_ptr = (const uint64_t *)left.data;
     const uint64_t *const r_ptr = (const uint64_t *)right.data;
 
-    return (compare_int_ptrs(l_ptr, r_ptr, l_ptr + set_integer_count) == 0);
+    return int_ptrs_is_equal(l_ptr, r_ptr, l_ptr + set_integer_count);
 }
 
 uint64_t
