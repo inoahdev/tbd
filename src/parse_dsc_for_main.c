@@ -954,11 +954,11 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.options.verify_write_path) {
-        verify_write_path(args.tbd);
-    } else if (args.tbd->flags.combine_tbds) {
+    if (args.tbd->flags.combine_tbds) {
         args.tbd->flags.dsc_write_path_is_file = true;
         args.tbd->write_options.ignore_footer = true;
+    } else if (args.options.verify_write_path) {
+        verify_write_path(args.tbd);
     }
 
     struct handle_dsc_image_parse_error_cb_info cb_info = {
@@ -1167,11 +1167,11 @@ parse_dsc_for_main_while_recursing(
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.options.verify_write_path) {
-        verify_write_path(args.tbd);
-    } else if (args.tbd->flags.combine_tbds) {
+    if (args.tbd->flags.combine_tbds) {
         args.tbd->flags.dsc_write_path_is_file = true;
         args.tbd->write_options.ignore_footer = true;
+    } else if (args.options.verify_write_path) {
+        verify_write_path(args.tbd);
     }
 
     /*
