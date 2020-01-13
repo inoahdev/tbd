@@ -35,7 +35,17 @@ struct macho_file_parse_options {
      */
 
     bool sect_off_absolute : 1;
+
+    /*
+     * A non-dylib filetype is usually ignored.
+     */
+
     bool ignore_wrong_filetype : 1;
+
+    /*
+     * Parse the symbol-table instead of the default export-trie.
+     */
+
     bool use_symbol_table : 1;
 };
 
