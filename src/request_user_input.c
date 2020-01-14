@@ -160,7 +160,9 @@ request_current_version(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_current_version) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_replace_current_version)
+    {
         va_list args;
         va_start(args, prompt);
 
@@ -231,7 +233,9 @@ request_compat_version(struct tbd_for_main *__notnull const orig,
                        const char *__notnull const prompt,
                        ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_compat_version) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_replace_compat_version)
+    {
         va_list args;
         va_start(args, prompt);
 
@@ -306,7 +310,9 @@ request_install_name(struct tbd_for_main *__notnull const orig,
                      const char *__notnull const prompt,
                      ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_install_name) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_replace_install_name)
+    {
         va_list args;
         va_start(args, prompt);
 
@@ -377,7 +383,9 @@ request_objc_constraint(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_objc_constraint) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_replace_objc_constraint)
+    {
         va_list args;
         va_start(args, prompt);
 
@@ -462,7 +470,9 @@ request_parent_umbrella(struct tbd_for_main *__notnull const orig,
                         const char *__notnull const prompt,
                         ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_parent_umbrella) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_replace_parent_umbrella)
+    {
         va_list args;
         va_start(args, prompt);
 
@@ -558,7 +568,7 @@ request_platform(struct tbd_for_main *__notnull const orig,
                  const char *__notnull const prompt,
                  ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_platform) {
+    if (tbd->options.no_requests || tbd->retained.never_replace_platform) {
         va_list args;
         va_start(args, prompt);
 
@@ -643,7 +653,7 @@ request_swift_version(struct tbd_for_main *__notnull const orig,
                       const char *__notnull const prompt,
                       ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_replace_swift_version) {
+    if (tbd->options.no_requests || tbd->retained.never_replace_swift_version) {
         va_list args;
         va_start(args, prompt);
 
@@ -717,7 +727,7 @@ request_if_should_ignore_flags(struct tbd_for_main *__notnull const orig,
                                const char *__notnull const prompt,
                                ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_ignore_flags) {
+    if (tbd->options.no_requests || tbd->retained.never_ignore_flags) {
         va_list args;
         va_start(args, prompt);
 
@@ -765,7 +775,9 @@ request_if_should_ignore_non_unique_uuids(
     const char *__notnull const prompt,
     ...)
 {
-    if (tbd->flags.no_requests || tbd->retained.never_ignore_non_unique_uuids) {
+    if (tbd->options.no_requests ||
+        tbd->retained.never_ignore_non_unique_uuids)
+    {
         va_list args;
         va_start(args, prompt);
 

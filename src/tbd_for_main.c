@@ -209,7 +209,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.ignore_reexports = true;
         tbd->write_options.ignore_reexports = true;
     } else if (strcmp(option, "ignore-requests") == 0) {
-        tbd->flags.no_requests = true;
+        tbd->options.no_requests = true;
     } else if (strcmp(option, "ignore-swift-version") == 0) {
         tbd->parse_options.ignore_swift_version = true;
         tbd->flags.provided_ignore_swift_version = true;
@@ -220,7 +220,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.ignore_uuids = true;
         tbd->write_options.ignore_uuids = true;
     } else if (strcmp(option, "ignore-warnings") == 0) {
-        tbd->flags.ignore_warnings = true;
+        tbd->options.ignore_warnings = true;
     } else if (strcmp(option, "ignore-wrong-filetype") == 0) {
         tbd->macho_options.ignore_wrong_filetype = true;
     } else if (strcmp(option, "filter-image-directory") == 0) {
@@ -246,7 +246,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->filetypes.macho = true;
         tbd->filetypes.user_provided = true;
     } else if (strcmp(option, "r") == 0 || strcmp(option, "recurse") == 0) {
-        tbd->flags.recurse_directories = true;
+        tbd->options.recurse_directories = true;
 
         /*
          * -r/--recurse may have an extra argument specifying
@@ -258,8 +258,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         if (spec_index < argc) {
             const char *const spec = argv[spec_index];
             if (strcmp(spec, "all") == 0) {
+                tbd->options.recurse_subdirectories = true;
                 index += 1;
-                tbd->flags.recurse_subdirectories = true;
             } else if (strcmp(spec, "once") == 0) {
                 index += 1;
             }
@@ -633,7 +633,7 @@ tbd_for_main_create_write_path_for_recursing(
     uint64_t *const length_out)
 {
     char *write_path = NULL;
-    if (tbd->flags.preserve_directory_subdirs) {
+    if (tbd->options.preserve_directory_subdirs) {
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
@@ -649,7 +649,7 @@ tbd_for_main_create_write_path_for_recursing(
         const char *subdirs_iter = folder_path + parse_path_length;
         uint64_t new_file_name_length = file_name_length;
 
-        if (tbd->flags.replace_path_extension) {
+        if (tbd->options.replace_path_extension) {
             new_file_name_length =
                 path_remove_extension(file_name, file_name_length);
         }
@@ -695,7 +695,7 @@ tbd_for_main_create_dsc_image_write_path(
     uint64_t *const length_out)
 {
     uint64_t new_image_path_length = image_path_length;
-    if (tbd->flags.replace_path_extension) {
+    if (tbd->options.replace_path_extension) {
         new_image_path_length =
             path_remove_extension(image_path, image_path_length);
     }
@@ -729,7 +729,7 @@ tbd_for_main_create_dsc_folder_path(
     uint64_t *const length_out)
 {
     char *write_path = NULL;
-    if (tbd->flags.preserve_directory_subdirs) {
+    if (tbd->options.preserve_directory_subdirs) {
         /*
          * The subdirectories are simply the directories following the
          * user-provided recurse-directory.
@@ -782,9 +782,8 @@ tbd_for_main_open_write_file_for_path(
     char **__notnull const terminator_out)
 {
     char *terminator = NULL;
-    const struct tbd_for_main_flags tbd_flags = tbd->flags;
 
-    const int flags = tbd_flags.no_overwrite ? O_EXCL : 0;
+    const int flags = tbd->options.no_overwrite ? O_EXCL : 0;
     const int write_fd =
         open_r(path,
                path_length,
@@ -841,7 +840,7 @@ tbd_for_main_write_to_file(const struct tbd_for_main *__notnull const tbd,
         tbd_create_with_info(create_info, file, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!tbd->flags.ignore_warnings) {
+        if (!tbd->options.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to write-file (at path %s)\n",
@@ -867,7 +866,7 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull const tbd,
         tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!tbd->flags.ignore_warnings) {
+        if (!tbd->options.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to stdout (the terminal) (for "
@@ -895,7 +894,7 @@ tbd_for_main_write_to_stdout_for_dsc_image(
         tbd_create_with_info(create_info, stdout, tbd->write_options);
 
     if (create_tbd_result != E_TBD_CREATE_OK) {
-        if (!tbd->flags.ignore_warnings) {
+        if (!tbd->options.ignore_warnings) {
             if (print_paths) {
                 fprintf(stderr,
                         "Failed to write to stdout (the terminal), for image "

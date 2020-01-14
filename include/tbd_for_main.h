@@ -58,7 +58,7 @@ struct tbd_for_main_dsc_image_filter {
     enum tbd_for_main_dsc_image_filter_parse_status status;
 };
 
-struct tbd_for_main_flags {
+struct tbd_for_main_options {
     bool recurse_directories    : 1;
     bool recurse_subdirectories : 1;
 
@@ -70,7 +70,9 @@ struct tbd_for_main_flags {
 
     bool no_requests     : 1;
     bool ignore_warnings : 1;
+};
 
+struct tbd_for_main_flags {
     /*
      * dyld_shared_cache extractions can be stored in a file.
      * (Depending on the configuration)
@@ -145,6 +147,7 @@ struct tbd_for_main {
     uint64_t dsc_filter_paths_count;
 
     struct retained_user_info retained;
+    struct tbd_for_main_options options;
     struct tbd_for_main_flags flags;
 };
 

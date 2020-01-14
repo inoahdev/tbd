@@ -90,8 +90,8 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
 
         case E_DSC_IMAGE_PARSE_NO_DATA: {
             const uint64_t should_ignore =
-                (iterate_info->tbd->flags.ignore_warnings ||
-                 iterate_info->tbd->flags.recurse_directories);
+                (iterate_info->tbd->options.ignore_warnings ||
+                 iterate_info->tbd->options.recurse_directories);
 
             if (should_ignore) {
                 return;
@@ -150,7 +150,7 @@ print_write_file_result(
             break;
 
         case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
-            if (tbd->flags.ignore_warnings) {
+            if (tbd->options.ignore_warnings) {
                 break;
             }
 
@@ -204,7 +204,7 @@ write_to_path(struct dsc_iterate_images_info *__notnull const iterate_info,
               const uint64_t write_path_length)
 {
     char *terminator = NULL;
-    const bool should_combine = tbd->flags.combine_tbds;
+    const bool should_combine = tbd->options.combine_tbds;
 
     FILE *const file =
         open_file_for_path(iterate_info,
@@ -805,9 +805,9 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
          * Ignore any errors if the object doesn't even exist.
          *
          * Note:
-         * ENOTDIR is returned when a directory in the hierarchy of the
-         * path is not a directory at all, which means that an object doesn't
-         * exist at the provided path.
+         * ENOTDIR is returned when a directory in the hierarchy of the path is
+         * not a directory at all, which means that an object doesn't exist at
+         * the provided path.
          */
 
         if (errno != ENOENT && errno != ENOTDIR) {
@@ -820,7 +820,7 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
             exit(1);
         }
 
-        if (tbd->flags.combine_tbds) {
+        if (tbd->options.combine_tbds) {
             tbd->flags.dsc_write_path_is_file = true;
             tbd->write_options.ignore_footer = true;
         }
@@ -871,7 +871,7 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
          *         provided.
          */
 
-        if (tbd->flags.combine_tbds) {
+        if (tbd->options.combine_tbds) {
             tbd->flags.dsc_write_path_is_file = true;
             tbd->write_options.ignore_footer = true;
 
@@ -954,7 +954,7 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.tbd->flags.combine_tbds) {
+    if (args.tbd->options.combine_tbds) {
         args.tbd->flags.dsc_write_path_is_file = true;
         args.tbd->write_options.ignore_footer = true;
     } else if (args.options.verify_write_path) {
@@ -1167,7 +1167,7 @@ parse_dsc_for_main_while_recursing(
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.tbd->flags.combine_tbds) {
+    if (args.tbd->options.combine_tbds) {
         args.tbd->flags.dsc_write_path_is_file = true;
         args.tbd->write_options.ignore_footer = true;
     } else if (args.options.verify_write_path) {

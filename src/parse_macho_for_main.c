@@ -92,7 +92,7 @@ open_file_for_path(const struct parse_macho_for_main_args *__notnull const args,
             break;
 
         case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
-            if (tbd->flags.ignore_warnings) {
+            if (tbd->options.ignore_warnings) {
                 break;
             }
 
@@ -146,7 +146,7 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
             return NULL;
 
         case E_TBD_FOR_MAIN_OPEN_WRITE_FILE_PATH_ALREADY_EXISTS:
-            if (tbd->flags.ignore_warnings) {
+            if (tbd->options.ignore_warnings) {
                 return NULL;
             }
 
@@ -157,7 +157,7 @@ open_file_for_path_while_recursing(struct parse_macho_for_main_args *const args,
             return NULL;
     }
 
-    if (tbd->flags.combine_tbds) {
+    if (tbd->options.combine_tbds) {
         args->combine_file = file;
     }
 
@@ -240,7 +240,7 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
                                        parse_macho_result,
                                        args.print_paths,
                                        false,
-                                       args.tbd->flags.ignore_warnings);
+                                       args.tbd->options.ignore_warnings);
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
@@ -361,7 +361,7 @@ parse_macho_file_for_main_while_recursing(
                                        parse_macho_result,
                                        args.print_paths,
                                        true,
-                                       args.tbd->flags.ignore_warnings);
+                                       args.tbd->options.ignore_warnings);
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
@@ -371,7 +371,7 @@ parse_macho_file_for_main_while_recursing(
     char *write_path = NULL;
     uint64_t write_path_length = 0;
 
-    const bool should_combine = args.tbd->flags.combine_tbds;
+    const bool should_combine = args.tbd->options.combine_tbds;
     if (!should_combine) {
         write_path =
             tbd_for_main_create_write_path_for_recursing(args.tbd,

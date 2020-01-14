@@ -62,7 +62,7 @@ recurse_directory_callback(const char *__notnull const dir_path,
     struct magic_buffer magic_buffer = {};
 
     const char *const name = dirent->d_name;
-    const bool should_combine = tbd->flags.combine_tbds;
+    const bool should_combine = tbd->options.combine_tbds;
 
     if (tbd->filetypes.macho) {
         struct parse_macho_for_main_args args = {
@@ -469,7 +469,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
 
             result = 1;
         } else if (S_ISREG(info.st_mode)) {
-            if (tbd->flags.recurse_directories) {
+            if (tbd->options.recurse_directories) {
                 fprintf(stderr, "Cannot recurse file at path: %s\n", path);
                 if (full_path != path) {
                     free(full_path);
@@ -478,7 +478,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
                 result = 1;
             }
         } else if (S_ISDIR(info.st_mode)) {
-            if (!tbd->flags.recurse_directories) {
+            if (!tbd->options.recurse_directories) {
                 fputs("Please provide option '-r' if you want to recurse the "
                       "provided directory\n",
                       stderr);
@@ -501,7 +501,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         tbd->parse_path = full_path;
         tbd->parse_path_length = full_path_length;
     } else {
-        if (tbd->flags.recurse_directories) {
+        if (tbd->options.recurse_directories) {
             fputs("Recursing the input file is not supported.\nPlease provide "
                   "a path to a directory for recursing\n",
                   stderr);
@@ -642,13 +642,13 @@ int main(const int argc, char *const argv[]) {
                     }
 
                     if (strcmp(in_opt, "preserve-subdirs") == 0) {
-                        tbd->flags.preserve_directory_subdirs = true;
+                        tbd->options.preserve_directory_subdirs = true;
                     } else if (strcmp(in_opt, "no-overwrite") == 0) {
-                        tbd->flags.no_overwrite = true;
+                        tbd->options.no_overwrite = true;
                     } else if (strcmp(in_opt, "replace-path-extension") == 0) {
-                        tbd->flags.replace_path_extension = true;
+                        tbd->options.replace_path_extension = true;
                     } else if (strcmp(in_opt, "combine-tbds") == 0) {
-                        tbd->flags.combine_tbds = true;
+                        tbd->options.combine_tbds = true;
                     } else {
                         fprintf(stderr, "Unrecognized option: %s\n", in_arg);
                         destroy_tbds_array(&tbds);
@@ -666,7 +666,7 @@ int main(const int argc, char *const argv[]) {
 
                 const char *const path = in_arg;
                 if (strcmp(path, "stdout") == 0) {
-                    if (tbd->flags.recurse_directories) {
+                    if (tbd->options.recurse_directories) {
                         fputs("Writing to stdout (terminal) while recursing "
                               "a directory is not supported.\nPlease provide "
                               "a directory to write all created files to\n",
@@ -700,7 +700,7 @@ int main(const int argc, char *const argv[]) {
                  * multiple mach-o images.
                  */
 
-                const struct tbd_for_main_flags options = tbd->flags;
+                const struct tbd_for_main_options options = tbd->options;
                 if (!options.recurse_directories &&
                     !tbd->filetypes.dyld_shared_cache)
                 {
@@ -766,7 +766,7 @@ int main(const int argc, char *const argv[]) {
                 if (stat(full_path, &info) == 0) {
                     if (S_ISREG(info.st_mode)) {
                         if (options.recurse_directories &&
-                            !tbd->flags.combine_tbds)
+                            !tbd->options.combine_tbds)
                         {
                             fputs("Writing to a regular file while recursing a "
                                   "directory is not supported.\nTo combine all "
@@ -1154,7 +1154,7 @@ int main(const int argc, char *const argv[]) {
          */
 
         struct tbd_for_main copy = *tbd;
-        const struct tbd_for_main_flags options = tbd->flags;
+        const struct tbd_for_main_options options = tbd->options;
 
         if (options.recurse_directories) {
             /*
@@ -1226,7 +1226,7 @@ int main(const int argc, char *const argv[]) {
                 }
             }
 
-            if (tbd->flags.combine_tbds) {
+            if (tbd->options.combine_tbds) {
                 if (tbd_write_footer(recurse_info.combine_file)) {
                     if (should_print_paths) {
                         fprintf(stderr,
