@@ -1895,7 +1895,7 @@ int write_full_archs(FILE *__notnull file, const struct target_list list) {
 
         const bool write_comma = (counter != 0);
         if (write_comma) {
-            if (fputs(", ", stdout) < 0) {
+            if (fputs(", ", file) < 0) {
                 return 1;
             }
         }
