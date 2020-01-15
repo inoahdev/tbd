@@ -32,7 +32,13 @@ call_callback(const macho_file_parse_error_callback callback,
     return false;
 }
 
-static inline bool
+enum verify_string_result {
+    E_VERIFY_STRING_OK,
+    E_VERIFY_STRING_EMPTY,
+    E_VERIFY_STRING_INVALID
+};
+
+static inline enum verify_string_result
 verify_string_offset(const uint8_t *const load_cmd,
                      const uint32_t offset,
                      const uint32_t load_cmd_min_size,
@@ -44,8 +50,12 @@ verify_string_offset(const uint8_t *const load_cmd,
      * basic structure of the load-command.
      */
 
-    if (offset < load_cmd_min_size || offset >= load_cmdsize) {
-        return false;
+    if (offset < load_cmd_min_size || offset > load_cmdsize) {
+        return E_VERIFY_STRING_INVALID;
+    }
+
+    if (offset == load_cmdsize) {
+        return E_VERIFY_STRING_EMPTY;
     }
 
     const char *const string = (const char *)load_cmd + offset;
@@ -59,11 +69,11 @@ verify_string_offset(const uint8_t *const load_cmd,
     const uint32_t length = (uint32_t)strnlen(string, max_length);
 
     if (length == 0) {
-        return false;
+        return E_VERIFY_STRING_EMPTY;
     }
 
     *length_out = length;
-    return true;
+    return E_VERIFY_STRING_OK;
 }
 
 enum add_export_result {
@@ -88,14 +98,14 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
     }
 
     uint32_t length = 0;
-    const bool is_offset_valid =
+    const enum verify_string_result verify_string_result =
         verify_string_offset(load_cmd,
                              offset,
                              load_cmd_min_size,
                              load_cmdsize,
                              &length);
 
-    if (!is_offset_valid) {
+    if (verify_string_result != E_VERIFY_STRING_OK) {
         return E_ADD_EXPORT_INVALID;
     }
 
@@ -681,25 +691,34 @@ macho_file_parse_single_lc(
             }
 
             uint32_t length = 0;
-            const bool is_offset_valid =
+            const enum verify_string_result verify_string_result =
                 verify_string_offset(load_cmd_iter,
                                      umbrella_offset,
                                      sizeof(struct sub_umbrella_command),
                                      load_cmd.cmdsize,
                                      &length);
 
-            if (!is_offset_valid) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
-                                  cb_info);
+            switch (verify_string_result) {
+                case E_VERIFY_STRING_OK:
+                    break;
 
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                case E_VERIFY_STRING_EMPTY:
+                    return E_MACHO_FILE_PARSE_OK;
+
+                case E_VERIFY_STRING_INVALID: {
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_INVALID_PARENT_UMBRELLA,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
                 }
-
-                break;
             }
 
             const char *const umbrella =
