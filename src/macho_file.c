@@ -976,7 +976,7 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
     const uint32_t magic = macho->magic;
     const uint32_t nfat_arch = macho->nfat_arch;
 
-    if (nfat_arch != 1) {
+    if (magic_is_fat(magic)) {
         const enum tbd_ci_set_target_count_result set_count_result =
             tbd_ci_set_target_count(info_in, nfat_arch);
 
@@ -1137,7 +1137,9 @@ void macho_file_print_archs(const int fd) {
 
         uint64_t archs_size = sizeof(struct fat_arch_64);
         if (guard_overflow_mul(&archs_size, nfat_arch)) {
-            fputs("File has too many architectures\n", stderr);
+            fputs("File has too many architectures to fit inside file\n",
+                  stderr);
+
             exit(1);
         }
 
@@ -1161,8 +1163,7 @@ void macho_file_print_archs(const int fd) {
         struct fat_arch_64 *arch = arch_list;
         const struct fat_arch_64 *const end = arch + nfat_arch;
 
-        uint32_t arch_index = 0;
-        for (; arch != end; arch++, arch_index++) {
+        for (uint32_t arch_index = 0; arch != end; arch++, arch_index++) {
             cpu_type_t cputype = arch->cputype;
             cpu_subtype_t cpusubtype = arch->cpusubtype;
 
@@ -1237,8 +1238,7 @@ void macho_file_print_archs(const int fd) {
         struct fat_arch *arch = arch_list;
         const struct fat_arch *const end = arch + nfat_arch;
 
-        uint32_t arch_index = 0;
-        for (; arch != end; arch++, arch_index++) {
+        for (uint32_t arch_index = 0; arch != end; arch++, arch_index++) {
             cpu_type_t cputype = arch->cputype;
             cpu_subtype_t cpusubtype = arch->cpusubtype;
 
