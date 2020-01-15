@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 10/24/19.
-//  Copyright © 2019 inoahdev. All rights reserved.
+//  Copyright © 2019 - 2020 inoahdev. All rights reserved.
 //
 
 #ifndef UTIL_H

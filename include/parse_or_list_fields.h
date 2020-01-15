@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 12/02/18.
-//  Copyright © 2018 - 2019 inoahdev. All rights reserved.
+//  Copyright © 2018 - 2020 inoahdev. All rights reserved.
 //
 
 #ifndef PARSE_OR_LIST_FIELDS_H

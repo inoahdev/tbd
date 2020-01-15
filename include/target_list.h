@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 11/21/19.
-//  Copyright © 2019 inoahdev. All rights reserved.
+//  Copyright © 2019 - 2020 inoahdev. All rights reserved.
 //
 
 #ifndef TARGET_LIST_H

@@ -3,7 +3,7 @@
 //  tbd
 //
 //  Created by inoahdev on 11/18/18.
-//  Copyright © 2018 - 2019 inoahdev. All rights reserved.
+//  Copyright © 2018 - 2020 inoahdev. All rights reserved.
 //
 
 #include <sys/stat.h>
