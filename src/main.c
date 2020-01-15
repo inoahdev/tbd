@@ -326,12 +326,19 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             result = check_targets(tbd, version, result);
 
             if (tbd->parse_options.ignore_undefineds) {
-                fprintf(stderr,
-                        "Undefined-symbols are already ignored for tbd with "
-                        "file from: %s\n",
-                        path);
-
-                result = 1;
+                if (tbd->flags.provided_tbd_version) {
+                    fprintf(stderr,
+                            "Note: Undefined-symbols are already ignored for "
+                            "tbd-version %s, for file from: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                } else {
+                    fprintf(stderr,
+                            "Note: Undefined-symbols are already ignored for "
+                            "default tbd-version %s, for file from: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                }
             }
 
             break;
