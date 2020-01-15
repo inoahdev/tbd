@@ -249,13 +249,12 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->options.recurse_directories = true;
 
         /*
-         * -r/--recurse may have an extra argument specifying
-         * whether or not to recurse sub-directories (By
-         * default, we don't).
+         * -r/--recurse may have an extra argument specifying whether or not to
+         * recurse sub-directories (By default, we don't).
          */
 
         const int spec_index = index + 1;
-        if (spec_index < argc) {
+        if (spec_index != argc) {
             const char *const spec = argv[spec_index];
             if (strcmp(spec, "all") == 0) {
                 tbd->options.recurse_subdirectories = true;
@@ -282,10 +281,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         }
 
         tbd->info.fields.targets =
-            parse_architectures_list(index,
-                                     argc,
-                                     argv,
-                                     &index);
+            parse_architectures_list(index, argc, argv, &index);
 
         tbd->parse_options.ignore_targets = true;
         tbd->parse_options.ignore_uuids = true;

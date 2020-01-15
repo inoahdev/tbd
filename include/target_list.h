@@ -46,6 +46,10 @@ target_list_add_target(struct target_list *__notnull list,
                        enum tbd_platform platform);
 
 bool
+target_list_has_arch(const struct target_list *__notnull list,
+                     const struct arch_info *__notnull arch);
+
+bool
 target_list_has_target(const struct target_list *__notnull list,
                        const struct arch_info *__notnull arch,
                        enum tbd_platform platform);

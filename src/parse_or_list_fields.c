@@ -12,6 +12,7 @@
 #include "macho_file.h"
 #include "parse_or_list_fields.h"
 #include "target_list.h"
+#include "tbd.h"
 
 struct target_list
 parse_architectures_list(int index,
@@ -56,12 +57,10 @@ parse_architectures_list(int index,
             break;
         }
 
-        const enum tbd_platform platform = TBD_PLATFORM_NONE;
-        const bool has_arch = target_list_has_target(&list, arch, platform);
-
+        const bool has_arch = target_list_has_arch(&list, arch);
         if (!has_arch) {
             const enum target_list_result add_target_result =
-                target_list_add_target(&list, arch, platform);
+                target_list_add_target(&list, arch, TBD_PLATFORM_NONE);
 
             if (add_target_result != E_TARGET_LIST_OK) {
                 fprintf(stderr,

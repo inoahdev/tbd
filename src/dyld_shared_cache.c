@@ -207,8 +207,7 @@ dyld_shared_cache_parse_from_file(
     const struct dyld_shared_cache_parse_options options)
 {
     /*
-     * For performance, check magic and verify headers before mapping file to
-     * memory.
+     * Avoid mapping file until after verifying file-magic and headers.
      */
 
     const struct arch_info *arch = NULL;

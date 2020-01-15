@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include "arch_info.h"
 #include "target_list.h"
 #include "tbd.h"
 
@@ -136,6 +137,83 @@ target_list_add_target(struct target_list *__notnull const list,
 }
 
 static bool
+target_has_arch(const uint64_t target,
+                const struct arch_info *__notnull const arch)
+{
+    const uint64_t target_arch = (target & TARGET_ARCH_INFO_MASK);
+    return (target_arch == (uint64_t)arch);
+}
+
+static bool
+has_arch_in_range(const uint64_t *ptr,
+                  const uint64_t count,
+                  const struct arch_info *__notnull const arch)
+{
+    const uint64_t *const end = ptr + count;
+    for (; ptr != end; ptr++) {
+        const uint64_t target = *ptr;
+        const uint64_t target_arch = (target & TARGET_ARCH_INFO_MASK);
+
+        if (target_arch == (uint64_t)arch) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+bool
+target_list_has_arch(const struct target_list *__notnull const list,
+                     const struct arch_info *__notnull const arch)
+{
+    if (list->alloc_count == 0) {
+        switch (list->set_count) {
+            case 0:
+                break;
+
+            case 1:
+                if (target_has_arch((uint64_t)list->data, arch)) {
+                    return true;
+                }
+
+                break;
+
+            case 2:
+                if (target_has_arch((uint64_t)list->data, arch)) {
+                    return true;
+                }
+
+                if (target_has_arch(list->stack[0], arch)) {
+                    return true;
+                }
+
+                break;
+
+            case 3:
+                if (target_has_arch((uint64_t)list->data, arch)) {
+                    return true;
+                }
+
+                if (target_has_arch(list->stack[0], arch)) {
+                    return true;
+                }
+
+                if (target_has_arch(list->stack[1], arch)) {
+                    return true;
+                }
+
+                break;
+
+        }
+
+        return false;
+    }
+
+    return has_arch_in_range(list->data, list->set_count, arch);
+}
+
+static bool
 has_target_in_range(const uint64_t *ptr,
                     const uint64_t count,
                     const uint64_t target)
@@ -150,7 +228,6 @@ has_target_in_range(const uint64_t *ptr,
     return false;
 }
 
-
 bool
 target_list_has_target(const struct target_list *__notnull const list,
                        const struct arch_info *__notnull const arch,
@@ -158,16 +235,43 @@ target_list_has_target(const struct target_list *__notnull const list,
 {
     const uint64_t target = target_list_create_target(arch, platform);
     if (list->alloc_count == 0) {
-        if (target == (uint64_t)list->data) {
-            return true;
-        }
+        switch (list->set_count) {
+            case 0:
+                break;
 
-        if (target == list->stack[0]) {
-            return true;
-        }
+            case 1:
+                if (target == (uint64_t)list->data) {
+                    return true;
+                }
 
-        if (target == list->stack[1]) {
-            return true;
+                break;
+
+            case 2:
+                if (target == (uint64_t)list->data) {
+                    return true;
+                }
+
+                if (target == list->stack[0]) {
+                    return true;
+                }
+
+                break;
+
+            case 3:
+                if (target == (uint64_t)list->data) {
+                    return true;
+                }
+
+                if (target == list->stack[0]) {
+                    return true;
+                }
+
+                if (target == list->stack[1]) {
+                    return true;
+                }
+
+                break;
+
         }
 
         return false;
