@@ -328,13 +328,13 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             if (tbd->parse_options.ignore_undefineds) {
                 if (tbd->flags.provided_tbd_version) {
                     fprintf(stderr,
-                            "Note: Undefined-symbols are already ignored for "
+                            "Note: Undefined-symbols are not parsed for "
                             "tbd-version %s, for path: %s\n",
                             tbd_version_to_string(tbd->info.version),
                             path);
                 } else {
                     fprintf(stderr,
-                            "Note: Undefined-symbols are already ignored for "
+                            "Note: Undefined-symbols are not parsed for "
                             "default tbd-version %s, for path: %s\n",
                             tbd_version_to_string(tbd->info.version),
                             path);
