@@ -314,7 +314,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     switch (version) {
         case TBD_VERSION_NONE:
             fprintf(stderr,
-                    "INTERNAL: Private tbd structure (for file from: %s) was "
+                    "INTERNAL: Private tbd structure (for path: %s) was "
                     "not properly configured\n",
                     path);
 
@@ -329,13 +329,13 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
                 if (tbd->flags.provided_tbd_version) {
                     fprintf(stderr,
                             "Note: Undefined-symbols are already ignored for "
-                            "tbd-version %s, for file from: %s\n",
+                            "tbd-version %s, for path: %s\n",
                             tbd_version_to_string(tbd->info.version),
                             path);
                 } else {
                     fprintf(stderr,
                             "Note: Undefined-symbols are already ignored for "
-                            "default tbd-version %s, for file from: %s\n",
+                            "default tbd-version %s, for path: %s\n",
                             tbd_version_to_string(tbd->info.version),
                             path);
                 }
@@ -369,7 +369,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         if (tbd->flags.provided_compat_version) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-compat-version "
-                    "or --replace-compat-version for file from: %s\n",
+                    "or --replace-compat-version for path: %s\n",
                     path);
 
             result = 1;
@@ -380,7 +380,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         if (tbd->flags.provided_flags) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-flags or "
-                    "--replace-flags for file from: %s\n",
+                    "--replace-flags for path: %s\n",
                     path);
 
             result = 1;
@@ -403,7 +403,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         if (tbd->flags.provided_swift_version) {
             fprintf(stderr,
                     "Please exclusively provide either --ignore-swift-version "
-                    "or --replace-swift-version for file from: %s\n",
+                    "or --replace-swift-version for path: %s\n",
                     path);
 
             result = 1;
@@ -505,7 +505,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->dsc_image_filters.item_count != 0) {
         if (!tbd->filetypes.dyld_shared_cache) {
             fprintf(stderr,
-                    "dsc image-filters have been provided for file from (%s) "
+                    "dsc image-filters have been provided for path (%s) "
                     "that will not be parsed as a dyld_shared_cache file.\n"
                     "Please provide option --dsc to parse the file as a "
                     "dyld_shared_cache file",
@@ -518,9 +518,9 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->dsc_image_numbers.item_count != 0) {
         if (!tbd->filetypes.dyld_shared_cache) {
             fprintf(stderr,
-                    "--filter-image-number has been provided for file "
-                    "from (%s) that will not be parsed as a dyld_shared_cache "
-                    "file.\nPlease provide option --dsc to parse the file as a "
+                    "--filter-image-number has been provided for path (%s) "
+                    "that will not be parsed as a dyld_shared_cache file.\n"
+                    "Please provide option --dsc to parse the file as a "
                     "dyld_shared_cache file",
                     path);
 
