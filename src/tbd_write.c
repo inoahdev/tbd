@@ -151,6 +151,8 @@ tbd_write_targets_for_header(FILE *__notnull const file,
     return 0;
 }
 
+static const char *const archs_symbol_key_fmt = "  - archs:%-16s[ %s";
+
 static int
 write_archs_for_symbol_arrays(FILE *__notnull const file,
                               const struct target_list list,
@@ -166,7 +168,7 @@ write_archs_for_symbol_arrays(FILE *__notnull const file,
     uint64_t first = bit_list_find_first_bit(bits);
     target_list_get_target(&list, first, &arch, &platform);
 
-    if (fprintf(file, "  - archs:%-16s[ %s", "", arch->name) < 0) {
+    if (fprintf(file, archs_symbol_key_fmt, "", arch->name) < 0) {
         return 1;
     }
 
@@ -212,6 +214,8 @@ write_archs_for_symbol_arrays(FILE *__notnull const file,
     return 0;
 }
 
+static const char *const targets_symbol_key_fmt = "  - targets:%-14s[ ";
+
 static int
 write_targets_as_dict_key(FILE *__notnull const file,
                           const struct target_list list,
@@ -222,7 +226,7 @@ write_targets_as_dict_key(FILE *__notnull const file,
         return 1;
     }
 
-    if (fprintf(file, "  - targets:%-14s[ ", "") < 0) {
+    if (fprintf(file, targets_symbol_key_fmt, "") < 0) {
         return 1;
     }
 
@@ -1146,7 +1150,7 @@ write_full_targets(FILE *__notnull file,
         return 1;
     }
 
-    if (fprintf(file, "  - targets:%-14s[ ", "") < 0) {
+    if (fprintf(file, targets_symbol_key_fmt, "") < 0) {
         return 1;
     }
 
@@ -1881,7 +1885,7 @@ int write_full_archs(FILE *__notnull file, const struct target_list list) {
 
     target_list_get_target(&list, 0, &arch, &platform);
 
-    if (fprintf(file, "  - targets:%-14s[ %s", "", arch->name) < 0) {
+    if (fprintf(file, archs_symbol_key_fmt, "", arch->name) < 0) {
         return 1;
     }
 
