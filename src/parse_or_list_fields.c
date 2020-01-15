@@ -119,10 +119,15 @@ parse_flags_list(int index,
             }
 
             const char front = arg[0];
-            if (front == '-' || front == '/') {
-                fputs("Please provide a list of tbd-flags\n", stderr);
-            } else {
-                fprintf(stderr, "Unrecognized flag: %s\n", arg);
+            switch (front) {
+                case '-':
+                case '/':
+                    fputs("Please provide a list of tbd-flags\n", stderr);
+                    break;
+
+                default:
+                    fprintf(stderr, "Unrecognized flag: %s\n", arg);
+                    break;
             }
 
             exit(1);
