@@ -61,16 +61,16 @@ void print_usage(void) {
 
     fputc('\n', stdout);
     fputs("Ignore options: (Subset of path options)\n", stdout);
-    fputs("        --ignore-clients,         Ignore clients field\n", stdout);
-    fputs("        --ignore-compat-version,  Ignore compatibility-version field\n", stdout);
-    fputs("        --ignore-current-version, Ignore current-version field\n", stdout);
-    fputs("        --ignore-flags,           Ignore flags field\n", stdout);
-    fputs("        --ignore-objc-constraint, Ignore objc-constraint field\n", stdout);
-    fputs("        --ignore-parent-umbrella, Ignore parent-umbrella field\n", stdout);
-    fputs("        --ignore-reexports,       Ignore re-expotrs field\n", stdout);
-    fputs("        --ignore-swift-version,   Ignore swift-version field\n", stdout);
-    fputs("        --ignore-undefineds,      Ignore undefineds field\n", stdout);
-    fputs("        --ignore-uuids,           Ignore uuids field\n", stdout);
+    fputs("        --ignore-clients,          Ignore clients field\n", stdout);
+    fputs("        --ignore-compat-version,   Ignore compatibility-version field\n", stdout);
+    fputs("        --ignore-current-version,  Ignore current-version field\n", stdout);
+    fputs("        --ignore-flags,            Ignore flags field\n", stdout);
+    fputs("        --ignore-objc-constraint,  Ignore objc-constraint field\n", stdout);
+    fputs("        --ignore-parent-umbrellas, Ignore parent-umbrella field\n", stdout);
+    fputs("        --ignore-reexports,        Ignore re-expotrs field\n", stdout);
+    fputs("        --ignore-swift-version,    Ignore swift-version field\n", stdout);
+    fputs("        --ignore-undefineds,       Ignore undefineds field\n", stdout);
+    fputs("        --ignore-uuids,            Ignore uuids field\n", stdout);
 
     fputc('\n', stdout);
     fputs("General ignore options (Subset of path options):\n", stdout);
@@ -84,7 +84,7 @@ void print_usage(void) {
     fputs("        --allow-private-objc-symbols,   Allow all non-external objc-symbols (classes, ivars, and ehtypes)\n", stdout);
     fputs("        --allow-private-objc-classes,   Allow all non-external objc-classes\n", stdout);
     fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.\n", stdout);
-    fputs("                                        objc-ehtype symbols are only recognized for .tbd version v3\n", stdout);
+    fputs("                                        objc-ehtype symbols are only recognized for .tbd version v3 and above\n", stdout);
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
     fputs("        --use-symbol-table,             Use the symbol-table over the export-trie\n", stdout);
 
@@ -94,7 +94,6 @@ void print_usage(void) {
     fputs("                                   A list of architectures can be found by using option --list-architectures.\n", stdout);
     fputs("                                   Replacing the list of architectures will automatically remove the uuids field.\n", stdout);
     fputs("                                   In addition, each exported symbol will have the replaced list of architectures.\n", stdout);
-    fputs("                                   --replace-archs is only supported for .tbd version v3 and lower. For v4, use --replace-targets\n", stdout);
     fputs("        --replace-current-version, Provide a current-version to replace the one found in the provided input file(s)\n", stdout);
     fputs("        --replace-compat-version,  Provide a compatibility-version to replace the one found in the provided input file(s)\n", stdout);
     fputs("        --replace-flags,           Provide flag(s) to replace flags found for .tbd files.\n", stdout);
@@ -108,9 +107,10 @@ void print_usage(void) {
     fputs("        --replace-platform,        Provide a platform to replace the one found for in the provided input file(s)\n", stdout);
     fputs("        --replace-swift-version,   Provide a swift-version to replace the one found for in the provided input file(s)\n", stdout);
     fputs("        --replace-targets,         Provide a list of targets to replace the list found in the provided input file(s).\n", stdout);
-    fputs("                                   A target is in the form of arch-platform (ex. arm64-ios).\n", stdout);
+    fputs("                                   A target is in the form of arch-platform pair (ex. arm64-ios).\n", stdout);
     fputs("                                   A list of architectures can be found by using option --list-architectures.\n", stdout);
-    fputs("                                   A list of platforms can be found by using option --list-platforms\n", stdout);
+    fputs("                                   A list of platforms can be found by using option --list-platforms.\n", stdout);
+    fputs("                                   --replace-targets is only supported tbd-version v4\n", stdout);
 
     fputc('\n', stdout);
     fputs("Ignore field warning options: (Subset of path options)\n", stdout);
@@ -130,7 +130,7 @@ void print_usage(void) {
     fputs("                                         An image-path's listed number from the ordered list should not be provided\n", stdout);
     fputs("                                         for option --filter-image-number\n", stdout);
     fputs("        --list-objc-constraints, List all valid objc-constraints\n", stdout);
-    fputs("        --list-platform,         List all valid platforms\n", stdout);
+    fputs("        --list-platforms,        List all valid platforms\n", stdout);
     fputs("        --list-tbd-flags,        List all valid flags for .tbd files\n", stdout);
     fputs("        --list-tbd-versions,     List all valid versions for .tbd files\n", stdout);
 }

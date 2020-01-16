@@ -202,7 +202,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.ignore_objc_constraint = true;
         tbd->write_options.ignore_objc_constraint = true;
         tbd->flags.provided_ignore_objc_constraint = true;
-    } else if (strcmp(option, "ignore-parent-umbrella") == 0) {
+    } else if (strcmp(option, "ignore-parent-umbrellas") == 0) {
         tbd->parse_options.ignore_parent_umbrellas = true;
         tbd->write_options.ignore_parent_umbrellas = true;
     } else if (strcmp(option, "ignore-reexports") == 0) {

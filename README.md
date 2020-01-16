@@ -52,16 +52,16 @@ Usage: tbd [-p] [options] path
         -v4,                             Set version of .tbd files to version v4.
 
 Ignore options: (Subset of path options)
-        --ignore-clients,         Ignore clients field
-        --ignore-compat-version,  Ignore compatibility-version field
-        --ignore-current-version, Ignore current-version field
-        --ignore-flags,           Ignore flags field
-        --ignore-objc-constraint, Ignore objc-constraint field
-        --ignore-parent-umbrella, Ignore parent-umbrella field
-        --ignore-reexports,       Ignore re-expotrs field
-        --ignore-swift-version,   Ignore swift-version field
-        --ignore-undefineds,      Ignore undefineds field
-        --ignore-uuids,           Ignore uuids field
+        --ignore-clients,          Ignore clients field
+        --ignore-compat-version,   Ignore compatibility-version field
+        --ignore-current-version,  Ignore current-version field
+        --ignore-flags,            Ignore flags field
+        --ignore-objc-constraint,  Ignore objc-constraint field
+        --ignore-parent-umbrellas, Ignore parent-umbrella field
+        --ignore-reexports,        Ignore re-expotrs field
+        --ignore-swift-version,    Ignore swift-version field
+        --ignore-undefineds,       Ignore undefineds field
+        --ignore-uuids,            Ignore uuids field
 
 General ignore options (Subset of path options):
         --ignore-requests,          Ignore any and all user requests
@@ -82,7 +82,6 @@ Field options: (Subset of path options)
                                    A list of architectures can be found by using option --list-architectures.
                                    Replacing the list of architectures will automatically remove the uuids field.
                                    In addition, each exported symbol will have the replaced list of architectures.
-                                   --replace-archs is only supported for .tbd version v3 and lower. For v4, use --replace-targets
         --replace-current-version, Provide a current-version to replace the one found in the provided input file(s)
         --replace-compat-version,  Provide a compatibility-version to replace the one found in the provided input file(s)
         --replace-flags,           Provide flag(s) to replace flags found for .tbd files.
@@ -96,9 +95,10 @@ Field options: (Subset of path options)
         --replace-platform,        Provide a platform to replace the one found for in the provided input file(s)
         --replace-swift-version,   Provide a swift-version to replace the one found for in the provided input file(s)
         --replace-targets,         Provide a list of targets to replace the list found in the provided input file(s).
-                                   A target is in the form of arch-platform (ex. arm64-ios).
+                                   A target is in the form of arch-platform pair (ex. arm64-ios).
                                    A list of architectures can be found by using option --list-architectures.
-                                   A list of platforms can be found by using option --list-platforms
+                                   A list of platforms can be found by using option --list-platforms.
+                                   --replace-targets is only supported tbd-version v4
 
 Ignore field warning options: (Subset of path options)
         --ignore-missing-exports,  Ignore error for when no symbols or reexpors to write out
@@ -116,7 +116,7 @@ List options:
                                          An image-path's listed number from the ordered list should not be provided
                                          for option --filter-image-number
         --list-objc-constraints, List all valid objc-constraints
-        --list-platform,         List all valid platforms
+        --list-platforms,        List all valid platforms
         --list-tbd-flags,        List all valid flags for .tbd files
         --list-tbd-versions,     List all valid versions for .tbd files
 ```
