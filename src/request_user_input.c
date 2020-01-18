@@ -101,7 +101,6 @@ request_input(const char *__notnull const prompt,
         fflush(stdout);
 
         input_length = our_getline(&input, &input_size, stdin);
-
         fputc('\r', stdout);
 
         /*

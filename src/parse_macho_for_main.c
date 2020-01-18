@@ -187,13 +187,15 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
             return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
 
         case E_MACHO_FILE_OPEN_NOT_A_MACHO:
-            if (!args.dont_handle_non_macho_error) {
-                handle_macho_file_open_result(open_macho_result,
-                                              args.dir_path,
-                                              args.name,
-                                              args.print_paths,
-                                              false);
+            if (args.dont_handle_non_macho_error) {
+                return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
             }
+
+            handle_macho_file_open_result(open_macho_result,
+                                          args.dir_path,
+                                          args.name,
+                                          args.print_paths,
+                                          false);
 
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
 
@@ -309,13 +311,15 @@ parse_macho_file_for_main_while_recursing(
             return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
 
         case E_MACHO_FILE_OPEN_NOT_A_MACHO:
-            if (!args.dont_handle_non_macho_error) {
-                handle_macho_file_open_result(open_macho_result,
+            if (args.dont_handle_non_macho_error) {
+                return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
+            }
+
+            handle_macho_file_open_result(open_macho_result,
                                               args.dir_path,
                                               args.name,
                                               args.print_paths,
                                               true);
-            }
 
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
 

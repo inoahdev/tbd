@@ -1222,14 +1222,14 @@ tbd_uuid_info_is_unique_comparator(const void *__notnull const array_item,
     const uint8_t *const array_uuid = array_uuid_info->uuid;
     const uint8_t *const uuid = (const uint8_t *)item;
 
-    return (memcmp(array_uuid, uuid, 16) == 0);
+    return (memcmp(array_uuid, uuid, sizeof(array_uuid_info->uuid)) == 0);
 }
 
 enum tbd_ci_add_uuid_result
 tbd_ci_add_uuid(struct tbd_create_info *__notnull const info_in,
                 const struct arch_info *__notnull const arch,
                 const enum tbd_platform platform,
-                const uint8_t uuid[static const 16])
+                const uint8_t uuid[const 16])
 {
     const struct tbd_uuid_info *const array_uuid =
         array_find_item(&info_in->fields.uuids,

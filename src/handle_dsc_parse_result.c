@@ -426,7 +426,7 @@ handle_dsc_image_parse_error_callback(
                     "with one another\r\n",
                     cb_info->image_path);
 
-                return false;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
             fprintf(stderr,

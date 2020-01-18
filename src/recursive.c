@@ -100,7 +100,7 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
         }
 
         /*
-         * errno is set to ENONENT when a previous path-component doesn't exist.
+         * errno is set to ENOENT when a previous path-component doesn't exist.
          *
          * Any other error is beyond our scope and we should just error-return
          * immediately.
@@ -308,8 +308,8 @@ mkdir_r(char *__notnull const path,
      * The only error supported is ENOENT (when a directory in the hierarchy
      * doesn't exist, which is the whole point of this function).
      *
-     * Other errors are beyond the scope of this function, and so we
-     * error-return immediately.
+     * Other errors are beyond the scope of this function, and so we return an
+     * error immediately.
      */
 
     if (unlikely(errno != ENOENT)) {

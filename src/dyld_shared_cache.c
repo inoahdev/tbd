@@ -26,7 +26,7 @@ static const uint64_t dsc_magic_64_normal = 2319765435151317348;
 static const uint64_t dsc_magic_64_arm64_32 = 7003509047616633188;
 
 static int
-get_arch_info_from_magic(const char magic[16],
+get_arch_info_from_magic(const char magic[const 16],
                          const struct arch_info **__notnull const arch_info_out)
 {
     const struct arch_info *arch = NULL;

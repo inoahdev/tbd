@@ -1008,11 +1008,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        const uint64_t ignore_missing_exports =
-            (!tbd_options.ignore_exports &&
-             !tbd_options.ignore_missing_exports);
+        const bool ignore_missing_exports =
+            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 
-        if (ignore_missing_exports) {
+        if (!ignore_missing_exports) {
             const struct array *const metadata = &info_in->fields.metadata;
             const struct array *const symbols = &info_in->fields.symbols;
 
@@ -1070,11 +1069,10 @@ macho_file_parse_from_file(struct tbd_create_info *__notnull const info_in,
             return ret;
         }
 
-        const uint64_t ignore_missing_exports =
-            (!tbd_options.ignore_exports &&
-             !tbd_options.ignore_missing_exports);
+        const bool ignore_missing_exports =
+            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 
-        if (ignore_missing_exports) {
+        if (!ignore_missing_exports) {
             const struct array *const metadata = &info_in->fields.metadata;
             const struct array *const symbols = &info_in->fields.symbols;
 

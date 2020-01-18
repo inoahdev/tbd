@@ -585,11 +585,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 }
 
 void tbd_for_main_handle_post_parse(struct tbd_for_main *__notnull const tbd) {
-    if (!tbd->flags.provided_platform) {
-        return;
+    if (tbd->flags.provided_platform) {
+        tbd_ci_set_single_platform(&tbd->info, tbd->platform);
     }
-
-    tbd_ci_set_single_platform(&tbd->info, tbd->platform);
 }
 
 char *
@@ -871,7 +869,7 @@ tbd_for_main_write_to_stdout(const struct tbd_for_main *__notnull const tbd,
                         strerror(errno));
             } else {
                 fputs("Failed to write to stdout (the terminal) for the "
-                       "provided input-file, error: %s\n",
+                      "provided input-file, error: %s\n",
                       stderr);
             }
         }

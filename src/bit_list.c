@@ -232,7 +232,8 @@ bit_list_get_for_index_on_heap(const struct bit_list list, const uint64_t index)
     const uint64_t byte_index = (index >> 6);
     const uint64_t *const ptr = info + byte_index;
 
-    const uint64_t bit_index = (index & ((1ull << 6) - 1));
+    const uint64_t bit_index_mask = (1ull << 6) - 1;
+    const uint64_t bit_index = (index & bit_index_mask);
     const uint64_t mask = (1ull << bit_index);
 
     return (*ptr & mask);
@@ -246,9 +247,11 @@ bit_list_set_bit(struct bit_list *__notnull const list, const uint64_t index) {
         const uint64_t byte_index = (index >> 6);
         uint64_t *const ptr = info + byte_index;
 
-        const uint64_t bit_index = (index & ((1ull << 6) - 1));
-        const uint64_t mask = (1ull << bit_index);
+        const uint64_t bit_index_mask = (1ull << 6) - 1;
+        const uint64_t bit_index = (index & bit_index_mask);
+
         const uint64_t integer = *ptr;
+        const uint64_t mask = (1ull << bit_index);
 
         if (!(integer & mask)) {
             *ptr = (integer | mask);

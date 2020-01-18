@@ -377,10 +377,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
          * have an error.
          */
 
-        const bool can_ignore_missing_exports =
-            (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
-
-        if (can_ignore_missing_exports) {
+        if (tbd_options.ignore_exports || tbd_options.ignore_missing_exports) {
             return E_DSC_IMAGE_PARSE_OK;
         }
 

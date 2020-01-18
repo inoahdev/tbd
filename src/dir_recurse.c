@@ -100,8 +100,8 @@ dir_recurse(const char *__notnull const path,
         }
 
         /*
-         * We need to reset errno as we don't know what happened while
-         * in callback().
+         * We need to reset errno as we don't know what happened while in
+         * callback().
          */
 
         errno = 0;

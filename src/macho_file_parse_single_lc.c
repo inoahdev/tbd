@@ -7,9 +7,9 @@
 //
 
 #include <string.h>
-#include "copy.h"
-
 #include "mach-o/loader.h"
+
+#include "copy.h"
 #include "macho_file_parse_single_lc.h"
 #include "macho_file.h"
 
@@ -151,7 +151,7 @@ parse_bv_platform(
     struct macho_file_parse_single_lc_info *__notnull const parse_info,
     struct tbd_create_info *__notnull const info_in,
     const struct load_command load_cmd,
-    const uint8_t *const load_cmd_iter,
+    const uint8_t *__notnull const load_cmd_iter,
     const macho_file_parse_error_callback callback,
     void *const cb_info,
     const struct tbd_parse_options options)
@@ -210,16 +210,16 @@ parse_bv_platform(
     enum tbd_platform *const platform_in = parse_info->platform_in;
 
     if (!flags_in->found_build_version) {
-        *platform_in = platform;
         flags_in->found_build_version = true;
+        *platform_in = platform;
 
         return E_MACHO_FILE_PARSE_OK;
     }
 
     const enum tbd_platform parsed_platform = *platform_in;
     if (parsed_platform == TBD_PLATFORM_NONE) {
-        *platform_in = platform;
         flags_in->found_build_version = true;
+        *platform_in = platform;
 
         return E_MACHO_FILE_PARSE_OK;
     }

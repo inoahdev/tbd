@@ -152,6 +152,7 @@ tbd_write_targets_for_header(FILE *__notnull const file,
 }
 
 static const char *const archs_symbol_key_fmt = "  - archs:%-16s[ %s";
+static const char *const targets_symbol_key_fmt = "  - targets:%-14s[ ";
 
 static int
 write_archs_for_symbol_arrays(FILE *__notnull const file,
@@ -213,8 +214,6 @@ write_archs_for_symbol_arrays(FILE *__notnull const file,
 
     return 0;
 }
-
-static const char *const targets_symbol_key_fmt = "  - targets:%-14s[ ";
 
 static int
 write_targets_as_dict_key(FILE *__notnull const file,
@@ -1196,7 +1195,6 @@ write_full_targets(FILE *__notnull file,
 
     return 0;
 }
-
 
 static int
 write_umbrella_list_with_full_targets(

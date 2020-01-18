@@ -16,16 +16,6 @@
 #include "tbd.h"
 
 uint64_t
-replace_platform_for_target(const uint64_t target,
-                            const enum tbd_platform platform)
-{
-    const uint64_t arch = (target & TARGET_ARCH_INFO_MASK);
-    const uint64_t new_target = (arch | platform);
-
-    return new_target;
-}
-
-uint64_t
 target_list_create_target(const struct arch_info *__notnull const arch,
                           const enum tbd_platform platform)
 {
@@ -35,6 +25,17 @@ target_list_create_target(const struct arch_info *__notnull const arch,
      */
 
     return ((uint64_t)arch | platform);
+}
+
+uint64_t
+replace_platform_for_target(const uint64_t target,
+                            const enum tbd_platform platform)
+{
+    const struct arch_info *const arch =
+        (const struct arch_info *)(target & TARGET_ARCH_INFO_MASK);
+
+    const uint64_t new_target = target_list_create_target(arch, platform);
+    return new_target;
 }
 
 static void *

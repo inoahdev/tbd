@@ -138,7 +138,7 @@ skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
 }
 
 static bool
-has_overlapping_range(const struct range list[static const 128],
+has_overlapping_range(const struct range list[const 128],
                       const uint64_t count,
                       const struct range range)
 {
@@ -164,8 +164,8 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  * The export-trie is a compressed tree designed to store symbols and other info
  * in an efficient fashion.
  *
- * To better understand the forat, let's create a trie of the symbols "_symbol",
- * "__symcol", and "_abcdef", "_abcghi", and work backwrds.
+ * To better understand the format, let's create a trie of the symbols
+ * "_symbol", "__symcol", and "_abcdef", "_abcghi", and work backwrds.
  *
  * Here's a tree showing how the compressed trie would look like:
  *              "_"
@@ -277,7 +277,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
                 const uint8_t *__notnull const start,
                 const uint32_t offset,
                 const uint8_t *__notnull const end,
-                struct range node_ranges[static const 128],
+                struct range node_ranges[const 128],
                 uint8_t node_ranges_count,
                 const uint32_t export_size,
                 struct string_buffer *__notnull const sb_buffer,

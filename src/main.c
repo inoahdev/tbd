@@ -18,14 +18,14 @@
 
 #include "copy.h"
 #include "dir_recurse.h"
+#include "macho_file.h"
+#include "our_io.h"
+#include "path.h"
 
 #include "parse_or_list_fields.h"
 #include "parse_dsc_for_main.h"
 #include "parse_macho_for_main.h"
 
-#include "macho_file.h"
-#include "our_io.h"
-#include "path.h"
 #include "request_user_input.h"
 #include "tbd.h"
 #include "tbd_for_main.h"

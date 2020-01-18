@@ -933,13 +933,15 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (!args.dont_handle_non_dsc_error) {
-            handle_dsc_file_parse_result(args.dsc_dir_path,
-                                         args.dsc_name,
-                                         parse_dsc_file_result,
-                                         args.print_paths,
-                                         false);
+        if (args.dont_handle_non_dsc_error) {
+            return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
         }
+
+        handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
+                                     parse_dsc_file_result,
+                                     args.print_paths,
+                                     false);
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
     }
@@ -1146,13 +1148,15 @@ parse_dsc_for_main_while_recursing(
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (!args.dont_handle_non_dsc_error) {
-            handle_dsc_file_parse_result(args.dsc_dir_path,
-                                         args.dsc_name,
-                                         parse_dsc_file_result,
-                                         args.print_paths,
-                                         true);
+        if (args.dont_handle_non_dsc_error) {
+            return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
         }
+
+        handle_dsc_file_parse_result(args.dsc_dir_path,
+                                     args.dsc_name,
+                                     parse_dsc_file_result,
+                                     args.print_paths,
+                                     true);
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
     }

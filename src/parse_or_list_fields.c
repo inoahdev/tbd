@@ -344,13 +344,13 @@ parse_component_til_ch(const char *__notnull iter,
     int result = 0;
     char ch = *iter;
 
+    if (ch == end_ch) {
+        return -1;
+    }
+
     do {
         if (ch == '\0') {
-            break;
-        }
-
-        if (ch == end_ch) {
-            iter++;
+            *iter_out = NULL;
             break;
         }
 
@@ -367,6 +367,11 @@ parse_component_til_ch(const char *__notnull iter,
 
             ch = *(++iter);
             result = new_result;
+
+            if (ch == end_ch) {
+                iter++;
+                break;
+            }
 
             continue;
         }
@@ -394,9 +399,17 @@ int64_t parse_packed_version(const char *__notnull const version) {
         return -1;
     }
 
+    if (iter == NULL) {
+        return create_packed_version(major, 0, 0);
+    }
+
     const int minor = parse_component_til_ch(iter, '.', UINT8_MAX, &iter);
     if (minor == -1) {
         return -1;
+    }
+
+    if (iter == NULL) {
+        return create_packed_version(major, minor, 0);
     }
 
     const int revision = parse_component_til_ch(iter, '\0', UINT8_MAX, &iter);
