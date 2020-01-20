@@ -1477,6 +1477,8 @@ void tbd_create_info_destroy(struct tbd_create_info *__notnull const info) {
     array_destroy(&info->fields.uuids);
 
     memset(&info->fields, 0, sizeof(info->fields));
+
     info->flags.install_name_was_allocated = false;
+    info->flags.install_name_needs_quotes = false;
 }
 

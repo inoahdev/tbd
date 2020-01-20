@@ -197,7 +197,6 @@ bool tbd_uses_archs(enum tbd_version version);
 
 struct tbd_create_info_flags {
     bool install_name_needs_quotes : 1;
-    bool parent_umbrella_needs_quotes : 1;
     bool install_name_was_allocated : 1;
 
     /*
