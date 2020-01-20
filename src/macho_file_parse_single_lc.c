@@ -6,6 +6,7 @@
 //  Copyright © 2019 - 2020 inoahdev. All rights reserved.
 //
 
+#include <stdint.h>
 #include <string.h>
 #include "mach-o/loader.h"
 
@@ -151,7 +152,7 @@ parse_bv_platform(
     struct macho_file_parse_single_lc_info *__notnull const parse_info,
     struct tbd_create_info *__notnull const info_in,
     const struct load_command load_cmd,
-    const uint8_t *__notnull const load_cmd_iter,
+    const uint8_t *__notnull const lc_iter,
     const macho_file_parse_error_callback callback,
     void *const cb_info,
     const struct tbd_parse_options options)
@@ -170,7 +171,7 @@ parse_bv_platform(
     }
 
     const struct build_version_command *const build_version =
-        (const struct build_version_command *)load_cmd_iter;
+        (const struct build_version_command *)lc_iter;
 
     uint32_t platform = build_version->platform;
     if (parse_info->options.is_big_endian) {
@@ -336,7 +337,7 @@ macho_file_parse_single_lc(
     const struct tbd_parse_options tbd_options = parse_info->tbd_options;
 
     const struct load_command load_cmd = parse_info->load_cmd;
-    const uint8_t *const load_cmd_iter = parse_info->load_cmd_iter;
+    const uint8_t *const lc_iter = parse_info->lc_iter;
 
     switch (load_cmd.cmd) {
         case LC_BUILD_VERSION: {
@@ -344,7 +345,7 @@ macho_file_parse_single_lc(
                 parse_bv_platform(parse_info,
                                   info_in,
                                   load_cmd,
-                                  load_cmd_iter,
+                                  lc_iter,
                                   callback,
                                   cb_info,
                                   tbd_options);
@@ -374,9 +375,7 @@ macho_file_parse_single_lc(
                 return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
             }
 
-            *parse_info->dyld_info_out =
-                *(struct dyld_info_command *)load_cmd_iter;
-
+            *parse_info->dyld_info_out = *(struct dyld_info_command *)lc_iter;
             break;
 
         case LC_ID_DYLIB: {
@@ -404,12 +403,7 @@ macho_file_parse_single_lc(
             }
 
             const struct dylib_command *const dylib_command =
-                (const struct dylib_command *)load_cmd_iter;
-
-            uint32_t name_offset = dylib_command->dylib.name.offset;
-            if (parse_info->options.is_big_endian) {
-                name_offset = swap_uint32(name_offset);
-            }
+                (const struct dylib_command *)lc_iter;
 
             const char *install_name = NULL;
             uint32_t length = 0;
@@ -422,32 +416,21 @@ macho_file_parse_single_lc(
                  * basic information.
                  */
 
-                if (name_offset < sizeof(struct dylib_command) ||
-                    name_offset >= load_cmd.cmdsize)
-                {
-                    const bool should_continue =
-                        call_callback(callback,
-                                      info_in,
-                                      ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME,
-                                      cb_info);
+                const uint32_t name_offset = dylib_command->dylib.name.offset;
+                const enum verify_string_result verify_string_result =
+                    verify_string_offset(lc_iter,
+                                         name_offset,
+                                         sizeof(struct dylib_command),
+                                         load_cmd.cmdsize,
+                                         &length);
 
-                    if (!should_continue) {
-                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                    }
+                switch (verify_string_result) {
+                    case E_VERIFY_STRING_OK:
+                        install_name = (const char *)lc_iter + name_offset;
+                        break;
 
-                    ignore_install_name = true;
-                } else {
-                    /*
-                     * The install-name extends from its offset to the end of
-                     * the dylib-command load-commmand.
-                     */
-
-                    const uint32_t max_length = load_cmd.cmdsize - name_offset;
-
-                    install_name = (const char *)dylib_command + name_offset;
-                    length = (uint32_t)strnlen(install_name, max_length);
-
-                    if (length == 0) {
+                    case E_VERIFY_STRING_INVALID:
+                    case E_VERIFY_STRING_EMPTY: {
                         const bool should_continue =
                             call_callback(
                                 callback,
@@ -460,6 +443,7 @@ macho_file_parse_single_lc(
                         }
 
                         ignore_install_name = true;
+                        break;
                     }
                 }
             }
@@ -580,14 +564,14 @@ macho_file_parse_single_lc(
             }
 
             const struct dylib_command *const reexport_dylib =
-                (const struct dylib_command *)load_cmd_iter;
+                (const struct dylib_command *)lc_iter;
 
-            uint32_t reexport_offset = reexport_dylib->dylib.name.offset;
+            const uint32_t reexport_offset = reexport_dylib->dylib.name.offset;
             const enum add_export_result add_reexport_result =
                 add_export_to_info(info_in,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_REEXPORT,
-                                   load_cmd_iter,
+                                   lc_iter,
                                    reexport_offset,
                                    sizeof(struct dylib_command),
                                    load_cmd.cmdsize,
@@ -618,7 +602,7 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * Ensure that sub_client_command can fit its basic structure
+             * Ensure that sub_client_command can fit its basic structure and
              * and information.
              *
              * An exact match cannot be made as sub_client_command includes a
@@ -636,14 +620,14 @@ macho_file_parse_single_lc(
              */
 
             const struct sub_client_command *const client_command =
-                (const struct sub_client_command *)load_cmd_iter;
+                (const struct sub_client_command *)lc_iter;
 
-            uint32_t client_offset = client_command->client.offset;
+            const uint32_t client_offset = client_command->client.offset;
             const enum add_export_result add_client_result =
                 add_export_to_info(info_in,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_CLIENT,
-                                   load_cmd_iter,
+                                   lc_iter,
                                    client_offset,
                                    sizeof(struct sub_client_command),
                                    load_cmd.cmdsize,
@@ -683,16 +667,13 @@ macho_file_parse_single_lc(
             }
 
             const struct sub_framework_command *const framework_command =
-                (const struct sub_framework_command *)load_cmd_iter;
-
-            uint32_t umbrella_offset = framework_command->umbrella.offset;
-            if (parse_info->options.is_big_endian) {
-                umbrella_offset = swap_uint32(umbrella_offset);
-            }
+                (const struct sub_framework_command *)lc_iter;
 
             uint32_t length = 0;
+
+            const uint32_t umbrella_offset = framework_command->umbrella.offset;
             const enum verify_string_result verify_string_result =
-                verify_string_offset(load_cmd_iter,
+                verify_string_offset(lc_iter,
                                      umbrella_offset,
                                      sizeof(struct sub_umbrella_command),
                                      load_cmd.cmdsize,
@@ -722,7 +703,7 @@ macho_file_parse_single_lc(
             }
 
             const char *const umbrella =
-                (const char *)load_cmd_iter + umbrella_offset;
+                (const char *)lc_iter + umbrella_offset;
 
             const enum tbd_ci_add_parent_umbrella_result add_umbrella_result =
                 tbd_ci_add_parent_umbrella(info_in,
@@ -776,9 +757,7 @@ macho_file_parse_single_lc(
                 return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
             }
 
-            *parse_info->symtab_out =
-                *(const struct symtab_command *)load_cmd_iter;
-
+            *parse_info->symtab_out = *(const struct symtab_command *)lc_iter;
             break;
         }
 
@@ -806,7 +785,7 @@ macho_file_parse_single_lc(
             }
 
             const struct uuid_command *const uuid_cmd =
-                (const struct uuid_command *)load_cmd_iter;
+                (const struct uuid_command *)lc_iter;
 
             if (parse_info->flags_in->found_uuid) {
                 const uint8_t *const uuid_cmd_uuid = uuid_cmd->uuid;

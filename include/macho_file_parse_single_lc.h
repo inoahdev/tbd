@@ -28,7 +28,7 @@ struct macho_file_parse_single_lc_info {
     struct macho_file_parse_slc_flags *flags_in;
     uint8_t *uuid_in;
 
-    const uint8_t *load_cmd_iter;
+    const uint8_t *lc_iter;
     struct load_command load_cmd;
 
     uint64_t arch_index;

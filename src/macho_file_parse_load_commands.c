@@ -26,8 +26,7 @@
 #include "tbd.h"
 #include "yaml.h"
 
-static inline
-bool segment_has_image_info_sect(const char name[static const 16]) {
+static inline bool segment_has_image_info_sect(const char name[const 16]) {
     const uint64_t first = *(const uint64_t *)name;
     const uint64_t *const second_ptr = (const uint64_t *)name + 1;
 
@@ -500,7 +499,7 @@ macho_file_parse_load_commands_from_file(
         .symtab_out = &symtab
     };
 
-    uint8_t *load_cmd_iter = load_cmd_buffer;
+    uint8_t *lc_iter = load_cmd_buffer;
 
     /*
      * Mach-o load-commands are stored right after the mach-o header.
@@ -519,7 +518,7 @@ macho_file_parse_load_commands_from_file(
             return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
         }
 
-        struct load_command load_cmd = *(struct load_command *)load_cmd_iter;
+        struct load_command load_cmd = *(struct load_command *)lc_iter;
         if (flags.is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
@@ -579,7 +578,7 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 const struct segment_command *const segment =
-                    (const struct segment_command *)load_cmd_iter;
+                    (const struct segment_command *)lc_iter;
 
                 if (!segment_has_image_info_sect(segment->segname)) {
                     break;
@@ -694,7 +693,7 @@ macho_file_parse_load_commands_from_file(
                 }
 
                 const struct segment_command_64 *const segment =
-                    (const struct segment_command_64 *)load_cmd_iter;
+                    (const struct segment_command_64 *)lc_iter;
 
                 if (!segment_has_image_info_sect(segment->segname)) {
                     break;
@@ -782,7 +781,7 @@ macho_file_parse_load_commands_from_file(
 
             default: {
                 parse_lc_info.load_cmd = load_cmd;
-                parse_lc_info.load_cmd_iter = load_cmd_iter;
+                parse_lc_info.lc_iter = lc_iter;
 
                 const enum macho_file_parse_result parse_load_command_result =
                     macho_file_parse_single_lc(&parse_lc_info,
@@ -799,7 +798,7 @@ macho_file_parse_load_commands_from_file(
             }
         }
 
-        load_cmd_iter += load_cmd.cmdsize;
+        lc_iter += load_cmd.cmdsize;
     }
 
     free(load_cmd_buffer);
@@ -1093,7 +1092,7 @@ macho_file_parse_load_commands_from_map(
     uint8_t uuid[16] = {};
 
     const uint8_t *const macho = parse_info->macho;
-    const uint8_t *load_cmd_iter = macho + header_size;
+    const uint8_t *lc_iter = macho + header_size;
 
     const struct macho_file_parse_options options = parse_info->options;
     const struct tbd_parse_options tbd_options = parse_info->tbd_options;
@@ -1145,9 +1144,7 @@ macho_file_parse_load_commands_from_map(
             return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
         }
 
-        struct load_command load_cmd =
-            *(const struct load_command *)load_cmd_iter;
-
+        struct load_command load_cmd = *(const struct load_command *)lc_iter;
         if (flags.is_big_endian) {
             load_cmd.cmd = swap_uint32(load_cmd.cmd);
             load_cmd.cmdsize = swap_uint32(load_cmd.cmdsize);
@@ -1206,7 +1203,7 @@ macho_file_parse_load_commands_from_map(
                 }
 
                 const struct segment_command *const segment =
-                    (const struct segment_command *)load_cmd_iter;
+                    (const struct segment_command *)lc_iter;
 
                 if (!segment_has_image_info_sect(segment->segname)) {
                     break;
@@ -1311,7 +1308,7 @@ macho_file_parse_load_commands_from_map(
                 }
 
                 const struct segment_command_64 *const segment =
-                    (const struct segment_command_64 *)load_cmd_iter;
+                    (const struct segment_command_64 *)lc_iter;
 
                 if (!segment_has_image_info_sect(segment->segname)) {
                     break;
@@ -1391,7 +1388,7 @@ macho_file_parse_load_commands_from_map(
 
             default: {
                 parse_lc_info.load_cmd = load_cmd;
-                parse_lc_info.load_cmd_iter = load_cmd_iter;
+                parse_lc_info.lc_iter = lc_iter;
 
                 const enum macho_file_parse_result parse_load_command_result =
                     macho_file_parse_single_lc(&parse_lc_info,
@@ -1406,7 +1403,7 @@ macho_file_parse_load_commands_from_map(
             }
         }
 
-        load_cmd_iter += load_cmd.cmdsize;
+        lc_iter += load_cmd.cmdsize;
     }
 
     if (!parse_slc_flags.found_identification) {
