@@ -431,16 +431,14 @@ macho_file_parse_load_commands_from_file(
     const struct range available_range = parse_info->available_range;
 
     const uint64_t macho_size = range_get_size(macho_range);
-    const uint64_t header_size = parse_info->header_size;
-    const uint64_t max_sizeofcmds =
-        range_get_size(available_range) - header_size;
+    const uint64_t max_sizeofcmds = range_get_size(available_range);
 
     if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
     const struct range relative_range = {
-        .begin = header_size,
+        .begin = parse_info->header_size,
         .end = macho_size
     };
 
