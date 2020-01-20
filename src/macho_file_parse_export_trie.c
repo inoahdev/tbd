@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "dsc_image.h"
 #include "guard_overflow.h"
 #include "likely.h"
 #include "macho_file.h"
@@ -16,18 +17,19 @@
 #include "our_io.h"
 #include "string_buffer.h"
 
-static inline int get_msb(const uint8_t byte) {
+static inline uint8_t uleb_byte_get_has_next(const uint8_t byte) {
     return (byte & 0x80);
 }
 
-const uint8_t *
-read_uleb128(const uint8_t *__notnull iter,
-             const uint8_t *__notnull const end,
-             uint64_t *__notnull const result_out)
-{
-    uint8_t shift = 0;
-    uint64_t result = 0;
+static inline uint8_t uleb_byte_get_bits(const uint8_t byte) {
+    return (byte & 0x7f);
+}
 
+const uint8_t *
+read_uleb128_32(const uint8_t *__notnull iter,
+                const uint8_t *__notnull const end,
+                uint32_t *__notnull const result_out)
+{
     /*
      * uleb128 format is as follows:
      * Every byte with the MSB set to 1 indicates that the byte and the next
@@ -59,82 +61,164 @@ read_uleb128(const uint8_t *__notnull iter,
      */
 
     uint8_t byte = *iter;
+    uint8_t has_next = uleb_byte_get_has_next(byte);
 
-    /*
-     * Quick check to shortcut if we don't have a full uleb128.
-     */
-
-    int has_next = get_msb(byte);
+    iter++;
     if (has_next == 0) {
-        iter++;
-        if (iter == end) {
-            return NULL;
-        }
-
         *result_out = byte;
         return iter;
     }
 
-    do {
-        /*
-         * Get the lower 7 bits.
-         */
+    uint8_t bits = uleb_byte_get_bits(byte);
+    uint32_t result = bits;
 
-        const uint8_t bits = (byte & 0x7f);
+    if (unlikely(iter == end)) {
+        return NULL;
+    }
 
-        /*
-         * Make sure we actually have the bit-space on a 64-bit integer to store
-         * the lower 7-bits.
-         */
+    for (uint8_t shift = 7; shift != 28; shift += 7) {
+        byte = *iter;
+        bits = uleb_byte_get_bits(byte);
 
-        const uint64_t shifted_bits = ((uint64_t)bits << shift);
-        const uint64_t shifted_back_bits = (shifted_bits >> shift);
-
-        if (bits != shifted_back_bits) {
-            return NULL;
-        }
-
-        result |= (bits << shift);
-        shift += 7;
-
+        result |= ((uint32_t)bits << shift);
+        has_next = uleb_byte_get_has_next(byte);
         iter++;
-        if (iter == end) {
-            return NULL;
-        }
 
         if (has_next == 0) {
-            break;
+            *result_out = result;
+            return iter;
         }
 
-        byte = *iter;
-        has_next = get_msb(byte);
-    } while (true);
+        if (unlikely(iter == end)) {
+            return NULL;
+        }
+    }
 
+    byte = *iter;
+    bits = uleb_byte_get_bits(byte);
+
+    if (bits > 15) {
+        return NULL;
+    }
+
+    has_next = uleb_byte_get_has_next(byte);
+    if (has_next) {
+        return NULL;
+    }
+
+    iter++;
+    result |= ((uint32_t)bits << 28);
     *result_out = result;
+
+    return iter;
+}
+
+const uint8_t *
+read_uleb128_64(const uint8_t *__notnull iter,
+                const uint8_t *__notnull const end,
+                uint64_t *__notnull const result_out)
+{
+    /*
+     * uleb128 format is as follows:
+     * Every byte with the MSB set to 1 indicates that the byte and the next
+     * byte are part of the uleb128 format.
+     *
+     * The uleb128's integer contents are stored in the 7 LSBs, and are combined
+     * into a single integer by placing every 7 bits right to the left (MSB) of
+     * the previous 7 bits stored.
+     *
+     * Ex:
+     *     10000110 10010100 00101000
+     *
+     * In the example above, the first two bytes have the MSB set, meaning that
+     * the same byte, and the byte after, are in that uleb128.
+     *
+     * In this case, all three bytes are used.
+     *
+     * The lower 7 bits of the integer are all combined together as described
+     * earlier.
+     *
+     * Parsing into an integer should result in the following:
+     *     0101000 0010100 0000110
+     *
+     * Here, the 7 bits are stored in the order opposite to how they were found.
+     *
+     * The first byte's 7 bits are stored in the 3rd component, the second
+     * byte's 7 bits are in the second component, and the third byte's 7 bits
+     * are stored in the 1st component.
+     */
+
+    uint8_t byte = *iter;
+    uint8_t has_next = uleb_byte_get_has_next(byte);
+
+    iter++;
+    if (has_next == 0) {
+        *result_out = byte;
+        return iter;
+    }
+
+    uint8_t bits = uleb_byte_get_bits(byte);
+    uint64_t result = bits;
+
+    if (unlikely(iter == end)) {
+        return NULL;
+    }
+
+    for (uint8_t shift = 7; shift != 63; shift += 7) {
+        byte = *iter;
+        bits = uleb_byte_get_bits(byte);
+
+        result |= ((uint64_t)bits << shift);
+        has_next = uleb_byte_get_has_next(byte);
+        iter++;
+
+        if (has_next == 0) {
+            *result_out = result;
+            return iter;
+        }
+
+        if (unlikely(iter == end)) {
+            return NULL;
+        }
+    }
+
+    byte = *iter;
+    bits = uleb_byte_get_bits(byte);
+
+    if (unlikely(bits > 1)) {
+        return NULL;
+    }
+
+    has_next = uleb_byte_get_has_next(byte);
+    if (unlikely(has_next)) {
+        return NULL;
+    }
+
+    iter++;
+    result |= ((uint64_t)bits << 63);
+    *result_out = result;
+
     return iter;
 }
 
 const uint8_t *
 skip_uleb128(const uint8_t *__notnull iter, const uint8_t *__notnull const end)
 {
-    uint8_t i = 0;
-    uint8_t byte = *iter;
+    for (uint8_t i = 0; i != 9; i++) {
+        const uint8_t byte = *iter;
+        const uint8_t has_next = uleb_byte_get_has_next(byte);
 
-    do {
         iter++;
-        if (iter == end || i == 9) {
-            return NULL;
+        if (has_next == 0) {
+            return iter;
         }
 
-        if (get_msb(byte) == 0) {
+        if (iter == end) {
             break;
         }
+    }
 
-        byte = *iter;
-        i++;
-    } while (true);
-
-    return iter;
+    return NULL;
 }
 
 static bool
@@ -269,6 +353,16 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  *     uleb128 address;
  *     uleb128 address_of_self_stub_resolver;
  * };
+ *
+ * An export-trie's children is each a string and a uleb128 index to the next
+ * byte starting the next export-node in the tree, located at the end of the
+ * export=node.
+ *
+ * Basically, this is a child:
+ *     struct export_node_child {
+ *         char string[];
+ *         uleb128 next;
+ *     };
  */
 
 enum macho_file_parse_result
@@ -286,7 +380,11 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
     const uint8_t *iter = start + offset;
     uint64_t iter_size = 0;
 
-    if ((iter = read_uleb128(iter, end, &iter_size)) == NULL) {
+    if ((iter = read_uleb128_64(iter, end, &iter_size)) == NULL) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
+    if (unlikely(iter == end)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
     }
 
@@ -329,7 +427,11 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         }
 
         uint64_t flags = 0;
-        if ((iter = read_uleb128(iter, end, &flags)) == NULL) {
+        if ((iter = read_uleb128_64(iter, end, &flags)) == NULL) {
+            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        if (unlikely(iter == end)) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
@@ -346,6 +448,10 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         enum tbd_symbol_meta_type meta_type = TBD_SYMBOL_META_TYPE_EXPORT;
         if (flags & EXPORT_SYMBOL_FLAGS_REEXPORT) {
             if ((iter = skip_uleb128(iter, end)) == NULL) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
+
+            if (unlikely(iter == end)) {
                 return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
             }
 
@@ -385,6 +491,10 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             }
 
             if (flags & EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER) {
+                if (unlikely(iter == end)) {
+                    return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+                }
+
                 if ((iter = skip_uleb128(iter, end)) == NULL) {
                     return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
                 }
@@ -433,6 +543,14 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
         return E_MACHO_FILE_PARSE_OK;
     }
 
+    /*
+     * From dyld, don't parse an export-trie that gets too deep.
+     */
+
+    if (unlikely(node_ranges_count == 128)) {
+        return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+    }
+
     iter++;
     if (unlikely(iter == end)) {
         return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
@@ -477,20 +595,18 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
 
         iter += (length + 1);
 
-        uint64_t next = 0;
-        if ((iter = read_uleb128(iter, end, &next)) == NULL) {
+        uint32_t next = 0;
+        if ((iter = read_uleb128_32(iter, end, &next)) == NULL) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+        }
+
+        if (unlikely(iter == end)) {
+            if (i != children_count - 1) {
+                return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
+            }
         }
 
         if (unlikely(next >= export_size)) {
-            return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
-        }
-
-        /*
-         * From dyld, don't parse an export-trie that gets too deep.
-         */
-
-        if (unlikely(node_ranges_count == 128)) {
             return E_MACHO_FILE_PARSE_INVALID_EXPORTS_TRIE;
         }
 
@@ -498,7 +614,7 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             parse_trie_node(info_in,
                             arch_index,
                             start,
-                            (uint32_t)next,
+                            next,
                             end,
                             node_ranges,
                             node_ranges_count,
