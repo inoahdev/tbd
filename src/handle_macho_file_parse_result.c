@@ -409,7 +409,7 @@ handle_macho_file_for_main_error_callback(
                       stderr);
             }
 
-            break;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_UUID_CONFLICT:
             if (cb_info->is_recursing) {
@@ -488,7 +488,7 @@ handle_macho_file_for_main_error_callback(
             }
 
             if (!request_result) {
-               return false;
+                return false;
             }
 
             break;

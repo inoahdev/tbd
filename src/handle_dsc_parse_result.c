@@ -314,7 +314,7 @@ handle_dsc_image_parse_error_callback(
                     "conflict with one another\r\n",
                     cb_info->image_path);
 
-            break;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT:
             request_result =
@@ -441,7 +441,7 @@ handle_dsc_image_parse_error_callback(
                     "\tImage (with path %s) has the wrong mach-o filetype\r\n",
                     cb_info->image_path);
 
-            break;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_INVALID_INSTALL_NAME:
             request_result =
@@ -505,7 +505,7 @@ handle_dsc_image_parse_error_callback(
                     "compatibility-version\r\n",
                     cb_info->image_path);
 
-            break;
+            return false;
 
         case ERR_MACHO_FILE_PARSE_NO_PLATFORM:
             request_result =
