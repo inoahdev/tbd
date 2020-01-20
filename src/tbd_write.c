@@ -411,7 +411,7 @@ tbd_write_install_name(FILE *__notnull const file,
 
     const char *const install_name = info->fields.install_name;
     const uint64_t length = info->fields.install_name_length;
-    const bool needs_quotes = info->flags.install_name_was_allocated;
+    const bool needs_quotes = info->flags.install_name_needs_quotes;
 
     if (write_yaml_string(file, install_name, length, needs_quotes)) {
         return 1;
@@ -1142,8 +1142,8 @@ tbd_write_metadata(FILE *__notnull const file,
 
 static int
 write_full_targets(FILE *__notnull file,
-                   const struct target_list list,
-                   const enum tbd_version version)
+                   const enum tbd_version version,
+                   const struct target_list list)
 {
     if (list.set_count == 0) {
         return 1;
@@ -1208,7 +1208,7 @@ write_umbrella_list_with_full_targets(
     const enum tbd_version version = info->version;
 
     do {
-        if (write_full_targets(file, targets, version)) {
+        if (write_full_targets(file, version, targets)) {
             return 1;
         }
 
@@ -1297,7 +1297,7 @@ tbd_write_metadata_with_full_targets(
         }
 
         uint64_t line_length = 0;
-        if (write_full_targets(file, targets, version)) {
+        if (write_full_targets(file, version, targets)) {
             return 1;
         }
 
@@ -1882,7 +1882,6 @@ int write_full_archs(FILE *__notnull file, const struct target_list list) {
     enum tbd_platform platform = TBD_PLATFORM_NONE;
 
     target_list_get_target(&list, 0, &arch, &platform);
-
     if (fprintf(file, archs_symbol_key_fmt, "", arch->name) < 0) {
         return 1;
     }
@@ -2094,7 +2093,7 @@ tbd_write_symbols_with_full_targets(
         const struct target_list targets = info->fields.targets;
         const enum tbd_version version = info->version;
 
-        if (write_full_targets(file, targets, version)) {
+        if (write_full_targets(file, version, targets)) {
             return 1;
         }
 
