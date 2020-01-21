@@ -20,6 +20,7 @@
 #include "our_io.h"
 #include "parse_macho_for_main.h"
 #include "recursive.h"
+#include "tbd.h"
 #include "tbd_for_main.h"
 
 static void verify_write_path(const struct tbd_for_main *__notnull const tbd) {
@@ -286,15 +287,13 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
 
 enum parse_macho_for_main_result
 parse_macho_file_for_main_while_recursing(
-    struct parse_macho_for_main_args *__notnull const args_ptr)
+    struct parse_macho_for_main_args *__notnull const args)
 {
-    const struct parse_macho_for_main_args args = *args_ptr;
-
     struct macho_file macho = {};
     struct range range = {};
 
     const enum macho_file_open_result open_macho_result =
-        macho_file_open(&macho, args.magic_buffer, args.fd, range);
+        macho_file_open(&macho, args->magic_buffer, args->fd, range);
 
     switch (open_macho_result) {
         case E_MACHO_FILE_OPEN_OK:
@@ -303,23 +302,23 @@ parse_macho_file_for_main_while_recursing(
         case E_MACHO_FILE_OPEN_READ_FAIL:
         case E_MACHO_FILE_OPEN_FSTAT_FAIL:
             handle_macho_file_open_result(open_macho_result,
-                                          args.dir_path,
-                                          args.name,
-                                          args.print_paths,
+                                          args->dir_path,
+                                          args->name,
+                                          args->print_paths,
                                           true);
 
             return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
 
         case E_MACHO_FILE_OPEN_NOT_A_MACHO:
-            if (args.dont_handle_non_macho_error) {
+            if (args->dont_handle_non_macho_error) {
                 return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
             }
 
             handle_macho_file_open_result(open_macho_result,
-                                              args.dir_path,
-                                              args.name,
-                                              args.print_paths,
-                                              true);
+                                          args->dir_path,
+                                          args->name,
+                                          args->print_paths,
+                                          true);
 
             return E_PARSE_MACHO_FOR_MAIN_NOT_A_MACHO;
 
@@ -331,71 +330,78 @@ parse_macho_file_for_main_while_recursing(
      * Handle any provided replacement options.
      */
 
-    struct tbd_create_info *const info = &args.tbd->info;
+    struct tbd_for_main *const tbd = args->tbd;
+    struct tbd_create_info *const info = &tbd->info;
 
-    const struct tbd_create_info *const orig = &args.orig->info;
+    struct tbd_for_main *const orig = args->orig;
+    struct tbd_create_info *const orig_info = &orig->info;
+
+    const char *const dir_path = args->dir_path;
+    const char *const name = args->name;
+    const bool print_paths = args->print_paths;
+
     const struct handle_macho_file_parse_error_cb_info cb_info = {
-        .orig = args.tbd,
-        .tbd = args.tbd,
+        .orig = orig,
+        .tbd = tbd,
 
-        .dir_path = args.dir_path,
-        .name = args.name,
+        .dir_path = dir_path,
+        .name = name,
 
-        .print_paths = args.print_paths,
+        .print_paths = args->print_paths,
         .is_recursing = true
     };
 
     struct macho_file_parse_extra_args extra = {
         .callback = handle_macho_file_for_main_error_callback,
         .cb_info = (void *)&cb_info,
-        .export_trie_sb = args.export_trie_sb
+        .export_trie_sb = args->export_trie_sb
     };
 
     const enum macho_file_parse_result parse_macho_result =
         macho_file_parse_from_file(info,
                                    &macho,
                                    extra,
-                                   args.tbd->parse_options,
-                                   args.tbd->macho_options);
+                                   tbd->parse_options,
+                                   tbd->macho_options);
 
     if (parse_macho_result != E_MACHO_FILE_PARSE_OK) {
-        tbd_create_info_clear_fields_and_create_from(info, orig);
-        handle_macho_file_parse_result(args.dir_path,
-                                       args.name,
+        tbd_create_info_clear_fields_and_create_from(info, orig_info);
+        handle_macho_file_parse_result(dir_path,
+                                       name,
                                        parse_macho_result,
-                                       args.print_paths,
+                                       print_paths,
                                        true,
-                                       args.tbd->options.ignore_warnings);
+                                       tbd->options.ignore_warnings);
 
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
-    tbd_for_main_handle_post_parse(args.tbd);
+    tbd_for_main_handle_post_parse(tbd);
 
     char *write_path = NULL;
     uint64_t write_path_length = 0;
 
-    const bool should_combine = args.tbd->options.combine_tbds;
+    const bool should_combine = tbd->options.combine_tbds;
     if (!should_combine) {
         write_path =
-            tbd_for_main_create_write_path_for_recursing(args.tbd,
-                                                         args.dir_path,
-                                                         args.dir_path_length,
-                                                         args.name,
-                                                         args.name_length,
+            tbd_for_main_create_write_path_for_recursing(tbd,
+                                                         dir_path,
+                                                         args->dir_path_length,
+                                                         name,
+                                                         args->name_length,
                                                          "tbd",
                                                          3,
                                                          &write_path_length);
     } else {
-        write_path = args.tbd->write_path;
-        write_path_length = args.tbd->write_path_length;
+        write_path = tbd->write_path;
+        write_path_length = tbd->write_path_length;
 
-        args.tbd->write_options.ignore_footer = true;
+        tbd->write_options.ignore_footer = true;
     }
 
     char *terminator = NULL;
     FILE *const file =
-        open_file_for_path_while_recursing(args_ptr,
+        open_file_for_path_while_recursing(args,
                                            write_path,
                                            write_path_length,
                                            &terminator);
@@ -405,22 +411,22 @@ parse_macho_file_for_main_while_recursing(
             free(write_path);
         }
 
-        tbd_create_info_clear_fields_and_create_from(info, orig);
+        tbd_create_info_clear_fields_and_create_from(info, orig_info);
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
-    tbd_for_main_write_to_file(args.tbd,
+    tbd_for_main_write_to_file(tbd,
                                write_path,
                                write_path_length,
                                terminator,
                                file,
-                               args.print_paths);
+                               print_paths);
 
     if (!should_combine) {
         fclose(file);
         free(write_path);
     }
 
-    tbd_create_info_clear_fields_and_create_from(info, orig);
+    tbd_create_info_clear_fields_and_create_from(info, orig_info);
     return E_PARSE_MACHO_FOR_MAIN_OK;
 }

@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include "handle_dsc_parse_result.h"
+#include "magic_buffer.h"
 #include "parse_dsc_for_main.h"
 
 #include "notnull.h"
@@ -1119,63 +1120,65 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
 
 enum parse_dsc_for_main_result
 parse_dsc_for_main_while_recursing(
-    struct parse_dsc_for_main_args *__notnull const args_ptr)
+    struct parse_dsc_for_main_args *__notnull const args)
 {
-    struct parse_dsc_for_main_args args = *args_ptr;
+    struct magic_buffer *const magic_buffer = args->magic_buffer;
     const enum magic_buffer_result get_magic_result =
-        magic_buffer_read_n(args.magic_buffer, args.fd, 16);
+        magic_buffer_read_n(magic_buffer, args->fd, 16);
 
     if (get_magic_result != E_MAGIC_BUFFER_OK) {
-        handle_dsc_file_parse_result(args.dsc_dir_path,
-                                     args.dsc_name,
+        handle_dsc_file_parse_result(args->dsc_dir_path,
+                                     args->dsc_name,
                                      E_DYLD_SHARED_CACHE_PARSE_READ_FAIL,
-                                     args.print_paths,
+                                     args->print_paths,
                                      true);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    const char *const magic = (const char *)args.magic_buffer->buff;
+    const char *const magic = (const char *)magic_buffer->buff;
 
-    struct dyld_shared_cache_parse_options dsc_options = args.tbd->dsc_options;
+    struct tbd_for_main *const tbd = args->tbd;
+    struct dyld_shared_cache_parse_options dsc_options = tbd->dsc_options;
+
     dsc_options.zero_image_pads = true;
 
     struct dyld_shared_cache_info dsc_info = {};
     const enum dyld_shared_cache_parse_result parse_dsc_file_result =
         dyld_shared_cache_parse_from_file(&dsc_info,
-                                          args.fd,
+                                          args->fd,
                                           magic,
                                           dsc_options);
 
     if (parse_dsc_file_result == E_DYLD_SHARED_CACHE_PARSE_NOT_A_CACHE) {
-        if (args.dont_handle_non_dsc_error) {
+        if (args->dont_handle_non_dsc_error) {
             return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
         }
 
-        handle_dsc_file_parse_result(args.dsc_dir_path,
-                                     args.dsc_name,
+        handle_dsc_file_parse_result(args->dsc_dir_path,
+                                     args->dsc_name,
                                      parse_dsc_file_result,
-                                     args.print_paths,
+                                     args->print_paths,
                                      true);
 
         return E_PARSE_DSC_FOR_MAIN_NOT_A_SHARED_CACHE;
     }
 
     if (parse_dsc_file_result != E_DYLD_SHARED_CACHE_PARSE_OK) {
-        handle_dsc_file_parse_result(args.dsc_dir_path,
-                                     args.dsc_name,
+        handle_dsc_file_parse_result(args->dsc_dir_path,
+                                     args->dsc_name,
                                      parse_dsc_file_result,
-                                     args.print_paths,
+                                     args->print_paths,
                                      true);
 
         return E_PARSE_DSC_FOR_MAIN_OTHER_ERROR;
     }
 
-    if (args.tbd->options.combine_tbds) {
-        args.tbd->flags.dsc_write_path_is_file = true;
-        args.tbd->write_options.ignore_footer = true;
-    } else if (args.options.verify_write_path) {
-        verify_write_path(args.tbd);
+    if (tbd->options.combine_tbds) {
+        tbd->flags.dsc_write_path_is_file = true;
+        tbd->write_options.ignore_footer = true;
+    } else if (args->options.verify_write_path) {
+        verify_write_path(tbd);
     }
 
     /*
@@ -1186,52 +1189,58 @@ parse_dsc_for_main_while_recursing(
      * of the dyld_shared_cache, followed by the extension '.tbds'.
      */
 
+    const char *const dsc_dir_path = args->dsc_dir_path;
+    const char *const dsc_name = args->dsc_name;
+
     uint64_t write_path_length = 0;
     char *const write_path =
-        tbd_for_main_create_dsc_folder_path(args.tbd,
-                                            args.dsc_dir_path,
-                                            args.dsc_dir_path_length,
-                                            args.dsc_name,
-                                            args.dsc_name_length,
+        tbd_for_main_create_dsc_folder_path(tbd,
+                                            dsc_dir_path,
+                                            args->dsc_dir_path_length,
+                                            dsc_name,
+                                            args->dsc_name_length,
                                             "tbds",
                                             4,
                                             &write_path_length);
 
+    struct tbd_for_main *const orig = args->orig;
+    const bool print_paths = args->print_paths;
+
     struct handle_dsc_image_parse_error_cb_info cb_info = {
-        .orig = args.orig,
-        .tbd = args.tbd,
+        .tbd = tbd,
+        .orig = orig,
 
-        .dsc_dir_path = args.dsc_dir_path,
-        .dsc_name = args.dsc_name,
+        .dsc_dir_path = dsc_dir_path,
+        .dsc_name = dsc_name,
 
-        .print_paths = args.print_paths
+        .print_paths = print_paths
     };
 
     struct dsc_iterate_images_info iterate_info = {
         .dsc_info = &dsc_info,
-        .dsc_dir_path = args.dsc_dir_path,
-        .dsc_name = args.dsc_name,
+        .dsc_dir_path = dsc_dir_path,
+        .dsc_name = dsc_name,
 
         .write_path = write_path,
         .write_path_length = write_path_length,
 
-        .tbd = args.tbd,
-        .orig = args.orig,
+        .tbd = tbd,
+        .orig = orig,
 
-        .combine_file = args.combine_file,
-        .retained = args.retained,
+        .combine_file = args->combine_file,
+        .retained = args->retained,
 
         .callback = handle_dsc_image_parse_error_callback,
         .callback_info = &cb_info,
 
-        .print_paths = args.print_paths,
+        .print_paths = print_paths,
         .parse_all_images = true,
 
-        .export_trie_sb = args.export_trie_sb
+        .export_trie_sb = args->export_trie_sb
     };
 
-    const struct array *const filters = &args.tbd->dsc_image_filters;
-    const struct array *const numbers = &args.tbd->dsc_image_numbers;
+    const struct array *const filters = &tbd->dsc_image_filters;
+    const struct array *const numbers = &tbd->dsc_image_numbers;
 
     /*
      * If numbers have been provided, directly call actually_parse_image()
@@ -1245,15 +1254,15 @@ parse_dsc_for_main_while_recursing(
         for (; iter != end; iter++) {
             const uint32_t number = *iter;
             if (number > dsc_info.images_count) {
-                if (args.print_paths) {
+                if (print_paths) {
                     fprintf(stderr,
                             "An image-number of %" PRIu32 " goes beyond the "
                             "images-count of %" PRIu32 " the dyld_shared_cache "
                             "(at path %s/%s) has\n",
                             number,
                             dsc_info.images_count,
-                            args.dsc_dir_path,
-                            args.dsc_name);
+                            dsc_dir_path,
+                            dsc_name);
                 } else {
                     fprintf(stderr,
                             "An image-number of %" PRIu32 " goes beyond the "
@@ -1328,7 +1337,7 @@ parse_dsc_for_main_while_recursing(
      */
 
     if (iterate_info.combine_file != NULL) {
-        args_ptr->combine_file = iterate_info.combine_file;
+        args->combine_file = iterate_info.combine_file;
     }
 
     free(write_path);
