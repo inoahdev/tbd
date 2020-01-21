@@ -17,20 +17,9 @@
 
 struct macho_file_parse_symtab_args {
     struct tbd_create_info *info_in;
-
-    /*
-     * Note: macho_file_parse_symbols_[64_]from_map() does not use macho_range.
-     */
-
     struct range available_range;
 
-    /*
-     * `fully_parse` stores whether we parse the entire symbol-table, or only
-     * private objc-symbols.
-     */
-
-    bool fully_parse;
-    bool is_big_endian;
+    bool is_big_endian : 1;
 
     uint32_t symoff;
     uint32_t nsyms;

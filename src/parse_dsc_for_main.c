@@ -55,9 +55,9 @@ struct dsc_iterate_images_info {
     macho_file_parse_error_callback callback;
     struct handle_dsc_image_parse_error_cb_info *callback_info;
 
-    bool print_paths;
-    bool parse_all_images;
-    bool did_print_messages_header;
+    bool print_paths : 1;
+    bool parse_all_images : 1;
+    bool did_print_messages_header : 1;
 
     struct retained_user_info *retained;
     struct string_buffer *export_trie_sb;

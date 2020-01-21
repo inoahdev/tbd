@@ -18,8 +18,8 @@ struct macho_file_parse_export_trie_args {
 
     uint64_t arch_index;
 
-    bool is_64;
-    bool is_big_endian;
+    bool is_64 : 1;
+    bool is_big_endian : 1;
 
     uint32_t export_off;
     uint32_t export_size;

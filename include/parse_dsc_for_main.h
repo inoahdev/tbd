@@ -38,8 +38,8 @@ struct parse_dsc_for_main_args {
 
     FILE *combine_file;
 
-    bool dont_handle_non_dsc_error;
-    bool print_paths;
+    bool dont_handle_non_dsc_error : 1;
+    bool print_paths : 1;
 
     struct string_buffer *export_trie_sb;
     struct parse_dsc_for_main_options options;

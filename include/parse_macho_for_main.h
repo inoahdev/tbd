@@ -43,8 +43,8 @@ struct parse_macho_for_main_args {
 
     FILE *combine_file;
 
-    bool dont_handle_non_macho_error;
-    bool print_paths;
+    bool dont_handle_non_macho_error : 1;
+    bool print_paths : 1;
 
     struct string_buffer *export_trie_sb;
     struct parse_macho_for_main_options options;
