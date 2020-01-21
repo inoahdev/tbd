@@ -344,16 +344,11 @@ parse_component_til_ch(const char *__notnull iter,
     int result = 0;
     char ch = *iter;
 
-    if (ch == end_ch) {
+    if (ch == end_ch || ch == '\0') {
         return -1;
     }
 
     do {
-        if (ch == '\0') {
-            *iter_out = NULL;
-            break;
-        }
-
         if (ch_is_digit(ch)) {
             const int new_result = append_ch_to_number(result, ch);
 
@@ -370,6 +365,9 @@ parse_component_til_ch(const char *__notnull iter,
 
             if (ch == end_ch) {
                 iter++;
+                break;
+            } else if (ch == '\0') {
+                iter = NULL;
                 break;
             }
 
