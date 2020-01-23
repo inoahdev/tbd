@@ -69,12 +69,12 @@ read_uleb128_32(const uint8_t *__notnull iter,
         return iter;
     }
 
-    uint8_t bits = uleb_byte_get_bits(byte);
-    uint32_t result = bits;
-
     if (unlikely(iter == end)) {
         return NULL;
     }
+
+    uint8_t bits = uleb_byte_get_bits(byte);
+    uint32_t result = bits;
 
     for (uint8_t shift = 7; shift != 28; shift += 7) {
         byte = *iter;
@@ -157,12 +157,12 @@ read_uleb128_64(const uint8_t *__notnull iter,
         return iter;
     }
 
-    uint8_t bits = uleb_byte_get_bits(byte);
-    uint64_t result = bits;
-
     if (unlikely(iter == end)) {
         return NULL;
     }
+
+    uint8_t bits = uleb_byte_get_bits(byte);
+    uint64_t result = bits;
 
     for (uint8_t shift = 7; shift != 63; shift += 7) {
         byte = *iter;
