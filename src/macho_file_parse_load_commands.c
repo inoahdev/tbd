@@ -22,6 +22,7 @@
 #include "macho_file_parse_symtab.h"
 
 #include "our_io.h"
+#include "range.h"
 #include "swap.h"
 #include "tbd.h"
 #include "yaml.h"
@@ -161,8 +162,8 @@ static enum macho_file_parse_result
 parse_section_from_file(struct tbd_create_info *__notnull const info_in,
                         uint32_t *__notnull const swift_version_in,
                         const int fd,
-                        const struct range full_range,
-                        const struct range macho_range,
+                        const uint64_t base,
+                        const struct range macho_available_range,
                         const uint32_t sect_offset,
                         const uint64_t sect_size,
                         const off_t position,
@@ -185,7 +186,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
         .end = sect_end
     };
 
-    if (!range_contains_other(macho_range, sect_range)) {
+    if (!range_contains_other(macho_available_range, sect_range)) {
         return E_MACHO_FILE_PARSE_INVALID_SECTION;
     }
 
@@ -199,7 +200,7 @@ parse_section_from_file(struct tbd_create_info *__notnull const info_in,
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
     } else {
-        const off_t absolute = (off_t)(full_range.begin + sect_offset);
+        const off_t absolute = (off_t)(base + sect_offset);
         if (our_lseek(fd, absolute, SEEK_SET) < 0) {
             return E_MACHO_FILE_PARSE_SEEK_FAIL;
         }
@@ -428,18 +429,37 @@ macho_file_parse_load_commands_from_file(
      */
 
     const struct range macho_range = parse_info->macho_range;
-    const struct range available_range = parse_info->available_range;
+    const struct range available_range_in = parse_info->available_range;
 
     const uint64_t macho_size = range_get_size(macho_range);
-    const uint64_t max_sizeofcmds = range_get_size(available_range);
+    const uint64_t max_sizeofcmds = range_get_size(available_range_in);
 
     if (sizeofcmds > max_sizeofcmds) {
         return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
     }
 
+    uint32_t relative_begin = parse_info->header_size;
+    if (guard_overflow_add(&relative_begin, sizeofcmds)) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    }
+
     const struct range relative_range = {
-        .begin = parse_info->header_size,
+        .begin = relative_begin,
         .end = macho_size
+    };
+
+    if (range_get_size(relative_range) == 0) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    }
+
+    uint64_t available_begin = available_range_in.begin;
+    if (guard_overflow_add(&available_begin, sizeofcmds)) {
+        return E_MACHO_FILE_PARSE_TOO_MANY_LOAD_COMMANDS;
+    }
+
+    const struct range available_range = {
+        .begin = available_begin,
+        .end = available_range_in.end
     };
 
     enum tbd_platform platform = TBD_PLATFORM_NONE;
@@ -503,7 +523,7 @@ macho_file_parse_load_commands_from_file(
      * Mach-o load-commands are stored right after the mach-o header.
      */
 
-    uint64_t lc_position = available_range.begin;
+    uint64_t lc_position = available_range_in.begin;
     uint32_t size_left = sizeofcmds;
 
     for (uint32_t i = 0; i != ncmds; i++) {
@@ -641,7 +661,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                macho_range,
+                                                macho_range.begin,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -756,7 +776,7 @@ macho_file_parse_load_commands_from_file(
                         parse_section_from_file(info_in,
                                                 &swift_version,
                                                 fd,
-                                                macho_range,
+                                                macho_range.begin,
                                                 relative_range,
                                                 sect_offset,
                                                 sect_size,
@@ -942,8 +962,8 @@ macho_file_parse_load_commands_from_file(
 
 static enum macho_file_parse_result
 parse_section_from_map(struct tbd_create_info *__notnull const info_in,
-                       const struct range map_range,
-                       const struct range macho_range,
+                       const struct range map_available_range,
+                       const struct range macho_available_range,
                        const uint8_t *__notnull const map,
                        const uint8_t *__notnull const macho,
                        const uint32_t sect_offset,
@@ -969,23 +989,20 @@ parse_section_from_map(struct tbd_create_info *__notnull const info_in,
     };
 
     if (options.sect_off_absolute) {
-        if (!range_contains_other(map_range, sect_range)) {
+        if (!range_contains_other(map_available_range, sect_range)) {
             return E_MACHO_FILE_PARSE_INVALID_SECTION;
         }
 
-        const void *const iter = map + sect_offset;
-        image_info = (const struct objc_image_info *)iter;
+        image_info = (const struct objc_image_info *)(map + sect_offset);
     } else {
-        if (!range_contains_other(macho_range, sect_range)) {
+        if (!range_contains_other(macho_available_range, sect_range)) {
             return E_MACHO_FILE_PARSE_INVALID_SECTION;
         }
 
-        const void *const iter = macho + sect_offset;
-        image_info = (const struct objc_image_info *)iter;
+        image_info = (const struct objc_image_info *)(macho + sect_offset);
     }
 
     const uint32_t flags = image_info->flags;
-
     if (tbd_should_parse_objc_constraint(tbd_options, info_in->version)) {
         enum tbd_objc_constraint objc_constraint =
             TBD_OBJC_CONSTRAINT_RETAIN_RELEASE;
