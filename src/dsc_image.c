@@ -183,12 +183,27 @@ get_offset_from_addr(struct dyld_shared_cache_info *__notnull const info,
     return 0;
 }
 
+static inline bool
+call_callback(const macho_file_parse_error_callback callback,
+              struct tbd_create_info *__notnull const info_in,
+              const enum macho_file_parse_callback_type type,
+              void *const cb_info)
+{
+    if (callback != NULL) {
+        if (callback(info_in, type, cb_info)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 enum dsc_image_parse_result
 dsc_image_parse(struct tbd_create_info *__notnull const info_in,
                 struct dyld_shared_cache_info *__notnull const dsc_info,
                 struct dyld_cache_image_info *__notnull const image,
                 const macho_file_parse_error_callback callback,
-                void *const callback_info,
+                void *const cb_info,
                 struct string_buffer *__notnull const export_trie_sb,
                 struct macho_file_parse_options macho_options,
                 const struct tbd_parse_options tbd_options,
@@ -253,6 +268,30 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         info_in->fields.flags.not_app_extension_safe = true;
     }
 
+    if (flags & MH_NLIST_OUTOFSYNC_WITH_DYLDINFO) {
+        if (macho_options.use_symbol_table) {
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              WARN_MACHO_FILE_SYMBOL_TABLE_OUTOFSYNC,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_DSC_IMAGE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+        }
+    }
+
+    if (flags & MH_SIM_SUPPORT) {
+        if (dsc_info->flags.has_simulator_header) {
+            if (!dsc_info->flags.is_simulator) {
+                return E_DSC_IMAGE_PARSE_SIMULATOR_TYPE_MISMATCH;
+            }
+        }
+
+        lc_flags.expecting_sim_platform = true;
+    }
+
     info_in->flags.uses_full_targets = true;
 
     /*
@@ -292,7 +331,7 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
 
     struct macho_file_parse_extra_args extra = {
         .callback = callback,
-        .cb_info = callback_info,
+        .cb_info = cb_info,
         .export_trie_sb = export_trie_sb
     };
 

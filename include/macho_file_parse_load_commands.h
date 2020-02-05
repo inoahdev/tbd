@@ -22,6 +22,13 @@
 struct macho_file_parse_lc_flags {
     bool is_64 : 1;
     bool is_big_endian : 1;
+
+    /*
+     * Older simulator binaries will not have the newly added MH_SIM_SUPPORT
+     * flag, but newer binaries with the flag should have a simulator platform.
+     */
+
+    bool expecting_sim_platform : 1;
 };
 
 struct mf_parse_lc_from_file_info {

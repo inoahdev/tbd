@@ -15,4 +15,3 @@
 char *alloc_and_copy(const char *__notnull string, uint64_t length);
 
 #endif /* COPY_H */
-

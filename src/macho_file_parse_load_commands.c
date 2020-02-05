@@ -143,14 +143,14 @@ static inline bool is_image_info_section(const char name[16]) {
     return false;
 }
 
-static bool
+static inline bool
 call_callback(const macho_file_parse_error_callback callback,
               struct tbd_create_info *__notnull const info_in,
-              const enum macho_file_parse_error error,
+              const enum macho_file_parse_callback_type type,
               void *const cb_info)
 {
     if (callback != NULL) {
-        if (callback(info_in, error, cb_info)) {
+        if (callback(info_in, type, cb_info)) {
             return true;
         }
     }
@@ -463,9 +463,10 @@ macho_file_parse_load_commands_from_file(
     };
 
     enum tbd_platform platform = TBD_PLATFORM_NONE;
-
-    struct dyld_info_command dyld_info = {};
     struct symtab_command symtab = {};
+
+    uint32_t export_off = 0;
+    uint32_t export_size = 0;
     uint8_t uuid[16] = {};
 
     /*
@@ -490,7 +491,11 @@ macho_file_parse_load_commands_from_file(
         { .copy_strings = true };
 
     if (flags.is_big_endian) {
-        parse_slc_opts.is_big_endian = true;
+        parse_slc_flags.is_big_endian = true;
+    }
+
+    if (flags.expecting_sim_platform) {
+        parse_slc_flags.expecting_sim_platform = true;
     }
 
     const struct tbd_parse_options tbd_options = parse_info->tbd_options;
@@ -513,7 +518,9 @@ macho_file_parse_load_commands_from_file(
         .tbd_options = tbd_options,
         .options = parse_slc_opts,
 
-        .dyld_info_out = &dyld_info,
+        .export_off_out = &export_off,
+        .export_size_out = &export_size,
+
         .symtab_out = &symtab
     };
 
@@ -848,19 +855,19 @@ macho_file_parse_load_commands_from_file(
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
 
-    bool parsed_dyld_info = false;
+    bool parsed_export_trie = false;
     bool parse_symtab = true;
 
     if (!options.use_symbol_table) {
-        if (dyld_info.export_off != 0 && dyld_info.export_size != 0) {
+        if (export_off != 0 && export_size != 0) {
             if (flags.is_big_endian) {
-                dyld_info.export_off = swap_uint32(dyld_info.export_off);
-                dyld_info.export_size = swap_uint32(dyld_info.export_size);
+                export_off = swap_uint32(export_off);
+                export_size = swap_uint32(export_size);
             }
 
             if (lc_info_out != NULL) {
-                lc_info_out->export_off = dyld_info.export_off;
-                lc_info_out->export_size = dyld_info.export_size;
+                lc_info_out->export_off = export_off;
+                lc_info_out->export_size = export_size;
             }
 
             const uint64_t base_offset = macho_range.begin;
@@ -873,8 +880,8 @@ macho_file_parse_load_commands_from_file(
                 .is_64 = flags.is_64,
                 .is_big_endian = flags.is_big_endian,
 
-                .export_off = dyld_info.export_off,
-                .export_size = dyld_info.export_size,
+                .export_off = export_off,
+                .export_size = export_size,
 
                 .sb_buffer = extra.export_trie_sb,
                 .tbd_options = tbd_options
@@ -885,7 +892,7 @@ macho_file_parse_load_commands_from_file(
                 return ret;
             }
 
-            parsed_dyld_info = true;
+            parsed_export_trie = true;
             if (symtab.nsyms != 0) {
                 parse_symtab = should_parse_symtab(options, tbd_options);
             } else {
@@ -937,7 +944,7 @@ macho_file_parse_load_commands_from_file(
         } else {
             ret = macho_file_parse_symtab_from_file(&args, fd, base_offset);
         }
-    } else if (!parsed_dyld_info) {
+    } else if (!parsed_export_trie) {
         const uint64_t ignore_missing_exports =
             (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 
@@ -1100,10 +1107,11 @@ macho_file_parse_load_commands_from_map(
         .end = macho_size
     };
 
-    struct dyld_info_command dyld_info = {};
     struct symtab_command symtab = {};
-
     enum tbd_platform platform = TBD_PLATFORM_NONE;
+
+    uint32_t export_off = 0;
+    uint32_t export_size = 0;
     uint8_t uuid[16] = {};
 
     const uint8_t *const macho = parse_info->macho;
@@ -1125,7 +1133,11 @@ macho_file_parse_load_commands_from_map(
 
     const struct macho_file_parse_lc_flags flags = parse_info->flags;
     if (flags.is_big_endian) {
-        parse_slc_opts.is_big_endian = true;
+        parse_slc_flags.is_big_endian = true;
+    }
+
+    if (flags.expecting_sim_platform) {
+        parse_slc_flags.expecting_sim_platform = true;
     }
 
     const uint8_t *const map = parse_info->map;
@@ -1146,7 +1158,9 @@ macho_file_parse_load_commands_from_map(
         .tbd_options = tbd_options,
         .options = parse_slc_opts,
 
-        .dyld_info_out = &dyld_info,
+        .export_off_out = &export_off,
+        .export_size_out = &export_size,
+
         .symtab_out = &symtab
     };
 
@@ -1449,23 +1463,23 @@ macho_file_parse_load_commands_from_map(
 
     enum macho_file_parse_result ret = E_MACHO_FILE_PARSE_OK;
 
-    bool parsed_dyld_info = false;
+    bool parsed_export_trie = false;
     bool parse_symtab = true;
 
     if (!options.use_symbol_table) {
-        if (dyld_info.export_off != 0 && dyld_info.export_size != 0) {
+        if (export_off != 0 && export_size != 0) {
             if (tbd_options.ignore_exports) {
                 return E_MACHO_FILE_PARSE_OK;
             }
 
             if (flags.is_big_endian) {
-                dyld_info.export_off = swap_uint32(dyld_info.export_off);
-                dyld_info.export_size = swap_uint32(dyld_info.export_size);
+                export_off = swap_uint32(export_off);
+                export_size = swap_uint32(export_size);
             }
 
             if (lc_info_out != NULL) {
-                lc_info_out->export_off = dyld_info.export_off;
-                lc_info_out->export_size = dyld_info.export_size;
+                lc_info_out->export_off = export_off;
+                lc_info_out->export_size = export_size;
             }
 
             const struct macho_file_parse_export_trie_args args = {
@@ -1477,8 +1491,8 @@ macho_file_parse_load_commands_from_map(
                 .is_64 = flags.is_64,
                 .is_big_endian = flags.is_big_endian,
 
-                .export_off = dyld_info.export_off,
-                .export_size = dyld_info.export_size,
+                .export_off = export_off,
+                .export_size = export_size,
 
                 .sb_buffer = extra.export_trie_sb,
                 .tbd_options = tbd_options
@@ -1489,7 +1503,7 @@ macho_file_parse_load_commands_from_map(
                 return ret;
             }
 
-            parsed_dyld_info = true;
+            parsed_export_trie = true;
             if (symtab.nsyms != 0) {
                 parse_symtab = should_parse_symtab(options, tbd_options);
             } else {
@@ -1542,7 +1556,7 @@ macho_file_parse_load_commands_from_map(
                 ret = macho_file_parse_symtab_from_map(&args, map);
             }
         }
-    } else if (!parsed_dyld_info) {
+    } else if (!parsed_export_trie) {
         const uint64_t ignore_missing_exports =
             (tbd_options.ignore_exports || tbd_options.ignore_missing_exports);
 

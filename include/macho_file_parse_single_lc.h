@@ -9,16 +9,18 @@
 #include "macho_file.h"
 
 struct macho_file_parse_slc_flags {
+    bool is_big_endian : 1;
+    bool expecting_sim_platform : 1;
+
     bool found_build_version : 1;
     bool found_identification : 1;
     bool found_uuid : 1;
 
-    bool found_catalyst_platform : 1;
+    bool found_iosmac_platform : 1;
 };
 
 struct macho_file_parse_slc_options {
     bool copy_strings : 1;
-    bool is_big_endian : 1;
 };
 
 struct macho_file_parse_single_lc_info {
@@ -36,7 +38,9 @@ struct macho_file_parse_single_lc_info {
     struct tbd_parse_options tbd_options;
     struct macho_file_parse_slc_options options;
 
-    struct dyld_info_command *dyld_info_out;
+    uint32_t *export_off_out;
+    uint32_t *export_size_out;
+
     struct symtab_command *symtab_out;
 };
 

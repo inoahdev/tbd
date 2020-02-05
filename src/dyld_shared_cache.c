@@ -451,6 +451,21 @@ dyld_shared_cache_parse_from_file(
         }
     }
 
+    if (available_range.begin >= sizeof(struct dyld_cache_header_v5)) {
+        struct dyld_cache_header_v5 v5_header = {};
+        const size_t read_size = sizeof(v5_header) - sizeof(header);
+
+        if (read(fd, &v5_header.codeSignatureOffset, read_size) < 0) {
+            return E_DYLD_SHARED_CACHE_PARSE_READ_FAIL;
+        }
+
+        if (v5_header.simulator) {
+            info_in->flags.is_simulator = true;
+        }
+
+        info_in->flags.has_simulator_header = true;
+    }
+
     info_in->images = image_list;
     info_in->images_count = header.imagesCount;
 

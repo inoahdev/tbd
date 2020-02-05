@@ -6,10 +6,11 @@
 //  Copyright © 2018 - 2020 inoahdev. All rights reserved.
 //
 
+#include <sys/types.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 #include "copy.h"
 #include "likely.h"
@@ -64,7 +65,7 @@ tbd_platform_to_string(const enum tbd_platform platform,
         case TBD_PLATFORM_BRIDGEOS:
             return "bridgeos";
 
-        case TBD_PLATFORM_MACCATALYST:
+        case TBD_PLATFORM_IOSMAC:
             if (version == TBD_VERSION_V4) {
                 return "maccatalyst";
             }
@@ -80,8 +81,8 @@ tbd_platform_to_string(const enum tbd_platform platform,
         case TBD_PLATFORM_WATCHOS_SIMULATOR:
             return "watchos-simulator";
 
-        case TBD_PLATFORM_ZIPPERED:
-            return "zippered";
+        case TBD_PLATFORM_DRIVERKIT:
+            return "driverkit";
     }
 }
 

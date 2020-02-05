@@ -163,12 +163,12 @@ static inline bool magic_is_64_bit(const uint32_t magic) {
 
 static inline bool
 call_callback(struct tbd_create_info *__notnull const info_in,
-              const enum macho_file_parse_error error,
+              const enum macho_file_parse_callback_type type,
               const macho_file_parse_error_callback callback,
               void *const cb_info)
 {
     if (callback != NULL) {
-        if (callback(info_in, error, cb_info)) {
+        if (callback(info_in, type, cb_info)) {
             return true;
         }
     }
@@ -259,6 +259,24 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         if (!(mh_flags & MH_APP_EXTENSION_SAFE)) {
             info_in->fields.flags.not_app_extension_safe = true;
         }
+    }
+
+    if (mh_flags & MH_NLIST_OUTOFSYNC_WITH_DYLDINFO) {
+        if (options.use_symbol_table) {
+            const bool should_ignore =
+                call_callback(info_in,
+                              WARN_MACHO_FILE_SYMBOL_TABLE_OUTOFSYNC,
+                              extra.callback,
+                              extra.cb_info);
+
+            if (!should_ignore) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+        }
+    }
+
+    if (mh_flags & MH_SIM_SUPPORT) {
+        lc_flags.expecting_sim_platform = true;
     }
 
     const struct range lc_available_range = {

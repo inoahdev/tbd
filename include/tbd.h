@@ -88,7 +88,7 @@ enum tbd_platform {
      */
 
     TBD_PLATFORM_BRIDGEOS,
-    TBD_PLATFORM_MACCATALYST,
+    TBD_PLATFORM_IOSMAC,
 
     /*
      * Apple's mach-o/loader.h doesn't yet contain the simulator platforms, but
@@ -98,13 +98,7 @@ enum tbd_platform {
     TBD_PLATFORM_IOS_SIMULATOR,
     TBD_PLATFORM_TVOS_SIMULATOR,
     TBD_PLATFORM_WATCHOS_SIMULATOR,
-
-    /*
-     * The platform below isn't yet supported in a mach-o file, however, Apple's
-     * official libtapi supports this platform, so it is included here.
-     */
-
-    TBD_PLATFORM_ZIPPERED
+    TBD_PLATFORM_DRIVERKIT
 };
 
 enum tbd_version {

@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "handle_dsc_parse_result.h"
+#include "macho_file.h"
 #include "request_user_input.h"
 
 void
@@ -258,7 +259,7 @@ print_dsc_image_parse_error_message_header(
 bool
 handle_dsc_image_parse_error_callback(
     struct tbd_create_info *__unused __notnull const info_in,
-    const enum macho_file_parse_error error,
+    const enum macho_file_parse_callback_type type,
     void *const callback_info)
 {
     struct handle_dsc_image_parse_error_cb_info *const cb_info =
@@ -273,7 +274,7 @@ handle_dsc_image_parse_error_callback(
     }
 
     bool request_result = true;
-    switch (error) {
+    switch (type) {
         case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
             request_result =
                 request_current_version(cb_info->orig,
@@ -307,6 +308,14 @@ handle_dsc_image_parse_error_callback(
             }
 
             break;
+
+        case ERR_MACHO_FILE_PARSE_EXPORT_TRIE_CONFLICT:
+            fprintf(stderr,
+                    "\tImage (with path %s) has multiple export-tries that "
+                    "conflict with one another\r\n",
+                    cb_info->image_path);
+
+            return false;
 
         case ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT:
             fprintf(stderr,
@@ -420,6 +429,14 @@ handle_dsc_image_parse_error_callback(
 
             break;
 
+        case ERR_MACHO_FILE_PARSE_SYMBOL_TABLE_CONFLICT:
+            fprintf(stderr,
+                    "\tImage (with path %s) has multiple symbol-tables "
+                    "conflicting with one another\r\n",
+                    cb_info->image_path);
+
+            return false;
+
         case ERR_MACHO_FILE_PARSE_TARGET_PLATFORM_CONFLICT:
             fprintf(stderr,
                     "\tImage (with path %s) has multiple platforms conflicting "
@@ -432,13 +449,6 @@ handle_dsc_image_parse_error_callback(
             fprintf(stderr,
                     "\tImage (with path %s) has multiple uuids conflicting "
                     "with one another\r\n",
-                    cb_info->image_path);
-
-            return false;
-
-        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
-            fprintf(stderr,
-                    "\tImage (with path %s) has the wrong mach-o filetype\r\n",
                     cb_info->image_path);
 
             return false;
@@ -527,6 +537,29 @@ handle_dsc_image_parse_error_callback(
         case ERR_MACHO_FILE_PARSE_NO_UUID:
             fprintf(stderr,
                     "\tImage (with path %s) has no uuid\r\n",
+                    cb_info->image_path);
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM:
+            fprintf(stderr,
+                    "\tImage (with path %s) has a simulator platform while not "
+                    "belonging not being a simulator binary\n",
+                    cb_info->image_path);
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
+            fprintf(stderr,
+                    "\tImage (with path %s) has the wrong mach-o filetype\r\n",
+                    cb_info->image_path);
+
+            return false;
+
+        case WARN_MACHO_FILE_SYMBOL_TABLE_OUTOFSYNC:
+            fprintf(stderr,
+                    "\tImage (with path %s) has a symbol-table out-of-sync "
+                    "with the export-trie\r\n",
                     cb_info->image_path);
 
             return false;
@@ -725,6 +758,14 @@ print_dsc_image_parse_error(const char *__notnull const image_path,
             fprintf(stderr,
                     "Failed to create targets-list while parsing image (with "
                     "path: %s)\r\n",
+                    image_path);
+
+            break;
+
+        case E_DSC_IMAGE_PARSE_SIMULATOR_TYPE_MISMATCH:
+            fprintf(stderr,
+                    "Image (with path %s) has a different simulator-platform "
+                    "than the dyld_shared_cache\r\n",
                     image_path);
 
             break;

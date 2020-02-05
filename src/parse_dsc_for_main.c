@@ -124,6 +124,7 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
         case E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE:
         case E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL:
         case E_DSC_IMAGE_PARSE_CREATE_TARGET_LIST_FAIL:
+        case E_DSC_IMAGE_PARSE_SIMULATOR_TYPE_MISMATCH:
             break;
     }
 

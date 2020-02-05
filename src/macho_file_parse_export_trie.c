@@ -239,12 +239,6 @@ has_overlapping_range(const struct range list[const 128],
 }
 
 /*
- * Apple's mach-o loader.h header doesn't seem to have this export-kind.
- */
-
-const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
-
-/*
  * The export-trie is a compressed tree designed to store symbols and other info
  * in an efficient fashion.
  *

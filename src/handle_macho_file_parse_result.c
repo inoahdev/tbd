@@ -15,14 +15,14 @@
 bool
 handle_macho_file_for_main_error_callback(
     struct tbd_create_info *__unused __notnull const info_in,
-    const enum macho_file_parse_error error,
+    const enum macho_file_parse_callback_type type,
     void *const callback_info)
 {
     const struct handle_macho_file_parse_error_cb_info *const cb_info =
         (const struct handle_macho_file_parse_error_cb_info *)callback_info;
 
     bool request_result = false;
-    switch (error) {
+    switch (type) {
         case ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT:
             if (cb_info->is_recursing) {
                 fprintf(stderr,
@@ -58,6 +58,26 @@ handle_macho_file_for_main_error_callback(
             } else {
                 fputs("The provided mach-o file has archs with multiple "
                       "compatibility-versions conflicting with one another\n",
+                      stderr);
+            }
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_EXPORT_TRIE_CONFLICT:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has archs with multiple "
+                        "export-tries conflicting with one another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s) has archs with multiple "
+                        "export-tries conflicting with one another\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file has archs with multiple "
+                      "export-tries conflicting with one another\n",
                       stderr);
             }
 
@@ -391,6 +411,26 @@ handle_macho_file_for_main_error_callback(
 
             break;
 
+        case ERR_MACHO_FILE_PARSE_SYMBOL_TABLE_CONFLICT:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has archs with multiple "
+                        "symbol-tables conflicting with one another\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s) has archs with multiple "
+                        "symbol-tables conflicting with one another\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file has archs with multiple "
+                      "symbol-tables conflicting with one another\n",
+                      stderr);
+            }
+
+            return false;
+
         case ERR_MACHO_FILE_PARSE_TARGET_PLATFORM_CONFLICT:
             if (cb_info->is_recursing) {
                 fprintf(stderr,
@@ -426,29 +466,6 @@ handle_macho_file_for_main_error_callback(
             } else {
                 fputs("The provided mach-o file has archs with multiple uuids "
                       "that are not unique\n",
-                      stderr);
-            }
-
-            return false;
-
-        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
-            /*
-             * We simply ignore any mach-o non-dynamic-library files while
-             * recursing.
-             */
-
-            if (cb_info->is_recursing) {
-                return false;
-            }
-
-            if (cb_info->print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s), or one of its archs, has "
-                        "the wrong mach-o filetype\n",
-                        cb_info->dir_path);
-            } else {
-                fputs("The provided mach-o file, or one of its archs, has the "
-                      "wrong mach-o filetype\n",
                       stderr);
             }
 
@@ -565,6 +582,72 @@ handle_macho_file_for_main_error_callback(
             } else {
                 fputs("The provided mach-o file, or one of its archs, does not "
                       "have a uuid\n ",
+                      stderr);
+            }
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s), or one of its archs, "
+                        "has a simulator platform while not being a simulator "
+                        "binary\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its archs has a "
+                        "simulator platform while not being a simulator "
+                        "binary\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its archs, has a "
+                      "a simulator platform while not being a simulator "
+                      "binary\n",
+                      stderr);
+            }
+
+            return false;
+
+        case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
+            /*
+             * We simply ignore any mach-o non-dynamic-library files while
+             * recursing.
+             */
+
+            if (cb_info->is_recursing) {
+                return false;
+            }
+
+            if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its archs, has "
+                        "the wrong mach-o filetype\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its archs, has the "
+                      "wrong mach-o filetype\n",
+                      stderr);
+            }
+
+            return false;
+
+        case WARN_MACHO_FILE_SYMBOL_TABLE_OUTOFSYNC:
+            if (cb_info->is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has a symbol-table "
+                        "out-of-sync with the export-trie\r\n",
+                        cb_info->dir_path,
+                        cb_info->name);
+            } else if (cb_info->print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s) has a symbol-table "
+                        "out-of-sync with the export-trie\r\n",
+                        cb_info->dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its archs, has a "
+                      "symbol-table out-of-sync with the export-trie",
                       stderr);
             }
 

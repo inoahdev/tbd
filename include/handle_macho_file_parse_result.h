@@ -26,7 +26,7 @@ struct handle_macho_file_parse_error_cb_info {
 bool
 handle_macho_file_for_main_error_callback(
     struct tbd_create_info *__notnull info_in,
-    enum macho_file_parse_error error,
+    enum macho_file_parse_callback_type type,
     void *cb_info);
 
 void

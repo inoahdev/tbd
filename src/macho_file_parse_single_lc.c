@@ -18,14 +18,14 @@
 #include "tbd.h"
 #include "yaml.h"
 
-static bool
+static inline bool
 call_callback(const macho_file_parse_error_callback callback,
               struct tbd_create_info *__notnull const info_in,
-              const enum macho_file_parse_error error,
+              const enum macho_file_parse_callback_type type,
               void *const cb_info)
 {
     if (callback != NULL) {
-        if (callback(info_in, error, cb_info)) {
+        if (callback(info_in, type, cb_info)) {
             return true;
         }
     }
@@ -39,7 +39,7 @@ enum verify_string_result {
     E_VERIFY_STRING_INVALID
 };
 
-static inline enum verify_string_result
+static enum verify_string_result
 verify_string_offset(const uint8_t *const load_cmd,
                      const uint32_t offset,
                      const uint32_t load_cmd_min_size,
@@ -127,22 +127,21 @@ add_export_to_info(struct tbd_create_info *__notnull const info_in,
     return E_ADD_EXPORT_OK;
 }
 
-static inline bool is_mac_or_catalyst_platform(const enum tbd_platform platform)
-{
+static inline bool is_mac_or_iosmac_platform(const enum tbd_platform platform) {
     switch (platform) {
         case TBD_PLATFORM_NONE:
         case TBD_PLATFORM_IOS:
         case TBD_PLATFORM_TVOS:
         case TBD_PLATFORM_WATCHOS:
         case TBD_PLATFORM_BRIDGEOS:
-        case TBD_PLATFORM_ZIPPERED:
         case TBD_PLATFORM_IOS_SIMULATOR:
         case TBD_PLATFORM_TVOS_SIMULATOR:
         case TBD_PLATFORM_WATCHOS_SIMULATOR:
+        case TBD_PLATFORM_DRIVERKIT:
             return false;
 
         case TBD_PLATFORM_MACOS:
-        case TBD_PLATFORM_MACCATALYST:
+        case TBD_PLATFORM_IOSMAC:
             return true;
     }
 }
@@ -173,23 +172,38 @@ parse_bv_platform(
     const struct build_version_command *const build_version =
         (const struct build_version_command *)lc_iter;
 
+    const struct macho_file_parse_slc_flags *const flags = parse_info->flags_in;
     uint32_t platform = build_version->platform;
-    if (parse_info->options.is_big_endian) {
+
+    if (flags->is_big_endian) {
         platform = swap_uint32(platform);
     }
 
     switch (platform) {
-        case TBD_PLATFORM_NONE:
-        case TBD_PLATFORM_MACOS:
-        case TBD_PLATFORM_IOS:
-        case TBD_PLATFORM_TVOS:
-        case TBD_PLATFORM_WATCHOS:
-        case TBD_PLATFORM_BRIDGEOS:
-        case TBD_PLATFORM_MACCATALYST:
-        case TBD_PLATFORM_IOS_SIMULATOR:
-        case TBD_PLATFORM_TVOS_SIMULATOR:
-        case TBD_PLATFORM_WATCHOS_SIMULATOR:
-        case TBD_PLATFORM_ZIPPERED:
+        case PLATFORM_MACOS:
+        case PLATFORM_IOS:
+        case PLATFORM_TVOS:
+        case PLATFORM_WATCHOS:
+        case PLATFORM_BRIDGEOS:
+        case PLATFORM_DRIVERKIT:
+            if (flags->expecting_sim_platform) {
+                const bool should_continue =
+                    call_callback(callback,
+                                  info_in,
+                                  ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM,
+                                  cb_info);
+
+                if (!should_continue) {
+                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                }
+            }
+
+            break;
+
+        case PLATFORM_IOSMAC:
+        case PLATFORM_IOSSIMULATOR:
+        case PLATFORM_TVOSSIMULATOR:
+        case PLATFORM_WATCHOSSIMULATOR:
             break;
 
         default: {
@@ -245,16 +259,16 @@ parse_bv_platform(
 
     /*
      * We only allow duplicate, differing build-version platforms if they're
-     * both either a macOS or macCatalyst platform.
+     * both either a macOS or iosmac platform.
      */
 
-    if (is_mac_or_catalyst_platform(parsed_platform) ||
-        is_mac_or_catalyst_platform(platform))
+    if (is_mac_or_iosmac_platform(parsed_platform) ||
+        is_mac_or_iosmac_platform(platform))
     {
-        *platform_in = TBD_PLATFORM_MACCATALYST;
+        *platform_in = TBD_PLATFORM_IOSMAC;
 
         parse_info->flags_in->found_build_version = true;
-        parse_info->flags_in->found_catalyst_platform = true;
+        parse_info->flags_in->found_iosmac_platform = true;
 
         return E_MACHO_FILE_PARSE_OK;
     }
@@ -272,7 +286,7 @@ parse_bv_platform(
     return E_MACHO_FILE_PARSE_OK;
 }
 
-static inline enum macho_file_parse_result
+static enum macho_file_parse_result
 parse_version_min_lc(
     const struct macho_file_parse_single_lc_info *__notnull const parse_info,
     struct tbd_create_info *__notnull const info_in,
@@ -307,7 +321,9 @@ parse_version_min_lc(
         return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
     }
 
-    const enum tbd_platform platform = *parse_info->platform_in;
+    enum tbd_platform *const platform_in = parse_info->platform_in;
+    const enum tbd_platform platform = *platform_in;
+
     if (platform != TBD_PLATFORM_NONE) {
         if (platform != expected_platform) {
             const bool should_continue =
@@ -321,7 +337,44 @@ parse_version_min_lc(
             }
         }
     } else {
-        *parse_info->platform_in = expected_platform;
+        *platform_in = expected_platform;
+    }
+
+    return E_MACHO_FILE_PARSE_OK;
+}
+
+static enum macho_file_parse_result
+parse_export_trie_info(
+    const struct macho_file_parse_single_lc_info *__notnull const parse_info,
+    struct tbd_create_info *__notnull const info_in,
+    const uint32_t export_off,
+    const uint32_t export_size,
+    const macho_file_parse_error_callback callback,
+    void *const cb_info)
+{
+    uint32_t *const export_off_out = parse_info->export_off_out;
+    uint32_t *const export_size_out = parse_info->export_size_out;
+
+    const uint32_t existing_export_off = *export_off_out;
+    const uint32_t existing_export_size = *export_size_out;
+
+    if (existing_export_off != 0 || existing_export_size != 0) {
+        if (existing_export_off != export_off ||
+            existing_export_size != export_size)
+        {
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_EXPORT_TRIE_CONFLICT,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+        }
+    } else {
+        *export_off_out = export_off;
+        *export_size_out = export_size;
     }
 
     return E_MACHO_FILE_PARSE_OK;
@@ -357,8 +410,7 @@ macho_file_parse_single_lc(
             break;
         }
 
-        case LC_DYLD_INFO:
-        case LC_DYLD_INFO_ONLY:
+        case LC_DYLD_EXPORTS_TRIE: {
             /*
              * If exports aren't needed, skip the unnecessary parsing.
              */
@@ -368,15 +420,66 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * All dyld_info load-commands should be of the same size.
+             * All linkedit-data load-commands should be the same size.
+             */
+
+            if (load_cmd.cmdsize != sizeof(struct linkedit_data_command)) {
+                return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
+            }
+
+            const struct linkedit_data_command *const linkedit_data =
+                (const struct linkedit_data_command *)lc_iter;
+
+            const enum macho_file_parse_result parse_export_info_result =
+                parse_export_trie_info(parse_info,
+                                       info_in,
+                                       linkedit_data->dataoff,
+                                       linkedit_data->datasize,
+                                       callback,
+                                       cb_info);
+
+            if (parse_export_info_result != E_MACHO_FILE_PARSE_OK) {
+                return parse_export_info_result;
+            }
+
+            break;
+        }
+
+        case LC_DYLD_INFO:
+        case LC_DYLD_INFO_ONLY: {
+            /*
+             * If exports aren't needed, skip the unnecessary parsing.
+             */
+
+            if (tbd_options.ignore_exports) {
+                break;
+            }
+
+            /*
+             * All dyld_info load-commands should be the same size.
              */
 
             if (load_cmd.cmdsize != sizeof(struct dyld_info_command)) {
                 return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
             }
 
-            *parse_info->dyld_info_out = *(struct dyld_info_command *)lc_iter;
+            const struct dyld_info_command *const dyld_info =
+                (const struct dyld_info_command *)lc_iter;
+
+            const enum macho_file_parse_result parse_export_info_result =
+                parse_export_trie_info(parse_info,
+                                       info_in,
+                                       dyld_info->export_off,
+                                       dyld_info->export_size,
+                                       callback,
+                                       cb_info);
+
+            if (parse_export_info_result != E_MACHO_FILE_PARSE_OK) {
+                return parse_export_info_result;
+            }
+
             break;
+        }
 
         case LC_ID_DYLIB: {
             /*
@@ -575,7 +678,7 @@ macho_file_parse_single_lc(
                                    reexport_offset,
                                    sizeof(struct dylib_command),
                                    load_cmd.cmdsize,
-                                   parse_info->options.is_big_endian,
+                                   parse_info->flags_in->is_big_endian,
                                    tbd_options);
 
             switch (add_reexport_result) {
@@ -631,7 +734,7 @@ macho_file_parse_single_lc(
                                    client_offset,
                                    sizeof(struct sub_client_command),
                                    load_cmd.cmdsize,
-                                   parse_info->options.is_big_endian,
+                                   parse_info->flags_in->is_big_endian,
                                    tbd_options);
 
             switch (add_client_result) {
@@ -750,14 +853,37 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * All symtab load-commands should be of the same size.
+             * All symtab load-commands should be the same size.
              */
 
             if (load_cmd.cmdsize != sizeof(struct symtab_command)) {
                 return E_MACHO_FILE_PARSE_INVALID_SYMBOL_TABLE;
             }
 
-            *parse_info->symtab_out = *(const struct symtab_command *)lc_iter;
+            struct symtab_command *const existing_symtab =
+                parse_info->symtab_out;
+
+            const struct symtab_command *const symtab =
+                (const struct symtab_command *)lc_iter;
+
+            if (existing_symtab->cmd != 0) {
+                if (memcmp(existing_symtab, symtab, sizeof(*symtab)) != 0) {
+                    const bool should_continue =
+                        call_callback(
+                            callback,
+                            info_in,
+                            ERR_MACHO_FILE_PARSE_SYMBOL_TABLE_CONFLICT,
+                            cb_info);
+
+                    if (!should_continue) {
+                        return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+                    }
+
+                    break;
+                }
+            }
+
+            *existing_symtab = *symtab;
             break;
         }
 

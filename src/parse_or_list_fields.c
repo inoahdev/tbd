@@ -171,9 +171,9 @@ enum tbd_platform parse_platform(const char *__notnull const platform) {
     } else if (strcmp(platform, "bridgeos") == 0) {
         return TBD_PLATFORM_BRIDGEOS;
     } else if (strcmp(platform, "iosmac") == 0) {
-        return TBD_PLATFORM_MACCATALYST;
-    } else if (strcmp(platform, "zippered") == 0) {
-        return TBD_PLATFORM_ZIPPERED;
+        return TBD_PLATFORM_IOSMAC;
+    } else if (strcmp(platform, "driverkit") == 0) {
+        return TBD_PLATFORM_DRIVERKIT;
     }
 
     return TBD_PLATFORM_NONE;
@@ -441,7 +441,7 @@ void print_platform_list(void) {
           "tvos\n"
           "bridgeos\n"
           "iosmac\n"
-          "zippered (Not yet found in mach-o binaries, but supported)\n",
+          "driverkit\n",
           stdout);
 }
 

@@ -42,7 +42,7 @@ print_dsc_image_parse_error_message_header(bool print_paths,
 
 bool
 handle_dsc_image_parse_error_callback(struct tbd_create_info *__notnull info_in,
-                                      enum macho_file_parse_error error,
+                                      enum macho_file_parse_callback_type type,
                                       void *callback_info);
 
 void

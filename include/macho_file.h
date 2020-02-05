@@ -123,9 +123,10 @@ enum macho_file_parse_result {
     E_MACHO_FILE_PARSE_CREATE_TARGET_LIST_FAIL
 };
 
-enum macho_file_parse_error {
+enum macho_file_parse_callback_type {
     ERR_MACHO_FILE_PARSE_CURRENT_VERSION_CONFLICT,
     ERR_MACHO_FILE_PARSE_COMPAT_VERSION_CONFLICT,
+    ERR_MACHO_FILE_PARSE_EXPORT_TRIE_CONFLICT,
     ERR_MACHO_FILE_PARSE_FILETYPE_CONFLICT,
     ERR_MACHO_FILE_PARSE_FLAGS_CONFLICT,
     ERR_MACHO_FILE_PARSE_INSTALL_NAME_CONFLICT,
@@ -133,6 +134,7 @@ enum macho_file_parse_error {
     ERR_MACHO_FILE_PARSE_PARENT_UMBRELLA_CONFLICT,
     ERR_MACHO_FILE_PARSE_PLATFORM_CONFLICT,
     ERR_MACHO_FILE_PARSE_TARGET_PLATFORM_CONFLICT,
+    ERR_MACHO_FILE_PARSE_SYMBOL_TABLE_CONFLICT,
     ERR_MACHO_FILE_PARSE_SWIFT_VERSION_CONFLICT,
     ERR_MACHO_FILE_PARSE_UUID_CONFLICT,
 
@@ -145,12 +147,15 @@ enum macho_file_parse_error {
     ERR_MACHO_FILE_PARSE_NO_PLATFORM,
     ERR_MACHO_FILE_PARSE_NO_UUID,
 
+    ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM,
     ERR_MACHO_FILE_PARSE_WRONG_FILETYPE,
+
+    WARN_MACHO_FILE_SYMBOL_TABLE_OUTOFSYNC
 };
 
 typedef bool
 (*macho_file_parse_error_callback)(struct tbd_create_info *__notnull info_in,
-                                   enum macho_file_parse_error error,
+                                   enum macho_file_parse_callback_type type,
                                    void *cb_info);
 
 struct macho_file_parse_extra_args {
