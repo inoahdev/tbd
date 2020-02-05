@@ -314,8 +314,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     switch (version) {
         case TBD_VERSION_NONE:
             fprintf(stderr,
-                    "INTERNAL: Private tbd structure (for path: %s) was "
-                    "not properly configured\n",
+                    "INTERNAL: Private tbd structure (for path: %s) was not "
+                    "properly configured\n",
                     path);
 
             result = 1;
@@ -432,8 +432,7 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
         }
 
         /*
-         * Ensure that the file/directory actually exists on the
-         * filesystem.
+         * Ensure that the file/directory actually exists on the filesystem.
          */
 
         struct stat info = {};

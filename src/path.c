@@ -61,6 +61,11 @@ path_get_absolute_path(const char *__notnull const path,
                               path_length,
                               length_out);
 
+    if (combined == NULL) {
+        fputs("Failed to allocate memory", stderr);
+        exit(1);
+    }
+
     return combined;
 }
 

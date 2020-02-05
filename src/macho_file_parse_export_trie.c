@@ -354,9 +354,10 @@ const uint64_t EXPORT_SYMBOL_FLAGS_KIND_ABSOLUTE = 0x02;
  *     uleb128 address_of_self_stub_resolver;
  * };
  *
- * An export-trie's children is each a string and a uleb128 index to the next
- * byte starting the next export-node in the tree, located at the end of the
- * export=node.
+ * Every export-node has an array at the very end of the data-structure. Each
+ * entry in this array has a null-terminated string, to append to the cumulative
+ * string. In addition, each entry has an uleb128 offset to the next uleb128,
+ * relative to the export-trie base.
  *
  * Basically, this is a child:
  *     struct export_node_child {

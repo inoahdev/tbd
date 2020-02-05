@@ -347,7 +347,7 @@ parse_macho_file_for_main_while_recursing(
         .dir_path = dir_path,
         .name = name,
 
-        .print_paths = args->print_paths,
+        .print_paths = print_paths,
         .is_recursing = true
     };
 

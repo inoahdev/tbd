@@ -284,7 +284,7 @@ static enum macho_file_parse_result
 handle_uuid(struct tbd_create_info *__notnull const info_in,
             const struct arch_info *__notnull const arch,
             const enum tbd_platform platform,
-            const uint8_t uuid[16],
+            const uint8_t uuid[const 16],
             __notnull const macho_file_parse_error_callback callback,
             void *const cb_info,
             const struct macho_file_parse_slc_flags parse_slc_flags,
@@ -339,7 +339,7 @@ handle_targets_platform_and_uuid(
     struct tbd_create_info *__notnull const info_in,
     const struct arch_info *__notnull const arch,
     enum tbd_platform platform,
-    const uint8_t uuid[16],
+    const uint8_t uuid[const 16],
     __notnull const macho_file_parse_error_callback callback,
     void *const cb_info,
     const struct macho_file_parse_slc_flags parse_slc_flags,
@@ -487,7 +487,7 @@ macho_file_parse_load_commands_from_file(
 
     struct macho_file_parse_slc_flags parse_slc_flags = {};
     struct macho_file_parse_slc_options parse_slc_opts =
-        { .copy_strings = true};
+        { .copy_strings = true };
 
     if (flags.is_big_endian) {
         parse_slc_opts.is_big_endian = true;

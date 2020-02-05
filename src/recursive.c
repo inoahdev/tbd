@@ -119,15 +119,15 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
     char *const final_slash = (char *)get_front_of_slashes(path, last_slash);
 
     /*
-     * We move backwards trying to create the hierarchy. If we fail, we move
-     * yet further back, until we successfully create that directory.
+     * We move backwards trying to create the hierarchy. If we fail, we move yet
+     * further back, until we successfully create that directory.
      *
-     * last_slash is the ending-slash of every path-component. We
-     * null-terminate at last_slash to try and create a directory, and if it
-     * fails, we move last-slash back.
+     * last_slash is the ending-slash of every path-component. We null-terminate
+     * at last_slash to try and create a directory, and if it fails, we move
+     * last-slash back.
      *
-     * We then break out of the loop to then iterate forwards and
-     * create the directories afterwards.
+     * We then break out of the loop to then iterate forwards and create the
+     * directories afterwards.
      *
      * If the directory already exists, we can simply return as it cannot happen
      * unless the second-to-last path-component already exists.
