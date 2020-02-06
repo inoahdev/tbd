@@ -544,7 +544,7 @@ handle_dsc_image_parse_error_callback(
         case ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM:
             fprintf(stderr,
                     "\tImage (with path %s) has a simulator platform while not "
-                    "belonging not being a simulator binary\n",
+                    "being a simulator binary\n",
                     cb_info->image_path);
 
             return false;
