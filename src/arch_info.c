@@ -144,13 +144,14 @@ static const struct arch_info arch_info_list[] = {
     { CPU_TYPE_POWERPC64, CPU_SUBTYPE_POWERPC_970, "ppc970-64", 9 },
 
     /*
-     * Following's index is 56.
+     * Index starts at 56 and ends at 57.
      */
 
-    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_ALL, "arm64_32", 8 },
+    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_32_ALL, "arm64_32", 8 },
+    { CPU_TYPE_ARM64_32, CPU_SUBTYPE_ARM64_32_V8, "arm64_32", 8 },
 
     /*
-     * Following's index is 57.
+     * Following's index is 58.
      */
 
     { 0, 0, NULL, 0 }
@@ -438,11 +439,18 @@ arch_info_for_cputype(const cpu_type_t cputype, const cpu_subtype_t cpusubtype)
             break;
 
         case CPU_TYPE_ARM64_32:
-            if (cpusubtype == CPU_SUBTYPE_ARM64_ALL) {
-                return (arch_info_list + 56);
+            switch (cpusubtype) {
+                case CPU_SUBTYPE_ARM64_32_ALL:
+                    return (arch_info_list + 56);
+
+                case CPU_SUBTYPE_ARM64_32_V8:
+                    return (arch_info_list + 57);
+
+                default:
+                    return NULL;
             }
 
-            return NULL;
+            break;
 
         default:
             return NULL;

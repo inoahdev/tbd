@@ -270,6 +270,13 @@ typedef int32_t cpu_subtype_t;
 #define CPU_SUBTYPE_ARM64E              ((cpu_subtype_t) 2)
 
 /*
+ *  ARM64_32 subtypes
+ */
+
+#define CPU_SUBTYPE_ARM64_32_ALL ((cpu_subtype_t) 0)
+#define CPU_SUBTYPE_ARM64_32_V8  ((cpu_subtype_t) 1)
+
+/*
  * VEO subtypes
  * Note: the CPU_SUBTYPE_VEO_ALL will likely change over time to be defined as
  * one of the specific subtypes.
