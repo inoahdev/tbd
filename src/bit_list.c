@@ -57,16 +57,12 @@ find_first_bit_heap(const uint64_t *ptr,
                     const uint64_t *const end,
                     uint64_t start)
 {
-    if (start > 64) {
+    if (start > 63) {
         const uint64_t mask = (1ull << 6) - 1;
         const uint64_t remainder = (start & mask);
 
-        if (remainder == 0) {
-            ptr += 1;
-        }
-
-        start >>= 6;
-        ptr += start;
+        ptr += (start >> 6);
+        start >>= remainder;
     }
 
     for (; ptr != end; ptr++) {
