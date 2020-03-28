@@ -72,6 +72,10 @@ static void
 print_messages_header(
     struct dsc_iterate_images_info *__notnull const iterate_info)
 {
+    if (iterate_info->did_print_messages_header) {
+        return;
+    }
+
     print_dsc_image_parse_error_message_header(iterate_info->print_paths,
                                                iterate_info->dsc_dir_path,
                                                iterate_info->dsc_name);
