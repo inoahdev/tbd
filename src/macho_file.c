@@ -202,7 +202,8 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
 
         /*
          * 64-bit mach-o files have a different header (struct mach_header_64),
-         * which only differs by having an extra uint32_t field at the end.
+         * which only adds an extra uint32_t field to the end of struct
+         * mach_header.
          */
 
         const uint64_t offset =
