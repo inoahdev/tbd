@@ -16,6 +16,7 @@
 #include "macho_file_parse_export_trie.h"
 #include "macho_file_parse_symtab.h"
 #include "tbd.h"
+#include "unused.h"
 
 /*
  * We avoid copying code by handing most of the mach-o parsing over to the

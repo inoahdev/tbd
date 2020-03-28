@@ -12,6 +12,7 @@
 #include "handle_dsc_parse_result.h"
 #include "macho_file.h"
 #include "request_user_input.h"
+#include "unused.h"
 
 void
 handle_dsc_file_parse_result(

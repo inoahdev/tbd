@@ -11,6 +11,7 @@
 
 #include "handle_macho_file_parse_result.h"
 #include "request_user_input.h"
+#include "unused.h"
 
 bool
 handle_macho_file_for_main_error_callback(

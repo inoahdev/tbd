@@ -30,6 +30,7 @@
 #include "tbd.h"
 #include "tbd_for_main.h"
 #include "tbd_write.h"
+#include "unused.h"
 #include "usage.h"
 #include "util.h"
 
