@@ -204,11 +204,6 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
             break;
     }
 
-    /*
-     * Ignore invalid fields so a mach-o file is fully parsed regardless of
-     * errors. Instead, we prefer to check manually for any field errors.
-     */
-
     struct tbd_create_info *const info = &args.tbd->info;
 
     const struct tbd_create_info *const orig = &args.orig->info;
