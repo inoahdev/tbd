@@ -10,7 +10,6 @@
 
 struct macho_file_parse_slc_flags {
     bool is_big_endian : 1;
-    bool expecting_sim_platform : 1;
 
     bool found_build_version : 1;
     bool found_identification : 1;

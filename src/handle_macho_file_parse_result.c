@@ -588,29 +588,6 @@ handle_macho_file_for_main_error_callback(
 
             return false;
 
-        case ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM:
-            if (cb_info->is_recursing) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s/%s), or one of its archs, "
-                        "has a simulator platform while not being a simulator "
-                        "binary\n",
-                        cb_info->dir_path,
-                        cb_info->name);
-            } else if (cb_info->print_paths) {
-                fprintf(stderr,
-                        "Mach-o file (at path %s), or one of its archs has a "
-                        "simulator platform while not being a simulator "
-                        "binary\n",
-                        cb_info->dir_path);
-            } else {
-                fputs("The provided mach-o file, or one of its archs, has a "
-                      "a simulator platform while not being a simulator "
-                      "binary\n",
-                      stderr);
-            }
-
-            return false;
-
         case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
             /*
              * We simply ignore any mach-o non-dynamic-library files while

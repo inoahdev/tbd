@@ -23,15 +23,6 @@ struct dyld_shared_cache_parse_options {
 };
 
 struct dyld_shared_cache_flags {
-    /*
-     * Older files will not have the right header indicating if the shared-cache
-     * is for the simulator, so we need an extra bool to indicate if we have the
-     * right header.
-     */
-
-    bool has_simulator_header : 1;
-    bool is_simulator : 1;
-
     bool unmap_map : 1;
 };
 

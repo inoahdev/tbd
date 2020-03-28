@@ -494,10 +494,6 @@ macho_file_parse_load_commands_from_file(
         parse_slc_flags.is_big_endian = true;
     }
 
-    if (flags.expecting_sim_platform) {
-        parse_slc_flags.expecting_sim_platform = true;
-    }
-
     const struct tbd_parse_options tbd_options = parse_info->tbd_options;
     if (!tbd_options.ignore_install_name) {
         info_in->flags.install_name_was_allocated = true;
@@ -1134,10 +1130,6 @@ macho_file_parse_load_commands_from_map(
     const struct macho_file_parse_lc_flags flags = parse_info->flags;
     if (flags.is_big_endian) {
         parse_slc_flags.is_big_endian = true;
-    }
-
-    if (flags.expecting_sim_platform) {
-        parse_slc_flags.expecting_sim_platform = true;
     }
 
     const uint8_t *const map = parse_info->map;

@@ -283,16 +283,6 @@ dsc_image_parse(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    if (flags & MH_SIM_SUPPORT) {
-        if (dsc_info->flags.has_simulator_header) {
-            if (!dsc_info->flags.is_simulator) {
-                return E_DSC_IMAGE_PARSE_SIMULATOR_TYPE_MISMATCH;
-            }
-        }
-
-        lc_flags.expecting_sim_platform = true;
-    }
-
     info_in->flags.uses_full_targets = true;
 
     /*

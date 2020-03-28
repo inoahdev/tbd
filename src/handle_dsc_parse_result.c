@@ -542,14 +542,6 @@ handle_dsc_image_parse_error_callback(
 
             return false;
 
-        case ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM:
-            fprintf(stderr,
-                    "\tImage (with path %s) has a simulator platform while not "
-                    "being a simulator binary\n",
-                    cb_info->image_path);
-
-            return false;
-
         case ERR_MACHO_FILE_PARSE_WRONG_FILETYPE:
             fprintf(stderr,
                     "\tImage (with path %s) has the wrong mach-o filetype\r\n",

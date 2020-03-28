@@ -24,43 +24,6 @@ struct dyld_cache_header {
     uint64_t dyldBaseAddress;
 };
 
-struct dyld_cache_header_v5 {
-    char magic[16];
-    uint32_t mappingCount;
-    uint32_t imagesOffset;
-    uint32_t imagesCount;
-    uint64_t dyldBaseAddress;
-    uint64_t codeSignatureOffset;
-    uint64_t codeSignatureSize;
-    uint64_t slideInfoOffset;
-    uint64_t slideInfoSize;
-    uint64_t localSymbolsOffset;
-    uint64_t localSymbolsSize;
-    uint8_t  uuid[16];
-    uint64_t cacheType;
-    uint32_t branchPoolsOffset;
-    uint32_t branchPoolsCount;
-    uint64_t accelerateInfoAddr;
-    uint64_t accelerateInfoSize;
-    uint64_t imagesTextOffset;
-    uint64_t imagesTextCount;
-    uint64_t dylibsImageGroupAddr;
-    uint64_t dylibsImageGroupSize;
-    uint64_t otherImageGroupAddr;
-    uint64_t otherImageGroupSize;
-    uint64_t progClosuresAddr;
-    uint64_t progClosuresSize;
-    uint64_t progClosuresTrieAddr;
-    uint64_t progClosuresTrieSize;
-    uint32_t platform;
-    uint32_t formatVersion        : 8,
-             dylibsExpectedOnDisk : 1,
-             simulator            : 1;
-    uint64_t sharedRegionStart;
-    uint64_t sharedRegionSize;
-    uint64_t maxSlide;
-};
-
 struct dyld_cache_mapping_info {
     uint64_t address;
     uint64_t size;

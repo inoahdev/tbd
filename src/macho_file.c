@@ -276,10 +276,6 @@ parse_thin_file(struct tbd_create_info *__notnull const info_in,
         }
     }
 
-    if (mh_flags & MH_SIM_SUPPORT) {
-        lc_flags.expecting_sim_platform = true;
-    }
-
     const struct range lc_available_range = {
         .begin = container_range.begin + header_size,
         .end = container_range.end,

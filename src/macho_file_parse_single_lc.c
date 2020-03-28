@@ -186,20 +186,6 @@ parse_bv_platform(
         case PLATFORM_WATCHOS:
         case PLATFORM_BRIDGEOS:
         case PLATFORM_DRIVERKIT:
-            if (flags->expecting_sim_platform) {
-                const bool should_continue =
-                    call_callback(callback,
-                                  info_in,
-                                  ERR_MACHO_FILE_PARSE_EXPECTED_SIM_PLATFORM,
-                                  cb_info);
-
-                if (!should_continue) {
-                    return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-                }
-            }
-
-            break;
-
         case PLATFORM_IOSMAC:
         case PLATFORM_IOSSIMULATOR:
         case PLATFORM_TVOSSIMULATOR:
@@ -232,13 +218,6 @@ parse_bv_platform(
     }
 
     const enum tbd_platform parsed_platform = *platform_in;
-    if (parsed_platform == TBD_PLATFORM_NONE) {
-        flags_in->found_build_version = true;
-        *platform_in = platform;
-
-        return E_MACHO_FILE_PARSE_OK;
-    }
-
     if (parsed_platform == platform) {
         return E_MACHO_FILE_PARSE_OK;
     }
