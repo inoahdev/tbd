@@ -326,11 +326,16 @@ static enum macho_file_parse_result
 parse_export_trie_info(
     const struct macho_file_parse_single_lc_info *__notnull const parse_info,
     struct tbd_create_info *__notnull const info_in,
-    const uint32_t export_off,
-    const uint32_t export_size,
+    uint32_t export_off,
+    uint32_t export_size,
     const macho_file_parse_error_callback callback,
     void *const cb_info)
 {
+    if (parse_info->flags_in->is_big_endian) {
+        export_off = swap_uint32(export_off);
+        export_size = swap_uint32(export_size);
+    }
+
     uint32_t *const export_off_out = parse_info->export_off_out;
     uint32_t *const export_size_out = parse_info->export_size_out;
 
@@ -487,6 +492,10 @@ macho_file_parse_single_lc(
             const struct dylib_command *const dylib_command =
                 (const struct dylib_command *)lc_iter;
 
+            struct macho_file_parse_slc_flags *const flags_in =
+                parse_info->flags_in;
+
+            const bool is_big_endian = flags_in->is_big_endian;
             const char *install_name = NULL;
             uint32_t length = 0;
 
@@ -498,7 +507,11 @@ macho_file_parse_single_lc(
                  * basic information.
                  */
 
-                const uint32_t name_offset = dylib_command->dylib.name.offset;
+                uint32_t name_offset = dylib_command->dylib.name.offset;
+                if (is_big_endian) {
+                    name_offset = swap_uint32(name_offset);
+                }
+
                 const enum verify_string_result verify_string_result =
                     verify_string_offset(lc_iter,
                                          name_offset,
@@ -530,17 +543,23 @@ macho_file_parse_single_lc(
                 }
             }
 
-            const struct dylib dylib = dylib_command->dylib;
-            struct macho_file_parse_slc_flags *const flags_in =
-                parse_info->flags_in;
-
+            struct dylib dylib = dylib_command->dylib;
             if (!flags_in->found_identification) {
                 if (!tbd_options.ignore_current_version) {
+                    if (is_big_endian) {
+                        dylib.current_version =
+                            swap_uint32(dylib.current_version);
+                    }
+
                     info_in->fields.current_version = dylib.current_version;
                 }
 
                 if (!tbd_options.ignore_compat_version) {
-                    const uint32_t compat_version = dylib.compatibility_version;
+                    uint32_t compat_version = dylib.compatibility_version;
+                    if (is_big_endian) {
+                        compat_version = swap_uint32(compat_version);
+                    }
+
                     info_in->fields.compatibility_version = compat_version;
                 }
 
@@ -560,6 +579,14 @@ macho_file_parse_single_lc(
                     info_in->fields.install_name_length = length;
                 }
             } else {
+                uint32_t dylib_compat_version =
+                    dylib.compatibility_version;
+
+                if (is_big_endian) {
+                    dylib.current_version = swap_uint32(dylib.current_version);
+                    dylib_compat_version = swap_uint32(dylib_compat_version);
+                }
+
                 if (!tbd_options.ignore_current_version &&
                     info_in->fields.current_version != dylib.current_version)
                 {
@@ -575,11 +602,11 @@ macho_file_parse_single_lc(
                     }
                 }
 
-                const uint32_t info_compat_version =
+                uint32_t info_compat_version =
                     info_in->fields.compatibility_version;
 
                 if (!tbd_options.ignore_compat_version &&
-                    info_compat_version != dylib.compatibility_version)
+                    info_compat_version != dylib_compat_version)
                 {
                     const bool should_continue =
                         call_callback(
@@ -648,13 +675,12 @@ macho_file_parse_single_lc(
             const struct dylib_command *const reexport_dylib =
                 (const struct dylib_command *)lc_iter;
 
-            const uint32_t reexport_offset = reexport_dylib->dylib.name.offset;
             const enum add_export_result add_reexport_result =
                 add_export_to_info(info_in,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_REEXPORT,
                                    lc_iter,
-                                   reexport_offset,
+                                   reexport_dylib->dylib.name.offset,
                                    sizeof(struct dylib_command),
                                    load_cmd.cmdsize,
                                    parse_info->flags_in->is_big_endian,
@@ -704,13 +730,12 @@ macho_file_parse_single_lc(
             const struct sub_client_command *const client_command =
                 (const struct sub_client_command *)lc_iter;
 
-            const uint32_t client_offset = client_command->client.offset;
             const enum add_export_result add_client_result =
                 add_export_to_info(info_in,
                                    parse_info->arch_index,
                                    TBD_SYMBOL_TYPE_CLIENT,
                                    lc_iter,
-                                   client_offset,
+                                   client_command->client.offset,
                                    sizeof(struct sub_client_command),
                                    load_cmd.cmdsize,
                                    parse_info->flags_in->is_big_endian,
@@ -751,9 +776,13 @@ macho_file_parse_single_lc(
             const struct sub_framework_command *const framework_command =
                 (const struct sub_framework_command *)lc_iter;
 
+            uint32_t umbrella_offset = framework_command->umbrella.offset;
             uint32_t length = 0;
 
-            const uint32_t umbrella_offset = framework_command->umbrella.offset;
+            if (parse_info->flags_in->is_big_endian) {
+                umbrella_offset = swap_uint32(umbrella_offset);
+            }
+
             const enum verify_string_result verify_string_result =
                 verify_string_offset(lc_iter,
                                      umbrella_offset,
