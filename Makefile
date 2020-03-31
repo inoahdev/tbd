@@ -1,36 +1,40 @@
-SHELL = /bin/sh
-C := clang
+CC=clang
+OBJ=obj
+SRC=src
 
-WARNINGFLAGS := -Wshadow -Wwrite-strings -Wunused-parameter
-DEFAULTFLAGS := -std=gnu11 -I. -Iinclude/ $(WARNINGFLAGS)
-CFLAGS := $(DEFAULTFLAGS) -Ofast -funroll-loops
-COMPILE_COMMANDS_FLAGS := -I.vscode/ -Wno-unused-parameter -Wno-sign-conversion $(CFLAGS)
+SRCS=$(wildcard $(SRC)/*.c)
+OBJS=$(foreach obj,$(SRCS:src/%=%),$(OBJ)/$(basename $(obj)).o)
 
-SRCS := $(shell find src -name "*.c")
-TARGET := bin/tbd
+CFLAGS=-Iinclude/ -Wshadow -Wwrite-strings -Wunused-parameter -Wall -std=gnu11
+CFLAGS+=-funroll-loops -Ofast
+DEBUGCFLAGS=$(CFLAGS) -g3
+RELEASECFLAGS=$(CFLAGS) -Ofast
 
-EXTRADEBUGFLAGS := -fsanitize=address -fno-omit-frame-pointer
-DEBUGFLAGS := $(DEFAULTFLAGS) -g $(EXTRADEBUGFLAGS)
+TARGET=bin/tbd
 
-.DEFAULT_GOAL := all
+DEBUGTARGET=bin/tbd_debug
+DEBUGOBJS=$(foreach obj,$(SRCS:src/%=%),$(OBJ)/$(basename $(obj)).d.o)
 
-clean:
-	@$(RM) $(TARGET)
+.PHONY: all clean debug
 
-target-dir:
+$(TARGET): $(OBJS)
 	@mkdir -p $(dir $(TARGET))
+	@$(CC) $^ -o $@
+ 
+clean:
+	@$(RM) -rf $(OBJ)
+	@$(RM) -rf $(dir $(TARGET))
 
-all: target-dir
-	@$(C) $(CFLAGS) $(SRCS) -o $(TARGET)
+debug: $(DEBUGTARGET)
 
-debug: target-dir
-	@$(C) $(DEBUGFLAGS) $(SRCS) -o $(TARGET)
+$(DEBUGTARGET): $(DEBUGOBJS)
+	@mkdir -p $(dir $(DEBUGTARGET))
+	@$(CC) $^ -o $@
 
-install: all
-	@sudo mv $(TARGET) /usr/bin
+$(OBJ)/%.o: $(SRC)/%.c
+	@mkdir -p $(OBJ)
+	@$(CC) $(RELEASECFLAGS) -c $< -o $@
 
-cc_internal:
-	@$(C) $(COMPILE_COMMANDS_FLAGS) $(SRCS)
-
-compile_commands:
-	@bear make cc_internal
+$(OBJ)/%.d.o: $(SRC)/%.c
+	@mkdir -p $(OBJ)
+	@$(CC) $(DEBUGCFLAGS) -c $< -o $@

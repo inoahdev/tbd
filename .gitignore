@@ -15,6 +15,7 @@ compile_commands.json
 
 build/
 bin/
+obj/
 tests/
 
 a.out
