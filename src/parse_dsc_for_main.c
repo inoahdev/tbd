@@ -574,11 +574,9 @@ found_entire_filter_list(const struct array *__notnull const filters) {
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
     for (; filter != end; filter++) {
-        if (filter_was_parsed(filter)) {
-            continue;
+        if (!filter_was_parsed(filter)) {
+            return false;
         }
-
-        return false;
     }
 
     return true;
@@ -670,11 +668,9 @@ print_missing_filter_list(const struct array *__notnull const filters) {
     const struct tbd_for_main_dsc_image_filter *const end = filters->data_end;
 
     for (; filter != end; filter++) {
-        if (filter_was_parsed(filter)) {
-            continue;
+        if (!filter_was_parsed(filter)) {
+            print_missing_filter(filter);
         }
-
-        print_missing_filter(filter);
     }
 }
 
@@ -757,7 +753,6 @@ dsc_iterate_images(
 
 enum read_magic_result {
     E_READ_MAGIC_OK,
-
     E_READ_MAGIC_READ_FAILED,
     E_READ_MAGIC_NOT_LARGE_ENOUGH
 };
@@ -871,7 +866,7 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
          *     (1) We are combining all created tbds into one .tbd file.
          *
          *     (2) No filters have been provided. This is because we can't tell
-         *         before iterating how many images will pass the filter.
+         *         before iterating how many images will pass a provided filter.
          *
          *     (3) Either only one image-number, or only one image-path has been
          *         provided.
@@ -904,7 +899,7 @@ static void verify_write_path(struct tbd_for_main *__notnull const tbd) {
 
         fputs("Writing to a regular file while parsing multiple images from a "
               "dyld_shared_cache file is not supported.\nPlease provide a "
-              "directory to write all tbds to\n",
+              "directory to write all .tbd files to\n",
               stderr);
 
         exit(1);
@@ -1026,14 +1021,14 @@ parse_dsc_for_main(const struct parse_dsc_for_main_args args) {
                 if (args.print_paths) {
                     fprintf(stderr,
                             "dyld_shared_cache (at path %s/%s) does not have "
-                            "an image with number %" PRIu32 "\n",
+                            "an image with number %" PRIu32 ".Skipping\n",
                             args.dsc_dir_path,
                             args.dsc_name,
                             number);
                 } else {
                     fprintf(stderr,
                             "dyld_shared_cache at the provided path does not "
-                            "have an image with number %" PRIu32 "\n",
+                            "have an image with number %" PRIu32 ". Skipping\n",
                             number);
                 }
 
