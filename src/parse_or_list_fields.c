@@ -247,7 +247,8 @@ parse_targets_list(int index,
          * Catch any path-string or option to avoid unnecessary parsing.
          */
 
-        if (*arg == '-') {
+        const char arg_front = *arg;
+        if (arg_front == '-' || arg_front == '/') {
             if (list.set_count == 0) {
                 fputs("Please provide a list of targets\n", stderr);
                 exit(1);
@@ -274,18 +275,34 @@ parse_targets_list(int index,
         const struct arch_info *const arch = arch_info_for_name(arg);
 
         if (arch == NULL) {
-            fprintf(stderr, "Unrecognized architecture: %s\n", arg);
-            exit(1);
+            /*
+             * We may have a relative path-string that has a dash in the first
+             * path-component.
+             */
+
+            if (list.set_count == 0) {
+                fprintf(stderr, "Unrecognized architecture: %s\n", arg);
+                exit(1);
+            }
+
+            break;
         }
 
         *sep_dash = '-';
 
         const char *const platform_str = sep_dash + 1;
         if (*platform_str == '\0') {
+            /*
+             * At this point, it's highly unlikely that we have a relative
+             * path-string, that starts off with an arch-string followed by a
+             * dash.
+             *
+             * The possibility may still remain, but we choose to ignore it.
+             */
+
             fprintf(stderr,
                     "Please provide a platform for the target %s\n",
                     arg);
-
             exit(1);
         }
 
