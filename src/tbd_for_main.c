@@ -503,6 +503,7 @@ tbd_for_main_parse_option(int *const __notnull index_in,
 
         tbd->parse_options.ignore_targets = true;
         tbd->parse_options.ignore_uuids = true;
+        tbd->parse_options.ignore_platform = true;
         tbd->write_options.ignore_uuids = true;
         tbd->flags.provided_targets = true;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {

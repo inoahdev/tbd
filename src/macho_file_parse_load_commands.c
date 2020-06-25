@@ -337,7 +337,7 @@ handle_uuid(struct tbd_create_info *__notnull const info_in,
 static enum macho_file_parse_result
 handle_targets_platform_and_uuid(
     struct tbd_create_info *__notnull const info_in,
-    const struct arch_info *__notnull const arch,
+    const struct arch_info *const arch,
     enum tbd_platform platform,
     const uint8_t uuid[const 16],
     __notnull const macho_file_parse_error_callback callback,
@@ -345,22 +345,18 @@ handle_targets_platform_and_uuid(
     const struct macho_file_parse_slc_flags parse_slc_flags,
     const struct tbd_parse_options tbd_options)
 {
-    if (platform == TBD_PLATFORM_NONE) {
-        const bool should_continue =
-            call_callback(callback,
-                          info_in,
-                          ERR_MACHO_FILE_PARSE_NO_PLATFORM,
-                          cb_info);
-
-        if (!should_continue) {
-            return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
-        }
-    }
-
     if (!tbd_options.ignore_targets) {
-        /*
-         * After getting the platform, we can now start verifying arch-targets.
-         */
+        if (platform == TBD_PLATFORM_NONE) {
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+        }
 
         const bool has_target =
             target_list_has_target(&info_in->fields.targets, arch, platform);
@@ -391,7 +387,19 @@ handle_targets_platform_and_uuid(
         if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
             return handle_uuid_result;
         }
-    } else {
+    } else if (arch != NULL) {
+        if (platform == TBD_PLATFORM_NONE) {
+            const bool should_continue =
+                call_callback(callback,
+                              info_in,
+                              ERR_MACHO_FILE_PARSE_NO_PLATFORM,
+                              cb_info);
+
+            if (!should_continue) {
+                return E_MACHO_FILE_PARSE_ERROR_PASSED_TO_CALLBACK;
+            }
+        }
+
         tbd_ci_set_single_platform(info_in, platform);
     }
 
