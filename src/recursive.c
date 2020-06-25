@@ -82,14 +82,14 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
     }
 
     terminate_c_str(last_slash);
-    const int first_ret = our_mkdir(path, mode);
+    const int first_result = our_mkdir(path, mode);
     restore_slash_c_str(last_slash);
 
-    if (first_ret == 0) {
+    if (first_result == 0) {
         return 0;
     }
 
-    if (first_ret < 0) {
+    if (first_result < 0) {
         /*
          * If the directory already exists, we are done, as the previous mkdir
          * should have gone through.
@@ -120,14 +120,15 @@ reverse_mkdir_ignoring_last(char *__notnull const path,
 
     /*
      * We move backwards trying to create the hierarchy. If we fail, we move yet
-     * further back, until we successfully create that directory.
+     * further back, until we successfully create a directory.
      *
-     * last_slash is the ending-slash of every path-component. We null-terminate
-     * at last_slash to try and create a directory, and if it fails, we move
-     * last-slash back.
+     * last_slash is the ending-slash of our current path-component. We
+     * null-terminate at last_slash to try and create a directory, and if that
+     * fails, we move backwards to the previous path-component, and point
+     * last_slash to its last_slash, and repeat the process.
      *
-     * We then break out of the loop to then iterate forwards and create the
-     * directories afterwards.
+     * After we succeed, we break out of the loop, to then iterate forwards and
+     * create the subdirectories.
      *
      * If the directory already exists, we can simply return as it cannot happen
      * unless the second-to-last path-component already exists.

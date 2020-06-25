@@ -293,7 +293,7 @@ parse_version_min_lc(
     }
 
     /*
-     * All version_min load-commands should be the of the same cmdsize.
+     * All version_min load-commands should have the same cmdsize.
      */
 
     if (load_cmd.cmdsize != sizeof(struct version_min_command)) {
@@ -503,8 +503,8 @@ macho_file_parse_single_lc(
             if (!ignore_install_name) {
                 /*
                  * The install-name should be fully contained within the
-                 * dylib-command, while not overlapping with the dylib-command's
-                 * basic information.
+                 * dylib-command. At the same time, the install-name should not
+                 * overlap the dylib-command's basic structure.
                  */
 
                 uint32_t name_offset = dylib_command->dylib.name.offset;
@@ -710,8 +710,8 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * Ensure that sub_client_command can fit its basic structure and
-             * and information.
+             * Ensure that sub_client_command is large enough to store its
+             * basic structure.
              *
              * An exact match cannot be made as sub_client_command includes a
              * full client-string in its cmdsize.
@@ -720,12 +720,6 @@ macho_file_parse_single_lc(
             if (load_cmd.cmdsize < sizeof(struct sub_client_command)) {
                 return E_MACHO_FILE_PARSE_INVALID_LOAD_COMMAND;
             }
-
-            /*
-             * Ensure that the client is located fully within the load-command
-             * and after the basic information of a sub_client_command
-             * load-command structure.
-             */
 
             const struct sub_client_command *const client_command =
                 (const struct sub_client_command *)lc_iter;

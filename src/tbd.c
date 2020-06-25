@@ -365,7 +365,7 @@ tbd_metadata_info_comparator(const void *__notnull const array_item,
      * We try to avoid iterating and comparing over the whole string, so we
      * could check to ensure their lengths match up.
      *
-     * However, we don't want to symbols to ever be organized by their length,
+     * However, we don't want the symbols to ever be organized by their length,
      * which would be the case if `(array_length - length)` was returned.
      *
      * So instead, we use separate memcmp() calls for when array_length and
@@ -374,7 +374,8 @@ tbd_metadata_info_comparator(const void *__notnull const array_item,
      * This stops us from having to use strcmp(), which would be the case since
      * the lengths don't match.
      *
-     * Add one to also compare the null-terminator.
+     * We add one to also compare the null-terminator, so that the return-value
+     * is accurate.
      */
 
     if (array_length > length) {

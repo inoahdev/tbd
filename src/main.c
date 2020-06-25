@@ -899,13 +899,13 @@ int main(const int argc, char *const argv[]) {
 
                 if (tbd.parse_path == inner_arg) {
                     /*
-                    * Prevent any ending slashes from being copied to make
-                    * directory recursing easier.
-                    *
-                    * We only need to do this when full_path was not
-                    * created with the current-directory, as our path
-                    * functions don't append ending slashes.
-                    */
+                     * Prevent any ending slashes from being copied to make
+                     * directory recursing easier.
+                     *
+                     * We only need to do this when full_path was not
+                     * created with the current-directory, as our path
+                     * functions don't append ending slashes.
+                     */
 
                     tbd.parse_path_length =
                         remove_end_slashes(tbd.parse_path,
