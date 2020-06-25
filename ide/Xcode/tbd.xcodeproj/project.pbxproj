@@ -136,7 +136,6 @@
 		C3C1E9AD22D8502B008696B5 /* notnull.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = notnull.h; path = ../../include/notnull.h; sourceTree = "<group>"; };
 		C3C6D21422D7DC7900760FC6 /* likely.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = likely.h; path = ../../include/likely.h; sourceTree = "<group>"; };
 		C3C6D21622D7E75000760FC6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../.gitignore; sourceTree = "<group>"; };
-		C3C6D21722D7E75600760FC6 /* .gitmodules */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitmodules; path = ../../.gitmodules; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,7 +158,6 @@
 				C361A529224894C1001BD07A /* Makefile */,
 				C361A528224894C1001BD07A /* README.md */,
 				C3C6D21622D7E75000760FC6 /* .gitignore */,
-				C3C6D21722D7E75600760FC6 /* .gitmodules */,
 				C392B6102233686600419D2D /* Products */,
 			);
 			sourceTree = "<group>";
