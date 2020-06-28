@@ -307,8 +307,10 @@ dyld_shared_cache_parse_from_file(
      * file to memory.
      *
      * We map with write protections so we can use extra fields (like a
-     * dyld_cache_image_info's pad field) to save on memory, but use MAP_PRIVATE
-     * to prevent writing on the original file itself.
+     * dyld_cache_image_info's pad field) to save on memory.
+     *
+     * We also map with MAP_PRIVATE to prevent writing on the original file
+     * itself.
      */
 
     uint8_t *const map =

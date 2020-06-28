@@ -453,11 +453,6 @@ parse_trie_node(struct tbd_create_info *__notnull const info_in,
             if (unlikely(*iter != '\0')) {
                 iter++;
 
-                /*
-                 * Pass the length-calculation of the re-export's install-name
-                 * to strnlen in the hopes of better performance.
-                 */
-
                 const uint32_t maxlen = (uint32_t)(end - iter);
                 const uint32_t length = (uint32_t)strnlen((char *)iter, maxlen);
 

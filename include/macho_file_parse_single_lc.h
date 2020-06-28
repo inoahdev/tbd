@@ -1,5 +1,5 @@
 //
-//  include/macho_file_parse_single_lc.c
+//  include/macho_file_parse_single_lc.h
 //  tbd
 //
 //  Created by inoahdev on 12/10/19.

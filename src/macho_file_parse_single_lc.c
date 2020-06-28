@@ -404,7 +404,7 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * All linkedit-data load-commands should be the same size.
+             * All linkedit-data load-commands should have the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct linkedit_data_command)) {
@@ -440,7 +440,7 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * All dyld_info load-commands should be the same size.
+             * All dyld_info load-commands should have the same cmdsize.
              */
 
             if (load_cmd.cmdsize != sizeof(struct dyld_info_command)) {
@@ -481,8 +481,8 @@ macho_file_parse_single_lc(
             }
 
             /*
-             * Make sure the dylib-command is large enough to store its basic
-             * information.
+             * Every Dylib-Command needs to store its basic information, in
+             * addition to a path-string.
              */
 
             if (load_cmd.cmdsize < sizeof(struct dylib_command)) {
@@ -501,12 +501,6 @@ macho_file_parse_single_lc(
 
             bool ignore_install_name = tbd_options.ignore_install_name;
             if (!ignore_install_name) {
-                /*
-                 * The install-name should be fully contained within the
-                 * dylib-command. At the same time, the install-name should not
-                 * overlap the dylib-command's basic structure.
-                 */
-
                 uint32_t name_offset = dylib_command->dylib.name.offset;
                 if (is_big_endian) {
                     name_offset = swap_uint32(name_offset);
