@@ -20,10 +20,10 @@ DEBUGOBJS=$(foreach obj,$(SRCS:src/%=%),$(OBJ)/$(basename $(obj)).d.o)
 $(TARGET): $(OBJS)
 	@mkdir -p $(dir $(TARGET))
 	@$(CC) $^ -o $@
- 
+
 clean:
 	@$(RM) -rf $(OBJ)
-	@$(RM) -rf $(dir $(TARGET))
+	@$(RM) $(TARGET)
 
 debug: $(DEBUGTARGET)
 
