@@ -73,6 +73,15 @@ void print_usage(void) {
     fputs("        --ignore-uuids,            Ignore uuids field\n", stdout);
 
     fputc('\n', stdout);
+    fputs("Symbol Ignore options: (Subset of path options)\n", stdout);
+    fputs("        --ignore-normal-syms,       Ignore normal symbols\n", stdout);
+    fputs("        --ignore-objc-class-syms,   Ignore objc-class symbols\n", stdout);
+    fputs("        --ignore-objc-ivar-syms,    Ignore objc-ivar symbols\n", stdout);
+    fputs("        --ignore-objc-ehtype-syms,  Ignore objc-ehtype symbols\n", stdout);
+    fputs("        --ignore-thread-local-syms, Ignore thread-local symbols\n", stdout);
+    fputs("        --ignore-weak-def-syms,     Ignore weak-def symbols\n", stdout);
+
+    fputc('\n', stdout);
     fputs("General ignore options (Subset of path options):\n", stdout);
     fputs("        --ignore-requests,          Ignore any and all user requests\n", stdout);
     fputs("        --ignore-warnings,          Ignore any warnings\n", stdout);
@@ -86,6 +95,7 @@ void print_usage(void) {
     fputs("        --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.\n", stdout);
     fputs("                                        objc-ehtype symbols are only recognized for .tbd version v3 and above\n", stdout);
     fputs("        --allow-private-objc-ivars,     Allow all non-external objc-ivars\n", stdout);
+    fputs("        --use-export-trie,              Use only the export-trie and not the symbol-table\n", stdout);
     fputs("        --use-symbol-table,             Use the symbol-table over the export-trie\n", stdout);
 
     fputc('\n', stdout);

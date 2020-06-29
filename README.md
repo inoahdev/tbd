@@ -63,6 +63,14 @@ Ignore options: (Subset of path options)
         --ignore-undefineds,       Ignore undefineds field
         --ignore-uuids,            Ignore uuids field
 
+Symbol Ignore options: (Subset of path options)
+        --ignore-normal-syms,       Ignore normal symbols
+        --ignore-objc-class-syms,   Ignore objc-class symbols
+        --ignore-objc-ivar-syms,    Ignore objc-ivar symbols
+        --ignore-objc-ehtype-syms,  Ignore objc-ehtype symbols
+        --ignore-thread-local-syms, Ignore thread-local symbols
+        --ignore-weak-def-syms,     Ignore weak-def symbols
+
 General ignore options (Subset of path options):
         --ignore-requests,          Ignore any and all user requests
         --ignore-warnings,          Ignore any warnings
@@ -73,8 +81,9 @@ Symbol options: (Subset of path options)
         --allow-private-objc-symbols,   Allow all non-external objc-symbols (classes, ivars, and ehtypes)
         --allow-private-objc-classes,   Allow all non-external objc-classes
         --allow-private-objc-ehtypes,   Allow all non-external objc-ehtypes.
-                                        objc-ehtype symbols are only recognized for .tbd version v3
+                                        objc-ehtype symbols are only recognized for .tbd version v3 and above
         --allow-private-objc-ivars,     Allow all non-external objc-ivars
+        --use-export-trie,              Use only the export-trie and not the symbol-table
         --use-symbol-table,             Use the symbol-table over the export-trie
 
 Field options: (Subset of path options)
