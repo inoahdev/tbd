@@ -117,6 +117,9 @@ translate_macho_file_parse_result(const enum macho_file_parse_result result) {
         case E_MACHO_FILE_PARSE_CONFLICTING_ARCH_INFO:
             return E_DSC_IMAGE_PARSE_FAT_NOT_SUPPORTED;
 
+        case E_MACHO_FILE_PARSE_NO_EXPORT_TRIE:
+            return E_DSC_IMAGE_PARSE_NO_EXPORT_TRIE;
+
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
             return E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE;
 

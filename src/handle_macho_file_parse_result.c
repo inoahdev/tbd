@@ -1220,6 +1220,25 @@ handle_macho_file_parse_result(const char *__notnull const dir_path,
 
             break;
 
+        case E_MACHO_FILE_PARSE_NO_EXPORT_TRIE:
+            if (is_recursing) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s/%s) has no export-trie\n",
+                        dir_path,
+                        name);
+            } else if (print_paths) {
+                fprintf(stderr,
+                        "Mach-o file (at path %s), or one of its archs, "
+                        "doesn't have an export-trie\n",
+                        dir_path);
+            } else {
+                fputs("The provided mach-o file, or one of its archs, doesn't "
+                      "have an export-trie\n",
+                      stderr);
+            }
+
+            break;
+
         case E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE:
             if (is_recursing) {
                 fprintf(stderr,

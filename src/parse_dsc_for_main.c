@@ -124,6 +124,7 @@ print_image_error(struct dsc_iterate_images_info *__notnull const iterate_info,
         case E_DSC_IMAGE_PARSE_INVALID_REEXPORT:
         case E_DSC_IMAGE_PARSE_INVALID_SYMBOL_TABLE:
         case E_DSC_IMAGE_PARSE_INVALID_STRING_TABLE:
+        case E_DSC_IMAGE_PARSE_NO_EXPORT_TRIE:
         case E_DSC_IMAGE_PARSE_NO_SYMBOL_TABLE:
         case E_DSC_IMAGE_PARSE_INVALID_EXPORTS_TRIE:
         case E_DSC_IMAGE_PARSE_CREATE_SYMBOLS_FAIL:

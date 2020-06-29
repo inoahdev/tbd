@@ -902,6 +902,8 @@ macho_file_parse_load_commands_from_file(
             } else {
                 parse_symtab = false;
             }
+        } else if (options.use_export_trie) {
+            return E_MACHO_FILE_PARSE_NO_EXPORT_TRIE;
         } else if (symtab.nsyms == 0) {
             return E_MACHO_FILE_PARSE_NO_SYMBOL_TABLE;
         }

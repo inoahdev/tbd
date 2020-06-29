@@ -390,9 +390,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->flags.provided_ignore_current_version) {
         if (tbd->flags.provided_current_version) {
             fprintf(stderr,
-                    "Please exclusively provide either "
-                    "--ignore-current-version or --replace-current-version for "
-                    "file from: %s\n",
+                    "Please choose either --ignore-current-version or "
+                    "--replace-current-version for file from: %s\n",
                     path);
 
             result = 1;
@@ -402,8 +401,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->flags.provided_ignore_compat_version) {
         if (tbd->flags.provided_compat_version) {
             fprintf(stderr,
-                    "Please exclusively provide either --ignore-compat-version "
-                    "or --replace-compat-version for path: %s\n",
+                    "Please choose either --ignore-compat-version or "
+                    "--replace-compat-version for path: %s\n",
                     path);
 
             result = 1;
@@ -413,8 +412,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->flags.provided_ignore_flags) {
         if (tbd->flags.provided_flags) {
             fprintf(stderr,
-                    "Please exclusively provide either --ignore-flags or "
-                    "--replace-flags for path: %s\n",
+                    "Please choose either --ignore-flags or --replace-flags "
+                    "for path: %s\n",
                     path);
 
             result = 1;
@@ -424,9 +423,8 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->flags.provided_ignore_objc_constraint) {
         if (tbd->flags.provided_objc_constraint) {
             fprintf(stderr,
-                    "Please exclusively provide either "
-                    "--ignore-objc-constraint or --replace-objc-constraint for "
-                    "file from: %s\n",
+                    "Please choose either --ignore-objc-constraint or "
+                    "--replace-objc-constraint for file from: %s\n",
                     path);
 
             result = 1;
@@ -436,8 +434,19 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
     if (tbd->flags.provided_ignore_swift_version) {
         if (tbd->flags.provided_swift_version) {
             fprintf(stderr,
-                    "Please exclusively provide either --ignore-swift-version "
-                    "or --replace-swift-version for path: %s\n",
+                    "Please choose either --ignore-swift-version or "
+                    "--replace-swift-version for path: %s\n",
+                    path);
+
+            result = 1;
+        }
+    }
+
+    if (tbd->macho_options.use_symbol_table) {
+        if (tbd->macho_options.use_export_trie) {
+            fprintf(stderr,
+                    "Please provide either --use-export-trie or "
+                    "--use-symbol-table for path: %s\n",
                     path);
 
             result = 1;

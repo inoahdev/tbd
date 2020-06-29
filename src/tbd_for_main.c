@@ -526,6 +526,8 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->flags.provided_targets = true;
     } else if (strcmp(option, "skip-invalid-archs") == 0) {
         tbd->macho_options.skip_invalid_archs = true;
+    } else if (strcmp(option, "use-export-trie") == 0) {
+        tbd->macho_options.use_export_trie = true;
     } else if (strcmp(option, "use-symbol-table") == 0) {
         tbd->macho_options.use_symbol_table = true;
     } else if (strcmp(option, "v") == 0 || strcmp(option, "version") == 0) {
