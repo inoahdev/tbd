@@ -632,8 +632,8 @@ static inline int
 write_uuid(FILE *__notnull const file, const uint8_t *__notnull const uuid) {
     const int ret =
         fprintf(file,
-                "'%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X"
-                "%.2X%.2X%.2X%.2X%.2X'",
+                "%.2X%.2X%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X%.2X-%.2X"
+                "%.2X%.2X%.2X%.2X%.2X",
                 uuid[0],
                 uuid[1],
                 uuid[2],
@@ -679,6 +679,10 @@ write_single_uuid_for_archs(FILE *__notnull const file,
     }
 
     if (write_uuid(file, uuid)) {
+        return 1;
+    }
+
+    if (fputc('\'', file) < 0) {
         return 1;
     }
 
@@ -776,11 +780,15 @@ write_uuid_with_target(FILE *__notnull const file,
         return 1;
     }
 
+    if (fputc('\'', file) < 0) {
+        return 1;
+    }
+
     if (write_uuid(file, uuid)) {
         return 1;
     }
 
-    if (fputc('\n', file) < 0) {
+    if (fputs("'\n", file) < 0) {
         return 1;
     }
 
