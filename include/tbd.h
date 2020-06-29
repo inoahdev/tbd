@@ -39,6 +39,13 @@ struct tbd_parse_options {
     bool ignore_undefineds : 1;
     bool ignore_uuids : 1;
 
+    bool ignore_normal_syms : 1;
+    bool ignore_objc_class_syms : 1;
+    bool ignore_objc_ivar_syms : 1;
+    bool ignore_objc_ehtype_syms : 1;
+    bool ignore_thread_local_syms : 1;
+    bool ignore_weak_defs_syms : 1;
+
     /*
      * Options dictating what types of symbols should also be allowed in
      * addition to the default types.
@@ -349,6 +356,14 @@ struct tbd_create_options {
             bool ignore_undefineds : 1;
             bool ignore_uuids : 1;
             bool ignore_unnecessary_fields : 1;
+
+            bool ignore_normal_syms : 1;
+            bool ignore_objc_class_syms : 1;
+            bool ignore_objc_ivar_syms : 1;
+            bool ignore_objc_ehtype_syms : 1;
+            bool ignore_thread_local_syms : 1;
+            bool ignore_weak_defs_syms : 1;
+
             bool use_full_targets : 1;
         };
     };

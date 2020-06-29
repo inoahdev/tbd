@@ -571,6 +571,67 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                             enum tbd_symbol_meta_type meta_type,
                             const struct tbd_parse_options options)
 {
+    switch (type) {
+        case TBD_SYMBOL_TYPE_NONE:
+            break;
+
+        case TBD_SYMBOL_TYPE_CLIENT:
+            if (options.ignore_clients) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_REEXPORT:
+            if (options.ignore_reexports) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_NORMAL:
+            if (options.ignore_normal_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_OBJC_CLASS:
+            if (options.ignore_objc_class_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_OBJC_EHTYPE:
+            if (options.ignore_objc_ehtype_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_OBJC_IVAR:
+            if (options.ignore_objc_ivar_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_WEAK_DEF:
+            if (options.ignore_weak_defs_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+
+        case TBD_SYMBOL_TYPE_THREAD_LOCAL:
+            if (options.ignore_thread_local_syms) {
+                return E_TBD_CI_ADD_DATA_OK;
+            }
+
+            break;
+    }
+
     const enum tbd_version version = info_in->version;
     switch (version) {
         case TBD_VERSION_NONE:
@@ -635,6 +696,12 @@ tbd_ci_add_symbol_with_type(struct tbd_create_info *__notnull const info_in,
                 case TBD_SYMBOL_TYPE_OBJC_EHTYPE:
                 case TBD_SYMBOL_TYPE_WEAK_DEF:
                 case TBD_SYMBOL_TYPE_THREAD_LOCAL:
+                    if (options.ignore_exports) {
+                        if (meta_type == TBD_SYMBOL_META_TYPE_EXPORT) {
+                            return E_TBD_CI_ADD_DATA_OK;
+                        }
+                    }
+
                     break;
 
                 case TBD_SYMBOL_TYPE_CLIENT: {

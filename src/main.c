@@ -326,6 +326,22 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             result = check_flags(tbd, version, result);
             result = check_targets(tbd, version, result);
 
+            if (tbd->parse_options.ignore_objc_ehtype_syms) {
+                if (tbd->flags.provided_tbd_version) {
+                    fprintf(stderr,
+                            "Note: ObjC ehtype-symbols are not parsed for "
+                            "tbd-version %s, for path: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                } else {
+                    fprintf(stderr,
+                            "Note: ObjC ehtype-symbols are not parsed for "
+                            "default tbd-version %s, for path: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                }
+            }
+
             if (tbd->parse_options.ignore_undefineds) {
                 if (tbd->flags.provided_tbd_version) {
                     fprintf(stderr,
@@ -345,6 +361,23 @@ verify_tbd_for_main(struct tbd_for_main *__notnull const tbd,
             break;
 
         case TBD_VERSION_V2:
+            if (tbd->parse_options.ignore_objc_ehtype_syms) {
+                if (tbd->flags.provided_tbd_version) {
+                    fprintf(stderr,
+                            "Note: ObjC ehtype-symbols are not parsed for "
+                            "tbd-version %s, for path: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                } else {
+                    fprintf(stderr,
+                            "Note: ObjC ehtype-symbols are not parsed for "
+                            "default tbd-version %s, for path: %s\n",
+                            tbd_version_to_string(tbd->info.version),
+                            path);
+                }
+            }
+
+            // fall through
         case TBD_VERSION_V3:
             result = check_targets(tbd, version, result);
             break;

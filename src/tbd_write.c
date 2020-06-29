@@ -1490,41 +1490,107 @@ write_symbol_info(FILE *__notnull const file,
 }
 
 static int
+skip_syms_with_sym_type(const struct tbd_symbol_info *__notnull sym,
+                        const struct tbd_symbol_info *__notnull const end,
+                        const struct tbd_create_options options,
+                        const struct tbd_symbol_info **__notnull symbol_out)
+{
+    for (; sym != end; sym++) {
+        switch (sym->type) {
+            case TBD_SYMBOL_TYPE_NONE:
+                return 1;
+            case TBD_SYMBOL_TYPE_CLIENT:
+                if (options.ignore_clients) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_REEXPORT:
+                if (options.ignore_reexports) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_NORMAL:
+                if (options.ignore_normal_syms) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_OBJC_CLASS:
+                if (options.ignore_objc_class_syms) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_OBJC_EHTYPE:
+                if (options.ignore_objc_ehtype_syms) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_OBJC_IVAR:
+                if (options.ignore_objc_ivar_syms) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_WEAK_DEF:
+                if (options.ignore_weak_defs_syms) {
+                    continue;
+                }
+
+                break;
+            case TBD_SYMBOL_TYPE_THREAD_LOCAL:
+                if (options.ignore_thread_local_syms) {
+                    continue;
+                }
+
+                break;
+        }
+
+        *symbol_out = sym;
+        return 0;
+    }
+
+    return 1;
+}
+
+static int
 skip_syms_with_mtype(const struct tbd_symbol_info *__notnull sym,
                      const struct tbd_symbol_info *__notnull const end,
-                     const enum tbd_symbol_meta_type type,
+                     enum tbd_symbol_meta_type type,
                      const struct tbd_create_options options,
                      const struct tbd_symbol_info **__notnull symbol_out)
 {
-    for (; sym != end; sym++) {
+    for (; sym != end; sym++, type = sym->meta_type) {
         switch (type) {
             case TBD_SYMBOL_META_TYPE_NONE:
                 return 1;
 
             case TBD_SYMBOL_META_TYPE_EXPORT:
                 if (options.ignore_exports) {
-                    break;
+                    continue;
                 }
 
-                *symbol_out = sym;
-                return 0;
+                break;
 
             case TBD_SYMBOL_META_TYPE_REEXPORT:
                 if (options.ignore_reexports) {
-                    break;
+                    continue;
                 }
 
-                *symbol_out = sym;
-                return 0;
+                break;
 
             case TBD_SYMBOL_META_TYPE_UNDEFINED:
                 if (options.ignore_undefineds) {
-                    break;
+                    continue;
                 }
 
-                *symbol_out = sym;
-                return 0;
+                break;
         }
+
+        return skip_syms_with_sym_type(sym, end, options, symbol_out);
     }
 
     return 1;
@@ -1646,10 +1712,16 @@ tbd_write_symbols_for_archs(FILE *__notnull const file,
                  * and create the new one of the current sym-info.
                  */
 
-                const enum tbd_symbol_type in_type = sym->type;
+                enum tbd_symbol_type in_type = sym->type;
                 if (in_type != type) {
                     if (end_written_sequence(file)) {
                         return 1;
+                    }
+
+                    if (skip_syms_with_sym_type(sym, end, options, &sym) == 0) {
+                        in_type = sym->type;
+                    } else {
+                        return 0;
                     }
 
                     if (write_symbol_type_key(file, in_type, version, true)) {
@@ -1814,10 +1886,16 @@ meta:
                  * and create the new one of the current sym-info.
                  */
 
-                const enum tbd_symbol_type in_type = sym->type;
+                enum tbd_symbol_type in_type = sym->type;
                 if (in_type != type) {
                     if (end_written_sequence(file)) {
                         return 1;
+                    }
+
+                    if (skip_syms_with_sym_type(sym, end, options, &sym) == 0) {
+                        in_type = sym->type;
+                    } else {
+                        return 0;
                     }
 
                     if (write_symbol_type_key(file, in_type, version, true)) {

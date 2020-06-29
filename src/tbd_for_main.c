@@ -198,10 +198,22 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->parse_options.ignore_missing_uuids = true;
     } else if (strcmp(option, "ignore-non-unique-uuids") == 0) {
         tbd->parse_options.ignore_non_unique_uuids = true;
+    } else if (strcmp(option, "ignore-normal-syms") == 0) {
+        tbd->parse_options.ignore_normal_syms = true;
+        tbd->write_options.ignore_normal_syms = true;
+    } else if (strcmp(option, "ignore-objc-class-syms") == 0) {
+        tbd->parse_options.ignore_objc_class_syms = true;
+        tbd->write_options.ignore_objc_class_syms = true;
     } else if (strcmp(option, "ignore-objc-constraint") == 0) {
         tbd->parse_options.ignore_objc_constraint = true;
         tbd->write_options.ignore_objc_constraint = true;
         tbd->flags.provided_ignore_objc_constraint = true;
+    } else if (strcmp(option, "ignore-objc-ehtype-syms") == 0) {
+        tbd->parse_options.ignore_objc_ehtype_syms = true;
+        tbd->write_options.ignore_objc_ehtype_syms = true;
+    } else if (strcmp(option, "ignore-objc-ivar-syms") == 0) {
+        tbd->parse_options.ignore_objc_ivar_syms = true;
+        tbd->write_options.ignore_objc_ivar_syms = true;
     } else if (strcmp(option, "ignore-parent-umbrellas") == 0) {
         tbd->parse_options.ignore_parent_umbrellas = true;
         tbd->write_options.ignore_parent_umbrellas = true;
@@ -213,6 +225,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
     } else if (strcmp(option, "ignore-swift-version") == 0) {
         tbd->parse_options.ignore_swift_version = true;
         tbd->flags.provided_ignore_swift_version = true;
+    } else if (strcmp(option, "ignore-thread-local-syms") == 0) {
+        tbd->parse_options.ignore_thread_local_syms = true;
+        tbd->write_options.ignore_thread_local_syms = true;
     } else if (strcmp(option, "ignore-undefineds") == 0) {
         tbd->parse_options.ignore_undefineds = true;
         tbd->write_options.ignore_undefineds = true;
@@ -221,6 +236,9 @@ tbd_for_main_parse_option(int *const __notnull index_in,
         tbd->write_options.ignore_uuids = true;
     } else if (strcmp(option, "ignore-warnings") == 0) {
         tbd->options.ignore_warnings = true;
+    } else if (strcmp(option, "ignore-weak-def-syms") == 0) {
+        tbd->parse_options.ignore_weak_defs_syms = true;
+        tbd->write_options.ignore_weak_defs_syms = true;
     } else if (strcmp(option, "ignore-wrong-filetype") == 0) {
         tbd->macho_options.ignore_wrong_filetype = true;
     } else if (strcmp(option, "filter-image-directory") == 0) {
