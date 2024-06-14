@@ -243,6 +243,8 @@ parse_macho_file_for_main(const struct parse_macho_for_main_args args) {
         return E_PARSE_MACHO_FOR_MAIN_OTHER_ERROR;
     }
 
+    tbd_for_main_handle_post_parse(args.tbd);
+
     if (args.options.verify_write_path) {
         verify_write_path(args.tbd);
     }
