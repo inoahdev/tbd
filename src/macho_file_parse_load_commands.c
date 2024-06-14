@@ -387,7 +387,7 @@ handle_targets_platform_and_uuid(
         if (handle_uuid_result != E_MACHO_FILE_PARSE_OK) {
             return handle_uuid_result;
         }
-    } else if (arch != NULL) {
+    } else if (!tbd_options.ignore_platform) {
         if (platform == TBD_PLATFORM_NONE) {
             const bool should_continue =
                 call_callback(callback,
